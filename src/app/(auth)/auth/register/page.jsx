@@ -404,7 +404,7 @@ function Signup() {
                   <div className="mt-8 text-center">
                     <span className="text-gray-600">Already have an account? </span>
                     <Link 
-                      href="/login" 
+                      href="/auth/login" 
                       className="font-bold text-orange-500 hover:text-orange-600 transition-colors"
                     >
                       Login

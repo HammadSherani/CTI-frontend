@@ -1,473 +1,393 @@
-"use client";
+"use client"
 
-import React, { useState } from 'react';
+import React, { useState } from "react";
+import { useForm, Controller } from "react-hook-form";
+import { yupResolver } from "@hookform/resolvers/yup";
+import * as yup from "yup";
+import { Icon } from "@iconify/react";
+import Logins from "../../../../../public/assets/user/login.png";
+import Link from "next/link";
+import Image from "next/image";
+import axiosInstance from "@/config/axiosInstance";
+import handleError from "@/helper/handleError";
 
-const ForgotPassword = () => {
-  const [step, setStep] = useState(1); // 1: Email input, 2: Success message, 3: Reset form
-  const [email, setEmail] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+// Validation schema
+const schema = yup.object().shape({
+  email: yup
+    .string()
+    .required("Email is required")
+    .email("Please enter a valid email address"),
+});
 
-  // Email validation
-  const isValidEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
+function ForgotPassword() {
+  const [isEmailSent, setIsEmailSent] = useState(false);
+  const [sentEmail, setSentEmail] = useState("");
 
-  // Password strength checker
-  const getPasswordStrength = (password) => {
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (/[a-z]/.test(password)) score++;
-    if (/[A-Z]/.test(password)) score++;
-    if (/[0-9]/.test(password)) score++;
-    if (/[^A-Za-z0-9]/.test(password)) score++;
-    
-    if (score <= 2) return { strength: 'weak', color: 'red', width: '33%' };
-    if (score === 3) return { strength: 'medium', color: 'yellow', width: '66%' };
-    return { strength: 'strong', color: 'green', width: '100%' };
-  };
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    watch,
+  } = useForm({
+    resolver: yupResolver(schema),
+    defaultValues: {
+      email: "",
+    },
+  });
 
-  // Handle email submission
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault();
-    
-    if (!email) {
-      setError('Please enter your email address');
-      return;
-    }
-    
-    if (!isValidEmail(email)) {
-      setError('Please enter a valid email address');
-      return;
-    }
+  const emailValue = watch("email");
 
-    setIsLoading(true);
-    setError('');
-
+  const onSubmit = async (data) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setStep(2);
+      console.log("Forgot password submitted:", data);
+      const response = await axiosInstance.post("/auth/forgot-password", {
+        email: data.email,
+      });
+
+      // Handle successful request
+      setSentEmail(data.email);
+      setIsEmailSent(true);
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
     } catch (error) {
-      setError('Failed to send reset email. Please try again.');
-    } finally {
-      setIsLoading(false);
+      handleError(error);
     }
   };
 
-  // Handle password reset
-  const handlePasswordReset = async (e) => {
-    e.preventDefault();
-    
-    if (!newPassword || !confirmPassword) {
-      setError('Please fill in all fields');
-      return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-      setError('Passwords do not match');
-      return;
-    }
-    
-    if (newPassword.length < 8) {
-      setError('Password must be at least 8 characters long');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-
+  const handleResendEmail = async () => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      // Success - redirect to login
-      console.log('Password reset successful!');
+      await axiosInstance.post("/auth/forgot-password", {
+        email: sentEmail,
+      });
+      // Show success message
     } catch (error) {
-      setError('Failed to reset password. Please try again.');
-    } finally {
-      setIsLoading(false);
+      handleError(error);
     }
   };
 
-  // Step 1: Email Input
-  if (step === 1) {
+  if (isEmailSent) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Forgot Password?</h1>
-            <p className="text-gray-600 text-sm">
-              No worries! Enter your email address and we'll send you a link to reset your password.
-            </p>
-          </div>
-
-          {/* Form */}
-          <div className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  id="email"
-                  value={email}
-                  onChange={(e) => {
-                    setEmail(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="Enter your email address"
-                  className={`
-                    w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200
-                    ${error ? 'border-red-300 bg-red-50' : 'border-gray-300 focus:border-blue-500'}
-                  `}
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                </svg>
-              </div>
-              {error && (
-                <p className="mt-2 text-sm text-red-600 flex items-center">
-                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {error}
+      <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
+        
+        {/* Left Image Section */}
+        <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="flex items-center justify-center h-full p-8 relative z-10">
+            <div className="text-center">
+              <Image
+                src={Logins}
+                alt="Password Reset Illustration"
+                className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
+                priority
+              />
+              <div className="text-white">
+                <h2 className="text-3xl font-bold mb-4">Check Your Email</h2>
+                <p className="text-xl text-orange-100 mb-6">
+                  We've sent password reset instructions
                 </p>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={handleEmailSubmit}
-              disabled={isLoading}
-              className={`
-                w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 transform
-                ${isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 hover:scale-[1.02] shadow-lg hover:shadow-xl'
-                }
-              `}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Sending Reset Link...
-                </span>
-              ) : (
-                'Send Reset Link'
-              )}
-            </button>
-          </div>
-
-          {/* Back to Login */}
-          <div className="mt-6 text-center">
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors">
-              ← Back to Login
-            </button>
-          </div>
-
-          {/* Help */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs text-gray-600 text-center mb-2">
-              <strong>Need help?</strong>
-            </p>
-            <div className="flex justify-center space-x-4 text-xs">
-              <button className="text-blue-600 hover:text-blue-700">Contact Support</button>
-              <span className="text-gray-400">•</span>
-              <button className="text-blue-600 hover:text-blue-700">FAQ</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 2: Success Message
-  if (step === 2) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md text-center">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg className="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-            </svg>
-          </div>
-          
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Check Your Email</h1>
-          <p className="text-gray-600 mb-6">
-            We've sent a password reset link to
-            <br />
-            <span className="font-semibold text-gray-800">{email}</span>
-          </p>
-
-          <div className="space-y-4 mb-6">
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-              <p className="text-sm text-blue-800">
-                <strong>What's next?</strong>
-              </p>
-              <ul className="text-xs text-blue-700 mt-2 space-y-1 text-left">
-                <li>• Check your email inbox</li>
-                <li>• Click the reset link in the email</li>
-                <li>• Create your new password</li>
-                <li>• Login with your new password</li>
-              </ul>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setStep(3)}
-            className="w-full py-3 px-4 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors mb-4"
-          >
-            I Have the Reset Code
-          </button>
-
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">Didn't receive the email?</p>
-            <div className="space-y-1">
-              <button
-                onClick={() => setStep(1)}
-                className="text-sm text-blue-600 hover:text-blue-700 block mx-auto"
-              >
-                Try another email address
-              </button>
-              <button className="text-sm text-blue-600 hover:text-blue-700 block mx-auto">
-                Resend email
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-xs text-yellow-700">
-              <strong>Demo:</strong> Click "I Have the Reset Code" to proceed to password reset
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Step 3: Password Reset Form
-  if (step === 3) {
-    const passwordStrength = getPasswordStrength(newPassword);
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-              </svg>
-            </div>
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">Reset Password</h1>
-            <p className="text-gray-600 text-sm">
-              Create a new password for your account
-            </p>
-          </div>
-
-          <div className="space-y-6">
-            {/* New Password */}
-            <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                New Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  id="newPassword"
-                  value={newPassword}
-                  onChange={(e) => {
-                    setNewPassword(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="Enter new password"
-                  className="w-full pl-10 pr-12 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                >
-                  {showPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
-                </button>
-              </div>
-              
-              {/* Password Strength Indicator */}
-              {newPassword && (
-                <div className="mt-2">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-gray-600">Password strength</span>
-                    <span className={`text-xs font-medium ${
-                      passwordStrength.color === 'red' ? 'text-red-600' :
-                      passwordStrength.color === 'yellow' ? 'text-yellow-600' : 'text-green-600'
-                    }`}>
-                      {passwordStrength.strength}
-                    </span>
+                <div className="flex items-center justify-center gap-6 text-orange-100">
+                  <div className="flex items-center gap-2">
+                    <Icon icon="mdi:email-check" className="text-2xl" />
+                    <span className="text-sm">Email Sent</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        passwordStrength.color === 'red' ? 'bg-red-500' :
-                        passwordStrength.color === 'yellow' ? 'bg-yellow-500' : 'bg-green-500'
-                      }`}
-                      style={{ width: passwordStrength.width }}
-                    ></div>
+                  <div className="flex items-center gap-2">
+                    <Icon icon="mdi:shield-lock" className="text-2xl" />
+                    <span className="text-sm">Secure Reset</span>
                   </div>
                 </div>
-              )}
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative Elements */}
+          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
+          <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
+          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full"></div>
+        </div>
+
+        {/* Right Success Section */}
+        <div className="col-span-1 lg:col-span-7 flex items-center justify-center p-4 bg-gray-50">
+          <div className="w-full max-w-md">
+            
+            {/* Language Switch */}
+            <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
+              <span className="flex items-center justify-end gap-2">
+                <Icon icon="mdi:web" className="text-base" />
+                English (UK) 
+                <Icon icon="mdi:chevron-down" className="text-xs" />
+              </span>
             </div>
 
-            {/* Confirm Password */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
-                Confirm Password
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  id="confirmPassword"
-                  value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setError('');
-                  }}
-                  placeholder="Confirm new password"
-                  className={`
-                    w-full pl-10 pr-12 py-3 border-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-200
-                    ${confirmPassword && newPassword !== confirmPassword 
-                      ? 'border-red-300 bg-red-50' 
-                      : 'border-gray-300 focus:border-blue-500'
-                    }
-                  `}
-                />
-                <svg className="w-5 h-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+            {/* Main Content */}
+            <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
+              
+              {/* Success Header */}
+              <div className="text-center mb-8">
+                <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                  <Icon icon="mdi:email-check-outline" className="text-4xl text-green-500" />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                  Check Your Email
+                </h1>
+                <p className="text-gray-600 mb-4">
+                  We've sent password reset instructions to:
+                </p>
+                <p className="text-orange-500 font-semibold text-lg mb-6">
+                  {sentEmail}
+                </p>
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <Icon icon="mdi:information" className="text-blue-500 text-xl mt-0.5" />
+                    <div className="text-left">
+                      <h3 className="font-semibold text-blue-900 mb-1">What's next?</h3>
+                      <ul className="text-sm text-blue-800 space-y-1">
+                        <li>• Check your email inbox and spam folder</li>
+                        <li>• Click the reset link in the email</li>
+                        <li>• Create a new secure password</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-4">
                 <button
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                  onClick={handleResendEmail}
+                  className="w-full py-4 font-bold text-orange-500 bg-orange-50 border-2 border-orange-200 rounded-xl hover:bg-orange-100 hover:border-orange-300 transition-all duration-200"
                 >
-                  {showConfirmPassword ? (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                    </svg>
-                  ) : (
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  <div className="flex items-center justify-center">
+                    <Icon icon="mdi:email-send" className="mr-2 text-xl" />
+                    Resend Email
+                  </div>
                 </button>
                 
-                {/* Match Indicator */}
-                {confirmPassword && (
-                  <div className="absolute right-12 top-1/2 transform -translate-y-1/2">
-                    {newPassword === confirmPassword ? (
-                      <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                    ) : (
-                      <svg className="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    )}
+                <Link href="/login">
+                  <button className="w-full py-4 font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-[1.02] transition-all duration-200">
+                    <div className="flex items-center justify-center">
+                      <Icon icon="mdi:arrow-left" className="mr-2 text-xl" />
+                      Back to Login
+                    </div>
+                  </button>
+                </Link>
+              </div>
+
+              {/* Help Section */}
+              <div className="mt-8 p-4 bg-gray-50 rounded-xl text-center">
+                <div className="flex items-center justify-center gap-2 text-gray-600 mb-2">
+                  <Icon icon="mdi:help-circle-outline" className="text-lg" />
+                  <span className="text-sm font-medium">Didn't receive the email?</span>
+                </div>
+                <p className="text-xs text-gray-500 mb-3">
+                  Check your spam folder or try a different email address
+                </p>
+                <Link href="/support" className="text-orange-500 hover:text-orange-600 font-medium text-sm">
+                  Contact Support
+                </Link>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
+        
+        {/* Left Image Section */}
+        <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+          <div className="absolute inset-0 bg-black/10"></div>
+          <div className="flex items-center justify-center h-full p-8 relative z-10">
+            <div className="text-center">
+              <Image
+                src={Logins}
+                alt="Forgot Password Illustration"
+                className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
+                priority
+              />
+              <div className="text-white">
+                <h2 className="text-3xl font-bold mb-4">Reset Password</h2>
+                <p className="text-xl text-orange-100 mb-6">
+                  Don't worry, we'll help you get back in
+                </p>
+                <div className="flex items-center justify-center gap-6 text-orange-100">
+                  <div className="flex items-center gap-2">
+                    <Icon icon="mdi:shield-lock" className="text-2xl" />
+                    <span className="text-sm">Secure Process</span>
                   </div>
-                )}
+                  <div className="flex items-center gap-2">
+                    <Icon icon="mdi:clock-fast" className="text-2xl" />
+                    <span className="text-sm">Quick Recovery</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Decorative Elements */}
+          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
+          <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
+          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full"></div>
+        </div>
+
+        {/* Right Form Section */}
+        <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
+          <div className="w-full max-w-md">
+            
+            {/* Language Switch */}
+            <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
+              <span className="flex items-center justify-end gap-2">
+                <Icon icon="mdi:web" className="text-base" />
+                English (UK) 
+                <Icon icon="mdi:chevron-down" className="text-xs" />
+              </span>
+            </div>
+
+            {/* Main Content */}
+            <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
+              
+              {/* Header */}
+              <div className="text-center mb-8">
+                <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Icon icon="mdi:lock-reset" className="text-3xl text-orange-500" />
+                </div>
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  Forgot Password?
+                </h1>
+                <p className="text-gray-600">
+                  No worries! Enter your email and we'll send you reset instructions
+                </p>
+              </div>
+
+              {/* Reset Password Form */}
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+                
+                {/* Email Field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email Address
+                  </label>
+                  <Controller
+                    name="email"
+                    control={control}
+                    render={({ field }) => (
+                      <div className="relative">
+                        <input
+                          {...field}
+                          type="email"
+                          placeholder="Enter your email address"
+                          className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
+                            errors.email 
+                              ? "border-red-300 focus:border-red-500" 
+                              : "border-gray-200 focus:border-orange-500"
+                          }`}
+                        />
+                        <Icon 
+                          icon="mdi:email-outline" 
+                          className="absolute left-4 top-3.5 text-gray-400 text-lg" 
+                        />
+                      </div>
+                    )}
+                  />
+                  {errors.email && (
+                    <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
+                      <Icon icon="mdi:alert-circle" className="text-sm" />
+                      {errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Info Box */}
+                {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <Icon icon="mdi:information" className="text-blue-500 text-xl mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-blue-900 mb-1">How it works</h3>
+                      <p className="text-sm text-blue-800">
+                        We'll send a secure link to your email address. Click the link to create a new password for your account.
+                      </p>
+                    </div>
+                  </div>
+                </div> */}
+
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="w-full py-4 font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-[1.02] transition-all duration-200 disabled:opacity-50 disabled:transform-none disabled:hover:from-orange-500 disabled:hover:to-orange-600"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 mr-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Sending Reset Link...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Icon icon="mdi:email-send" className="mr-2 text-xl" />
+                      Send Reset Link
+                    </div>
+                  )}
+                </button>
+              </form>
+
+              {/* Back to Login */}
+              <div className="mt-8 text-center">
+                <Link 
+                  href="/auth/login" 
+                  className="font-bold text-orange-500 hover:text-orange-600 transition-colors inline-flex items-center gap-2"
+                >
+                  <Icon icon="mdi:arrow-left" className="text-lg" />
+                  Back to Login
+                </Link>
+              </div>
+
+              {/* Alternative Options */}
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="text-center text-sm text-gray-600">
+                  <p className="mb-3">Still having trouble?</p>
+                  <div className="flex items-center justify-center gap-4">
+                    <Link href="/support" className="text-orange-500 hover:text-orange-600 font-medium">
+                      Contact Support
+                    </Link>
+                    <span className="text-gray-300">•</span>
+                    <Link href="/signup" className="text-orange-500 hover:text-orange-600 font-medium">
+                      Create New Account
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Terms */}
+              <p className="mt-6 text-xs text-center text-gray-500">
+                By resetting your password, you agree to our{" "}
+                <a href="#" className="text-orange-500 hover:underline">Terms of Service</a>
+                {" "}and{" "}
+                <a href="#" className="text-orange-500 hover:underline">Privacy Policy</a>
+              </p>
+
+            </div>
+
+            {/* Help Section */}
+            <div className="mt-6 text-center">
+              <div className="inline-flex items-center gap-2 text-gray-500 text-sm">
+                <Icon icon="mdi:help-circle-outline" className="text-lg" />
+                <span>Need immediate help? </span>
+                <Link href="/support" className="text-orange-500 hover:text-orange-600 font-medium">
+                  Get Support
+                </Link>
               </div>
             </div>
 
-            {error && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                <p className="text-sm text-red-600 flex items-center">
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {error}
-                </p>
-              </div>
-            )}
-
-            <button
-              type="button"
-              onClick={handlePasswordReset}
-              disabled={isLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword}
-              className={`
-                w-full py-3 px-4 rounded-lg font-medium text-white transition-all duration-200 transform
-                ${isLoading || !newPassword || !confirmPassword || newPassword !== confirmPassword
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 active:bg-blue-800 hover:scale-[1.02] shadow-lg hover:shadow-xl'
-                }
-              `}
-            >
-              {isLoading ? (
-                <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-2 h-5 w-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Resetting Password...
-                </span>
-              ) : (
-                'Reset Password'
-              )}
-            </button>
-          </div>
-
-          {/* Password Requirements */}
-          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-            <p className="text-xs font-medium text-gray-700 mb-2">Password must contain:</p>
-            <ul className="text-xs text-gray-600 space-y-1">
-              <li className={`flex items-center ${newPassword.length >= 8 ? 'text-green-600' : ''}`}>
-                <svg className={`w-3 h-3 mr-2 ${newPassword.length >= 8 ? 'text-green-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                At least 8 characters
-              </li>
-              <li className={`flex items-center ${/[A-Z]/.test(newPassword) ? 'text-green-600' : ''}`}>
-                <svg className={`w-3 h-3 mr-2 ${/[A-Z]/.test(newPassword) ? 'text-green-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                One uppercase letter
-              </li>
-              <li className={`flex items-center ${/[0-9]/.test(newPassword) ? 'text-green-600' : ''}`}>
-                <svg className={`w-3 h-3 mr-2 ${/[0-9]/.test(newPassword) ? 'text-green-500' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                One number
-              </li>
-            </ul>
           </div>
         </div>
-      </div>
-    );
-  }
-};
+
+      </section>
+    </>
+  );
+}
 
 export default ForgotPassword;

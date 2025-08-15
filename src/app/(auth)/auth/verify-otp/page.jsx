@@ -22,7 +22,7 @@ const schema = yup.object().shape({
 
 function OtpVerification() {
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(120); // 2 minutes
+  const [timer, setTimer] = useState(20); // 2 minutes
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef([]);
@@ -288,7 +288,7 @@ function OtpVerification() {
                     <div>
                       <span className="text-gray-600 text-sm">Want to use a different email? </span>
                       <Link 
-                        href="/signup" 
+                        href="/auth/register" 
                         className="font-bold text-orange-500 hover:text-orange-600 transition-colors text-sm"
                       >
                         <Icon icon="mdi:arrow-left" className="inline mr-1" />
