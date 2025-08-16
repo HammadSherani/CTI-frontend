@@ -297,7 +297,7 @@ function ResetPassword() {
       <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Image Section */}
-        <div className="hidden lg:grid lg:col-span-5 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+        <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
@@ -333,7 +333,7 @@ function ResetPassword() {
         </div>
 
         {/* Right Form Section */}
-        <div className="col-span-1 lg:col-span-7 flex items-center justify-center p-4 bg-gray-50">
+        <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">
             
             {/* Language Switch */}

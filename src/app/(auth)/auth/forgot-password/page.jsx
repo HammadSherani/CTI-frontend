@@ -66,10 +66,10 @@ function ForgotPassword() {
 
   if (isEmailSent) {
     return (
-      <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
+    <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
         
         {/* Left Image Section */}
-        <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+       <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
@@ -354,7 +354,7 @@ function ForgotPassword() {
                       Contact Support
                     </Link>
                     <span className="text-gray-300">•</span>
-                    <Link href="/signup" className="text-orange-500 hover:text-orange-600 font-medium">
+                    <Link href="/auth/register" className="text-orange-500 hover:text-orange-600 font-medium">
                       Create New Account
                     </Link>
                   </div>

@@ -293,7 +293,7 @@ function Login() {
               <div className="mt-8 text-center">
                 <span className="text-gray-600">Don't have an account? </span>
                 <Link 
-                  href="/signup" 
+                  href="/auth/register" 
                   className="font-bold text-orange-500 hover:text-orange-600 transition-colors"
                 >
                   Create Account
