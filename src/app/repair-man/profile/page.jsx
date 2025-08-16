@@ -1,18 +1,12 @@
-"use client"
-
 import React from 'react'
-import { useSelector } from 'react-redux';
+import MultiStepForm from '@/components/website/MultiStepForm'
 
-function page() {
-    const {token, user} = useSelector((state) => state.auth);
-
-    console.log(token, user);
-    
+function ProfilePage() {
   return (
     <div>
-      profile
+      <MultiStepForm />
     </div>
   )
 }
 
-export default page
+export default ProfilePage
