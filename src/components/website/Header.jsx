@@ -5,7 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 
-function TopHeader() {
+export  function TopHeader() {
   const [language, setLanguage] = useState("English");
   const [showSearch, setShowSearch] = useState(false);
   const languages = [
@@ -120,7 +120,7 @@ function TopHeader() {
   );
 }
 
-function MidHeader() {
+export function MidHeader() {
   const [searchFocused, setSearchFocused] = useState(false);
   const [cartItems, setCartItems] = useState(3);
   const [wishlistItems, setWishlistItems] = useState(5);

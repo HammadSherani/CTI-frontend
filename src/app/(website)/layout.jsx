@@ -1,10 +1,11 @@
-import WebsiteHeader from '@/components/website/websiteHeader'
+
+import Header from '../../components/website/Header'
 import React from 'react'
 
 function layout({children}) {
   return (
     <>
-    <WebsiteHeader />
+    <Header />
       {children}
       website Layout
     </>
