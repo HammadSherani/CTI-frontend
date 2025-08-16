@@ -8,10 +8,12 @@ import { Icon } from "@iconify/react";
 import Logins from "../../../../../public/assets/user/signup.png";
 import Link from "next/link";
 import Image from "next/image";
-import axiosInstance from "@/config/axiosInstance";
-import handleError from "@/helper/handleError";
+import axiosInstance from "../../../../config/axiosInstance";
+import handleError from "../../../../helper/handleError";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useDispatch, useSelector } from "react-redux";
+import { setAuth } from "../../../../store/auth";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -19,7 +21,7 @@ const schema = yup.object().shape({
     .string()
     .required("First name is required")
     .min(2, "First name must be at least 2 characters"),
-  
+
   email: yup
     .string()
     .required("Email is required")
@@ -50,7 +52,8 @@ function Signup() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const router = useRouter();
-  // const router = router;
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
 
   const {
     control,
@@ -83,9 +86,11 @@ function Signup() {
       const response = await axiosInstance.post("/auth/register", data);
       toast.success(response.data.message);
       router.push("/auth/verify-otp");
-
+      dispatch(setAuth({
+        user: response.data.data,
+      }));
       // response.
-      await new Promise((resolve) => setTimeout(resolve, 1000)); 
+      await new Promise((resolve) => setTimeout(resolve, 1000));
     } catch (error) {
       handleError(error);
     }
@@ -110,7 +115,7 @@ function Signup() {
     <>
       <section className="flex items-center min-h-screen bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600">
         <div className="flex flex-wrap w-full">
-          
+
           {/* Left Image Section */}
           <div className="hidden lg:block lg:w-5/12">
             <div className="flex items-center justify-center h-full p-8">
@@ -133,12 +138,12 @@ function Signup() {
             <div className="bg-white rounded-2xl shadow-2xl h-full flex items-center">
               <div className="w-full p-6 md:p-10">
                 <div className="max-w-lg mx-auto">
-                  
+
                   {/* Language Switch */}
                   <div className="mb-6 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
                     <span className="flex items-center justify-end gap-1">
                       <Icon icon="mdi:web" className="text-base" />
-                      English (UK) 
+                      English (UK)
                       <Icon icon="mdi:chevron-down" className="text-xs" />
                     </span>
                   </div>
@@ -179,7 +184,7 @@ function Signup() {
 
                   {/* Form */}
                   <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-                    
+
                     {/* Name Fields */}
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="col-span-2">
@@ -192,11 +197,10 @@ function Signup() {
                                 {...field}
                                 type="text"
                                 placeholder="First Name"
-                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                                  errors.name 
-                                    ? "border-red-300 focus:border-red-500" 
+                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.name
+                                    ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"
-                                }`}
+                                  }`}
                               />
                               <span className="absolute right-3 top-3 text-gray-400">
                                 <Icon icon="mdi:account-outline" className="text-lg" />
@@ -209,7 +213,7 @@ function Signup() {
                         )}
                       </div>
 
-                     
+
                     </div>
 
                     {/* Email Field */}
@@ -223,11 +227,10 @@ function Signup() {
                               {...field}
                               type="email"
                               placeholder="Email Address"
-                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                                errors.email 
-                                  ? "border-red-300 focus:border-red-500" 
+                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.email
+                                  ? "border-red-300 focus:border-red-500"
                                   : "border-gray-200 focus:border-orange-500"
-                              }`}
+                                }`}
                             />
                             <span className="absolute right-3 top-3 text-gray-400">
                               <Icon icon="mdi:email-outline" className="text-lg" />
@@ -251,11 +254,10 @@ function Signup() {
                               {...field}
                               type="tel"
                               placeholder="Phone Number"
-                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                                errors.phone 
-                                  ? "border-red-300 focus:border-red-500" 
+                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.phone
+                                  ? "border-red-300 focus:border-red-500"
                                   : "border-gray-200 focus:border-orange-500"
-                              }`}
+                                }`}
                             />
                             <span className="absolute right-3 top-3 text-gray-400">
                               <Icon icon="mdi:phone-outline" className="text-lg" />
@@ -278,20 +280,19 @@ function Signup() {
                             <button
                               type="button"
                               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white text-left flex items-center justify-between ${
-                                errors.role 
-                                  ? "border-red-300" 
+                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white text-left flex items-center justify-between ${errors.role
+                                  ? "border-red-300"
                                   : isDropdownOpen
-                                  ? "border-orange-500" 
-                                  : "border-gray-200 hover:border-gray-300"
-                              }`}
+                                    ? "border-orange-500"
+                                    : "border-gray-200 hover:border-gray-300"
+                                }`}
                             >
                               <span className={selectedRole ? "text-gray-900" : "text-gray-500"}>
                                 {getRoleLabel(selectedRole)}
                               </span>
                               <Icon icon="mdi:chevron-down" className={`transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
                             </button>
-                            
+
                             {isDropdownOpen && (
                               <div className="absolute z-10 w-full mt-1 bg-white border-2 border-gray-200 rounded-xl shadow-lg">
                                 {roleOptions.map((option) => (
@@ -330,11 +331,10 @@ function Signup() {
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
-                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${
-                                  errors.password 
-                                    ? "border-red-300 focus:border-red-500" 
+                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${errors.password
+                                    ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"
-                                }`}
+                                  }`}
                               />
                               <button
                                 type="button"
@@ -361,11 +361,10 @@ function Signup() {
                                 {...field}
                                 type={showConfirmPassword ? "text" : "password"}
                                 placeholder="Confirm Password"
-                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${
-                                  errors.confirmPassword 
-                                    ? "border-red-300 focus:border-red-500" 
+                                className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${errors.confirmPassword
+                                    ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"
-                                }`}
+                                  }`}
                               />
                               <button
                                 type="button"
@@ -403,8 +402,8 @@ function Signup() {
                   {/* Login Link */}
                   <div className="mt-8 text-center">
                     <span className="text-gray-600">Already have an account? </span>
-                    <Link 
-                      href="/auth/login" 
+                    <Link
+                      href="/auth/login"
                       className="font-bold text-orange-500 hover:text-orange-600 transition-colors"
                     >
                       Login
