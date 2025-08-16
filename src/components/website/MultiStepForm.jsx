@@ -1,12 +1,8 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useSelector } from "react-redux";
-import axiosInstance from "@/config/axiosInstance";
-import handleError from "@/helper/handleError";
-import { ChipInput } from "../ui/ChipInput";
 
 // Validation schemas for each step
 const step1Schema = yup.object({
@@ -57,18 +53,100 @@ const step5Schema = yup.object({
 const schemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema];
 
 // Custom Chip Input Component
+const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error }) => {
+  const [inputValue, setInputValue] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
+  const addChip = (chipValue) => {
+    const trimmedValue = chipValue.trim();
+    if (trimmedValue && !value.includes(trimmedValue)) {
+      onChange([...value, trimmedValue]);
+      setInputValue("");
+      setShowSuggestions(false);
+    }
+  };
+
+  const removeChip = (index) => {
+    const newValue = value.filter((_, i) => i !== index);
+    onChange(newValue);
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && inputValue.trim()) {
+      e.preventDefault();
+      addChip(inputValue);
+    }
+  };
+
+  const filteredSuggestions = suggestions.filter(
+    suggestion => 
+      suggestion.toLowerCase().includes(inputValue.toLowerCase()) &&
+      !value.includes(suggestion)
+  );
+
+  return (
+    <div className="relative">
+      <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all ${
+        error ? 'border-red-500' : 'border-gray-300'
+      }`}>
+        {value.map((chip, index) => (
+          <span
+            key={index}
+            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-800 border border-orange-200"
+          >
+            {chip}
+            <button
+              type="button"
+              onClick={() => removeChip(index)}
+              className="ml-2 text-orange-600 hover:text-orange-800 font-bold"
+            >
+              ×
+            </button>
+          </span>
+        ))}
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setShowSuggestions(e.target.value.length > 0);
+          }}
+          onKeyPress={handleKeyPress}
+          onFocus={() => setShowSuggestions(inputValue.length > 0)}
+          onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+          placeholder={value.length === 0 ? placeholder : ""}
+          className="flex-1 min-w-[120px] outline-none bg-transparent"
+        />
+      </div>
+      
+      {/* Suggestions Dropdown */}
+      {showSuggestions && filteredSuggestions.length > 0 && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+          {filteredSuggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => addChip(suggestion)}
+              className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 outline-none"
+            >
+              {suggestion}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function RepairmanMultiStepForm() {
   const [step, setStep] = useState(1);
   const [informationData, setInformationData] = useState({});
   const [documentData, setDocumentData] = useState({});
-  const { user, token } = useSelector((state) => state.auth);
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
     "Personal Information",
-    "Contact Details",
+    "Contact Details", 
     "Address & Location",
     "Experience & Availability",
     "Document Uploads"
@@ -91,14 +169,14 @@ export default function RepairmanMultiStepForm() {
     const isValid = await trigger();
     if (isValid) {
       const currentData = getValues();
-
+      
       // Store data based on step (1-4 for information, 5 for documents)
       if (step <= 4) {
         setInformationData(prev => ({ ...prev, ...currentData }));
       } else {
         setDocumentData(prev => ({ ...prev, ...currentData }));
       }
-
+      
       if (step < steps.length) {
         setStep(prev => prev + 1);
       }
@@ -111,65 +189,58 @@ export default function RepairmanMultiStepForm() {
     }
   };
 
-
-  const fetchData = async () => {
-    try {
-      const { data } = await axiosInstance.get('/repairman/profile', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-    } catch (error) {
-      handleError(error)
-    }
-  }
-
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
-
   const onSubmit = async (data) => {
     if (step <= 4) {
+      // Final information data
       const finalInformationData = { ...informationData, ...data };
-
+      
       try {
+        // Submit to Information API
         console.log("Submitting Information Data:", finalInformationData);
-
-        const payload = {
-          repairmanProfile: {
-            fullName: finalInformationData.fullName,
-            nationalIdOrCitizenNumber: finalInformationData.nationalIdOrCitizenNumber,
-            mobileNumber: finalInformationData.mobileNumber,
-            shopName: finalInformationData.shopName,
-            fullAddress: finalInformationData.fullAddress,
-            city: finalInformationData.city,
-          },
-          // agar user ka id bhejna zaroori hai:
-          // user: { id: user.id }
-        };
-
-        const response = await axiosInstance.put(
-          "/repairman/profile",
-          payload,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
-
+        
+        // Example API call for information
+        // const infoResponse = await fetch('/api/repairman/information', {
+        //   method: 'POST',
+        //   headers: { 'Content-Type': 'application/json' },
+        //   body: JSON.stringify(finalInformationData)
+        // });
+        
         alert("Information saved successfully! Now upload documents.");
-        setStep(5);
-
+        setStep(5); // Move to document upload step
+        
       } catch (error) {
-        console.error("Error saving information:", error.response?.data || error.message);
+        console.error("Error saving information:", error);
         alert("Error saving information. Please try again.");
       }
     } else {
-      // handle documents
+      // Final document data
+      const finalDocumentData = { ...documentData, ...data };
+      
+      try {
+        // Submit to Documents API
+        console.log("Submitting Document Data:", finalDocumentData);
+        
+        // Example API call for documents (using FormData for file uploads)
+        // const formData = new FormData();
+        // Object.keys(finalDocumentData).forEach(key => {
+        //   if (finalDocumentData[key]) {
+        //     formData.append(key, finalDocumentData[key]);
+        //   }
+        // });
+        
+        // const docResponse = await fetch('/api/repairman/documents', {
+        //   method: 'POST',
+        //   body: formData
+        // });
+        
+        alert("Registration completed successfully!");
+        
+      } catch (error) {
+        console.error("Error uploading documents:", error);
+        alert("Error uploading documents. Please try again.");
+      }
     }
   };
-
 
   // Predefined suggestions for chips
   const specializationSuggestions = [
@@ -192,7 +263,7 @@ export default function RepairmanMultiStepForm() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl p-8">
-
+        
         {/* Progress Stepper */}
         <div className="flex items-center justify-center mb-8">
           {steps.map((s, idx) => (
@@ -200,12 +271,12 @@ export default function RepairmanMultiStepForm() {
               <div className="flex flex-col items-center">
                 <div
                   className={`flex items-center justify-center w-12 h-12 rounded-full font-semibold transition-all duration-300
-                  ${step === s
-                      ? "bg-orange-500 text-white shadow-lg scale-110"
-                      : step > s
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
+                  ${step === s 
+                    ? "bg-orange-500 text-white shadow-lg scale-110" 
+                    : step > s 
+                    ? "bg-green-500 text-white" 
+                    : "bg-gray-200 text-gray-700"
+                  }`}
                 >
                   {step > s ? "✓" : s}
                 </div>
@@ -214,20 +285,21 @@ export default function RepairmanMultiStepForm() {
                 </span>
               </div>
               {idx < steps.length - 1 && (
-                <div className={`w-16 h-1 mx-4 rounded transition-all duration-300 ${step > s ? "bg-green-500" : "bg-gray-300"
-                  }`}></div>
+                <div className={`w-16 h-1 mx-4 rounded transition-all duration-300 ${
+                  step > s ? "bg-green-500" : "bg-gray-300"
+                }`}></div>
               )}
             </div>
           ))}
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-
+          
           {/* Step 1: Personal Information */}
           {step === 1 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Personal Information</h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
@@ -239,8 +311,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="Enter your full name"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.fullName ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.fullName ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -257,8 +330,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="Enter father's name"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.fatherName ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.fatherName ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -275,8 +349,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="12345-1234567-1"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.nationalIdOrCitizenNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.nationalIdOrCitizenNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -292,8 +367,9 @@ export default function RepairmanMultiStepForm() {
                       <input
                         {...field}
                         type="date"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.dob ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.dob ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -333,7 +409,7 @@ export default function RepairmanMultiStepForm() {
           {step === 2 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Contact Information</h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
@@ -345,8 +421,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="03XXXXXXXXX"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -363,8 +440,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="03XXXXXXXXX"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.whatsappNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.whatsappNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -372,32 +450,23 @@ export default function RepairmanMultiStepForm() {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
                   <Controller
                     name="emailAddress"
                     control={control}
-                    defaultValue={user?.email || ""}  // 👈 empty string fallback
                     render={({ field }) => (
                       <input
                         {...field}
                         type="email"
-                        value={user?.email || ""}  // 👈 empty string fallback
-                        disabled
                         placeholder="your.email@example.com"
-                        className={`w-full border rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed focus:ring-0 focus:border-gray-300 ${errors.emailAddress ? "border-red-500" : "border-gray-300"
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.emailAddress ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
-                  {errors.emailAddress && (
-                    <p className="text-red-500 text-sm mt-1">
-                      {errors.emailAddress.message}
-                    </p>
-                  )}
+                  {errors.emailAddress && <p className="text-red-500 text-sm mt-1">{errors.emailAddress.message}</p>}
                 </div>
-
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Person</label>
@@ -409,8 +478,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="Emergency contact name"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.emergencyContactPerson ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.emergencyContactPerson ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -427,8 +497,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="03XXXXXXXXX"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.emergencyContactNumber ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.emergencyContactNumber ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -442,7 +513,7 @@ export default function RepairmanMultiStepForm() {
           {step === 3 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Address & Location</h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Shop Name</label>
@@ -454,8 +525,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="Your shop name"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.shopName ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.shopName ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -470,8 +542,9 @@ export default function RepairmanMultiStepForm() {
                     render={({ field }) => (
                       <select
                         {...field}
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.city ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.city ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       >
                         <option value="">Select City</option>
                         {cities.map(city => (
@@ -493,8 +566,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="Enter district"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.district ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.district ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -511,8 +585,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         type="text"
                         placeholder="12345"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.zipCode ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.zipCode ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -529,8 +604,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         rows="3"
                         placeholder="Enter complete address including landmarks"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.fullAddress ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.fullAddress ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -544,7 +620,7 @@ export default function RepairmanMultiStepForm() {
           {step === 4 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Experience & Availability</h2>
-
+              
               <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div>
@@ -559,8 +635,9 @@ export default function RepairmanMultiStepForm() {
                           min="0"
                           max="50"
                           placeholder="0"
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                       )}
                     />
@@ -602,7 +679,7 @@ export default function RepairmanMultiStepForm() {
                 {/* Custom Chip Input for Specializations */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Specializations
+                    Specializations 
                     <span className="text-xs text-gray-500 ml-2">(Type and press Enter to add, or select from suggestions)</span>
                   </label>
                   <Controller
@@ -660,7 +737,7 @@ export default function RepairmanMultiStepForm() {
                               checked={field.value.includes(day)}
                               onChange={(e) => {
                                 const checked = e.target.checked;
-                                const newValue = checked
+                                const newValue = checked 
                                   ? [...field.value, day]
                                   : field.value.filter(item => item !== day);
                                 field.onChange(newValue);
@@ -686,8 +763,9 @@ export default function RepairmanMultiStepForm() {
                         <input
                           {...field}
                           type="time"
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                       )}
                     />
@@ -703,8 +781,9 @@ export default function RepairmanMultiStepForm() {
                         <input
                           {...field}
                           type="time"
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                       )}
                     />
@@ -722,8 +801,9 @@ export default function RepairmanMultiStepForm() {
                         {...field}
                         rows="4"
                         placeholder="Describe your repair services, expertise, and what makes you unique..."
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.description ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                          errors.description ? 'border-red-500' : 'border-gray-300'
+                        }`}
                       />
                     )}
                   />
@@ -737,7 +817,7 @@ export default function RepairmanMultiStepForm() {
           {step === 5 && (
             <div className="space-y-6">
               <h2 className="text-2xl font-bold text-gray-800 mb-6">Document Uploads</h2>
-
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
@@ -751,8 +831,9 @@ export default function RepairmanMultiStepForm() {
                           type="file"
                           accept="image/*"
                           onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.profilePhoto ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.profilePhoto ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                         <p className="text-xs text-gray-500">Upload a clear photo of yourself</p>
                       </div>
@@ -773,8 +854,9 @@ export default function RepairmanMultiStepForm() {
                           type="file"
                           accept="image/*,.pdf"
                           onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.nationalIdOrPassportScan ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.nationalIdOrPassportScan ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                         <p className="text-xs text-gray-500">Upload front and back of CNIC</p>
                       </div>
@@ -795,8 +877,9 @@ export default function RepairmanMultiStepForm() {
                           type="file"
                           accept="image/*"
                           onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.shopPhoto ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.shopPhoto ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                         <p className="text-xs text-gray-500">Upload a photo of your repair shop</p>
                       </div>
@@ -817,8 +900,9 @@ export default function RepairmanMultiStepForm() {
                           type="file"
                           accept="image/*,.pdf"
                           onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.utilityBillOrShopProof ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                            errors.utilityBillOrShopProof ? 'border-red-500' : 'border-gray-300'
+                          }`}
                         />
                         <p className="text-xs text-gray-500">Utility bill or shop ownership proof</p>
                       </div>
@@ -861,11 +945,11 @@ export default function RepairmanMultiStepForm() {
             >
               Previous
             </button>
-
+            
             <div className="text-sm text-gray-500">
               Step {step} of {steps.length}
             </div>
-
+            
             {step === 4 ? (
               <button
                 type="submit"
@@ -895,4 +979,3 @@ export default function RepairmanMultiStepForm() {
     </div>
   );
 }
-
