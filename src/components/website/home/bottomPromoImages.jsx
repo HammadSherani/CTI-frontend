@@ -6,9 +6,15 @@ const promos = [
   { src: '/assets/logo/promo3.png', alt: 'iPhone – up to 80% off' },
   { src: '/assets/logo/promo4.png', alt: 'Realme – up to 80% off' },
   { src: '/assets/logo/promo5.png', alt: 'Xiaomi – up to 80% off' },
+  { src: '/assets/logo/promo10.png', alt: 'iPhone – up to 80% off' },
+  { src: '/assets/logo/promo3.png', alt: 'Realme – up to 80% off' },
+  { src: '/assets/logo/promo8.png', alt: 'Xiaomi – up to 80% off' },
+  { src: '/assets/logo/promo7.png', alt: 'iPhone – up to 80% off' },
+  { src: '/assets/logo/promo8.png', alt: 'Realme – up to 80% off' },
+  { src: '/assets/logo/promo9.png', alt: 'Xiaomi – up to 80% off' },
 ];
 
-export default function PromoImages() {
+export default function BottomPromoImages() {
   return (
     <section className="py-4 bg-white">
       <div className="max-w-7xl mx-auto">

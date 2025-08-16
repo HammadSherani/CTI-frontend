@@ -24,6 +24,7 @@
     "react-redux": "^9.2.0",
     "react-toastify": "^11.0.5",
     "redux": "^5.0.1",
+    "swiper": "^11.2.10",
     "yup": "^1.7.0"
   },
   "devDependencies": {
