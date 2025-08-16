@@ -131,7 +131,7 @@ function OtpVerification() {
 
       // 🔑 Redirect logic
       if (userData.role === "repairman" && !userData.isProfileComplete) {
-        router.push("/repair-man/profile");
+        router.push("/repair-man/complete-profile");
       } else if (userData.role === "seller" && !userData.isProfileComplete) {
         router.push("/seller-man/profile");
       } else {

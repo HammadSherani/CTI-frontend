@@ -144,7 +144,7 @@ export default function RepairmanMultiStepForm() {
   const [step, setStep] = useState(1);
   const [informationData, setInformationData] = useState({});
   const [documentData, setDocumentData] = useState({});
-  const { user, token  } = useSelector(state => state.auth);
+  const { user, token } = useSelector(state => state.auth);
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
@@ -197,8 +197,6 @@ export default function RepairmanMultiStepForm() {
 
   const onSubmit = async (data) => {
     if (step <= 4) {
-      // Final information data
-      // const finalInformationData = { ...informationData, ...data };
       try {
         const payload = {
           repairmanProfile: { ...informationData, ...data },
@@ -218,28 +216,24 @@ export default function RepairmanMultiStepForm() {
       const finalDocumentData = { ...documentData, ...data };
 
       try {
-        // Submit to Documents API
         console.log("Submitting Document Data:", finalDocumentData);
 
-        // Example API call for documents (using FormData for file uploads)
-        // const formData = new FormData();
-        // Object.keys(finalDocumentData).forEach(key => {
-        //   if (finalDocumentData[key]) {
-        //     formData.append(key, finalDocumentData[key]);
-        //   }
-        // });
-
-        // const docResponse = await fetch('/api/repairman/documents', {
-        //   method: 'POST',
-        //   body: formData
-        // });
+        const response = await axiosInstance.post(
+          "/repairman/profile/upload-documents",
+          {
+            documents: finalDocumentData, 
+          },
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
 
         alert("Registration completed successfully!");
-
       } catch (error) {
         console.error("Error uploading documents:", error);
         alert("Error uploading documents. Please try again.");
       }
+
     }
   };
 
