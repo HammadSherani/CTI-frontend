@@ -4,6 +4,8 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import axiosInstance from "@/config/axiosInstance";
 
 // Validation schemas for each step
 const step1Schema = yup.object({
@@ -142,7 +144,7 @@ export default function RepairmanMultiStepForm() {
   const [step, setStep] = useState(1);
   const [informationData, setInformationData] = useState({});
   const [documentData, setDocumentData] = useState({});
-  const { user } = useSelector(state => state.auth);
+  const { user, token  } = useSelector(state => state.auth);
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
@@ -196,25 +198,20 @@ export default function RepairmanMultiStepForm() {
   const onSubmit = async (data) => {
     if (step <= 4) {
       // Final information data
-      const finalInformationData = { ...informationData, ...data };
-
+      // const finalInformationData = { ...informationData, ...data };
       try {
-        // Submit to Information API
-        console.log("Submitting Information Data:", finalInformationData);
+        const payload = {
+          repairmanProfile: { ...informationData, ...data },
+        };
 
-        // Example API call for information
-        // const infoResponse = await fetch('/api/repairman/information', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify(finalInformationData)
-        // });
+        const response = await axiosInstance.put("/repairman/profile", payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        alert("Information saved successfully! Now upload documents.");
-        setStep(5); // Move to document upload step
-
+        toast.success(response.data.message);
+        setStep(5);
       } catch (error) {
-        console.error("Error saving information:", error);
-        alert("Error saving information. Please try again.");
+        console.error(error);
       }
     } else {
       // Final document data
@@ -451,16 +448,19 @@ export default function RepairmanMultiStepForm() {
                   <Controller
                     name="emailAddress"
                     control={control}
+                    defaultValue={user?.email || ""}   // 👈 default email
                     render={({ field }) => (
                       <input
                         {...field}
                         type="email"
+                        disabled               // 👈 ye add kar do
                         placeholder="your.email@example.com"
-                        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.emailAddress ? 'border-red-500' : 'border-gray-300'
+                        className={`w-full border rounded-lg px-4 py-3 bg-gray-100 text-gray-500 cursor-not-allowed focus:ring-0 focus:border-gray-300 ${errors.emailAddress ? 'border-red-500' : 'border-gray-300'
                           }`}
                       />
                     )}
                   />
+
                   {errors.emailAddress && <p className="text-red-500 text-sm mt-1">{errors.emailAddress.message}</p>}
                 </div>
 
