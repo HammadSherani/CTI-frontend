@@ -10,9 +10,10 @@ import Link from "next/link";
 import Image from "next/image";
 import axiosInstance from "../../../../config/axiosInstance";
 import handleError from "../../../../helper/handleError";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { setAuth } from "@/store/auth";
 
 const schema = yup.object().shape({
   otp: yup
@@ -31,6 +32,7 @@ function OtpVerification() {
 
   const { user } = useSelector((state) => state.auth);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const {
     control,
@@ -108,7 +110,7 @@ function OtpVerification() {
         return;
       }
 
-      const { message, data: resData } = response.data;
+      const { message, data: resData, token } = response.data;
 
       toast.success(message);
 
@@ -119,6 +121,14 @@ function OtpVerification() {
         return;
       }
 
+      // 🔑 Save user + token to Redux
+      dispatch(
+        setAuth({
+          user: userData,
+          token: resData.token,
+        })
+      );
+
       // 🔑 Redirect logic
       if (userData.role === "repairman" && !userData.isProfileComplete) {
         router.push("/repair-man/profile");
@@ -127,11 +137,11 @@ function OtpVerification() {
       } else {
         router.push("/");
       }
-
     } catch (error) {
-      handleError(error); 
+      handleError(error);
     }
   };
+
 
 
   const handleResendOtp = async () => {
@@ -240,10 +250,10 @@ function OtpVerification() {
                                 onKeyDown={(e) => handleKeyDown(index, e)}
                                 onPaste={handlePaste}
                                 className={`w-12 h-12 text-center text-xl font-bold border-2 rounded-xl transition-all duration-200 focus:outline-none ${errors.otp
-                                    ? "border-red-300 focus:border-red-500 bg-red-50"
-                                    : value
-                                      ? "border-orange-500 bg-orange-50 text-orange-600"
-                                      : "border-gray-200 focus:border-orange-500 bg-gray-50"
+                                  ? "border-red-300 focus:border-red-500 bg-red-50"
+                                  : value
+                                    ? "border-orange-500 bg-orange-50 text-orange-600"
+                                    : "border-gray-200 focus:border-orange-500 bg-gray-50"
                                   }`}
                               />
                             ))}
