@@ -49,6 +49,10 @@ function Login() {
         rememberMe: data.rememberMe,
       });
 
+
+      const resData = response.data.data;
+      // if(response.data.)
+
       // Handle successful login
       // Store token, redirect, etc.
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
