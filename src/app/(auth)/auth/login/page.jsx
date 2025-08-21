@@ -10,6 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import axiosInstance from "../../../../config/axiosInstance";
 import handleError from "../../../../helper/handleError";
+import { useRouter } from "next/navigation";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -26,6 +27,7 @@ const schema = yup.object().shape({
 
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
 
   const {
     control,
@@ -51,6 +53,18 @@ function Login() {
 
 
       const resData = response.data.data;
+
+      if(resData?.user?.role === "admin") {
+        router.push("/admin/dashboard");
+      }
+
+      if(resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === false) {
+        router.push("/repair-man/complete-profile");
+      }else if (resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === true ) {
+        router.push("/repair-man/dashboard");
+      }
+
+
       // if(response.data.)
 
       // Handle successful login
