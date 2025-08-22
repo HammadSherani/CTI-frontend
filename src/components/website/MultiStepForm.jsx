@@ -1,11 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
+import { useRouter } from "next/navigation";
 
 // Validation schemas for each step
 const step1Schema = yup.object({
@@ -145,6 +146,7 @@ export default function RepairmanMultiStepForm() {
   const [informationData, setInformationData] = useState({});
   const [documentData, setDocumentData] = useState({});
   const { user, token } = useSelector(state => state.auth);
+  const router = useRouter();
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
@@ -167,7 +169,7 @@ export default function RepairmanMultiStepForm() {
     resolver: yupResolver(schemas[step - 1]),
     mode: "onChange",
     defaultValues: {
-      emailAddress: user?.email || "",  // yahan default email set hoga
+      emailAddress: user?.email || "",
     }
   });
 
@@ -195,47 +197,199 @@ export default function RepairmanMultiStepForm() {
     }
   };
 
-  const onSubmit = async (data) => {
-    if (step <= 4) {
-      try {
-        const payload = {
-          repairmanProfile: { ...informationData, ...data },
-        };
+  console.log(token);
 
-        const response = await axiosInstance.put("/repairman/profile", payload, {
-          headers: { Authorization: `Bearer ${token}` },
+
+  const onSubmit = async (data) => {
+  if (step <= 4) {
+    try {
+      const payload = {
+        repairmanProfile: { ...informationData, ...data },
+      };
+
+      const response = await axiosInstance.put("/repairman/profile", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      toast.success(response.data.message);
+      setStep(5);
+    } catch (error) {
+      console.error(error);
+      toast.error("Error updating profile. Please try again.");
+    }
+  } else {
+    // Document upload step
+    const finalDocumentData = { ...documentData, ...data };
+
+    try {
+      console.log("Processing Document Data:", finalDocumentData);
+
+      // Show loading state
+      toast.info("Uploading documents to cloud... Please wait.");
+
+      // Function to upload single file to Cloudinary
+      const uploadToCloudinary = async (file) => {
+        if (!file) return null;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('upload_preset', 'repairman_documents'); // Create this preset in Cloudinary
+        formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
+        formData.append('folder', 'repairman_documents');
+
+        try {
+          const response = await fetch(
+            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
+            {
+              method: 'POST',
+              body: formData,
+            }
+          );
+
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+          console.log('File uploaded successfully:', result.secure_url);
+          return result.secure_url;
+        } catch (error) {
+          console.error('Cloudinary upload error:', error);
+          throw error;
+        }
+      };
+
+      // Function to upload multiple certification files
+      const uploadCertifications = async (files) => {
+        if (!files || files.length === 0) return [];
+        
+        const uploadPromises = Array.from(files).map(async (file, index) => {
+          try {
+            console.log(`Uploading certification ${index + 1}:`, file.name);
+            return await uploadToCloudinary(file);
+          } catch (error) {
+            console.error(`Failed to upload certification ${index + 1}:`, error);
+            throw error;
+          }
+        });
+        
+        return await Promise.all(uploadPromises);
+      };
+
+      // Upload all documents to Cloudinary
+      console.log("Starting Cloudinary uploads...");
+
+      const uploadResults = await Promise.allSettled([
+        finalDocumentData.profilePhoto ? uploadToCloudinary(finalDocumentData.profilePhoto) : Promise.resolve(null),
+        finalDocumentData.nationalIdOrPassportScan ? uploadToCloudinary(finalDocumentData.nationalIdOrPassportScan) : Promise.resolve(null),
+        finalDocumentData.shopPhoto ? uploadToCloudinary(finalDocumentData.shopPhoto) : Promise.resolve(null),
+        finalDocumentData.utilityBillOrShopProof ? uploadToCloudinary(finalDocumentData.utilityBillOrShopProof) : Promise.resolve(null),
+        finalDocumentData.certifications ? uploadCertifications(finalDocumentData.certifications) : Promise.resolve([])
+      ]);
+
+      // Process upload results
+      const [
+        profilePhotoResult,
+        nationalIdResult,
+        shopPhotoResult,
+        shopProofResult,
+        certificationsResult
+      ] = uploadResults;
+
+      // Check for upload failures
+      const failedUploads = uploadResults
+        .map((result, index) => ({ result, index }))
+        .filter(({ result }) => result.status === 'rejected')
+        .map(({ index }) => {
+          const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof', 'certifications'];
+          return fieldNames[index];
         });
 
-        toast.success(response.data.message);
-        setStep(5);
-      } catch (error) {
-        console.error(error);
+      if (failedUploads.length > 0) {
+        console.error('Failed uploads:', failedUploads);
+        toast.error(`Failed to upload: ${failedUploads.join(', ')}`);
+        return;
       }
-    } else {
-      // Final document data
-      const finalDocumentData = { ...documentData, ...data };
 
-      try {
-        console.log("Submitting Document Data:", finalDocumentData);
+      // Extract successful URLs
+      const documentUrls = {
+        profilePhoto: profilePhotoResult.status === 'fulfilled' ? profilePhotoResult.value : null,
+        nationalIdOrPassportScan: nationalIdResult.status === 'fulfilled' ? nationalIdResult.value : null,
+        shopPhoto: shopPhotoResult.status === 'fulfilled' ? shopPhotoResult.value : null,
+        utilityBillOrShopProof: shopProofResult.status === 'fulfilled' ? shopProofResult.value : null,
+        certifications: certificationsResult.status === 'fulfilled' ? certificationsResult.value.filter(url => url !== null) : []
+      };
 
-        const response = await axiosInstance.post(
-          "/repairman/profile/upload-documents",
-          {
-            documents: finalDocumentData, 
+      // Remove null values
+      Object.keys(documentUrls).forEach(key => {
+        if (documentUrls[key] === null || (Array.isArray(documentUrls[key]) && documentUrls[key].length === 0)) {
+          delete documentUrls[key];
+        }
+      });
+
+      console.log("All uploads completed successfully:", documentUrls);
+
+      // Update loading message
+      toast.info("Saving document information...");
+
+      // Send URLs to backend
+      const response = await axiosInstance.post(
+        "/repairman/profile/upload-documents",
+        {
+          documents: documentUrls,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
           },
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+          timeout: 30000,
+        }
+      );
 
-        alert("Registration completed successfully!");
-      } catch (error) {
-        console.error("Error uploading documents:", error);
-        alert("Error uploading documents. Please try again.");
+      console.log("Backend response:", response.data);
+
+      // Show success message
+      toast.success("Registration completed successfully!");
+
+      // Optional: Show completion details
+      if (response.data.data) {
+        const { isProfileComplete, completionPercentage } = response.data.data;
+        console.log(`Profile completion: ${completionPercentage}%`);
+
+        if (isProfileComplete) {
+          toast.success("Your profile is now complete!");
+          // Redirect to dashboard or next step
+          // router.push('/dashboard');
+        }
       }
 
+    } catch (error) {
+      console.error("Error in document upload process:", error);
+
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.message || "Server error occurred";
+        toast.error(errorMessage);
+
+        console.error("Server error details:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        // Request was made but no response received
+        toast.error("Network error. Please check your connection.");
+        console.error("Network error:", error.request);
+      } else {
+        // Something else happened
+        toast.error("Error uploading documents. Please try again.");
+        console.error("Upload error:", error.message);
+      }
     }
-  };
+  }
+};
 
   // Predefined suggestions for chips
   const specializationSuggestions = [
@@ -254,6 +408,10 @@ export default function RepairmanMultiStepForm() {
   ];
 
   const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
+
+  
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 p-4">

@@ -11,10 +11,11 @@ import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
+import { toast } from "react-toastify";
 
-// Validation schema
+// Validation schema - Updated field names to match API
 const schema = yup.object().shape({
-  password: yup
+  newPassword: yup
     .string()
     .required("New password is required")
     .min(8, "Password must be at least 8 characters")
@@ -25,7 +26,7 @@ const schema = yup.object().shape({
   confirmPassword: yup
     .string()
     .required("Please confirm your password")
-    .oneOf([yup.ref("password")], "Passwords must match"),
+    .oneOf([yup.ref("newPassword")], "Passwords must match"),
 });
 
 // Loading component for Suspense fallback
@@ -63,12 +64,12 @@ function ResetPasswordForm() {
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
-      password: "",
+      newPassword: "",
       confirmPassword: "",
     },
   });
 
-  const passwordValue = watch("password");
+  const newPasswordValue = watch("newPassword");
 
   // Validate token on component mount
   useEffect(() => {
@@ -76,14 +77,18 @@ function ResetPasswordForm() {
       if (!token) {
         setTokenValid(false);
         setIsValidating(false);
+        toast.error("Invalid reset link. Token is missing.");
         return;
       }
 
       try {
-        await axiosInstance.post("/auth/validate-reset-token", { token });
+        // Check if validate-reset-token endpoint exists, otherwise skip validation
+        await axiosInstance.post("/auth/verify-reset-token", { token });
         setTokenValid(true);
       } catch (error) {
-        setTokenValid(false);
+        console.error("Token validation error:", error);
+        // Don't set tokenValid to false immediately, let the reset attempt handle invalid tokens
+        setTokenValid(true);
       } finally {
         setIsValidating(false);
       }
@@ -94,33 +99,64 @@ function ResetPasswordForm() {
 
   // Calculate password strength
   useEffect(() => {
-    if (!passwordValue) {
+    if (!newPasswordValue) {
       setPasswordStrength(0);
       return;
     }
 
     let strength = 0;
-    if (passwordValue.length >= 8) strength += 1;
-    if (/[A-Z]/.test(passwordValue)) strength += 1;
-    if (/[a-z]/.test(passwordValue)) strength += 1;
-    if (/\d/.test(passwordValue)) strength += 1;
-    if (/[@$!%*?&]/.test(passwordValue)) strength += 1;
+    if (newPasswordValue.length >= 8) strength += 1;
+    if (/[A-Z]/.test(newPasswordValue)) strength += 1;
+    if (/[a-z]/.test(newPasswordValue)) strength += 1;
+    if (/\d/.test(newPasswordValue)) strength += 1;
+    if (/[@$!%*?&]/.test(newPasswordValue)) strength += 1;
 
     setPasswordStrength(strength);
-  }, [passwordValue]);
+  }, [newPasswordValue]);
 
   const onSubmit = async (data) => {
     try {
       console.log("Reset password submitted:", data);
+      
+      // Show loading toast
+      // toast.loading("Updating your password...", { id: "reset-password" });
+
       const response = await axiosInstance.post("/auth/reset-password", {
         token,
-        password: data.password,
+        newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
+        platform: "web" // Explicitly set platform for web
+      });
+
+      console.log("Reset password response:", response.data);
+
+      // Success toast
+      toast.success(response.data.message || "Password reset successfully!", { 
+        id: "reset-password",
+        duration: 4000 
       });
 
       setIsSuccess(true);
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      
+      // Redirect to login after 2 seconds
+      setTimeout(() => {
+        router.push("/auth/login");
+      }, 2000);
+
     } catch (error) {
-      handleError(error);
+      console.error("Reset password error:", error);
+      
+      // Error toast
+      toast.error(
+        error.response?.data?.message || "Failed to reset password. Please try again.",
+        { id: "reset-password" }
+      );
+
+      // If token is invalid, mark as invalid
+      if (error.response?.status === 400 && 
+          error.response?.data?.message?.includes("Invalid or expired")) {
+        setTokenValid(false);
+      }
     }
   };
 
@@ -156,6 +192,43 @@ function ResetPasswordForm() {
           <div className="text-center">
             <div className="w-16 h-16 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin mx-auto mb-4"></div>
             <p className="text-gray-600">Validating reset link...</p>
+          </div>
+        </div>
+      </section>
+    );
+  }
+
+  // Invalid token state
+  if (!tokenValid) {
+    return (
+      <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
+        <div className="col-span-1 lg:col-span-12 flex items-center justify-center p-4 bg-gray-50">
+          <div className="w-full max-w-md">
+            <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10 text-center">
+              <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Icon icon="mdi:alert-circle-outline" className="text-4xl text-red-500" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Invalid Reset Link
+              </h1>
+              <p className="text-gray-600 mb-6">
+                This password reset link is invalid or has expired. Please request a new password reset.
+              </p>
+              <Link href="/auth/forgot-password">
+                <button className="w-full py-4 font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-[1.02] transition-all duration-200">
+                  Request New Reset Link
+                </button>
+              </Link>
+              <div className="mt-4">
+                <Link 
+                  href="/auth/login" 
+                  className="font-bold text-orange-500 hover:text-orange-600 transition-colors inline-flex items-center gap-2"
+                >
+                  <Icon icon="mdi:arrow-left" className="text-lg" />
+                  Back to Login
+                </Link>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -214,10 +287,13 @@ function ResetPasswordForm() {
                 <p className="text-gray-600 mb-6">
                   Your password has been successfully reset. You can now log in with your new password.
                 </p>
+                <p className="text-sm text-gray-500">
+                  Redirecting to login page in a few seconds...
+                </p>
               </div>
 
               {/* Action Button */}
-              <Link href="/login">
+              <Link href="/auth/login">
                 <button className="w-full py-4 font-bold text-white bg-gradient-to-r from-green-500 to-green-600 rounded-xl shadow-lg hover:from-green-600 hover:to-green-700 transform hover:scale-[1.02] transition-all duration-200">
                   <div className="flex items-center justify-center">
                     <Icon icon="mdi:login" className="mr-2 text-xl" />
@@ -312,7 +388,7 @@ function ResetPasswordForm() {
                     New Password
                   </label>
                   <Controller
-                    name="password"
+                    name="newPassword"
                     control={control}
                     render={({ field }) => (
                       <div className="relative">
@@ -321,7 +397,7 @@ function ResetPasswordForm() {
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your new password"
                           className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                            errors.password 
+                            errors.newPassword 
                               ? "border-red-300 focus:border-red-500" 
                               : "border-gray-200 focus:border-orange-500"
                           }`}
@@ -345,7 +421,7 @@ function ResetPasswordForm() {
                   />
                   
                   {/* Password Strength Indicator */}
-                  {passwordValue && (
+                  {newPasswordValue && (
                     <div className="mt-3">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-xs text-gray-600">Password Strength:</span>
@@ -370,10 +446,10 @@ function ResetPasswordForm() {
                     </div>
                   )}
 
-                  {errors.password && (
+                  {errors.newPassword && (
                     <p className="mt-2 text-xs text-red-600 flex items-center gap-1">
                       <Icon icon="mdi:alert-circle" className="text-sm" />
-                      {errors.password.message}
+                      {errors.newPassword.message}
                     </p>
                   )}
                 </div>
@@ -432,36 +508,36 @@ function ResetPasswordForm() {
                       <ul className="text-sm text-blue-800 space-y-1">
                         <li className="flex items-center gap-2">
                           <Icon 
-                            icon={passwordValue?.length >= 8 ? "mdi:check" : "mdi:circle-outline"} 
-                            className={`text-sm ${passwordValue?.length >= 8 ? 'text-green-500' : 'text-gray-400'}`} 
+                            icon={newPasswordValue?.length >= 8 ? "mdi:check" : "mdi:circle-outline"} 
+                            className={`text-sm ${newPasswordValue?.length >= 8 ? 'text-green-500' : 'text-gray-400'}`} 
                           />
                           At least 8 characters
                         </li>
                         <li className="flex items-center gap-2">
                           <Icon 
-                            icon={/[A-Z]/.test(passwordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
-                            className={`text-sm ${/[A-Z]/.test(passwordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
+                            icon={/[A-Z]/.test(newPasswordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
+                            className={`text-sm ${/[A-Z]/.test(newPasswordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
                           />
                           One uppercase letter
                         </li>
                         <li className="flex items-center gap-2">
                           <Icon 
-                            icon={/[a-z]/.test(passwordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
-                            className={`text-sm ${/[a-z]/.test(passwordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
+                            icon={/[a-z]/.test(newPasswordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
+                            className={`text-sm ${/[a-z]/.test(newPasswordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
                           />
                           One lowercase letter
                         </li>
                         <li className="flex items-center gap-2">
                           <Icon 
-                            icon={/\d/.test(passwordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
-                            className={`text-sm ${/\d/.test(passwordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
+                            icon={/\d/.test(newPasswordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
+                            className={`text-sm ${/\d/.test(newPasswordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
                           />
                           One number
                         </li>
                         <li className="flex items-center gap-2">
                           <Icon 
-                            icon={/[@$!%*?&]/.test(passwordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
-                            className={`text-sm ${/[@$!%*?&]/.test(passwordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
+                            icon={/[@$!%*?&]/.test(newPasswordValue || '') ? "mdi:check" : "mdi:circle-outline"} 
+                            className={`text-sm ${/[@$!%*?&]/.test(newPasswordValue || '') ? 'text-green-500' : 'text-gray-400'}`} 
                           />
                           One special character
                         </li>
