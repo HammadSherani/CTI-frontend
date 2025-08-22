@@ -65,7 +65,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('tasks');
 
   return (
-    <div className="w-full max-w-6xl mx-auto">
+    <div className="w-full ">
       {/* Two columns; fix the overall panel height */}
       <div className="grid grid-cols-[260px_1fr] h-[80vh] rounded-xl bg-white shadow-lg">
 

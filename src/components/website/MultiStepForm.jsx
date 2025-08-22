@@ -201,195 +201,262 @@ export default function RepairmanMultiStepForm() {
 
 
   const onSubmit = async (data) => {
-  if (step <= 4) {
-    try {
-      const payload = {
-        repairmanProfile: { ...informationData, ...data },
-      };
+    if (step <= 4) {
+      try {
+        // Map frontend field names to backend field names
+        const mappedData = {
+          ...data
+        };
 
-      const response = await axiosInstance.put("/repairman/profile", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+        // Fix field name mapping
+        if (data.brandsWorkedWith) {
+          mappedData.brands = data.brandsWorkedWith;
+          delete mappedData.brandsWorkedWith;
+        }
 
-      toast.success(response.data.message);
-      setStep(5);
-    } catch (error) {
-      console.error(error);
-      toast.error("Error updating profile. Please try again.");
-    }
-  } else {
-    // Document upload step
-    const finalDocumentData = { ...documentData, ...data };
+        // Fix experience field name if needed
+        if (data.yearsOfExperience) {
+          mappedData.experience = data.yearsOfExperience.toString();
+          delete mappedData.yearsOfExperience;
+        }
 
-    try {
-      console.log("Processing Document Data:", finalDocumentData);
+        const payload = {
+          repairmanProfile: { ...informationData, ...mappedData },
+        };
 
-      // Show loading state
-      toast.info("Uploading documents to cloud... Please wait.");
+        console.log("Sending payload:", payload); // Debug log
 
-      // Function to upload single file to Cloudinary
-      const uploadToCloudinary = async (file) => {
-        if (!file) return null;
+        const response = await axiosInstance.put("/repairman/profile", payload, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', 'repairman_documents'); // Create this preset in Cloudinary
-        formData.append('cloud_name', process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME);
-        formData.append('folder', 'repairman_documents');
+        toast.success(response.data.message);
+        setStep(5);
+      } catch (error) {
+        console.error("Profile update error:", error);
+        toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
+      }
+    } else {
+      // Document upload step - ye same rakhna hai
+      const finalDocumentData = { ...documentData, ...data };
 
-        try {
-          const response = await fetch(
-            `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`,
-            {
-              method: 'POST',
-              body: formData,
-            }
-          );
+      try {
+        console.log("Processing Document Data:", finalDocumentData);
 
-          if (!response.ok) {
-            throw new Error(`Upload failed: ${response.statusText}`);
+        // Show loading state
+        toast.info("Uploading documents to cloud... Please wait.");
+
+        // Function to upload single file to Cloudinary
+        const uploadToCloudinary = async (file) => {
+          if (!file) return null;
+
+          const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+          const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'repair_jobs_unsigned';
+
+          if (!cloudName) {
+            console.error('Cloudinary cloud name not found in environment variables');
+            throw new Error('Upload service not configured. Please contact support.');
           }
 
-          const result = await response.json();
-          console.log('File uploaded successfully:', result.secure_url);
-          return result.secure_url;
-        } catch (error) {
-          console.error('Cloudinary upload error:', error);
-          throw error;
-        }
-      };
+          console.log('Uploading to Cloudinary:', {
+            cloudName,
+            uploadPreset,
+            fileName: file.name,
+            fileSize: file.size
+          });
 
-      // Function to upload multiple certification files
-      const uploadCertifications = async (files) => {
-        if (!files || files.length === 0) return [];
-        
-        const uploadPromises = Array.from(files).map(async (file, index) => {
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('upload_preset', uploadPreset);
+          formData.append('folder', 'repairman_documents');
+          
+          // Only allowed parameters for unsigned upload
+          formData.append('public_id', `${Date.now()}_${file.name.split('.')[0]}`);
+          formData.append('tags', 'repairman,document');
+
           try {
-            console.log(`Uploading certification ${index + 1}:`, file.name);
-            return await uploadToCloudinary(file);
+            const response = await fetch(
+              `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+              {
+                method: 'POST',
+                body: formData,
+              }
+            );
+
+            const responseText = await response.text();
+            console.log('Cloudinary response status:', response.status);
+
+            if (!response.ok) {
+              console.error('Cloudinary error response:', {
+                status: response.status,
+                statusText: response.statusText,
+                body: responseText
+              });
+              
+              try {
+                const errorData = JSON.parse(responseText);
+                if (errorData.error?.message) {
+                  throw new Error(errorData.error.message);
+                }
+              } catch (parseError) {
+                throw new Error(`Upload failed: ${response.status} - ${responseText}`);
+              }
+            }
+
+            const result = JSON.parse(responseText);
+            console.log('Upload successful:', result.secure_url);
+            return result.secure_url;
+
           } catch (error) {
-            console.error(`Failed to upload certification ${index + 1}:`, error);
-            throw error;
+            console.error('Cloudinary upload error:', error);
+            
+            if (error.message.includes('Upload preset must be specified')) {
+              throw new Error('Upload configuration error. Please contact support.');
+            } else if (error.message.includes('Invalid upload preset')) {
+              throw new Error('Upload preset not found. Please contact support.');
+            } else if (error.message.includes('File size too large')) {
+              throw new Error('File size is too large. Please choose a smaller image (max 5MB).');
+            } else if (error.message.includes('Invalid image file')) {
+              throw new Error('Invalid image format. Please use JPG, PNG, or WEBP.');
+            } else if (error.message.includes('Transformation parameter is not allowed')) {
+              throw new Error('Upload configuration issue. Please contact support.');
+            } else {
+              throw new Error(error.message || 'Failed to upload image. Please try again.');
+            }
+          }
+        };
+
+        // Function to upload multiple certification files
+        const uploadCertifications = async (files) => {
+          if (!files || files.length === 0) return [];
+
+          const uploadPromises = Array.from(files).map(async (file, index) => {
+            try {
+              console.log(`Uploading certification ${index + 1}:`, file.name);
+              return await uploadToCloudinary(file);
+            } catch (error) {
+              console.error(`Failed to upload certification ${index + 1}:`, error);
+              throw error;
+            }
+          });
+
+          return await Promise.all(uploadPromises);
+        };
+
+        // Upload all documents to Cloudinary
+        console.log("Starting Cloudinary uploads...");
+
+        const uploadResults = await Promise.allSettled([
+          finalDocumentData.profilePhoto ? uploadToCloudinary(finalDocumentData.profilePhoto) : Promise.resolve(null),
+          finalDocumentData.nationalIdOrPassportScan ? uploadToCloudinary(finalDocumentData.nationalIdOrPassportScan) : Promise.resolve(null),
+          finalDocumentData.shopPhoto ? uploadToCloudinary(finalDocumentData.shopPhoto) : Promise.resolve(null),
+          finalDocumentData.utilityBillOrShopProof ? uploadToCloudinary(finalDocumentData.utilityBillOrShopProof) : Promise.resolve(null),
+          finalDocumentData.certifications ? uploadCertifications(finalDocumentData.certifications) : Promise.resolve(null)
+        ]);
+
+        // Process upload results
+        const [
+          profilePhotoResult,
+          nationalIdResult,
+          shopPhotoResult,
+          shopProofResult,
+          certificationsResult
+        ] = uploadResults;
+
+        // Check for upload failures
+        const failedUploads = uploadResults
+          .map((result, index) => ({ result, index }))
+          .filter(({ result }) => result.status === 'rejected')
+          .map(({ index }) => {
+            const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof', 'certifications'];
+            return fieldNames[index];
+          });
+
+        if (failedUploads.length > 0) {
+          console.error('Failed uploads:', failedUploads);
+          toast.error(`Failed to upload: ${failedUploads.join(', ')}`);
+          return;
+        }
+
+        // Extract successful URLs
+        const documentUrls = {
+          profilePhoto: profilePhotoResult.status === 'fulfilled' ? profilePhotoResult.value : null,
+          nationalIdOrPassportScan: nationalIdResult.status === 'fulfilled' ? nationalIdResult.value : null,
+          shopPhoto: shopPhotoResult.status === 'fulfilled' ? shopPhotoResult.value : null,
+          utilityBillOrShopProof: shopProofResult.status === 'fulfilled' ? shopProofResult.value : null,
+          certifications: certificationsResult.status === 'fulfilled' ? certificationsResult.value : null
+        };
+
+        // Remove null values
+        Object.keys(documentUrls).forEach(key => {
+          if (documentUrls[key] === null || (Array.isArray(documentUrls[key]) && documentUrls[key].length === 0)) {
+            delete documentUrls[key];
           }
         });
-        
-        return await Promise.all(uploadPromises);
-      };
 
-      // Upload all documents to Cloudinary
-      console.log("Starting Cloudinary uploads...");
+        console.log("All uploads completed successfully:", documentUrls);
 
-      const uploadResults = await Promise.allSettled([
-        finalDocumentData.profilePhoto ? uploadToCloudinary(finalDocumentData.profilePhoto) : Promise.resolve(null),
-        finalDocumentData.nationalIdOrPassportScan ? uploadToCloudinary(finalDocumentData.nationalIdOrPassportScan) : Promise.resolve(null),
-        finalDocumentData.shopPhoto ? uploadToCloudinary(finalDocumentData.shopPhoto) : Promise.resolve(null),
-        finalDocumentData.utilityBillOrShopProof ? uploadToCloudinary(finalDocumentData.utilityBillOrShopProof) : Promise.resolve(null),
-        finalDocumentData.certifications ? uploadCertifications(finalDocumentData.certifications) : Promise.resolve([])
-      ]);
+        // Update loading message
+        toast.info("Saving document information...");
 
-      // Process upload results
-      const [
-        profilePhotoResult,
-        nationalIdResult,
-        shopPhotoResult,
-        shopProofResult,
-        certificationsResult
-      ] = uploadResults;
-
-      // Check for upload failures
-      const failedUploads = uploadResults
-        .map((result, index) => ({ result, index }))
-        .filter(({ result }) => result.status === 'rejected')
-        .map(({ index }) => {
-          const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof', 'certifications'];
-          return fieldNames[index];
-        });
-
-      if (failedUploads.length > 0) {
-        console.error('Failed uploads:', failedUploads);
-        toast.error(`Failed to upload: ${failedUploads.join(', ')}`);
-        return;
-      }
-
-      // Extract successful URLs
-      const documentUrls = {
-        profilePhoto: profilePhotoResult.status === 'fulfilled' ? profilePhotoResult.value : null,
-        nationalIdOrPassportScan: nationalIdResult.status === 'fulfilled' ? nationalIdResult.value : null,
-        shopPhoto: shopPhotoResult.status === 'fulfilled' ? shopPhotoResult.value : null,
-        utilityBillOrShopProof: shopProofResult.status === 'fulfilled' ? shopProofResult.value : null,
-        certifications: certificationsResult.status === 'fulfilled' ? certificationsResult.value.filter(url => url !== null) : []
-      };
-
-      // Remove null values
-      Object.keys(documentUrls).forEach(key => {
-        if (documentUrls[key] === null || (Array.isArray(documentUrls[key]) && documentUrls[key].length === 0)) {
-          delete documentUrls[key];
-        }
-      });
-
-      console.log("All uploads completed successfully:", documentUrls);
-
-      // Update loading message
-      toast.info("Saving document information...");
-
-      // Send URLs to backend
-      const response = await axiosInstance.post(
-        "/repairman/profile/upload-documents",
-        {
-          documents: documentUrls,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json'
+        // Send URLs to backend
+        const response = await axiosInstance.post(
+          "/repairman/profile/upload-documents",
+          {
+            documents: documentUrls,
           },
-          timeout: 30000,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            },
+            timeout: 30000,
+          }
+        );
+
+        console.log("Backend response:", response.data);
+
+        // Show success message
+        toast.success("Registration completed successfully!");
+
+        // Optional: Show completion details
+        if (response.data.data) {
+          const { isProfileComplete, completionPercentage } = response.data.data;
+          console.log(`Profile completion: ${completionPercentage}%`);
+
+          if (isProfileComplete) {
+            toast.success("Your profile is now complete!");
+            // Redirect to dashboard or next step
+            // router.push('/dashboard');
+          }
         }
-      );
 
-      console.log("Backend response:", response.data);
+      } catch (error) {
+        console.error("Error in document upload process:", error);
 
-      // Show success message
-      toast.success("Registration completed successfully!");
+        // Handle different types of errors
+        if (error.response) {
+          // Server responded with error status
+          const errorMessage = error.response.data?.message || "Server error occurred";
+          toast.error(errorMessage);
 
-      // Optional: Show completion details
-      if (response.data.data) {
-        const { isProfileComplete, completionPercentage } = response.data.data;
-        console.log(`Profile completion: ${completionPercentage}%`);
-
-        if (isProfileComplete) {
-          toast.success("Your profile is now complete!");
-          // Redirect to dashboard or next step
-          // router.push('/dashboard');
+          console.error("Server error details:", {
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          });
+        } else if (error.request) {
+          // Request was made but no response received
+          toast.error("Network error. Please check your connection.");
+          console.error("Network error:", error.request);
+        } else {
+          // Something else happened
+          toast.error("Error uploading documents. Please try again.");
+          console.error("Upload error:", error.message);
         }
-      }
-
-    } catch (error) {
-      console.error("Error in document upload process:", error);
-
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with error status
-        const errorMessage = error.response.data?.message || "Server error occurred";
-        toast.error(errorMessage);
-
-        console.error("Server error details:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers
-        });
-      } else if (error.request) {
-        // Request was made but no response received
-        toast.error("Network error. Please check your connection.");
-        console.error("Network error:", error.request);
-      } else {
-        // Something else happened
-        toast.error("Error uploading documents. Please try again.");
-        console.error("Upload error:", error.message);
       }
     }
-  }
-};
+  };
 
   // Predefined suggestions for chips
   const specializationSuggestions = [
@@ -409,7 +476,7 @@ export default function RepairmanMultiStepForm() {
 
   const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 
-  
+
 
 
 

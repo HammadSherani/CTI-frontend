@@ -6,7 +6,7 @@ const Page = () => {
   return (
     <>
       <WebsiteHeader />
-      <div className="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+      <div className="bg-gray-50 min-h-screen flex   ">
         <SettingsPage />
       </div>
     </>
