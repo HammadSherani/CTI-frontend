@@ -11,6 +11,8 @@ import Image from "next/image";
 import axiosInstance from "../../../../config/axiosInstance";
 import handleError from "../../../../helper/handleError";
 import { useRouter } from "next/navigation";
+import { setAuth } from "@/store/auth";
+import { useDispatch } from "react-redux";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -28,6 +30,7 @@ const schema = yup.object().shape({
 function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const {
     control,
@@ -63,6 +66,12 @@ function Login() {
       }else if (resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === true ) {
         router.push("/repair-man/dashboard");
       }
+
+      dispatch(setAuth({
+        user: resData.user,
+        token: resData.token,
+        userType: resData.user.role
+      }))
 
 
       // if(response.data.)

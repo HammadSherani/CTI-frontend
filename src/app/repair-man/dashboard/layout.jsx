@@ -6,7 +6,6 @@ function RepairmanLayout({ children }) {
         <div>
             <Header />
             {children}
-            dashboard layout
         </div>
     )
 }
