@@ -30,12 +30,12 @@ const ROLE_ROUTES = {
     "/settings"
   ],
   repairman: [
-    "/repairman",
-    "/repairman/dashboard",
-    "/repairman/jobs",
-    "/repairman/schedule",
-    "/repairman/history",
-    "/repairman/earnings",
+    "/repair-man",
+    "/repair-man/dashboard",
+    "/repair-man/jobs",
+    "/repair-man/schedule",
+    "/repair-man/history",
+    "/repair-man/earnings",
     "/profile",
     "/settings"
   ],
@@ -51,12 +51,12 @@ const ROLE_ROUTES = {
 };
 
 // Default redirects for each role
-// const ROLE_DEFAULT_ROUTES = {
-//   admin: "/admin/dashboard",
-//   seller: "/seller/dashboard",
-//   repairman: "/repairman/dashboard",
-//   customer: "/dashboard"
-// };
+const ROLE_DEFAULT_ROUTES = {
+  admin: "/admin/dashboard",
+  seller: "/seller/dashboard",
+  repairman: "/repair-man/dashboard",
+  customer: "/dashboard"
+};
 
 // Loading component
 const LoadingScreen = () => (
@@ -153,19 +153,19 @@ function AuthGuard({
         if (allowedRoles.length > 0) {
           if (!hasRequiredRole(userRole, allowedRoles)) {
             // Redirect to role's default route or specified redirect
-            const defaultRoute = redirectTo  || "/dashboard";
+            const defaultRoute = redirectTo || ROLE_DEFAULT_ROUTES[userRole] || "/dashboard";
             router.push(defaultRoute);
             return;
           }
         }
 
         // Check if current route is allowed for user's role
-        // if (!isRouteAllowed(userRole, pathname)) {
-        //   // Redirect to role's default route
-        //   const defaultRoute = "/dashboard";
-        //   router.push(defaultRoute);
-        //   return;
-        // }
+        if (!isRouteAllowed(userRole, pathname)) {
+          // Redirect to role's default route
+          const defaultRoute = ROLE_DEFAULT_ROUTES[userRole] || "/dashboard";
+          router.push(defaultRoute);
+          return;
+        }
       }
 
       setIsAuthorizing(false);
