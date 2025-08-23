@@ -23,10 +23,19 @@ const saveAuthState = (state) => {
   }
 };
 
+// 🔹 Define logic for profile completeness
+const checkProfileComplete = (user) => {
+  if (!user) return false;
+
+  // Example: require name, email, and profilePhoto
+  return Boolean(user.name && user.email && user.profilePhoto);
+};
+
 const initialState = loadAuthState() || {
   user: null,
   userType: null,
   token: null,
+  isProfileComplete: false,
 };
 
 const authSlice = createSlice({
@@ -39,6 +48,7 @@ const authSlice = createSlice({
         user: action.payload.user,
         userType: action.payload.userType,
         token: action.payload.token,
+        isProfileComplete: checkProfileComplete(action.payload.user),
       };
       saveAuthState(newState);
       return newState;
@@ -47,6 +57,15 @@ const authSlice = createSlice({
       const newState = {
         ...state,
         user: action.payload,
+        isProfileComplete: checkProfileComplete(action.payload),
+      };
+      saveAuthState(newState);
+      return newState;
+    },
+     setProfileComplete: (state, action) => {
+      const newState = {
+        ...state,
+        isProfileComplete: action.payload, // true / false
       };
       saveAuthState(newState);
       return newState;
@@ -56,6 +75,7 @@ const authSlice = createSlice({
         user: null,
         userType: null,
         token: null,
+        isProfileComplete: false,
       };
       saveAuthState(newState);
       return newState;
@@ -63,6 +83,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuth, clearAuth, setUser } = authSlice.actions;
+export const { setAuth, clearAuth, setUser, setProfileComplete } = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export default authSlice.reducer;

@@ -3,10 +3,11 @@ import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import { useRouter } from "next/navigation";
+import { setAuth, setProfileComplete } from "@/store/auth";
 
 // Validation schemas for each step
 const step1Schema = yup.object({
@@ -145,8 +146,9 @@ export default function RepairmanMultiStepForm() {
   const [step, setStep] = useState(1);
   const [informationData, setInformationData] = useState({});
   const [documentData, setDocumentData] = useState({});
-  const { user, token } = useSelector(state => state.auth);
+  const { user, token, isProfileComplete } = useSelector(state => state.auth);
   const router = useRouter();
+  const dispatch = useDispatch();
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
@@ -269,7 +271,7 @@ export default function RepairmanMultiStepForm() {
           formData.append('file', file);
           formData.append('upload_preset', uploadPreset);
           formData.append('folder', 'repairman_documents');
-          
+
           // Only allowed parameters for unsigned upload
           formData.append('public_id', `${Date.now()}_${file.name.split('.')[0]}`);
           formData.append('tags', 'repairman,document');
@@ -292,7 +294,7 @@ export default function RepairmanMultiStepForm() {
                 statusText: response.statusText,
                 body: responseText
               });
-              
+
               try {
                 const errorData = JSON.parse(responseText);
                 if (errorData.error?.message) {
@@ -309,7 +311,7 @@ export default function RepairmanMultiStepForm() {
 
           } catch (error) {
             console.error('Cloudinary upload error:', error);
-            
+
             if (error.message.includes('Upload preset must be specified')) {
               throw new Error('Upload configuration error. Please contact support.');
             } else if (error.message.includes('Invalid upload preset')) {
@@ -326,7 +328,6 @@ export default function RepairmanMultiStepForm() {
           }
         };
 
-        // Function to upload multiple certification files
         const uploadCertifications = async (files) => {
           if (!files || files.length === 0) return [];
 
@@ -351,7 +352,7 @@ export default function RepairmanMultiStepForm() {
           finalDocumentData.nationalIdOrPassportScan ? uploadToCloudinary(finalDocumentData.nationalIdOrPassportScan) : Promise.resolve(null),
           finalDocumentData.shopPhoto ? uploadToCloudinary(finalDocumentData.shopPhoto) : Promise.resolve(null),
           finalDocumentData.utilityBillOrShopProof ? uploadToCloudinary(finalDocumentData.utilityBillOrShopProof) : Promise.resolve(null),
-          finalDocumentData.certifications ? uploadCertifications(finalDocumentData.certifications) : Promise.resolve(null)
+          // finalDocumentData.certifications ? uploadToCloudinary(finalDocumentData.certifications) : Promise.resolve(null)
         ]);
 
         // Process upload results
@@ -360,7 +361,7 @@ export default function RepairmanMultiStepForm() {
           nationalIdResult,
           shopPhotoResult,
           shopProofResult,
-          certificationsResult
+          // certificationsResult
         ] = uploadResults;
 
         // Check for upload failures
@@ -368,7 +369,7 @@ export default function RepairmanMultiStepForm() {
           .map((result, index) => ({ result, index }))
           .filter(({ result }) => result.status === 'rejected')
           .map(({ index }) => {
-            const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof', 'certifications'];
+            const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof']; // 'certifications'
             return fieldNames[index];
           });
 
@@ -384,10 +385,11 @@ export default function RepairmanMultiStepForm() {
           nationalIdOrPassportScan: nationalIdResult.status === 'fulfilled' ? nationalIdResult.value : null,
           shopPhoto: shopPhotoResult.status === 'fulfilled' ? shopPhotoResult.value : null,
           utilityBillOrShopProof: shopProofResult.status === 'fulfilled' ? shopProofResult.value : null,
-          certifications: certificationsResult.status === 'fulfilled' ? certificationsResult.value : null
+          // certifications: certificationsResult.status === 'fulfilled'
+          //   ? (Array.isArray(certificationsResult.value) ? certificationsResult.value[0] : certificationsResult.value)
+          //   : null
         };
 
-        // Remove null values
         Object.keys(documentUrls).forEach(key => {
           if (documentUrls[key] === null || (Array.isArray(documentUrls[key]) && documentUrls[key].length === 0)) {
             delete documentUrls[key];
@@ -420,16 +422,17 @@ export default function RepairmanMultiStepForm() {
         toast.success("Registration completed successfully!");
 
         // Optional: Show completion details
-        if (response.data.data) {
-          const { isProfileComplete, completionPercentage } = response.data.data;
-          console.log(`Profile completion: ${completionPercentage}%`);
+        // if (response.data.data) {
+        const { isProfileComplete, completionPercentage } = response.data.data;
+        console.log(`Profile completion: ${completionPercentage}%`);
 
-          if (isProfileComplete) {
-            toast.success("Your profile is now complete!");
-            // Redirect to dashboard or next step
-            // router.push('/dashboard');
-          }
+        if (isProfileComplete) {
+          toast.success("Your profile is now complete!");
+          // Redirect to dashboard or next step
+          dispatch(setProfileComplete(true));
+          // router.push('/repair-man/dashboard');
         }
+        // }
 
       } catch (error) {
         console.error("Error in document upload process:", error);
@@ -477,7 +480,11 @@ export default function RepairmanMultiStepForm() {
   const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
 
 
-
+  useEffect(() => {
+    if (user && isProfileComplete) {
+      router.push('/repair-man/dashboard');
+    }
+  }, [user, isProfileComplete]);
 
 
   return (
@@ -1111,7 +1118,7 @@ export default function RepairmanMultiStepForm() {
                   {errors.utilityBillOrShopProof && <p className="text-red-500 text-sm mt-1">{errors.utilityBillOrShopProof.message}</p>}
                 </div>
 
-                <div className="md:col-span-2">
+                {/* <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Certifications (Optional)</label>
                   <Controller
                     name="certifications"
@@ -1130,7 +1137,7 @@ export default function RepairmanMultiStepForm() {
                       </div>
                     )}
                   />
-                </div>
+                </div> */}
               </div>
             </div>
           )}
