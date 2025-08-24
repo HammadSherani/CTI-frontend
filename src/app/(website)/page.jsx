@@ -9,21 +9,25 @@ import PromotionalBanners from '@/components/website/home/promotionsBanner'
 import OurPartners from '@/components/website/home/ourPartners'
 import OurProcess from '@/components/website/home/ourProcess'
 import BottomPromoImages from '@/components/website/home/bottomPromoImages'
+import { Brands, ContentSection, InterestTags } from '@/components/website/Footer'
 
 function Home() {
   return (
     <div>
       <Hero />
-        <Categories />
-        <PromoBanner />
-        <RefurbishedTabs />
-        <PromoImages />
-        <SellingProducts />
-        <PromotionalBanners />
-        <SellingProducts title="Fla Ürünler"/>
-        <OurPartners />
-        <OurProcess />
-        <BottomPromoImages />
+      <Categories />
+      <PromoBanner />
+      <RefurbishedTabs />
+      <PromoImages />
+      <SellingProducts />
+      <PromotionalBanners />
+      <SellingProducts title="Fla Ürünler" />
+      <OurPartners />
+      <OurProcess />
+      <BottomPromoImages />
+      <InterestTags />
+      <ContentSection />
+      <Brands />
     </div>
   )
 }

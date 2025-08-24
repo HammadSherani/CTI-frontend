@@ -5,11 +5,18 @@ import React, { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
+import { useDispatch } from 'react-redux';
+import { clearAuth } from '@/store/auth';
 
 function Header() {
   const pathname = usePathname();
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dispatch = useDispatch();
+
+  const handleLogout = () => {
+    dispatch(clearAuth());
+  }
 
   const primaryNavLinks = [
     { name: "Dashboard", path: `/repair-man/dashboard`, icon: "mdi:view-dashboard-outline" },
@@ -26,7 +33,7 @@ function Header() {
     { name: "Disputes", path: "/disputes", icon: "mdi:gavel" },
     { name: "Notifications", path: "/notification-center", icon: "mdi:bell-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
-    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true },
+    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true, },
   ];
 
   // Close dropdown when clicking outside
@@ -56,16 +63,16 @@ function Header() {
         {/* Logo and Navigation */}
         <div className="flex items-center gap-8">
           <Link href="/repair-man/dashboard" className="flex-shrink-0">
-            <Image 
-              src={logo} 
-              alt="RepairHub Logo" 
-              width={80} 
-              height={40} 
-              className="w-20 h-auto object-contain hover:opacity-80 transition-opacity" 
+            <Image
+              src={logo}
+              alt="RepairHub Logo"
+              width={80}
+              height={40}
+              className="w-20 h-auto object-contain hover:opacity-80 transition-opacity"
               priority
             />
           </Link>
-          
+
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
             {primaryNavLinks.map((link) => (
@@ -73,8 +80,8 @@ function Header() {
                 key={link.name}
                 href={link.path}
                 className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
-                  ${isActiveLink(link.path) 
-                    ? 'text-primary-600 bg-primary-50' 
+                  ${isActiveLink(link.path)
+                    ? 'text-primary-600 bg-primary-50'
                     : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
                   }`}
               >
@@ -87,14 +94,14 @@ function Header() {
             ))}
           </nav>
         </div>
-        
+
         {/* Profile Dropdown */}
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group
-              ${isDropdownOpen 
-                ? 'bg-gray-100 shadow-sm' 
+              ${isDropdownOpen
+                ? 'bg-gray-100 shadow-sm'
                 : 'hover:bg-gray-50'
               }`}
           >
@@ -113,10 +120,10 @@ function Header() {
               <p className="text-xs text-gray-500">Repairman</p>
             </div>
 
-            <Icon 
-              icon="mdi:chevron-down" 
+            <Icon
+              icon="mdi:chevron-down"
               className={`w-4 h-4 text-gray-500 transition-transform duration-200 
-                ${isDropdownOpen ? 'rotate-180' : 'group-hover:text-gray-700'}`} 
+                ${isDropdownOpen ? 'rotate-180' : 'group-hover:text-gray-700'}`}
             />
           </button>
 
@@ -144,19 +151,23 @@ function Header() {
                     <Link
                       href={link.path}
                       className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors duration-150
-                        ${link.isLogout 
-                          ? 'text-red-600 hover:bg-red-50 hover:text-red-700' 
+                        ${link.isLogout
+                          ? 'text-red-600 hover:bg-red-50 hover:text-red-700'
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
+                      onClick={() => link.isLogout && handleLogout()}
+
                     >
-                      <Icon 
-                        icon={link.icon} 
-                        className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`} 
+                      <Icon
+                        icon={link.icon}
+                        className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`}
                       />
                       {link.name}
                     </Link>
                   </React.Fragment>
                 ))}
+
+
               </div>
             </div>
           )}
@@ -172,8 +183,8 @@ function Header() {
                 key={link.name}
                 href={link.path}
                 className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200
-                  ${isActiveLink(link.path) 
-                    ? 'text-primary-600 bg-primary-100' 
+                  ${isActiveLink(link.path)
+                    ? 'text-primary-600 bg-primary-100'
                     : 'text-gray-600 hover:text-primary-600 hover:bg-white'
                   }`}
               >

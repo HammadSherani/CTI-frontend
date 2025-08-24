@@ -5,19 +5,27 @@ import React, { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
+import { useDispatch, useSelector } from 'react-redux';
+import { clearAuth } from '@/store/auth';
 
 function Header() {
   const pathname = usePathname();
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dispatch = useDispatch();
+  const {user} = useSelector((state) => state.auth);
+
+  const handleLogout = () => {
+    dispatch(clearAuth());
+  };
 
   const primaryNavLinks = [
-    { name: "Dashboard", path: `/repair-man/dashboard`, icon: "mdi:view-dashboard-outline" },
-    { name: "Job Board", path: "/repair-man/job-board", icon: "mdi:clipboard-list-outline" },
-    { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
-    { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
-    { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
-    { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },
+    { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
+    { name: "Category", path: "/admin/category", icon: "mdi:clipboard-list-outline" },
+    // { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
+    // { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
+    // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
+    // { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },
   ];
 
   const dropdownLinks = [
@@ -26,7 +34,7 @@ function Header() {
     { name: "Disputes", path: "/disputes", icon: "mdi:gavel" },
     { name: "Notifications", path: "/notification-center", icon: "mdi:bell-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
-    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true },
+    { name: "Sign Out", path: "", icon: "mdi:logout", isLogout: true },
   ];
 
   // Close dropdown when clicking outside
@@ -109,8 +117,8 @@ function Header() {
 
             {/* User Info - Hidden on mobile */}
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-900">John Doe</p>
-              <p className="text-xs text-gray-500">Repairman</p>
+              <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+              <p className="text-xs text-gray-500">{user?.email}</p>
             </div>
 
             <Icon 
@@ -130,8 +138,8 @@ function Header() {
                     <span className="text-sm font-semibold text-white">JD</span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">John Doe</p>
-                    <p className="text-sm text-gray-500">john.doe@example.com</p>
+                    <p className="font-medium text-gray-900">{user?.name}</p>
+                    <p className="text-sm text-gray-500">{user?.email}</p>
                   </div>
                 </div>
               </div>
@@ -148,6 +156,7 @@ function Header() {
                           ? 'text-red-600 hover:bg-red-50 hover:text-red-700' 
                           : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                         }`}
+                      onClick={() => link.isLogout && handleLogout()}
                     >
                       <Icon 
                         icon={link.icon} 

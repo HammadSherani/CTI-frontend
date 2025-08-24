@@ -5,7 +5,6 @@ import WebsiteHeader from '@/components/website/Header'
 const Page = () => {
   return (
     <>
-      <WebsiteHeader />
       <div className="bg-gray-50 min-h-screen flex   ">
         <SettingsPage />
       </div>

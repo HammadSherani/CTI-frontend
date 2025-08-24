@@ -75,7 +75,7 @@ const authSlice = createSlice({
         user: null,
         userType: null,
         token: null,
-        isProfileComplete: false,
+        // isProfileComplete: false,
       };
       saveAuthState(newState);
       return newState;

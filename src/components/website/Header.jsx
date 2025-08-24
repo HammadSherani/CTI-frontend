@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
+import Link from "next/link";
 
 export  function TopHeader() {
   const [language, setLanguage] = useState("English");
@@ -128,8 +129,8 @@ export function MidHeader() {
   return (
     <div className="bg-white shadow-sm">
       <div className="flex flex-col md:flex-row justify-between items-center px-4 py-4 gap-4 container mx-auto">
-        {/* Logo */}
-        <div className="flex items-center gap-2">
+        <div className="">
+          <Link href={"/"} className="flex items-center gap-2">
           <Image 
             src={logo} 
             alt="Logo" 
@@ -137,9 +138,9 @@ export function MidHeader() {
             height={1000} 
             width={1000}
           />
+          </Link>
         </div>
 
-        {/* Enhanced Search Bar */}
         <div className="flex items-center w-full md:w-2/4 relative">
           <div className={`flex items-center bg-gray-100 rounded-full w-full px-4 transition-all duration-300 ${
             searchFocused ? 'ring-2 ring-orange-500 bg-white shadow-lg' : 'hover:bg-gray-200'
@@ -160,7 +161,6 @@ export function MidHeader() {
             />
           </div>
           
-          {/* Search Suggestions */}
           {searchFocused && (
             <div className="absolute top-full left-0 right-0 bg-white shadow-lg rounded-lg mt-2 z-50 border">
               <div className="p-4">
@@ -177,7 +177,6 @@ export function MidHeader() {
           )}
         </div>
 
-        {/* Enhanced Action Icons */}
         <div className="flex gap-3 md:gap-5 text-xl items-center">
           {/* Wishlist */}
           <div className="relative group cursor-pointer" aria-label="Wishlist">
@@ -195,7 +194,6 @@ export function MidHeader() {
             </div>
           </div>
           
-          {/* User Account */}
           <div className="relative group cursor-pointer" aria-label="Account">
             <Icon 
               icon="mdi:account-circle" 

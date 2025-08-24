@@ -40,7 +40,7 @@ const ROLE_ROUTES = {
     "/settings"
   ],
   customer: [
-    "/dashboard",
+    "/",
     "/orders",
     "/repair-requests",
     "/wishlist",
@@ -55,7 +55,7 @@ const ROLE_DEFAULT_ROUTES = {
   admin: "/admin/dashboard",
   seller: "/seller/dashboard",
   repairman: "/repair-man/dashboard",
-  customer: "/dashboard"
+  customer: "/"
 };
 
 // Loading component
