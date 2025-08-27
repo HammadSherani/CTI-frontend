@@ -5,6 +5,8 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('nearby');
@@ -15,6 +17,7 @@ const MyJobsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { token } = useSelector((state) => state.auth);
+  const router = useRouter();
 
   const fetchJobs = async () => {
     try {
@@ -292,7 +295,10 @@ const MyJobsPage = () => {
             </>
           )}
           <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            <Link href={'/repair-man/job-board/' + job._id} className="w-full h-full">
+            
             View Details
+            </Link>
           </button>
         </div>
       </div>
