@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 import Link from "next/link";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 export  function TopHeader() {
   const [language, setLanguage] = useState("English");
@@ -189,9 +190,11 @@ export function MidHeader() {
                 {wishlistItems}
               </span>
             )}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+            <div  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
               Wishlist ({wishlistItems})
             </div>
+
+            <LanguageSwitcher />
           </div>
           
           <div className="relative group cursor-pointer" aria-label="Account">
