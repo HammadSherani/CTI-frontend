@@ -1,326 +1,307 @@
 "use client";
 
-
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import handleError from '@/helper/handleError';
+import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
 
 const MyJobsPage = () => {
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('nearby');
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [expandedJob, setExpandedJob] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { token } = useSelector((state) => state.auth);
 
-  // Mock jobs data
-  const jobsData = {
-    active: [
-      {
-        id: 1,
-        title: 'iPhone 14 Pro Screen Replacement',
-        client: 'Sarah Ahmed',
-        clientInitials: 'SA',
-        amount: 12000,
-        status: 'in-progress',
-        startDate: '2024-08-22',
-        deadline: '2024-08-25',
-        progress: 75,
-        description: 'Replace cracked screen and test all functionality',
-        location: 'DHA Phase 5, Karachi',
-        urgency: 'high',
-        lastUpdate: '2 hours ago',
-      },
-      {
-        id: 2,
-        title: 'Samsung Galaxy S23 Water Damage Repair',
-        client: 'Ahmed Khan',
-        clientInitials: 'AK',
-        amount: 8500,
-        status: 'pending-start',
-        startDate: '2024-08-25',
-        deadline: '2024-08-27',
-        progress: 0,
-        description: 'Water damage assessment and component replacement',
-        location: 'Gulshan-e-Iqbal, Karachi',
-        urgency: 'urgent',
-        lastUpdate: '1 day ago',
-      },
-      {
-        id: 3,
-        title: 'Multiple Phone Repairs - Bulk Service',
-        client: 'TechMart Electronics',
-        clientInitials: 'TE',
-        amount: 25000,
-        status: 'awaiting-parts',
-        startDate: '2024-08-20',
-        deadline: '2024-08-28',
-        progress: 40,
-        description: '5 iPhone repairs and 3 Samsung repairs',
-        location: 'Clifton, Karachi',
-        urgency: 'medium',
-        lastUpdate: '4 hours ago',
-      },
-    ],
-    pending: [
-      {
-        id: 4,
-        title: 'Xiaomi Redmi Note 12 Battery Replacement',
-        client: 'Fatima Ali',
-        clientInitials: 'FA',
-        amount: 4500,
-        status: 'offer-submitted',
-        submittedDate: '2024-08-24',
-        description: 'Battery draining fast, needs replacement',
-        location: 'North Nazimabad, Karachi',
-        urgency: 'low',
-        responseDeadline: '2024-08-26',
-      },
-      {
-        id: 5,
-        title: 'OnePlus 9 Pro Charging Port Repair',
-        client: 'Hassan Malik',
-        clientInitials: 'HM',
-        amount: 6000,
-        status: 'under-review',
-        submittedDate: '2024-08-23',
-        description: 'Charging port not working properly',
-        location: 'Defence, Karachi',
-        urgency: 'medium',
-        responseDeadline: '2024-08-25',
-      },
-    ],
-    completed: [
-      {
-        id: 6,
-        title: 'iPhone 12 Mini Screen + Battery Replacement',
-        client: 'Maria Khan',
-        clientInitials: 'MK',
-        amount: 15000,
-        status: 'completed',
-        completedDate: '2024-08-20',
-        rating: 5,
-        review: 'Excellent work! Phone works like new. Very professional and quick service.',
-        description: 'Replace cracked screen and old battery',
-        location: 'Johar Town, Lahore',
-        duration: '2 days',
-      },
-      {
-        id: 7,
-        title: 'Samsung Galaxy A54 Software Issues',
-        client: 'Ali Raza',
-        clientInitials: 'AR',
-        amount: 3500,
-        status: 'completed',
-        completedDate: '2024-08-18',
-        rating: 5,
-        review: 'Fixed all software problems perfectly. Great communication throughout.',
-        description: 'Software troubleshooting and optimization',
-        location: 'Model Town, Lahore',
-        duration: '1 day',
-      },
-      {
-        id: 8,
-        title: 'iPhone 11 Water Damage Recovery',
-        client: 'Zara Sheikh',
-        clientInitials: 'ZS',
-        amount: 10000,
-        status: 'completed',
-        completedDate: '2024-08-15',
-        rating: 4,
-        review: 'Good work, phone is working again. Took a bit longer than expected.',
-        description: 'Complete water damage restoration',
-        location: 'Bahria Town, Karachi',
-        duration: '3 days',
-      },
-    ],
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axiosInstance.get("/repairman/offers/jobs/nearby", {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        }
+      });
+      setJobs(data.data.jobs || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setError('Failed to load jobs. Please try again.');
+      handleError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Helper function to get job status based on API data
+  const getJobStatus = (job) => {
+    if (job.status === 'offers_received') {
+      return job.hasSubmittedOffer ? 'offer-submitted' : 'available';
+    }
+    return job.status;
+  };
+
+  // Helper function to get urgency level
+  const getUrgencyLevel = (urgencyScore) => {
+    if (urgencyScore >= 3) return 'high';
+    if (urgencyScore >= 2) return 'medium';
+    return 'low';
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount, currency = 'PKR') => {
+    return `${currency} ${amount.toLocaleString()}`;
+  };
+
+  // Helper function to get time remaining
+  const getTimeRemaining = (timeRemaining) => {
+    if (timeRemaining > 24) {
+      return `${Math.floor(timeRemaining / 24)} days`;
+    }
+    return `${timeRemaining} hours`;
   };
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'pending-start': return 'bg-yellow-100 text-yellow-800';
-      case 'awaiting-parts': return 'bg-orange-100 text-orange-800';
+      case 'available': return 'bg-green-100 text-green-800';
       case 'offer-submitted': return 'bg-purple-100 text-purple-800';
-      case 'under-review': return 'bg-gray-100 text-gray-800';
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'offers_received': return 'bg-blue-100 text-blue-800';
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
-      case 'urgent': return 'text-red-600';
-      case 'high': return 'text-orange-600';
+      case 'high': return 'text-red-600';
       case 'medium': return 'text-yellow-600';
       case 'low': return 'text-gray-600';
       default: return 'text-gray-600';
     }
   };
 
+  // Categorize jobs based on status and submission state
+  const categorizeJobs = (jobs) => {
+    const nearby = jobs.filter(job => !job.hasSubmittedOffer);
+    const submitted = jobs.filter(job => job.hasSubmittedOffer && job.status === 'offers_received');
+    const active = jobs.filter(job => ['in-progress', 'accepted'].includes(job.status));
+    const completed = jobs.filter(job => job.status === 'completed');
+
+    return { nearby, submitted, active, completed };
+  };
+
+  const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
+
   // Filter and search jobs
   const filteredJobs = useMemo(() => {
-    const jobs = jobsData[activeTab];
-    return jobs.filter((job) => {
-      const matchesSearch = job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           job.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           job.description.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesUrgency = urgencyFilter === 'all' || job.urgency === urgencyFilter;
+    const jobsToFilter = categorizedJobs[activeTab] || [];
+    return jobsToFilter.filter((job) => {
+      const matchesSearch = 
+        job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.turkishTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.turkishDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.location?.address?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const jobUrgency = getUrgencyLevel(job.urgencyScore);
+      const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
+      
       return matchesSearch && matchesUrgency;
     });
-  }, [activeTab, searchQuery, urgencyFilter]);
+  }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
 
-  const JobCard = ({ job, type }) => (
-    <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out">
-      <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-        <div className="flex items-start space-x-4 w-full">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
-            <span className="text-base font-semibold text-blue-700">{job.clientInitials}</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start">
-              <h3 className="font-bold text-xl text-gray-900 mb-1">{job.title}</h3>
-              <button
-                onClick={() => setExpandedJob(expandedJob === job.id ? null : job.id)}
-                className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
-                aria-expanded={expandedJob === job.id}
-                aria-controls={`job-details-${job.id}`}
-                aria-label={expandedJob === job.id ? `Collapse details for ${job.title}` : `Expand details for ${job.title}`}
-              >
-                <Icon icon={expandedJob === job.id ? 'heroicons:chevron-up' : 'heroicons:chevron-down'} className="w-5 h-5" />
-              </button>
+  const JobCard = ({ job }) => {
+    const jobStatus = getJobStatus(job);
+    const urgency = getUrgencyLevel(job.urgencyScore);
+    const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+          <div className="flex items-start space-x-4 w-full">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-base font-semibold text-blue-700">{customerInitials}</span>
             </div>
-            <p className="text-sm text-gray-600 mb-2">Client: {job.client}</p>
-            <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-xl text-gray-900 mb-1">
+                  {job.title || job.turkishTitle}
+                </h3>
+                <button
+                  onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
+                  className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
+                  aria-expanded={expandedJob === job._id}
+                  aria-controls={`job-details-${job._id}`}
+                >
+                  <Icon icon={expandedJob === job._id ? 'heroicons:chevron-up' : 'heroicons:chevron-down'} className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Client: {job.customerId?.name || 'Anonymous'}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
+                <span className="flex items-center">
+                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
+                  {job.location?.address}, {job.location?.city}
+                </span>
+                <span className={`font-medium ${getUrgencyColor(urgency)}`}>
+                  {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+                </span>
+                {job.distance && (
+                  <span className="flex items-center">
+                    <Icon icon="heroicons:map" className="w-4 h-4 mr-1" aria-hidden="true" />
+                    {job.distance.toFixed(1)} km away
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="text-right w-full sm:w-auto">
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(job.budget?.min)} - {formatCurrency(job.budget?.max)}
+            </p>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(jobStatus)} mt-2`}>
+              {jobStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+            {job.timeRemaining && (
+              <p className="text-sm text-gray-500 mt-1">
+                Expires in {getTimeRemaining(job.timeRemaining)}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Device Info */}
+        {job.deviceInfo && (
+          <div className="mb-4">
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
               <span className="flex items-center">
-                <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                {job.location}
+                <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 mr-1" />
+                {job.deviceInfo.brand} {job.deviceInfo.model}
               </span>
-              {job.urgency && (
-                <span className={`font-medium ${getUrgencyColor(job.urgency)}`} aria-label={`Priority: ${job.urgency}`}>
-                  {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)} Priority
+              {job.deviceInfo.color && (
+                <span>{job.deviceInfo.color}</span>
+              )}
+              {job.categoryId && (
+                <span className="bg-gray-100 px-2 py-1 rounded">
+                  {job.categoryId.name}
                 </span>
               )}
             </div>
           </div>
-        </div>
-        <div className="text-right w-full sm:w-auto">
-          <p className="text-2xl font-bold text-gray-900">${job.amount.toLocaleString()}</p>
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)} mt-2`}>
-            {job.status.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-          </span>
-        </div>
-      </div>
+        )}
 
-      {/* Collapsible Details */}
-      <div
-        id={`job-details-${job.id}`}
-        className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJob === job.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}
-      >
-        <div className="pt-4 border-t border-gray-100">
-          <p className="text-sm text-gray-600 mb-4">{job.description}</p>
-          {type === 'active' && job.progress !== undefined && (
-            <div className="mb-4">
-              <div className="flex justify-between text-sm mb-2">
-                <span className="text-gray-600">Progress</span>
-                <span className="font-medium">{job.progress}%</span>
+        {/* Collapsible Details */}
+        <div
+          id={`job-details-${job._id}`}
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            expandedJob === job._id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-sm text-gray-600 mb-4">
+              {job.description || job.turkishDescription}
+            </p>
+            
+            {/* Job Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+              <div>
+                <span className="font-medium">Service Preference:</span> {job.servicePreference}
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-gradient-to-r from-blue-500 to-blue-700 h-3 rounded-full transition-all duration-500 ease-in-out"
-                  style={{ width: `${job.progress}%` }}
-                  role="progressbar"
-                  aria-valuenow={job.progress}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                />
+              {job.preferredTime && (
+                <div>
+                  <span className="font-medium">Preferred Time:</span>{' '}
+                  {new Date(job.preferredTime).toLocaleString()}
+                </div>
+              )}
+              <div>
+                <span className="font-medium">Job Radius:</span> {job.jobRadius} km
+              </div>
+              <div>
+                <span className="font-medium">Max Offers:</span> {job.maxOffers}
+              </div>
+              {job.travelTime && (
+                <div>
+                  <span className="font-medium">Travel Time:</span> {job.travelTime}
+                </div>
+              )}
+              <div>
+                <span className="font-medium">Posted:</span>{' '}
+                {new Date(job.createdAt).toLocaleDateString()}
               </div>
             </div>
-          )}
-          {type === 'completed' && job.rating && (
-            <div className="mb-4">
-              <div className="flex items-center mb-2">
-                {[...Array(5)].map((_, i) => (
-                  <Icon
-                    key={i}
-                    icon="heroicons:star"
-                    className={`w-5 h-5 ${i < job.rating ? 'text-yellow-400' : 'text-gray-300'}`}
-                    aria-hidden="true"
-                  />
-                ))}
-                <span className="ml-2 text-sm font-medium text-gray-700">{job.rating}/5</span>
+
+            {/* Images */}
+            {job.images && job.images.length > 0 && (
+              <div className="mb-4">
+                <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
+                <div className="flex space-x-2 overflow-x-auto">
+                  {job.images.map((image, index) => (
+                    <img
+                      key={image._id || index}
+                      src={image.url}
+                      alt={`Job image ${index + 1}`}
+                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ))}
+                </div>
               </div>
-              <p className="text-sm text-gray-600 italic">"{job.review}"</p>
-            </div>
-          )}
-          <div className="flex flex-col sm:flex-row justify-between text-sm text-gray-600">
-            <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
-              {type === 'active' && (
-                <>
-                  <span>Started: {new Date(job.startDate).toLocaleDateString()}</span>
-                  <span>Due: {new Date(job.deadline).toLocaleDateString()}</span>
-                </>
-              )}
-              {type === 'pending' && (
-                <>
-                  <span>Submitted: {new Date(job.submittedDate).toLocaleDateString()}</span>
-                  <span>Response by: {new Date(job.responseDeadline).toLocaleDateString()}</span>
-                </>
-              )}
-              {type === 'completed' && (
-                <>
-                  <span>Completed: {new Date(job.completedDate).toLocaleDateString()}</span>
-                  <span>Duration: {job.duration}</span>
-                </>
-              )}
-            </div>
-            {type === 'active' && (
-              <span className="text-xs text-gray-500">Updated {job.lastUpdate}</span>
             )}
           </div>
         </div>
-      </div>
 
-      {/* Action Buttons */}
-      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-        {type === 'active' && (
-          <>
-            <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-              Update Progress
-            </button>
-            <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              Message Client
-            </button>
-          </>
-        )}
-        {type === 'pending' && (
-          <>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
+          {activeTab === 'nearby' && job.canSubmitOffer && (
             <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-              View Details
+              Submit Offer
             </button>
-            <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              Withdraw Offer
-            </button>
-          </>
-        )}
-        {type === 'completed' && (
-          <>
-            <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              View Invoice
-            </button>
-            <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              Contact Client
-            </button>
-          </>
-        )}
+          )}
+          {activeTab === 'submitted' && (
+            <>
+              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                View Offer
+              </button>
+              <button className="flex-1 border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                Withdraw Offer
+              </button>
+            </>
+          )}
+          {activeTab === 'active' && (
+            <>
+              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Update Progress
+              </button>
+              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                Message Client
+              </button>
+            </>
+          )}
+          <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            View Details
+          </button>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const EmptyState = ({ type }) => (
     <div className="text-center py-12">
       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <Icon
           icon={
+            type === 'nearby' ? 'heroicons:map-pin' :
+            type === 'submitted' ? 'heroicons:clock' :
             type === 'active' ? 'heroicons:wrench-screwdriver' :
-            type === 'pending' ? 'heroicons:clock' :
             'heroicons:check-circle'
           }
           className="w-8 h-8 text-gray-400"
@@ -331,22 +312,27 @@ const MyJobsPage = () => {
         No {type} jobs
       </h3>
       <p className="text-gray-600 mb-4 max-w-md mx-auto">
-        {type === 'active' ? 'You don\'t have any active jobs at the moment.' :
-         type === 'pending' ? 'You don\'t have any pending offers.' :
+        {type === 'nearby' ? 'No nearby jobs available at the moment.' :
+         type === 'submitted' ? 'You haven\'t submitted any offers yet.' :
+         type === 'active' ? 'You don\'t have any active jobs.' :
          'You haven\'t completed any jobs yet.'}
       </p>
-      {type !== 'completed' && (
-        <button className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-          Browse Jobs
+      {type === 'nearby' && (
+        <button 
+          onClick={fetchJobs}
+          className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
+          Refresh Jobs
         </button>
       )}
     </div>
   );
 
   const getTabCounts = () => ({
-    active: jobsData.active.length,
-    pending: jobsData.pending.length,
-    completed: jobsData.completed.length,
+    nearby: categorizedJobs.nearby?.length || 0,
+    submitted: categorizedJobs.submitted?.length || 0,
+    active: categorizedJobs.active?.length || 0,
+    completed: categorizedJobs.completed?.length || 0,
   });
 
   const tabCounts = getTabCounts();
@@ -355,6 +341,35 @@ const MyJobsPage = () => {
     setSearchQuery('');
     setUrgencyFilter('all');
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Icon icon="heroicons:exclamation-triangle" className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchJobs}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
@@ -395,7 +410,6 @@ const MyJobsPage = () => {
               aria-label="Filter by urgency"
             >
               <option value="all">All Priorities</option>
-              <option value="urgent">Urgent</option>
               <option value="high">High</option>
               <option value="medium">Medium</option>
               <option value="low">Low</option>
@@ -407,6 +421,13 @@ const MyJobsPage = () => {
             >
               Clear Filters
             </button>
+            <button
+              onClick={fetchJobs}
+              className="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              aria-label="Refresh jobs"
+            >
+              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
+            </button>
           </div>
         </div>
 
@@ -415,8 +436,9 @@ const MyJobsPage = () => {
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
               {[
+                { id: 'nearby', label: 'Nearby Jobs', count: tabCounts.nearby },
+                { id: 'submitted', label: 'Submitted Offers', count: tabCounts.submitted },
                 { id: 'active', label: 'Active Jobs', count: tabCounts.active },
-                { id: 'pending', label: 'Pending Offers', count: tabCounts.pending },
                 { id: 'completed', label: 'Completed', count: tabCounts.completed },
               ].map((tab) => (
                 <button
@@ -446,7 +468,7 @@ const MyJobsPage = () => {
             {filteredJobs.length > 0 ? (
               <div className="space-y-6">
                 {filteredJobs.map((job) => (
-                  <JobCard key={job.id} job={job} type={activeTab} />
+                  <JobCard key={job._id} job={job} />
                 ))}
               </div>
             ) : (

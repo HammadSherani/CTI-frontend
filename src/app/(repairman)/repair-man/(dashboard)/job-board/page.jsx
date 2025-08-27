@@ -1,306 +1,484 @@
 "use client";
-import React, { useState } from 'react';
+
+import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
+import handleError from '@/helper/handleError';
+import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
 
-const JobBoard = () => {
-  const [activeTab, setActiveTab] = useState('bestMatches');
+const MyJobsPage = () => {
+  const [activeTab, setActiveTab] = useState('nearby');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
-    urgency: [],
-    budget: { min: 0, max: 50000 },
-    category: [],
-  });
+  const [urgencyFilter, setUrgencyFilter] = useState('all');
+  const [expandedJob, setExpandedJob] = useState(null);
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const { token } = useSelector((state) => state.auth);
 
-  // Mock data for mobile repairs
-  const jobBoardData = {
-    jobs: [
-      {
-        _id: '1',
-        title: 'iPhone 14 Screen Replacement & Water Damage Repair',
-        description:
-          'Looking for experienced mobile technician to fix cracked screen and water damage on iPhone 14. Phone fell in water and screen is completely shattered. Need urgent repair as this is my work phone.',
-        category: { name: 'Mobile Screen Repair' },
-        urgency: 'urgent',
-        urgencyScore: 4,
-        budget: { min: 8000, max: 12000 },
-        location: { address: 'DHA Phase 6, Karachi', distance: 2.5 },
-        client: { name: 'Sarah Ahmed', rating: 4.8, totalJobs: 23 },
-        postedAt: '2024-08-24T14:50:00Z',
-        timeRemaining: 47,
-        expiresAt: '2024-08-26T14:50:=Z',
-        canSubmitOffer: true,
-        hasSubmittedOffer: false,
-        skills: ['iPhone Repair', 'Water Damage', 'Screen Replacement', 'Mobile Hardware'],
-        proposalsCount: 3,
-      },
-      {
-        _id: '2',
-        title: 'Samsung Galaxy S23 Battery Replacement Service',
-        description:
-          'Samsung Galaxy S23 battery drains very quickly, need professional battery replacement. Phone is still under warranty but Samsung service center is too expensive.',
-        category: { name: 'Mobile Battery Repair' },
-        urgency: 'high',
-        urgencyScore: 3,
-        budget: { min: 4000, max: 6000 },
-        location: { address: 'Gulshan-e-Iqbal, Karachi', distance: 5.2 },
-        client: { name: 'Ahmed Khan', rating: 4.9, totalJobs: 15 },
-        postedAt: '2024-08-24T13:15:00Z',
-        timeRemaining: 71,
-        expiresAt: '2024-08-27T13:15:00Z',
-        canSubmitOffer: false,
-        hasSubmittedOffer: true,
-        skills: ['Samsung Repair', 'Battery Replacement', 'Mobile Hardware', 'Android Repair'],
-        proposalsCount: 7,
-      },
-      {
-        _id: '3',
-        title: 'Multiple Phone Repair - iPhone & Android Bulk Service',
-        description:
-          'Small mobile shop owner looking for reliable technician for ongoing repair services. Need someone who can handle iPhone screen repairs, Android software issues, and charging port repairs.',
-        category: { name: 'Bulk Mobile Repair' },
-        urgency: 'medium',
-        urgencyScore: 2,
-        budget: { min: 15000, max: 25000 },
-        location: { address: 'Clifton Block 2, Karachi', distance: 8.1 },
-        client: { name: 'Mobile Point Electronics', rating: 4.7, totalJobs: 45 },
-        postedAt: '2024-08-24T10:30:00Z',
-        timeRemaining: 25,
-        expiresAt: '2024-08-25T15:30:00Z',
-        canSubmitOffer: true,
-        hasSubmittedOffer: false,
-        skills: ['iPhone Repair', 'Android Repair', 'Charging Port', 'Software Issues', 'Bulk Service'],
-        proposalsCount: 12,
-      },
-    ],
-    pagination: { current: 1, total: 5, count: 3, totalJobs: 23 },
-    savedJobs: 47,
+  const fetchJobs = async () => {
+    try {
+      setLoading(true);
+      const { data } = await axiosInstance.get("/repairman/offers/jobs/nearby", {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        }
+      });
+      setJobs(data.data.jobs || []);
+      setError(null);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setError('Failed to load jobs. Please try again.');
+      handleError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
+  // Helper function to get job status based on API data
+  const getJobStatus = (job) => {
+    if (job.status === 'offers_received') {
+      return job.hasSubmittedOffer ? 'offer-submitted' : 'available';
+    }
+    return job.status;
+  };
+
+  // Helper function to get urgency level
+  const getUrgencyLevel = (urgencyScore) => {
+    if (urgencyScore >= 3) return 'high';
+    if (urgencyScore >= 2) return 'medium';
+    return 'low';
+  };
+
+  // Helper function to format currency
+  const formatCurrency = (amount, currency = 'PKR') => {
+    return `${currency} ${amount.toLocaleString()}`;
+  };
+
+  // Helper function to get time remaining
+  const getTimeRemaining = (timeRemaining) => {
+    if (timeRemaining > 24) {
+      return `${Math.floor(timeRemaining / 24)} days`;
+    }
+    return `${timeRemaining} hours`;
+  };
+
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'available': return 'bg-green-100 text-green-800';
+      case 'offer-submitted': return 'bg-purple-100 text-purple-800';
+      case 'offers_received': return 'bg-blue-100 text-blue-800';
+      case 'in-progress': return 'bg-yellow-100 text-yellow-800';
+      case 'completed': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
   };
 
   const getUrgencyColor = (urgency) => {
     switch (urgency) {
-      case 'urgent':
-        return 'bg-red-100 text-red-800';
-      case 'high':
-        return 'bg-orange-100 text-orange-800';
-      case 'medium':
-        return 'bg-yellow-100 text-yellow-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+      case 'high': return 'text-red-600';
+      case 'medium': return 'text-yellow-600';
+      case 'low': return 'text-gray-600';
+      default: return 'text-gray-600';
     }
   };
 
-  const getTimeColor = (hours) => {
-    if (hours <= 24) return 'text-red-600';
-    if (hours <= 48) return 'text-orange-600';
-    return 'text-gray-600';
+  // Categorize jobs based on status and submission state
+  const categorizeJobs = (jobs) => {
+    const nearby = jobs; // Show all jobs in nearby tab
+    const submitted = jobs.filter(job => job.hasSubmittedOffer && job.status === 'offers_received');
+    const active = jobs.filter(job => ['in-progress', 'accepted'].includes(job.status));
+    const completed = jobs.filter(job => job.status === 'completed');
+
+    return { nearby, submitted, active, completed };
   };
 
+  const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
+
+  // Filter and search jobs
+  const filteredJobs = useMemo(() => {
+    const jobsToFilter = categorizedJobs[activeTab] || [];
+    return jobsToFilter.filter((job) => {
+      const matchesSearch = 
+        job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.turkishTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.turkishDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.location?.address?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const jobUrgency = getUrgencyLevel(job.urgencyScore);
+      const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
+      
+      return matchesSearch && matchesUrgency;
+    });
+  }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
+
   const JobCard = ({ job }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const shortDescription =
-      job.description.length > 100 ? job.description.slice(0, 100) + '...' : job.description;
+    const jobStatus = getJobStatus(job);
+    const urgency = getUrgencyLevel(job.urgencyScore);
+    const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-4 hover:shadow-lg transition-all duration-300">
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center space-x-2">
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
-              {job.urgency.charAt(0).toUpperCase() + job.urgency.slice(1)}
-            </span>
-            <span className="text-xs text-gray-500">
-              Posted {Math.floor((Date.now() - new Date(job.postedAt)) / (1000 * 60))} min ago
-            </span>
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
+          <div className="flex items-start space-x-4 w-full">
+            <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
+              <span className="text-base font-semibold text-blue-700">{customerInitials}</span>
+            </div>
+            <div className="flex-1">
+              <div className="flex justify-between items-start">
+                <h3 className="font-bold text-xl text-gray-900 mb-1">
+                  {job.title || job.turkishTitle}
+                </h3>
+                <button
+                  onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
+                  className="text-gray-500 hover:text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md p-1"
+                  aria-expanded={expandedJob === job._id}
+                  aria-controls={`job-details-${job._id}`}
+                >
+                  <Icon icon={expandedJob === job._id ? 'heroicons:chevron-up' : 'heroicons:chevron-down'} className="w-5 h-5" />
+                </button>
+              </div>
+              <p className="text-sm text-gray-600 mb-2">Client: {job.customerId?.name || 'Anonymous'}</p>
+              <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
+                <span className="flex items-center">
+                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
+                  {job.location?.address}, {job.location?.city}
+                </span>
+                <span className={`font-medium ${getUrgencyColor(urgency)}`}>
+                  {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+                </span>
+                {job.distance && (
+                  <span className="flex items-center">
+                    <Icon icon="heroicons:map" className="w-4 h-4 mr-1" aria-hidden="true" />
+                    {job.distance.toFixed(1)} km away
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
-          <div className="flex space-x-2">
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Icon icon="heroicons:flag" className="w-5 h-5 text-gray-400" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full">
-              <Icon icon="heroicons:heart" className="w-5 h-5 text-gray-400" />
-            </button>
-          </div>
-        </div>
-
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">{job.title}</h3>
-
-        <div className="flex items-center space-x-4 mb-3 text-sm text-gray-600">
-          <span>{job.category.name}</span>
-          <span className="flex items-center">
-            <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-            {job.location.address} ({job.location.distance} km)
-          </span>
-        </div>
-
-        <p className="text-gray-700 mb-4 leading-relaxed">
-          {isExpanded ? job.description : shortDescription}
-          {job.description.length > 100 && (
-            <button
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="text-primary-600 hover:text-primary-700 ml-2 text-sm font-medium"
-            >
-              {isExpanded ? 'Less' : 'More'}
-            </button>
-          )}
-        </p>
-
-        <div className="flex flex-wrap gap-2 mb-4">
-          {job.skills.map((skill, index) => (
-            <span
-              key={index}
-              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium"
-            >
-              {skill}
+          <div className="text-right w-full sm:w-auto">
+            <p className="text-2xl font-bold text-gray-900">
+              {formatCurrency(job.budget?.min)} - {formatCurrency(job.budget?.max)}
+            </p>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(jobStatus)} mt-2`}>
+              {jobStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </span>
-          ))}
-        </div>
-
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center space-x-4 text-sm">
-            <span className="text-gray-600">
-              ₹{job.budget.min.toLocaleString()}-₹{job.budget.max.toLocaleString()}
-            </span>
-            <span className="flex items-center">
-              <Icon icon="heroicons:user" className="w-4 h-4 mr-1 text-gray-500" />
-              {job.client.name} ({job.client.rating}★)
-            </span>
-            <span className={`flex items-center ${getTimeColor(job.timeRemaining)}`}>
-              <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
-              {job.timeRemaining}h left
-            </span>
-          </div>
-          <div>
-            {job.canSubmitOffer && !job.hasSubmittedOffer ? (
-              <button className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
-                Submit Offer
-              </button>
-            ) : (
-              <span className="text-gray-500 text-sm">Offer Submitted</span>
+            {job.timeRemaining && (
+              <p className="text-sm text-gray-500 mt-1">
+                Expires in {getTimeRemaining(job.timeRemaining)}
+              </p>
             )}
           </div>
         </div>
 
-        <div className="mt-4 pt-4 border-t border-gray-200 flex justify-between text-sm text-gray-600">
-          <span>Proposals: {job.proposalsCount}</span>
-          <span>{job.client.totalJobs} jobs posted</span>
+        {/* Device Info */}
+        {job.deviceInfo && (
+          <div className="mb-4">
+            <div className="flex items-center space-x-4 text-sm text-gray-600">
+              <span className="flex items-center">
+                <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 mr-1" />
+                {job.deviceInfo.brand} {job.deviceInfo.model}
+              </span>
+              {job.deviceInfo.color && (
+                <span>{job.deviceInfo.color}</span>
+              )}
+              {job.categoryId && (
+                <span className="bg-gray-100 px-2 py-1 rounded">
+                  {job.categoryId.name}
+                </span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Collapsible Details */}
+        <div
+          id={`job-details-${job._id}`}
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            expandedJob === job._id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+          }`}
+        >
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-sm text-gray-600 mb-4">
+              {job.description || job.turkishDescription}
+            </p>
+            
+            {/* Job Details */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
+              <div>
+                <span className="font-medium">Service Preference:</span> {job.servicePreference}
+              </div>
+              {job.preferredTime && (
+                <div>
+                  <span className="font-medium">Preferred Time:</span>{' '}
+                  {new Date(job.preferredTime).toLocaleString()}
+                </div>
+              )}
+              <div>
+                <span className="font-medium">Job Radius:</span> {job.jobRadius} km
+              </div>
+              <div>
+                <span className="font-medium">Max Offers:</span> {job.maxOffers}
+              </div>
+              {job.travelTime && (
+                <div>
+                  <span className="font-medium">Travel Time:</span> {job.travelTime}
+                </div>
+              )}
+              <div>
+                <span className="font-medium">Posted:</span>{' '}
+                {new Date(job.createdAt).toLocaleDateString()}
+              </div>
+            </div>
+
+            {/* Images */}
+            {job.images && job.images.length > 0 && (
+              <div className="mb-4">
+                <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
+                <div className="flex space-x-2 overflow-x-auto">
+                  {job.images.map((image, index) => (
+                    <img
+                      key={image._id || index}
+                      src={image.url}
+                      alt={`Job image ${index + 1}`}
+                      className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
+          {activeTab === 'nearby' && !job.hasSubmittedOffer && job.canSubmitOffer && (
+            <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+              Submit Offer
+            </button>
+          )}
+          {activeTab === 'nearby' && job.hasSubmittedOffer && (
+            <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+              View Your Offer
+            </button>
+          )}
+          {activeTab === 'submitted' && (
+            <>
+              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                View Offer
+              </button>
+              <button className="flex-1 border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                Withdraw Offer
+              </button>
+            </>
+          )}
+          {activeTab === 'active' && (
+            <>
+              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Update Progress
+              </button>
+              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                Message Client
+              </button>
+            </>
+          )}
+          <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            View Details
+          </button>
         </div>
       </div>
     );
   };
 
-  const FilterSidebar = () => (
-    <div className="w-64 bg-gray-50 p-6 rounded-xl border border-gray-200">
-      <h3 className="text-lg font-semibold mb-4">Filters</h3>
-
-      <div className="mb-6">
-        <h4 className="text-sm font-medium mb-2">Urgency</h4>
-        {['urgent', 'high', 'medium'].map((urgency) => (
-          <div key={urgency} className="flex items-center mb-2">
-            <input
-              type="checkbox"
-              id={urgency}
-              className="mr-2"
-              onChange={() => {
-                setFilters((prev) => ({
-                  ...prev,
-                  urgency: prev.urgency.includes(urgency)
-                    ? prev.urgency.filter((u) => u !== urgency)
-                    : [...prev.urgency, urgency],
-                }));
-              }}
-            />
-            <label htmlFor={urgency} className="text-sm capitalize">
-              {urgency}
-            </label>
-          </div>
-        ))}
-      </div>
-
-      <div className="mb-6">
-        <h4 className="text-sm font-medium mb-2">Budget Range</h4>
-        <input
-          type="range"
-          min="0"
-          max="50000"
-          value={filters.budget.max}
-          onChange={(e) =>
-            setFilters((prev) => ({
-              ...prev,
-              budget: { ...prev.budget, max: parseInt(e.target.value) },
-            }))
+  const EmptyState = ({ type }) => (
+    <div className="text-center py-12">
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Icon
+          icon={
+            type === 'nearby' ? 'heroicons:map-pin' :
+            type === 'submitted' ? 'heroicons:clock' :
+            type === 'active' ? 'heroicons:wrench-screwdriver' :
+            'heroicons:check-circle'
           }
-          className="w-full"
+          className="w-8 h-8 text-gray-400"
+          aria-hidden="true"
         />
-        <div className="text-sm text-gray-600 mt-2">
-          Up to ${filters.budget.max.toLocaleString()}
-        </div>
       </div>
-
-      <button className="w-full bg-primary-600 text-white py-2 rounded-lg hover:bg-primary-700 transition-colors">
-        Apply Filters
-      </button>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        No {type} jobs
+      </h3>
+      <p className="text-gray-600 mb-4 max-w-md mx-auto">
+        {type === 'nearby' ? 'No nearby jobs available at the moment.' :
+         type === 'submitted' ? 'You haven\'t submitted any offers yet.' :
+         type === 'active' ? 'You don\'t have any active jobs.' :
+         'You haven\'t completed any jobs yet.'}
+      </p>
+      {type === 'nearby' && (
+        <button 
+          onClick={fetchJobs}
+          className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+        >
+          Refresh Jobs
+        </button>
+      )}
     </div>
   );
 
-  const filteredJobs = jobBoardData.jobs.filter((job) => {
-    const matchesSearch =
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.description.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesUrgency = filters.urgency.length === 0 || filters.urgency.includes(job.urgency);
-    const matchesBudget = job.budget.max <= filters.budget.max;
-    return matchesSearch && matchesUrgency && matchesBudget;
+  const getTabCounts = () => ({
+    nearby: categorizedJobs.nearby?.length || 0,
+    submitted: categorizedJobs.submitted?.length || 0,
+    active: categorizedJobs.active?.length || 0,
+    completed: categorizedJobs.completed?.length || 0,
   });
 
+  const tabCounts = getTabCounts();
+
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setUrgencyFilter('all');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600">Loading jobs...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <Icon icon="heroicons:exclamation-triangle" className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
+          <p className="text-gray-600 mb-4">{error}</p>
+          <button
+            onClick={fetchJobs}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 text-gray-900">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold">Mobile Repair Jobs</h1>
-          <div className="relative w-64">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
+          <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
+        </div>
+
+        {/* Search and Filter */}
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full">
             <input
               type="text"
-              placeholder="Search jobs..."
+              placeholder="Search jobs by title, client, or description..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-600"
+              className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm"
+              aria-label="Search jobs"
             />
-            <Icon
-              icon="heroicons:magnifying-glass"
-              className="w-5 h-5 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
-            />
-          </div>
-        </div>
-
-        <div className="flex space-x-8 mb-6 border-b border-gray-200">
-          {['bestMatches', 'mostRecent', 'savedJobs'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 px-1 text-sm font-medium capitalize ${
-                activeTab === tab ? 'text-primary-600 border-b-2 border-primary-600' : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab === 'savedJobs'
-                ? `Saved Jobs (${jobBoardData.savedJobs})`
-                : tab.replace(/([A-Z])/g, ' $1').trim()}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex gap-6">
-          <div className="flex-1">
-            {filteredJobs.length > 0 ? (
-              filteredJobs.map((job) => <JobCard key={job._id} job={job} />)
-            ) : (
-              <div className="text-center py-12">
-                <p className="text-gray-600">No jobs match your current filters.</p>
-              </div>
+            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                aria-label="Clear search"
+              >
+                <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+              </button>
             )}
-            <button className="w-full py-3 mt-6 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
-              Load More Jobs
+          </div>
+          <div className="flex gap-4 w-full sm:w-auto">
+            <select
+              value={urgencyFilter}
+              onChange={(e) => setUrgencyFilter(e.target.value)}
+              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm shadow-sm w-full sm:w-auto"
+              aria-label="Filter by urgency"
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <button
+              onClick={handleClearFilters}
+              className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
+              aria-label="Clear all filters"
+            >
+              Clear Filters
+            </button>
+            <button
+              onClick={fetchJobs}
+              className="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
+              aria-label="Refresh jobs"
+            >
+              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
             </button>
           </div>
-          <div className="hidden lg:block">
-            <FilterSidebar />
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="border-b border-gray-200">
+            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
+              {[
+                { id: 'nearby', label: 'Nearby Jobs', count: tabCounts.nearby },
+                { id: 'submitted', label: 'Submitted Offers', count: tabCounts.submitted },
+                { id: 'active', label: 'Active Jobs', count: tabCounts.active },
+                { id: 'completed', label: 'Completed', count: tabCounts.completed },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${
+                    activeTab === tab.id
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                  }`}
+                  role="tab"
+                  aria-selected={activeTab === tab.id}
+                  aria-controls={`${tab.id}-panel`}
+                >
+                  {tab.label}
+                  {tab.count > 0 && (
+                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
+                      {tab.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
+            {filteredJobs.length > 0 ? (
+              <div className="space-y-6">
+                {filteredJobs.map((job) => (
+                  <JobCard key={job._id} job={job} />
+                ))}
+              </div>
+            ) : (
+              <EmptyState type={activeTab} />
+            )}
           </div>
         </div>
       </div>
@@ -308,4 +486,4 @@ const JobBoard = () => {
   );
 };
 
-export default JobBoard;
+export default MyJobsPage;
