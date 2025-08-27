@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 import Link from "next/link";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 export  function TopHeader() {
   const [language, setLanguage] = useState("English");
@@ -82,7 +83,7 @@ export  function TopHeader() {
           </div>
           
           {/* Language Selector */}
-          <div className="relative">
+          {/* <div className="relative">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -99,7 +100,9 @@ export  function TopHeader() {
               icon={languages.find((lang) => lang.name === language)?.flag || "twemoji:flag-for-flag-united-states"}
               className="w-5 h-5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
             />
-          </div>
+          </div> */}
+
+          <LanguageSwitcher />
         </div>
       </div>
       
@@ -189,9 +192,11 @@ export function MidHeader() {
                 {wishlistItems}
               </span>
             )}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+            <div  className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
               Wishlist ({wishlistItems})
             </div>
+
+            {/* <LanguageSwitcher /> */}
           </div>
           
           <div className="relative group cursor-pointer" aria-label="Account">

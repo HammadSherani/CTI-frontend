@@ -1,6 +1,6 @@
 import SettingsPage from '@/components/website/SettingsPage'
 import React from 'react'
-import WebsiteHeader from '@/components/website/Header'
+// import WebsiteHeader from '@/components/website/Header'
 
 const Page = () => {
   return (

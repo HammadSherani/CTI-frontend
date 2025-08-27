@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "title": "My E-commerce Website",
+        "description": "Best deals on electronics and gadgets"
+    },
+    "HomePage": {
+        "title": "Welcome to Our Store",
+        "description": "Find the best deals on electronics",
+        "flashProducts": "Flash Products",
+        "bestDeals": "Best Deals",
+        "categories": "Categories",
+        "ourPartners": "Our Partners",
+        "ourProcess": "Our Process"
+    },
+    "Hero": {
+        "videoNotSupported": "Your browser does not support the video tag.",
+        "welcomeText": "Welcome to Our Store",
+        "mainHeading": "Explore our latest devices and offers",
+        "description": "We provide fast, reliable repairs for computers and mobile. Our expert technicians use high-quality parts to ensure your devices function like new.",
+        "repairButton": "Create a Quick Repair Request",
+        "technicianButton": "Find the Nearest Technician"
+    },
+    "NotFound": {
+        "title": "Page Not Found",
+        "description": "The page you are looking for doesn't exist.",
+        "backHome": "Back to Home"
+    }
+}
