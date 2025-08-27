@@ -1,16 +1,39 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
+import handleError from '@/helper/handleError';
+import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
 
 const JobBoard = () => {
   const [activeTab, setActiveTab] = useState('bestMatches');
   const [searchQuery, setSearchQuery] = useState('');
+  const [jobs, setJobs] = useState([]);
   const [filters, setFilters] = useState({
     urgency: [],
     budget: { min: 0, max: 50000 },
     category: [],
   });
 
+  const token = useSelector((state) => state.auth.token);
+
+  const fetchJob = async () => {
+    try {
+      const {data}  = await axiosInstance.get("/offers/jobs/nearby", {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      console.log(data);
+      
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+
+  useEffect(() => {
+    fetchJob();
+  }, [])
   // Mock data for mobile repairs
   const jobBoardData = {
     jobs: [
