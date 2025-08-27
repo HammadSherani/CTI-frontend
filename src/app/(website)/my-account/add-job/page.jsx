@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
+import { useRouter } from 'next/navigation';
 
 const schema = yup.object().shape({
   categoryId: yup.string().required('Category is required'),
@@ -73,6 +74,7 @@ export default function CreateRepairJobForm() {
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
   const { token } = useSelector(state => state.auth);
+  const router = useRouter();
 
   const {
     control,
@@ -234,12 +236,7 @@ export default function CreateRepairJobForm() {
 
   const onSubmit = async (data) => {
     try {
-      // toast.loading('Creating your repair job...', { id: 'create-job' });
-
       console.log(data);
-
-      // return;
-
 
       // Upload images to Cloudinary first
       const uploadedImageUrls = await Promise.all(
@@ -278,14 +275,20 @@ export default function CreateRepairJobForm() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // if (response.status !== 201) {
+      //   throw new Error('Failed to create repair job. Please try again.');
+      // }
+
+
       toast.success('Repair job created successfully!', { id: 'create-job' });
       reset();
+      router.push('/my-account');
       setDeviceImages([]);
     } catch (error) {
       console.error('Error creating job:', error);
-      const errorMessage =
-        error.response?.data?.message || 'Failed to create repair job. Please try again.';
-      toast.error(errorMessage, { id: 'create-job' });
+      // const errorMessage =
+      //   error.response?.data?.message || 'Failed to create repair job. Please try again.';
+      // toast.error(errorMessage, { id: 'create-job' });
     }
   };
 

@@ -1,8 +1,11 @@
 'use client';
 import { Icon } from '@iconify/react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Button from '../ui/button';
 import Link from 'next/link';
+import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
+import handleError from '@/helper/handleError';
 
 // Sample data for jobs
 const JOB_DATA = [
@@ -51,70 +54,207 @@ const JOB_DATA = [
 // Task Card Component
 const TaskCard = ({ task }) => {
   const getStatusColor = (status) => {
-    switch (status) {
-      case 'Completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'In Progress': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+    switch (status?.toLowerCase()) {
+      case 'completed': return 'bg-green-100 text-green-800 border-green-200';
+      case 'in progress': 
+      case 'inprogress': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'open': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'expired': return 'bg-red-100 text-red-800 border-red-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'High': return 'bg-red-100 text-red-800 border-red-200';
-      case 'Medium': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'Low': return 'bg-green-100 text-green-800 border-green-200';
+  const getUrgencyColor = (urgency) => {
+    switch (urgency?.toLowerCase()) {
+      case 'high': return 'bg-red-100 text-red-800 border-red-200';
+      case 'medium': return 'bg-orange-100 text-orange-800 border-orange-200';
+      case 'low': return 'bg-green-100 text-green-800 border-green-200';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  const getPriorityIcon = (priority) => {
-    switch (priority) {
-      case 'High': return 'mdi:arrow-up-bold';
-      case 'Medium': return 'mdi:minus';
-      case 'Low': return 'mdi:arrow-down-bold';
+  const getUrgencyIcon = (urgency) => {
+    switch (urgency?.toLowerCase()) {
+      case 'high': return 'mdi:arrow-up-bold';
+      case 'medium': return 'mdi:minus';
+      case 'low': return 'mdi:arrow-down-bold';
       default: return 'mdi:minus';
     }
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const formatCurrency = (amount, currency = 'PKR') => {
+    if (!amount || amount === 0) return 'Not specified';
+    return `${currency} ${amount.toLocaleString()}`;
+  };
+
+  const getWarrantyStatus = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'expired': return { color: 'text-red-600', icon: 'mdi:alert-circle' };
+      case 'active': return { color: 'text-green-600', icon: 'mdi:check-circle' };
+      case 'void': return { color: 'text-gray-600', icon: 'mdi:cancel' };
+      default: return { color: 'text-gray-600', icon: 'mdi:help-circle' };
+    }
+  };
+
+  const warrantyInfo = getWarrantyStatus(task?.deviceInfo?.warrantyStatus);
+
   return (
     <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 hover:border-gray-300">
-      <div className="flex justify-between items-start mb-3">
-        <h3 className="font-semibold text-lg text-gray-900 leading-tight">{task.title}</h3>
-        <div className="flex items-center gap-2">
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(task.status)}`}>
-            {task.status}
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1">
+          <h3 className="font-semibold text-lg text-gray-900 leading-tight mb-1">
+            {task?.categoryId?.name || 'Repair Service'}
+          </h3>
+          <p className="text-sm text-gray-500">
+            {task?.categoryId?.nameTurkish && `${task.categoryId.nameTurkish} • `}
+            Job ID: {task?._id?.slice(-8) || 'N/A'}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getStatusColor(task?.status)}`}>
+            {task?.status || 'Unknown'}
           </span>
-          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getPriorityColor(task.priority)}`}>
-            <Icon icon={getPriorityIcon(task.priority)} className="w-3 h-3 mr-1" />
-            {task.priority}
-          </span>
+          {task?.urgency && (
+            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(task.urgency)}`}>
+              <Icon icon={getUrgencyIcon(task.urgency)} className="w-3 h-3 mr-1" />
+              {task.urgency}
+            </span>
+          )}
         </div>
       </div>
-      
-      <p className="text-gray-600 text-sm mb-4 leading-relaxed">{task.description}</p>
-      
-      <div className="flex flex-wrap gap-2 mb-4">
-        {task.tags.map((tag) => (
-          <span 
-            key={tag} 
-            className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg border border-primary-100"
-          >
-            {tag}
-          </span>
-        ))}
+
+      {/* Device Information */}
+      <div className="bg-gray-50 rounded-lg p-4 mb-4">
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <Icon icon="mdi:devices" className="w-5 h-5 text-gray-600 mt-0.5" />
+          </div>
+          <div className="flex-1">
+            <h4 className="font-medium text-gray-900 mb-1">
+              {task?.deviceInfo?.brand} {task?.deviceInfo?.model}
+            </h4>
+            <p className="text-sm text-gray-600 mb-2">
+              {task?.description || task?.turkishDescription || 'No description available'}
+            </p>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-gray-500">Color:</span>
+                <span className="ml-1 font-medium">{task?.deviceInfo?.color || 'N/A'}</span>
+              </div>
+              <div>
+                <span className="text-gray-500">Year:</span>
+                <span className="ml-1 font-medium">{task?.deviceInfo?.purchaseYear || 'N/A'}</span>
+              </div>
+              <div className="flex items-center">
+                <span className="text-gray-500">Warranty:</span>
+                <Icon icon={warrantyInfo.icon} className={`w-3 h-3 ml-1 mr-1 ${warrantyInfo.color}`} />
+                <span className={`font-medium text-xs ${warrantyInfo.color}`}>
+                  {task?.deviceInfo?.warrantyStatus || 'Unknown'}
+                </span>
+              </div>
+              <div>
+                <span className="text-gray-500">Views:</span>
+                <span className="ml-1 font-medium">{task?.viewCount || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-      
+
+      {/* Budget and Location Info */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:cash" className="w-4 h-4 text-green-600" />
+          <div>
+            <span className="text-xs text-gray-500 block">Budget Range</span>
+            <span className="text-sm font-medium text-gray-900">
+              {formatCurrency(task?.budget?.min)} - {formatCurrency(task?.budget?.max)}
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:map-marker" className="w-4 h-4 text-blue-600" />
+          <div>
+            <span className="text-xs text-gray-500 block">Location</span>
+            <span className="text-sm font-medium text-gray-900">
+              {task?.location?.city || 'Not specified'}
+              {task?.location?.district && `, ${task.location.district}`}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Service Preferences */}
+      {task?.servicePreferences && (
+        <div className="mb-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Icon icon="mdi:cog" className="w-4 h-4 text-purple-600" />
+            <span className="text-sm font-medium text-gray-900">Service Preferences</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200">
+              {task.servicePreferences}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Tags */}
+      {task?.tags && task.tags.length > 0 && (
+        <div className="flex flex-wrap gap-2 mb-4">
+          {task.tags.map((tag, index) => (
+            <span
+              key={index}
+              className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 rounded-lg border border-primary-100"
+            >
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-        <div className="flex items-center text-sm text-gray-500">
-          <Icon icon="mdi:clock-outline" className="w-4 h-4 mr-2" />
-          <span className="font-medium">{task.startTime} - {task.endTime}</span>
+        <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center">
+            <Icon icon="mdi:calendar-plus" className="w-4 h-4 mr-1" />
+            <span>Created: {formatDate(task?.createdAt)}</span>
+          </div>
+          {task?.expiresAt && (
+            <div className="flex items-center">
+              <Icon icon="mdi:clock-alert" className="w-4 h-4 mr-1" />
+              <span>Expires: {formatDate(task.expiresAt)}</span>
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
-          <button className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors">
+          <button 
+            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+            title="Edit job"
+          >
             <Icon icon="mdi:pencil" className="w-4 h-4" />
           </button>
-          <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
+          <button 
+            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+            title="View details"
+          >
+            <Icon icon="mdi:eye" className="w-4 h-4" />
+          </button>
+          <button 
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            title="Delete job"
+          >
             <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
           </button>
         </div>
@@ -128,19 +268,105 @@ const JobsTabContent = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
+  const [jobs, setJobs] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6); // You can adjust this
+  const { token } = useSelector(state => state.auth);
 
-  const filteredJobs = JOB_DATA.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.description.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = filterStatus === 'all' || job.status === filterStatus;
-    const matchesPriority = filterPriority === 'all' || job.priority === filterPriority;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
+  const fatchJobs = async () => {
+    try {
+      const { data } = await axiosInstance.get("/repair-jobs/my-jobs", {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      setJobs(data.data.jobs);
+      console.log(data);
+    } catch (err) {
+      handleError(err);
+    }
+  }
+
+  useEffect(() => {
+    fatchJobs();
+  }, [])
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterStatus, filterPriority]);
+
+  const filteredJobs = jobs.filter(job => {
+    const matchesSearch = job?.title?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      job?.description?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
+      (job?.turkishTitle && job?.turkishTitle.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (job?.turkishDescription && job?.turkishDescription?.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesStatus = filterStatus === 'all' || job?.status === filterStatus;
+
+    return matchesSearch && matchesStatus;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentJobs = filteredJobs.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    // Optional: Scroll to top of jobs list
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxVisiblePages = 5;
+
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push('...');
+        pageNumbers.push(totalPages);
+      }
+    }
+
+    return pageNumbers;
+  };
 
   return (
     <div>
-      {/* Header with Add Job Button */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Jobs</h1>
@@ -154,11 +380,10 @@ const JobsTabContent = () => {
         </Link>
       </div>
 
-      {/* Filters */}
       <div className="bg-gray-50 rounded-xl p-6 mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Search */}
-          <div className="relative">
+          <div className="relative col-span-2">
             <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -169,7 +394,6 @@ const JobsTabContent = () => {
             />
           </div>
 
-          {/* Status Filter */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -180,38 +404,25 @@ const JobsTabContent = () => {
             <option value="In Progress">In Progress</option>
             <option value="Completed">Completed</option>
           </select>
-
-          {/* Priority Filter */}
-          <select
-            value={filterPriority}
-            onChange={(e) => setFilterPriority(e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="all">All Priorities</option>
-            <option value="High">High Priority</option>
-            <option value="Medium">Medium Priority</option>
-            <option value="Low">Low Priority</option>
-          </select>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium">Total Jobs</p>
-              <p className="text-3xl font-bold">{JOB_DATA.length}</p>
+              <p className="text-3xl font-bold">{jobs?.length}</p>
             </div>
             <Icon icon="mdi:briefcase-outline" className="w-8 h-8 text-blue-200" />
           </div>
         </div>
-        
+
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-green-100 text-sm font-medium">Completed</p>
-              <p className="text-3xl font-bold">{JOB_DATA.filter(job => job.status === 'Completed').length}</p>
+              <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'Completed').length}</p>
             </div>
             <Icon icon="mdi:check-circle-outline" className="w-8 h-8 text-green-200" />
           </div>
@@ -221,28 +432,43 @@ const JobsTabContent = () => {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-yellow-100 text-sm font-medium">In Progress</p>
-              <p className="text-3xl font-bold">{JOB_DATA.filter(job => job.status === 'In Progress').length}</p>
+              <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'In Progress').length}</p>
             </div>
             <Icon icon="mdi:clock-outline" className="w-8 h-8 text-yellow-200" />
           </div>
         </div>
-
-        <div className="bg-gradient-to-r from-red-500 to-red-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-red-100 text-sm font-medium">High Priority</p>
-              <p className="text-3xl font-bold">{JOB_DATA.filter(job => job.priority === 'High').length}</p>
-            </div>
-            <Icon icon="mdi:alert-circle-outline" className="w-8 h-8 text-red-200" />
-          </div>
-        </div>
       </div>
 
+      {/* Results Info */}
+      {filteredJobs.length > 0 && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+          <p className="text-sm text-gray-600">
+            Showing {startIndex + 1} to {Math.min(endIndex, filteredJobs.length)} of {filteredJobs.length} jobs
+          </p>
+          <div className="flex items-center gap-2 mt-2 sm:mt-0">
+            <label className="text-sm text-gray-600">Jobs per page:</label>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => {
+                setItemsPerPage(Number(e.target.value));
+                setCurrentPage(1);
+              }}
+              className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value={5}>5</option>
+              <option value={6}>6</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+            </select>
+          </div>
+        </div>
+      )}
+
       {/* Jobs List */}
-      <div className="space-y-4">
-        {filteredJobs.length > 0 ? (
-          filteredJobs.map((task) => (
-            <TaskCard key={task.id} task={task} />
+      <div className="space-y-4 mb-8">
+        {currentJobs?.length > 0 ? (
+          currentJobs?.map((task) => (
+            <TaskCard key={task._id || task.id} task={task} />
           ))
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-xl">
@@ -263,11 +489,61 @@ const JobsTabContent = () => {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {filteredJobs.length > 0 && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-6 py-4">
+          <div className="flex items-center gap-2 mb-4 sm:mb-0">
+            <button
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+              className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 1
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                }`}
+            >
+              <Icon icon="mdi:chevron-left" className="w-4 h-4 mr-1" />
+              Previous
+            </button>
+          </div>
+
+          <div className="flex items-center gap-1">
+            {getPageNumbers().map((pageNumber, index) => (
+              <button
+                key={index}
+                onClick={() => pageNumber !== '...' && handlePageChange(pageNumber)}
+                disabled={pageNumber === '...'}
+                className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pageNumber === currentPage
+                    ? 'bg-primary-600 text-white'
+                    : pageNumber === '...'
+                      ? 'text-gray-400 cursor-default'
+                      : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                  }`}
+              >
+                {pageNumber}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2 mt-4 sm:mt-0">
+            <button
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+              className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === totalPages
+                  ? 'text-gray-400 cursor-not-allowed'
+                  : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                }`}
+            >
+              Next
+              <Icon icon="mdi:chevron-right" className="w-4 h-4 ml-1" />
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-// Add Account Tab Content
 const AddAccountTabContent = () => (
   <div>
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
@@ -337,8 +613,8 @@ const SidebarButton = ({ item, isActive, onClick }) => (
   <button
     onClick={onClick}
     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-      ${isActive 
-        ? 'bg-primary-50 text-primary-600 shadow-sm border border-primary-100' 
+      ${isActive
+        ? 'bg-primary-50 text-primary-600 shadow-sm border border-primary-100'
         : 'text-gray-600 hover:bg-gray-100 hover:text-gray-800'
       }`}
   >
@@ -368,8 +644,8 @@ export default function SettingsPage() {
   }), []);
 
   // Get navigation items from tab config
-  const sidebarNavItems = useMemo(() => 
-    Object.values(tabConfig).map(({ id, label, icon }) => ({ id, label, icon })),
+  const sidebarNavItems = useMemo(() =>
+    Object.values(tabConfig)?.map(({ id, label, icon }) => ({ id, label, icon })),
     [tabConfig]
   );
 
@@ -402,13 +678,13 @@ export default function SettingsPage() {
 
         {/* Main Content */}
         <div className="grid grid-cols-[280px_1fr] gap-4 bg-white rounded-2xl shadow-sm overflow-hidden min-h-[80vh]">
-          
+
           {/* Sidebar */}
           <aside className="bg-gray-50/70 border-r border-gray-200/80">
             <div className="p-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-6">Navigation</h2>
               <nav className="space-y-2">
-                {sidebarNavItems.map((item) => (
+                {sidebarNavItems?.map((item) => (
                   <SidebarButton
                     key={item.id}
                     item={item}
@@ -429,7 +705,7 @@ export default function SettingsPage() {
               </div>
             )}
           </main>
-          
+
         </div>
       </div>
     </div>
