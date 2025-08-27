@@ -83,7 +83,7 @@ export  function TopHeader() {
           </div>
           
           {/* Language Selector */}
-          <div className="relative">
+          {/* <div className="relative">
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
@@ -100,7 +100,9 @@ export  function TopHeader() {
               icon={languages.find((lang) => lang.name === language)?.flag || "twemoji:flag-for-flag-united-states"}
               className="w-5 h-5 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none"
             />
-          </div>
+          </div> */}
+
+          <LanguageSwitcher />
         </div>
       </div>
       
@@ -194,7 +196,7 @@ export function MidHeader() {
               Wishlist ({wishlistItems})
             </div>
 
-            <LanguageSwitcher />
+            {/* <LanguageSwitcher /> */}
           </div>
           
           <div className="relative group cursor-pointer" aria-label="Account">

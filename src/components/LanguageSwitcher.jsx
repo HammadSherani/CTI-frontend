@@ -1,23 +1,40 @@
 'use client';
-import { useLocale } from 'next-intl';
 import { useRouter, usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-export default function LanguageSwitcher() {
-  const currentLocale = useLocale();
+export default function ManualLanguageSwitcher() {
   const router = useRouter();
   const pathname = usePathname();
+  const [currentLocale, setCurrentLocale] = useState('en');
+
+  // Detect locale from pathname
+  useEffect(() => {
+    if (pathname.startsWith('/tr')) {
+      setCurrentLocale('tr');
+    } else if (pathname.startsWith('/en')) {
+      setCurrentLocale('en');
+    }
+  }, [pathname]);
 
   const switchLanguage = () => {
-    const otherLocale = currentLocale === 'en' ? 'tr' : 'en';
+    const newLocale = currentLocale === 'en' ? 'tr' : 'en';
     
-    // Get path without current locale
-    const segments = pathname.split('/').filter(Boolean);
-    const pathWithoutLocale = segments.slice(1).join('/');
+    let newPath;
     
-    // Build new path
-    const newPath = `/${otherLocale}${pathWithoutLocale ? '/' + pathWithoutLocale : ''}`;
+    if (pathname === '/en' || pathname === '/en/') {
+      newPath = '/tr';
+    } else if (pathname === '/tr' || pathname === '/tr/') {
+      newPath = '/en';
+    } else if (pathname.startsWith('/en/')) {
+      newPath = pathname.replace('/en/', '/tr/');
+    } else if (pathname.startsWith('/tr/')) {
+      newPath = pathname.replace('/tr/', '/en/');
+    } else {
+      // Default fallback
+      newPath = `/${newLocale}`;
+    }
     
-    console.log('Switching from', currentLocale, 'to', otherLocale);
+    console.log('Current locale:', currentLocale);
     console.log('Current path:', pathname);
     console.log('New path:', newPath);
     
@@ -25,21 +42,23 @@ export default function LanguageSwitcher() {
   };
 
   return (
-    <button
-      onClick={switchLanguage}
-      className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-    >
-      {currentLocale === 'en' ? (
-        <>
-          <span>🇹🇷</span>
-          <span>Türkçe</span>
-        </>
-      ) : (
-        <>
-          <span>🇬🇧</span>
-          <span>English</span>
-        </>
-      )}
-    </button>
+    <div className="flex flex-col items-center   rounded">
+      <button
+        onClick={switchLanguage}
+        className="flex items-center space-x-2 px-4 py-1 bg-green-500 text-white rounded hover:bg-green-600"
+      >
+        {currentLocale === 'en' ? (
+          <>
+            <span>🇹🇷</span>
+            <span>Türkçe'ye Geç</span>
+          </>
+        ) : (
+          <>
+            <span>🇬🇧</span>
+            <span>Switch to English</span>
+          </>
+        )}
+      </button>
+    </div>
   );
 }

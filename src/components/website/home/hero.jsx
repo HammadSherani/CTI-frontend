@@ -1,11 +1,24 @@
+'use client';
 import React from 'react'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
-const Hero = ({locale}) => {
+const Hero = () => {
   const t = useTranslations('Hero');
+  const locale = useLocale();
+
+  // Debug logs
+  console.log('Hero Component Debug:');
+  console.log('- Current locale:', locale);
+  console.log('- Welcome text:', t('welcomeText'));
 
   return (
     <section className="relative h-[500px] overflow-hidden">
+      {/* Debug Panel */}
+      <div className="absolute top-4 left-4 z-10 bg-red-500 text-white p-2 text-xs rounded">
+        <div>Locale: {locale}</div>
+        <div>Welcome: {t('welcomeText')}</div>
+      </div>
+
       {/* Background Video */}
       <video
         autoPlay
