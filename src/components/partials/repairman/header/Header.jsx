@@ -5,14 +5,17 @@ import React, { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
+import { getInitials } from '@/utils/functions';
 
 function Header() {
   const pathname = usePathname();
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dispatch = useDispatch();
+
+  const {user} = useSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(clearAuth());
@@ -108,7 +111,7 @@ function Header() {
             {/* Minimalist Avatar */}
             <div className="relative">
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm ring-2 ring-white">
-                <span className="text-xs font-semibold text-white">JD</span>
+                <span className="text-xs font-semibold text-white">{getInitials(user?.name)}</span>
               </div>
               {/* Online indicator */}
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
@@ -116,8 +119,8 @@ function Header() {
 
             {/* User Info - Hidden on mobile */}
             <div className="hidden sm:block text-left">
-              <p className="text-sm font-medium text-gray-900">John Doe</p>
-              <p className="text-xs text-gray-500">Repairman</p>
+              <p className="text-sm font-medium text-gray-900 capitalize">{user?.name}</p>
+              <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
             </div>
 
             <Icon
@@ -134,11 +137,11 @@ function Header() {
               <div className="px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-                    <span className="text-sm font-semibold text-white">JD</span>
+                    <span className="text-sm font-semibold text-white">{getInitials(user?.name)}</span>
                   </div>
                   <div>
-                    <p className="font-medium text-gray-900">John Doe</p>
-                    <p className="text-sm text-gray-500">john.doe@example.com</p>
+                    <p className="font-medium text-gray-900">{user?.name}</p>
+                    <p className="text-sm text-gray-500">{user?.email}</p>
                   </div>
                 </div>
               </div>

@@ -32,14 +32,11 @@ const schema = yup.object().shape({
     city: yup.string().required('City is required'),
     district: yup.string().optional(),
     zipCode: yup.string().optional(),
-    // coordinates: yup.object().shape({
-    //   latitude: yup.number().required('Latitude is required'),
-    //   longitude: yup.number().required('Longitude is required'),
-    // }).nullable().optional(),
+    coordinates: yup.array().of(yup.number().required()).length(2, 'Coordinates must contain exactly two values (longitude and latitude)').nullable().optional(),
   }),
   preferredTime: yup.date().min(new Date(), 'Preferred time must be in the future').required('Preferred time is required'),
   servicePreference: yup.string().required('Service preference is required'),
-  images: yup.array().min(1, 'At least one device image is required'),
+  // images: yup.array().min(1, 'At least one device image is required'),
   maxOffers: yup.number().min(1).max(20).optional(),
   autoSelectBest: yup.boolean().optional(),
 });
@@ -50,8 +47,9 @@ const deviceBrands = [
 ];
 
 const servicePreferences = [
-  { value: 'pickup_delivery', label: 'Pickup & Delivery', icon: 'mdi:truck-delivery', desc: 'We collect and deliver your device' },
-  { value: 'onsite_repair', label: 'On-site Repair', icon: 'mdi:home-repair', desc: 'Technician visits your location' },
+  { value: 'pickup', label: 'Pickup & Delivery', icon: 'mdi:truck-delivery', desc: 'We collect and deliver your device' },
+  { value: 'drop-off', label: 'On-site Repair', icon: 'mdi:home-repair', desc: 'Technician visits your location' },
+  { value: 'both', label: 'Both', icon: 'mdi:home-repair', desc: 'Technician visits your location' },
 ];
 
 const urgencyLevels = [
@@ -62,10 +60,10 @@ const urgencyLevels = [
 ];
 
 const warrantyOptions = [
-  { value: 'under_warranty', label: 'Under Warranty', icon: 'mdi:shield-check', color: 'text-green-600' },
+  { value: 'active', label: 'Under Warranty', icon: 'mdi:shield-check', color: 'text-green-600' },
   { value: 'expired', label: 'Warranty Expired', icon: 'mdi:shield-off', color: 'text-red-600' },
-  { value: 'not_sure', label: 'Not Sure', icon: 'mdi:help-circle', color: 'text-gray-600' },
-  { value: 'no_warranty', label: 'No Warranty', icon: 'mdi:shield-remove', color: 'text-gray-600' }
+  { value: 'unknown', label: 'Not Sure', icon: 'mdi:help-circle', color: 'text-gray-600' },
+  // { value: 'no_warranty', label: 'No Warranty', icon: 'mdi:shield-remove', color: 'text-gray-600' }
 ];
 
 export default function CreateRepairJobForm() {
@@ -109,7 +107,7 @@ export default function CreateRepairJobForm() {
         city: '',
         district: '',
         zipCode: '',
-        // coordinates: null
+        coordinates: null
       },
       preferredTime: '',
       servicePreference: 'pickup_delivery',
@@ -123,7 +121,7 @@ export default function CreateRepairJobForm() {
   const watchedBudgetMax = watch('budget.max');
   const watchedAddress = watch('location.address');
   const watchedCity = watch('location.city');
-  // const coordinates = watch('location.coordinates');
+  const coordinates = watch('location.coordinates');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -143,75 +141,75 @@ export default function CreateRepairJobForm() {
   }, [token]);
 
   // Get current location function
-  // const getCurrentLocation = () => {
-  //   setIsGettingLocation(true);
-  //   setLocationError('');
+  const getCurrentLocation = () => {
+    setIsGettingLocation(true);
+    setLocationError('');
 
-  //   if (!navigator.geolocation) {
-  //     setLocationError('Geolocation is not supported by this browser.');
-  //     setIsGettingLocation(false);
-  //     return;
-  //   }
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by this browser.');
+      setIsGettingLocation(false);
+      return;
+    }
 
-  //   navigator.geolocation.getCurrentPosition(
-  //     (position) => {
-  //       const { latitude, longitude } = position.coords;
-  //       setValue('location.coordinates', {
-  //         latitude: latitude,
-  //         longitude: longitude
-  //       });
-  //       setIsGettingLocation(false);
-  //       toast.success('Location detected successfully!');
-  //     },
-  //     (error) => {
-  //       let errorMessage = '';
-  //       switch (error.code) {
-  //         case error.PERMISSION_DENIED:
-  //           errorMessage = 'Location access denied. Please enable location permissions.';
-  //           break;
-  //         case error.POSITION_UNAVAILABLE:
-  //           errorMessage = 'Location information is unavailable.';
-  //           break;
-  //         case error.TIMEOUT:
-  //           errorMessage = 'Location request timed out.';
-  //           break;
-  //         default:
-  //           errorMessage = 'An unknown error occurred while retrieving location.';
-  //           break;
-  //       }
-  //       setLocationError(errorMessage);
-  //       setIsGettingLocation(false);
-  //     },
-  //     {
-  //       enableHighAccuracy: true,
-  //       timeout: 10000,
-  //       maximumAge: 60000
-  //     }
-  //   );
-  // };
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setValue('location.coordinates', [
+          latitude,
+          longitude
+        ]);
+        setIsGettingLocation(false);
+        toast.success('Location detected successfully!');
+      },
+      (error) => {
+        let errorMessage = '';
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage = 'Location access denied. Please enable location permissions.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage = 'Location information is unavailable.';
+            break;
+          case error.TIMEOUT:
+            errorMessage = 'Location request timed out.';
+            break;
+          default:
+            errorMessage = 'An unknown error occurred while retrieving location.';
+            break;
+        }
+        setLocationError(errorMessage);
+        setIsGettingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000
+      }
+    );
+  };
 
   // Get location from address (geocoding)
-  // const getLocationFromAddress = async (address) => {
-  //   try {
-  //     // Using a free geocoding service (you can replace with Google Maps API if you have a key)
-  //     const response = await fetch(
-  //       `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
-  //     );
-  //     const data = await response.json();
-      
-  //     if (data && data.length > 0) {
-  //       const latitude = parseFloat(data[0].lat);
-  //       const longitude = parseFloat(data[0].lon);
-  //       setValue('location.coordinates', {
-  //         latitude: latitude,
-  //         longitude: longitude
-  //       });
-  //       toast.success('Location coordinates updated from address!');
-  //     }
-  //   } catch (error) {
-  //     console.error('Geocoding error:', error);
-  //   }
-  // };
+  const getLocationFromAddress = async (address) => {
+    try {
+      // Using a free geocoding service (you can replace with Google Maps API if you have a key)
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`
+      );
+      const data = await response.json();
+
+      if (data && data.length > 0) {
+        const latitude = parseFloat(data[0].lat);
+        const longitude = parseFloat(data[0].lon);
+        setValue('location.coordinates', {
+          latitude: latitude,
+          longitude: longitude
+        });
+        toast.success('Location coordinates updated from address!');
+      }
+    } catch (error) {
+      console.error('Geocoding error:', error);
+    }
+  };
 
   const uploadToCloudinary = async (file) => {
     if (!file) return null;
@@ -236,7 +234,12 @@ export default function CreateRepairJobForm() {
 
   const onSubmit = async (data) => {
     try {
-      toast.loading('Creating your repair job...', { id: 'create-job' });
+      // toast.loading('Creating your repair job...', { id: 'create-job' });
+
+      console.log(data);
+
+      // return;
+
 
       // Upload images to Cloudinary first
       const uploadedImageUrls = await Promise.all(
@@ -261,7 +264,7 @@ export default function CreateRepairJobForm() {
           city: data.location.city,
           district: data.location.district || '',
           zipCode: data.location.zipCode || '',
-          // coordinates: data.location.coordinates || null,
+          coordinates: data.location.coordinates || null,
         },
         preferredTime: new Date(data.preferredTime).toISOString(),
         servicePreference: data.servicePreference,
@@ -588,17 +591,19 @@ export default function CreateRepairJobForm() {
                         className="w-full p-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 border-gray-200"
                       >
                         <option value="PKR">PKR</option>
+                        <option value="TRY">TRY</option> {/* Added Turkish Lira */}
                         <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
+                        {/* <option value="EUR">EUR</option> */}
                       </select>
                     )}
                   />
+
                 </div>
                 {(watchedBudgetMin && watchedBudgetMax && parseInt(watchedBudgetMin) > parseInt(watchedBudgetMax)) && (
                   <p className="mt-2 text-xs text-red-600">Minimum budget cannot be greater than maximum budget</p>
                 )}
               </div>
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Device Images</label>
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 transition-colors">
                   <Icon icon="mdi:cloud-upload" className="text-3xl text-gray-400 mx-auto mb-2" />
@@ -645,7 +650,7 @@ export default function CreateRepairJobForm() {
                   )}
                 </div>
                 {errors.images && <p className="mt-2 text-xs text-red-600 flex items-center gap-1"><Icon icon="mdi:alert-circle" />{errors.images.message}</p>}
-              </div>
+              </div> */}
             </div>
 
             {/* Location & Preferences Section */}
@@ -664,7 +669,7 @@ export default function CreateRepairJobForm() {
                   </h3>
                   <button
                     type="button"
-                    // onClick={getCurrentLocation}
+                    onClick={getCurrentLocation}
                     disabled={isGettingLocation}
                     className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                   >
@@ -681,20 +686,20 @@ export default function CreateRepairJobForm() {
                     )}
                   </button>
                 </div>
-                
+
                 {locationError && (
                   <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
                     <Icon icon="mdi:alert-circle" />
                     {locationError}
                   </p>
                 )}
-                
-                {/* {coordinates && (
+
+                {coordinates && (
                   <div className="text-xs text-green-600 mt-2 flex items-center gap-1">
                     <Icon icon="mdi:check-circle" />
-                    Location detected: {coordinates.latitude.toFixed(6)}, {coordinates.longitude.toFixed(6)}
+                    Location detected: {coordinates?.latitude?.toFixed(6)}, {coordinates?.longitude?.toFixed(6)}
                   </div>
-                )} */}
+                )}
               </div>
 
               {/* Service Preference */}
@@ -865,7 +870,7 @@ export default function CreateRepairJobForm() {
                     )}
                   />
                 </div>
-                
+
                 {/* Manual Coordinates Input */}
                 {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Coordinates (Optional)</label>
@@ -939,11 +944,11 @@ export default function CreateRepairJobForm() {
                   <div><strong>Urgency:</strong> {urgencyLevels.find(u => u.value === watch('urgency'))?.label || 'Medium'}</div>
                   <div><strong>Service:</strong> {servicePreferences.find(s => s.value === watch('servicePreference'))?.label || 'Pickup & Delivery'}</div>
                   <div><strong>Images:</strong> {deviceImages.length} uploaded</div>
-                  {/* {coordinates && (
+                  {coordinates && (
                     <div className="md:col-span-3">
-                      <strong>Location:</strong> {coordinates.latitude.toFixed(4)}, {coordinates.longitude.toFixed(4)}
+                      <strong>Location:</strong> {coordinates?.latitude?.toFixed(4)}, {coordinates?.longitude?.toFixed(4)}
                     </div>
-                  )} */}
+                  )}
                 </div>
               </div>
             </div>

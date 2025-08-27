@@ -65,6 +65,8 @@ function Login() {
         router.push("/repair-man/complete-profile");
       }else if (resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === true ) {
         router.push("/repair-man/dashboard");
+      }else {
+        router.push("/");
       }
 
       dispatch(setAuth({
