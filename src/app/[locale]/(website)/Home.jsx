@@ -11,7 +11,7 @@ import OurPartners from '@/components/website/home/ourPartners'
 import OurProcess from '@/components/website/home/ourProcess'
 import BottomPromoImages from '@/components/website/home/bottomPromoImages'
 import { Brands, ContentSection, InterestTags } from '@/components/website/Footer'
-import { useTranslations } from 'next-intl'
+import { useTranslations, useLocale } from 'next-intl'
 
 function Home({locale}) {
   const t = useTranslations('HomePage');

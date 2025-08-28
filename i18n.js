@@ -4,30 +4,43 @@ import {getRequestConfig} from 'next-intl/server';
 const locales = ['en', 'tr'];
 
 export default getRequestConfig(async ({requestLocale}) => {
-  // Use requestLocale from middleware or fallback
+  // Use requestLocale from middleware
   let locale = requestLocale;
   
-  // Validate and fallback to default if needed
+  // Validate locale
   if (!locale || !locales.includes(locale)) {
-    locale = 'en'; // Default fallback
+    console.log('Invalid locale, falling back to en:', locale);
+    locale = 'en';
   }
+
+  console.log('Loading messages for locale:', locale);
 
   try {
     const messages = (await import(`./messages/${locale}.json`)).default;
     
+    console.log('Messages loaded successfully for:', locale);
+    console.log('Message keys:', Object.keys(messages));
+    
+    if (messages.Hero) {
+      console.log('Hero welcomeText:', messages.Hero.welcomeText);
+    }
+    
     return {
       locale,
-      messages
+      messages,
+      // Add time zone and other config
+      timeZone: 'Europe/Istanbul'
     };
   } catch (error) {
-    // If message file doesn't exist, fallback to English
-    console.error(`Could not load messages for locale: ${locale}`, error);
+    console.error(`Failed to load messages for locale: ${locale}`, error);
     
+    // Fallback to English
     const fallbackMessages = (await import(`./messages/en.json`)).default;
     
     return {
       locale: 'en',
-      messages: fallbackMessages
+      messages: fallbackMessages,
+      timeZone: 'Europe/Istanbul'
     };
   }
 });

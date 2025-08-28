@@ -30,14 +30,14 @@ const ROLE_ROUTES = {
     "/settings"
   ],
   repairman: [
-    "/repair-man",
-    "/repair-man/dashboard",
-    "/repair-man/jobs",
-    "/repair-man/schedule",
-    "/repair-man/history",
-    "/repair-man/earnings",
-    "/profile",
-    "/settings"
+    "/en/repair-man",
+    "/en/repair-man/dashboard",
+    "/en/repair-man/jobs",
+    "/en/repair-man/schedule",
+    "/en/repair-man/history",
+    "/en/repair-man/earnings",
+    "/en/profile",
+    "/en/settings"
   ],
   customer: [
     "/",

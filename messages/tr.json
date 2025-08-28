@@ -24,5 +24,8 @@
         "title": "Sayfa Bulunamadı",
         "description": "Aradığınız sayfa mevcut değil.",
         "backHome": "Ana Sayfaya Dön"
+    },
+     "DiscountCoupon": {
+        "discount": "Bachetli Kupon"
     }
 }

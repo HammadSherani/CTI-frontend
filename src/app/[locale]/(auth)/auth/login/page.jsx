@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
-import Logins from "../../../../../public/assets/user/login.png";
+import Logins from "../../../../../../public/assets/user/login.png";
 import Link from "next/link";
 import Image from "next/image";
 import axiosInstance from "../../../../../config/axiosInstance";
