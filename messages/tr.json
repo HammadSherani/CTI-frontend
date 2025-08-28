@@ -1,0 +1,28 @@
+{
+    "metadata": {
+        "title": "E-ticaret Web Sitem",
+        "description": "Elektronik ve aksesuarlarda en iyi fiyatlar"
+    },
+    "HomePage": {
+        "title": "Mağazamıza Hoş Geldiniz",
+        "description": "Elektronikte en iyi fırsatları bulun",
+        "flashProducts": "Flaş Ürünler",
+        "bestDeals": "En İyi Fırsatlar",
+        "categories": "Kategoriler",
+        "ourPartners": "Ortaklarımız",
+        "ourProcess": "Sürecimiz"
+    },
+    "Hero": {
+        "videoNotSupported": "Tarayıcınız video etiketini desteklemiyor.",
+        "welcomeText": "Mağazamıza Hoş Geldiniz",
+        "mainHeading": "En son cihazlarımızı ve tekliflerimizi keşfedin",
+        "description": "Bilgisayar ve mobil cihazlar için hızlı, güvenilir onarım hizmeti sunuyoruz. Uzman teknisyenlerimiz, cihazlarınızın yeni gibi çalışmasını sağlamak için yüksek kaliteli parçalar kullanır.",
+        "repairButton": "Hızlı Onarım Talebi Oluştur",
+        "technicianButton": "En Yakın Teknisyeni Bul"
+    },
+    "NotFound": {
+        "title": "Sayfa Bulunamadı",
+        "description": "Aradığınız sayfa mevcut değil.",
+        "backHome": "Ana Sayfaya Dön"
+    }
+}
