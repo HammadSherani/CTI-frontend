@@ -5,11 +5,11 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
-import Logins from "../../../../../../public/assets/user/login.png";
+import Logins from "../../../../../public/assets/user/login.png";
 import Link from "next/link";
 import Image from "next/image";
-import axiosInstance from "../../../../../config/axiosInstance";
-import handleError from "../../../../../helper/handleError";
+import axiosInstance from "../../../../config/axiosInstance";
+import handleError from "../../../../helper/handleError";
 import { useRouter } from "next/navigation";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
@@ -57,17 +57,18 @@ function Login() {
 
       const resData = response.data.data;
 
-      if(resData?.user?.role === "admin") {
+      if (resData?.user?.role === "admin") {
         router.push("/admin/dashboard");
-      }
-
-      if(resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === false) {
-        router.push("/repair-man/complete-profile");
-      }else if (resData?.user?.role === "repairman" && resData?.user?.isProfileComplete === true ) {
-        router.push("/repair-man/dashboard");
-      }else {
+      } else if (resData?.user?.role === "repairman") {
+        if (resData?.user?.isProfileComplete) {
+          router.push("/repair-man/dashboard");
+        } else {
+          router.push("/repair-man/complete-profile");
+        }
+      } else {
         router.push("/");
       }
+
 
       dispatch(setAuth({
         user: resData.user,
@@ -89,7 +90,7 @@ function Login() {
   return (
     <>
       <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
-        
+
         {/* Left Image Section */}
         <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
@@ -119,7 +120,7 @@ function Login() {
               </div>
             </div>
           </div>
-          
+
           {/* Decorative Elements */}
           <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
           <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -129,7 +130,7 @@ function Login() {
         {/* Right Form Section */}
         <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">
-            
+
             {/* Language Switch */}
             {/* <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
               <span className="flex items-center justify-end gap-2">
@@ -141,7 +142,7 @@ function Login() {
 
             {/* Main Content */}
             <div className="bg-white rounded-3xl shadow-md mt-6 p-8 md:p-10">
-              
+
               {/* Header */}
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -183,7 +184,7 @@ function Login() {
 
               {/* Login Form */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                
+
                 {/* Email Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -198,15 +199,14 @@ function Login() {
                           {...field}
                           type="email"
                           placeholder="Enter your email"
-                          className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                            errors.email 
-                              ? "border-red-300 focus:border-red-500" 
+                          className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.email
+                              ? "border-red-300 focus:border-red-500"
                               : "border-gray-200 focus:border-orange-500"
-                          }`}
+                            }`}
                         />
-                        <Icon 
-                          icon="mdi:email-outline" 
-                          className="absolute left-4 top-3.5 text-gray-400 text-lg" 
+                        <Icon
+                          icon="mdi:email-outline"
+                          className="absolute left-4 top-3.5 text-gray-400 text-lg"
                         />
                       </div>
                     )}
@@ -233,24 +233,23 @@ function Login() {
                           {...field}
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
-                          className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                            errors.password 
-                              ? "border-red-300 focus:border-red-500" 
+                          className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.password
+                              ? "border-red-300 focus:border-red-500"
                               : "border-gray-200 focus:border-orange-500"
-                          }`}
+                            }`}
                         />
-                        <Icon 
-                          icon="mdi:lock-outline" 
-                          className="absolute left-4 top-3.5 text-gray-400 text-lg" 
+                        <Icon
+                          icon="mdi:lock-outline"
+                          className="absolute left-4 top-3.5 text-gray-400 text-lg"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 transition-colors"
                         >
-                          <Icon 
-                            icon={showPassword ? 'mdi:eye-off-outline' : 'mdi:eye-outline'} 
-                            className="text-lg" 
+                          <Icon
+                            icon={showPassword ? 'mdi:eye-off-outline' : 'mdi:eye-outline'}
+                            className="text-lg"
                           />
                         </button>
                       </div>
@@ -276,11 +275,10 @@ function Login() {
                           type="checkbox"
                           className="sr-only"
                         />
-                        <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all duration-200 ${
-                          field.value 
-                            ? 'bg-orange-500 border-orange-500' 
+                        <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all duration-200 ${field.value
+                            ? 'bg-orange-500 border-orange-500'
                             : 'border-gray-300 hover:border-orange-300'
-                        }`}>
+                          }`}>
                           {field.value && (
                             <Icon icon="mdi:check" className="text-white text-sm" />
                           )}
@@ -289,9 +287,9 @@ function Login() {
                       </label>
                     )}
                   />
-                  
-                  <Link 
-                    href="/auth/forgot-password" 
+
+                  <Link
+                    href="/auth/forgot-password"
                     className="text-sm text-orange-500 hover:text-orange-600 font-medium transition-colors"
                   >
                     Forgot password?
@@ -321,8 +319,8 @@ function Login() {
               {/* Sign Up Link */}
               <div className="mt-8 text-center">
                 <span className="text-gray-600">Don't have an account? </span>
-                <Link 
-                  href="/auth/register" 
+                <Link
+                  href="/auth/register"
                   className="font-bold text-orange-500 hover:text-orange-600 transition-colors"
                 >
                   Create Account

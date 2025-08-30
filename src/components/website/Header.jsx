@@ -5,8 +5,6 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 import Link from "next/link";
-import LanguageSwitcher from "../LanguageSwitcher";
-import { useTranslations, useLocale } from 'next-intl'
 
 export  function TopHeader() {
   const [language, setLanguage] = useState("English");
@@ -16,7 +14,6 @@ export  function TopHeader() {
     { name: "Türkçe", flag: "twemoji:flag-for-flag-turkey" },
   ];
 
-  const t = useTranslations('DiscountCoupon');
 
   return (
     <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -65,7 +62,7 @@ export  function TopHeader() {
           <a href="#" className="hover:text-orange-500 transition-colors duration-200 flex items-center gap-1">
             <Icon icon="mdi:ticket-percent" className="text-sm" />
             
-            {t('discount')}
+            Discount Couponn
           </a>
           <a href="#" className="hover:text-orange-500 transition-colors duration-200 flex items-center gap-1">
             <Icon icon="mdi:store" className="text-sm" />
@@ -106,7 +103,7 @@ export  function TopHeader() {
             />
           </div> */}
 
-          <LanguageSwitcher />
+          {/* <LanguageSwitcher /> */}
         </div>
       </div>
       

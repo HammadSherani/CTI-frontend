@@ -11,27 +11,25 @@ import OurPartners from '@/components/website/home/ourPartners'
 import OurProcess from '@/components/website/home/ourProcess'
 import BottomPromoImages from '@/components/website/home/bottomPromoImages'
 import { Brands, ContentSection, InterestTags } from '@/components/website/Footer'
-import { useTranslations, useLocale } from 'next-intl'
 
-function Home({locale}) {
-  const t = useTranslations('HomePage');
+function Home() {
 
   return (
     <div>
-      <Hero locale={locale} />
-      <Categories locale={locale} />
-      <PromoBanner locale={locale} />
-      <RefurbishedTabs locale={locale} />
-      <PromoImages locale={locale} />
-      <SellingProducts locale={locale} />
-      <PromotionalBanners locale={locale} />
-      <SellingProducts locale={locale} title={t('flashProducts')} />
-      <OurPartners locale={locale} />
-      <OurProcess locale={locale} />
-      <BottomPromoImages locale={locale} />
-      <InterestTags locale={locale} />
-      <ContentSection locale={locale} />
-      <Brands locale={locale} />
+      <Hero  />
+      <Categories  />
+      <PromoBanner  />
+      <RefurbishedTabs  />
+      <PromoImages  />
+      <SellingProducts  />
+      <PromotionalBanners  />
+      <SellingProducts   />
+      <OurPartners  />
+      <OurProcess  />
+      <BottomPromoImages  />
+      <InterestTags  />
+      <ContentSection  />
+      <Brands  />
     </div>
   )
 }

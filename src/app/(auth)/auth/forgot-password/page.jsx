@@ -8,8 +8,8 @@ import { Icon } from "@iconify/react";
 import Logins from "../../../../../public/assets/user/login.png";
 import Link from "next/link";
 import Image from "next/image";
-import axiosInstance from "../../../../../config/axiosInstance";
-import handleError from "../../../../../helper/handleError";
+import axiosInstance from "../../../../config/axiosInstance";
+import handleError from "../../../../helper/handleError";
 
 // Validation schema
 const schema = yup.object().shape({

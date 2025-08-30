@@ -1,5 +1,3 @@
-import withNextIntl from 'next-intl/plugin';
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Add your other Next.js configurations here
@@ -12,4 +10,4 @@ const nextConfig = {
   // },
 };
 
-export default withNextIntl('./i18n.js')(nextConfig);
+export default nextConfig;

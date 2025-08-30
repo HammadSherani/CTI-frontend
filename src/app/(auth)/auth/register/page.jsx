@@ -8,12 +8,12 @@ import { Icon } from "@iconify/react";
 import Logins from "../../../../../public/assets/user/signup.png";
 import Link from "next/link";
 import Image from "next/image";
-import axiosInstance from "../../../../../config/axiosInstance";
-import handleError from "../../../../../helper/handleError";
+import axiosInstance from "../../../../config/axiosInstance";
+import handleError from "../../../../helper/handleError";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { setAuth } from "../../../../../store/auth";
+import { setAuth } from "../../../../store/auth";
 
 // Validation schema
 const schema = yup.object().shape({
