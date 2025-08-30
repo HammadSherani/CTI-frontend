@@ -1,10 +1,12 @@
+// AuthGuard.jsx
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
+import { clearAuth } from "../store/auth"; // Adjust path as needed
 
-// Role-based route configuration
+// Role-based route configuration (unchanged)
 const ROLE_ROUTES = {
   admin: [
     "/admin",
@@ -17,7 +19,7 @@ const ROLE_ROUTES = {
     "/admin/reports",
     "/admin/settings",
     "/profile",
-    "/settings"
+    "/settings",
   ],
   seller: [
     "/seller",
@@ -27,7 +29,7 @@ const ROLE_ROUTES = {
     "/seller/orders",
     "/seller/analytics",
     "/profile",
-    "/settings"
+    "/settings",
   ],
   repairman: [
     "/en/repair-man",
@@ -37,28 +39,20 @@ const ROLE_ROUTES = {
     "/en/repair-man/history",
     "/en/repair-man/earnings",
     "/en/profile",
-    "/en/settings"
+    "/en/settings",
   ],
-  customer: [
-    "/",
-    "/orders",
-    "/repair-requests",
-    "/wishlist",
-    "/cart",
-    "/profile",
-    "/settings"
-  ]
+  customer: ["/", "/orders", "/repair-requests", "/wishlist", "/cart", "/profile", "/settings"],
 };
 
-// Default redirects for each role
+// Default redirects for each role (unchanged)
 const ROLE_DEFAULT_ROUTES = {
   admin: "/admin/dashboard",
   seller: "/seller/dashboard",
   repairman: "/repair-man/dashboard",
-  customer: "/"
+  customer: "/",
 };
 
-// Loading component
+// Loading component (unchanged)
 const LoadingScreen = () => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
     <div className="text-center">
@@ -68,13 +62,18 @@ const LoadingScreen = () => (
   </div>
 );
 
-// Access denied component
+// Access denied component (unchanged)
 const AccessDenied = ({ userRole, requiredRoles }) => (
   <div className="flex items-center justify-center min-h-screen bg-gray-50">
     <div className="max-w-md mx-auto text-center p-8 bg-white rounded-lg shadow-lg">
       <div className="w-16 h-16 mx-auto mb-4 bg-red-100 rounded-full flex items-center justify-center">
         <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"
+          />
         </svg>
       </div>
       <h2 className="text-xl font-semibold text-gray-800 mb-2">Access Denied</h2>
@@ -82,11 +81,9 @@ const AccessDenied = ({ userRole, requiredRoles }) => (
         Aapka current role ({userRole}) is page ke liye authorized nahi hai.
       </p>
       {requiredRoles && (
-        <p className="text-sm text-gray-500 mb-6">
-          Required roles: {requiredRoles.join(", ")}
-        </p>
+        <p className="text-sm text-gray-500 mb-6">Required roles: {requiredRoles.join(", ")}</p>
       )}
-      <button 
+      <button
         onClick={() => window.history.back()}
         className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
       >
@@ -96,13 +93,9 @@ const AccessDenied = ({ userRole, requiredRoles }) => (
   </div>
 );
 
-function AuthGuard({ 
-  children, 
-  allowedRoles = [], 
-  redirectTo = null,
-  requireAuth = true 
-}) {
+function AuthGuard({ children, allowedRoles = [], redirectTo = null, requireAuth = true }) {
   const { user, token, loading } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorizing, setIsAuthorizing] = useState(true);
@@ -116,53 +109,52 @@ function AuthGuard({
   // Check if current route is allowed for user's role
   const isRouteAllowed = (userRole, currentPath) => {
     if (!userRole || !ROLE_ROUTES[userRole]) return false;
-    
-    return ROLE_ROUTES[userRole].some(route => {
-      // Exact match
+    return ROLE_ROUTES[userRole].some((route) => {
       if (route === currentPath) return true;
-      // Wildcard match for nested routes
-      if (route.endsWith('*')) {
+      if (route.endsWith("*")) {
         const baseRoute = route.slice(0, -1);
         return currentPath.startsWith(baseRoute);
       }
-      // Nested route match
-      return currentPath.startsWith(route + '/') || currentPath === route;
+      return currentPath.startsWith(route + "/") || currentPath === route;
     });
   };
 
   useEffect(() => {
+    // Listen for unauthorized event from axios
+    const handleUnauthorized = (event) => {
+      console.log("Caught unauthorized event, redirecting to:", event.detail.redirect);
+      dispatch(clearAuth()); // Ensure Redux state is cleared
+      router.push(event.detail.redirect); // Use router.push for client-side navigation
+    };
+
+    if (typeof window !== "undefined") {
+      window.addEventListener("unauthorized", handleUnauthorized);
+    }
+
     const checkAuthentication = async () => {
       setIsAuthorizing(true);
 
-      // If auth is still loading, wait
       if (loading) {
         return;
       }
 
-      // Check if authentication is required
       if (requireAuth && (!user || !token)) {
+        console.log("No user or token, redirecting to /auth/login");
         router.push("/auth/login");
         return;
       }
 
-      // If user is authenticated, check role-based access
       if (user && user.role) {
         const userRole = user.role.toLowerCase();
-        
-        // Check if specific roles are required for this component
-        if (allowedRoles.length > 0) {
-          if (!hasRequiredRole(userRole, allowedRoles)) {
-            // Redirect to role's default route or specified redirect
-            const defaultRoute = redirectTo || ROLE_DEFAULT_ROUTES[userRole] || "/dashboard";
-            router.push(defaultRoute);
-            return;
-          }
+        if (allowedRoles.length > 0 && !hasRequiredRole(userRole, allowedRoles)) {
+          const defaultRoute = redirectTo || ROLE_DEFAULT_ROUTES[userRole] || "/dashboard";
+          console.log(`Unauthorized role (${userRole}), redirecting to ${defaultRoute}`);
+          router.push(defaultRoute);
+          return;
         }
-
-        // Check if current route is allowed for user's role
         if (!isRouteAllowed(userRole, pathname)) {
-          // Redirect to role's default route
           const defaultRoute = ROLE_DEFAULT_ROUTES[userRole] || "/dashboard";
+          console.log(`Route not allowed for ${userRole}, redirecting to ${defaultRoute}`);
           router.push(defaultRoute);
           return;
         }
@@ -172,14 +164,19 @@ function AuthGuard({
     };
 
     checkAuthentication();
-  }, [user, token, loading, pathname, allowedRoles, redirectTo, requireAuth, router]);
 
-  // Show loading while auth state is loading
+    // Cleanup event listener
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("unauthorized", handleUnauthorized);
+      }
+    };
+  }, [user, token, loading, pathname, allowedRoles, redirectTo, requireAuth, router, dispatch]);
+
   if (loading || isAuthorizing) {
     return <LoadingScreen />;
   }
 
-  // Show login redirect message
   if (requireAuth && (!user || !token)) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -191,7 +188,6 @@ function AuthGuard({
     );
   }
 
-  // Check role-based access for component-level protection
   if (user && allowedRoles.length > 0) {
     const userRole = user.role?.toLowerCase();
     if (!hasRequiredRole(userRole, allowedRoles)) {
@@ -202,7 +198,7 @@ function AuthGuard({
   return <>{children}</>;
 }
 
-// HOC for easy role-based protection
+// HOC for role-based protection (unchanged)
 export const withRoleGuard = (Component, allowedRoles = []) => {
   return function ProtectedComponent(props) {
     return (
@@ -213,10 +209,10 @@ export const withRoleGuard = (Component, allowedRoles = []) => {
   };
 };
 
-// Hook for role-based access checking
+// Hook for role-based access checking (unchanged)
 export const useRoleAccess = () => {
   const { user } = useSelector((state) => state.auth);
-  
+
   const hasRole = (roles) => {
     if (!user || !user.role) return false;
     const userRole = user.role.toLowerCase();
@@ -226,17 +222,24 @@ export const useRoleAccess = () => {
   const canAccessRoute = (route) => {
     if (!user || !user.role) return false;
     const userRole = user.role.toLowerCase();
-    return isRouteAllowed(userRole, route);
+    return ROLE_ROUTES[userRole]?.some((r) => {
+      if (r === route) return true;
+      if (r.endsWith("*")) {
+        const baseRoute = r.slice(0, -1);
+        return route.startsWith(baseRoute);
+      }
+      return route.startsWith(r + "/") || route === r;
+    });
   };
 
   return {
     hasRole,
     canAccessRoute,
     userRole: user?.role?.toLowerCase(),
-    isAdmin: hasRole(['admin']),
-    isSeller: hasRole(['seller']),
-    isRepairman: hasRole(['repairman']),
-    isCustomer: hasRole(['customer'])
+    isAdmin: hasRole(["admin"]),
+    isSeller: hasRole(["seller"]),
+    isRepairman: hasRole(["repairman"]),
+    isCustomer: hasRole(["customer"]),
   };
 };
 

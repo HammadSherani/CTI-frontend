@@ -253,43 +253,10 @@ function LowerHeader() {
     { 
       icon: "mdi:cellphone", 
       name: "Mobile Repair",
-      subCategories: ["iPhone Repair", "Android Repair", "Screen Replacement", "Battery Service"]
+      subCategories: ["iPhone Repair", "Android Repair", "Screen Replacement", "Battery Service"],
+      link: "/mobile-repair"
     },
-    { 
-      icon: "mdi:laptop", 
-      name: "Computer Repair",
-      subCategories: ["Laptop Repair", "Desktop Repair", "Mac Repair", "Data Recovery"]
-    },
-    { 
-      icon: "mdi:tablet", 
-      name: "Tablet Repair",
-      subCategories: ["iPad Repair", "Android Tablet", "Screen Fix", "Charging Issues"]
-    },
-    { 
-      icon: "mdi:watch", 
-      name: "Smartwatch",
-      subCategories: ["Apple Watch", "Samsung Watch", "Fitbit", "Battery Replacement"]
-    },
-    { 
-      icon: "mdi:headphones", 
-      name: "Audio Devices",
-      subCategories: ["Headphone Repair", "Speaker Fix", "Microphone", "Bluetooth Issues"]
-    },
-    { 
-      icon: "mdi:gamepad-variant", 
-      name: "Gaming",
-      subCategories: ["Console Repair", "Controller Fix", "Gaming PC", "VR Headsets"]
-    },
-    { 
-      icon: "mdi:camera", 
-      name: "Camera",
-      subCategories: ["DSLR Repair", "Lens Service", "Action Cameras", "Phone Cameras"]
-    },
-    { 
-      icon: "mdi:tools", 
-      name: "All Services",
-      subCategories: ["Emergency Repair", "Home Service", "Business Support", "Warranty"]
-    },
+    
   ];
 
   useEffect(() => {

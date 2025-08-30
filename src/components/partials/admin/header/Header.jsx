@@ -22,6 +22,8 @@ function Header() {
   const primaryNavLinks = [
     { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
     { name: "Category", path: "/admin/category", icon: "mdi:clipboard-list-outline" },
+    { name: "Brand", path: "/admin/brand", icon: "mdi:clipboard-list-outline" },
+    { name: "Models", path: "/admin/models", icon: "mdi:clipboard-list-outline" },
     // { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
     // { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
     // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },

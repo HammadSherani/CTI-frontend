@@ -3,10 +3,7 @@ import React from 'react'
 
 const Hero = () => {
 
-  // Debug logs
   console.log('Hero Component Debug:');
-  // console.log('- Current locale:', locale);
-  // console.log('- Welcome text:', t('welcomeText'));
 
   return (
     <section className="relative h-[500px] overflow-hidden">
