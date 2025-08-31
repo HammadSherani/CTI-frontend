@@ -340,7 +340,7 @@ const CreateRepairJobForm = () => {
               disabled
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md opacity-50 cursor-not-allowed text-base"
             >
-              <span>Post Job</span>
+              <span>Post Jobs</span>
               <Icon icon="mdi:arrow-right" />
             </button>
           </div>
@@ -349,6 +349,7 @@ const CreateRepairJobForm = () => {
     </div>
   );
 };
+
 
 export default CreateRepairJobForm;
 
