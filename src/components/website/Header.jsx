@@ -309,11 +309,11 @@ function LowerHeader() {
                     onMouseEnter={() => setActiveCategory(index)}
                     onMouseLeave={() => setActiveCategory(null)}
                   >
-                    <div className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition-all duration-200  border-gray-100 last:border-b-0">
+                    <Link href={category.link} className="flex items-center gap-3 px-4 py-3 hover:bg-orange-50 hover:text-orange-600 cursor-pointer transition-all duration-200  border-gray-100 last:border-b-0">
                       <Icon icon={category.icon} className="text-lg" />
-                      <span className="font-medium">{category.name}</span>
+                      <span className="font-medium">{category.name}</span> 
                       <Icon icon="mdi:chevron-right" className="ml-auto text-gray-400" />
-                    </div>
+                    </Link>
                     
                     {/* Subcategories */}
                     {activeCategory === index && (

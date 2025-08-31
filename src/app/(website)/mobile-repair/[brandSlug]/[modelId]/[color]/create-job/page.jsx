@@ -8,13 +8,15 @@ import { Icon } from '@iconify/react';
 import { useParams } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
+import LoginModal from './LoginModal'; // Import your separate LoginModal component
 import { ServiceSelector } from './ServiceSelector';
 import { JobDetails } from './JobDetails';
 import { DeviceInfo } from './DeviceInfo';
 import { LocationPreferences } from './LocationPreferences';
 import { BudgetRange } from './BudgetRange';
-import { useSelector } from 'react-redux';
 
+// Yup schema (unchanged)
 const schema = yup.object().shape({
   deviceInfo: yup.object().shape({
     warrantyStatus: yup.string().required('Warranty status is required'),
@@ -52,7 +54,11 @@ const CreateRepairJobForm = () => {
   const [isTermsAgreed, setIsTermsAgreed] = useState(false);
   const [modelData, setModelData] = useState(null);
   const [data, setData] = useState(null);
-  const token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGFjNDY4MWNjNjQ4NmE2ZDQzMWQ1MmMiLCJyb2xlIjoiY3VzdG9tZXIiLCJpYXQiOjE3NTY2NTc5OTQsImV4cCI6MTc1NzI2Mjc5NH0.TyJ5hyTDLs6y6iFYrktzCrnRmzXQ0v-PqXRy64bwUI0"
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState(null); // Store form data when login is required
+
+  const { user } = useSelector((state) => state.auth);
+  const token = user?.token || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGFjNDY4MWNjNjQ4NmE2ZDQzMWQ1MmMiLCJyb2xlIjoiY3VzdG9tZXIiLCJpYXQiOjE3NTY2NTc5OTQsImV4cCI6MTc1NzI2Mjc5NH0.TyJ5hyTDLs6y6iFYrktzCrnRmzXQ0v-PqXRy64bwUI0";
 
   const { brandSlug, modelId, color } = useParams();
 
@@ -67,8 +73,17 @@ const CreateRepairJobForm = () => {
   };
 
   useEffect(() => {
-    getModelData();
-  }, []);
+    if (modelId) {
+      getModelData();
+    }
+  }, [modelId]);
+
+  // Show login modal when user first arrives on page and is not logged in
+  useEffect(() => {
+    if (!user || user.role !== "customer") {
+      setShowLoginModal(true);
+    }
+  }, [user]);
 
   const {
     control,
@@ -148,6 +163,14 @@ const CreateRepairJobForm = () => {
   };
 
   const onSubmit = async (formData) => {
+    // Check if user is logged in - if not, show login modal
+    if (!user || user.role !== "customer") {
+      setPendingFormData(formData); // Store form data
+      setShowLoginModal(true); // Open login modal
+      return;
+    }
+
+    // Proceed with submission if user is logged in
     if (!isTermsAgreed) {
       alert('Please agree to the Terms and Conditions');
       return;
@@ -155,44 +178,33 @@ const CreateRepairJobForm = () => {
 
     try {
       const submitData = {
-        // Basic fields (optional as per model)
-        // title: `${data?.model?.brandId?.name} ${modelData?.name} Repair`,
-        // description: `Repair services for ${data?.model?.brandId?.name} ${modelData?.name}`,
-
-        // Device info structure match backend model
         deviceInfo: {
           brandId: data?.model?.brandId?._id,
           modelId: modelData?._id || modelId,
           color: color,
           warrantyStatus: formData.deviceInfo.warrantyStatus,
         },
-
-        // Keep existing fields as they match backend
         urgency: formData.urgency,
         budget: formData.budget,
         location: formData.location,
         preferredTime: formData.preferredTime,
         servicePreference: formData.servicePreference,
-
-        // Convert selectedServices to services array (backend expects services field)
         services: formData.selectedServices || [],
-
-        // Optional fields with defaults
         maxOffers: 10,
         autoSelectBest: false
       };
 
       console.log('Complete Form Data:', submitData);
 
-      // Uncomment below when ready to submit
       const response = await axiosInstance.post('/repair-jobs', submitData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
+
       if (response.data.success) {
         alert('Repair job created successfully!');
-        // reset();
+        reset();
         setIsTermsAgreed(false);
       }
 
@@ -206,33 +218,51 @@ const CreateRepairJobForm = () => {
     }
   };
 
+  const handleLoginSuccess = (userData) => {
+    console.log('Login successful:', userData);
+    setShowLoginModal(false);
+    // If there is pending form data, submit it after login
+    if (pendingFormData) {
+      onSubmit(pendingFormData);
+      setPendingFormData(null); // Clear pending data after submission
+    }
+  };
+
+  const handleCloseLoginModal = () => {
+    setShowLoginModal(false);
+    setPendingFormData(null); // Clear pending data if modal is closed
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-4xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
         <div className="bg-gray-50 p-4 border-b border-gray-200">
           <div className="flex gap-3">
             <div className="w-20 h-auto bg-gray-800 rounded-md flex items-center justify-center">
-              <Image
-                src={modelData?.icon}
-                alt={modelData?.name}
-                width={1000}
-                height={1000}
-                className="w-full h-full"
-              />
+              {modelData?.icon && (
+                <Image
+                  src={modelData.icon}
+                  alt={modelData?.name || 'Device'}
+                  width={80}
+                  height={80}
+                  className="w-full h-full object-contain"
+                />
+              )}
             </div>
             <div className="flex flex-col gap-1">
               <h2 className="text-2xl font-bold text-gray-900 capitalize">
                 {modelData?.name}
               </h2>
-              <p className="text-sm text-gray-600">
+              <p className="text-base text-gray-600">
                 Brand: <span className="font-medium capitalize">{data?.model?.brandId?.name}</span>
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-base text-gray-600">
                 Color: <span className="font-medium capitalize">{color}</span>
               </p>
             </div>
           </div>
         </div>
+
         <div className="p-4">
           <h3 className="text-base font-semibold text-gray-900 mb-2">Pick Your Repair Service</h3>
           <ServiceSelector
@@ -244,6 +274,7 @@ const CreateRepairJobForm = () => {
             Controller={Controller}
           />
         </div>
+
         {selectedServices.length > 0 && (
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
             <div className="border-b border-gray-200 pb-4">
@@ -253,6 +284,7 @@ const CreateRepairJobForm = () => {
               </div>
               <JobDetails control={control} errors={errors} Controller={Controller} />
             </div>
+
             <div className="border-b border-gray-200 pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon icon="mdi:cellphone" className="text-lg text-orange-500" />
@@ -260,6 +292,7 @@ const CreateRepairJobForm = () => {
               </div>
               <DeviceInfo control={control} errors={errors} Controller={Controller} />
             </div>
+
             <div className="border-b border-gray-200 pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon icon="mdi:map-marker" className="text-lg text-orange-500" />
@@ -275,6 +308,7 @@ const CreateRepairJobForm = () => {
                 Controller={Controller}
               />
             </div>
+
             <div className="pb-4">
               <div className="flex items-center gap-2 mb-2">
                 <Icon icon="mdi:currency-usd" className="text-lg text-orange-500" />
@@ -282,6 +316,7 @@ const CreateRepairJobForm = () => {
               </div>
               <BudgetRange control={control} errors={errors} Controller={Controller} />
             </div>
+
             <div className="bg-gray-50 p-4 rounded-b-lg">
               <div className="flex items-center gap-2 mb-3">
                 <input
@@ -291,7 +326,7 @@ const CreateRepairJobForm = () => {
                   onChange={(e) => setIsTermsAgreed(e.target.checked)}
                   className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
                 />
-                <label htmlFor="terms" className="text-xs text-gray-600">
+                <label htmlFor="terms" className="text-base text-gray-600">
                   I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
                 </label>
               </div>
@@ -315,12 +350,13 @@ const CreateRepairJobForm = () => {
             </div>
           </form>
         )}
+
         {selectedServices.length === 0 && (
           <div className="p-4 bg-gray-50 rounded-b-lg">
             <h3 className="text-base font-semibold text-gray-900 mb-2">Price Summary</h3>
             <div className="bg-white rounded-md p-3 text-center">
               <p className="text-gray-500 text-base">No Service Selected</p>
-              <p className="text-gray-400 text-xs mt-1">Please select a repair service to see the estimated price range.</p>
+              <p className="text-gray-400 text-base mt-1">Please select a repair service to see the estimated price range.</p>
             </div>
             <div className="flex items-center gap-2 my-3">
               <input
@@ -331,7 +367,7 @@ const CreateRepairJobForm = () => {
                 disabled
                 className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
               />
-              <label htmlFor="terms-default" className="text-xs text-gray-400">
+              <label htmlFor="terms-default" className="text-base text-gray-400">
                 I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
               </label>
             </div>
@@ -346,13 +382,14 @@ const CreateRepairJobForm = () => {
           </div>
         )}
       </div>
+
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={handleCloseLoginModal}
+        onSuccess={handleLoginSuccess}
+      />
     </div>
   );
 };
 
-
 export default CreateRepairJobForm;
-
-
-
-
