@@ -278,11 +278,9 @@ export default function CreateRepairJobForm() {
             )}
           </div>
 
-          {/* Main Form - Only show if service is selected */}
           {selectedService && (
             <form onSubmit={handleSubmit(onSubmit)}>
               
-              {/* Job Details Section */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Icon icon="mdi:clipboard-text" className="text-xl text-orange-500" />
@@ -315,7 +313,6 @@ export default function CreateRepairJobForm() {
                   />
                 </div>
 
-                {/* Urgency Level */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Urgency Level</label>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -348,7 +345,6 @@ export default function CreateRepairJobForm() {
                 </div>
               </div>
 
-              {/* Device Information */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Icon icon="mdi:cellphone" className="text-xl text-orange-500" />
@@ -516,7 +512,6 @@ export default function CreateRepairJobForm() {
                   )}
                 />
 
-                {/* Get Location Button */}
                 <div className="bg-blue-50 p-4 rounded-lg">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-medium text-blue-900">Auto-detect Location</span>
@@ -552,7 +547,6 @@ export default function CreateRepairJobForm() {
                 </div>
               </div>
 
-              {/* Budget Section */}
               <div className="p-6 border-b border-gray-200">
                 <div className="flex items-center gap-2 mb-4">
                   <Icon icon="mdi:currency-usd" className="text-xl text-orange-500" />
@@ -612,16 +606,7 @@ export default function CreateRepairJobForm() {
                 </div>
               </div>
 
-              {/* Price Summary Section */}
               <div className="p-6 bg-gray-50">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Price Summary</h3>
-                
-                <div className="bg-white rounded-lg p-4 mb-4">
-                  <div className="text-center py-8">
-                    <p className="text-gray-500 text-lg">No Service Selected</p>
-                  </div>
-                </div>
-
                 <div className="flex items-center gap-2 mb-4">
                   <input
                     type="checkbox"
@@ -653,18 +638,6 @@ export default function CreateRepairJobForm() {
                     </>
                   )}
                 </button>
-
-                {/* Stats Section */}
-                <div className="grid grid-cols-2 gap-4 mt-6">
-                  <div className="bg-orange-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-orange-600">46K+</div>
-                    <div className="text-sm text-gray-600">Device Repaired</div>
-                  </div>
-                  <div className="bg-orange-50 p-4 rounded-lg text-center">
-                    <div className="text-2xl font-bold text-orange-600">4.3+</div>
-                    <div className="text-sm text-gray-600">Rated Products</div>
-                  </div>
-                </div>
               </div>
 
             </form>
