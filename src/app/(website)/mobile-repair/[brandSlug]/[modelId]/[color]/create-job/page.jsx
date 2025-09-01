@@ -182,6 +182,7 @@ const CreateRepairJobForm = () => {
           brandId: data?.model?.brandId?._id,
           modelId: modelData?._id || modelId,
           brand: data?.model?.brandId?.name,
+          model: modelData?.name,
           color: color,
           warrantyStatus: formData.deviceInfo.warrantyStatus,
         },
@@ -206,7 +207,7 @@ const CreateRepairJobForm = () => {
       if (response.data.success) {
         // alert('Repair job created successfully!');
         toast.success(response.data.message);
-        router.push('/my-acount/my-jobs');
+        router.push('/my-account');
         // reset();
         setIsTermsAgreed(false);
       }

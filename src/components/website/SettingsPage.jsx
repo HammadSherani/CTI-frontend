@@ -129,44 +129,50 @@ const RepairJobCard = ({ job }) => {
   const deviceName = `${job?.deviceInfo?.brand || ''} ${job?.deviceInfo?.model || ''}`.trim() || 'Unknown Device';
 
   return (
-    <div className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-lg transition-all duration-200 hover:border-gray-300 ${
+    <div className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${
       isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
     }`}>
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-4">
+      <div className="flex justify-between items-start mb-6">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <Icon icon="mdi:tools" className="w-5 h-5 text-primary-600 flex-shrink-0" />
-            <h3 className="font-semibold text-2xl capitalize text-gray-900 truncate">
-              {deviceName}
-            </h3>
-            {isJobExpiringSoon() && (
-              <Icon icon="mdi:clock-alert" className="w-4 h-4 text-amber-500" title="Expiring soon" />
-            )}
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-primary-100 rounded-lg">
+              <Icon icon="mdi:tools" className="w-6 h-6 text-primary-600" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-xl text-gray-900 truncate capitalize">
+                {deviceName}
+              </h3>
+              <div className="flex items-center gap-3 mt-1">
+                <span className="text-sm text-gray-500">ID: {jobId}</span>
+                <span className="text-sm text-gray-400">•</span>
+                <span className="text-sm text-gray-500">{formatDate(job?.createdAt)}</span>
+                {isJobExpiringSoon() && (
+                  <div className="flex items-center gap-1">
+                    <Icon icon="mdi:clock-alert" className="w-4 h-4 text-amber-500" />
+                    <span className="text-xs text-amber-600 font-medium">Expiring Soon</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
-          
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-3">
-          <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium border ${getStatusColor(job?.status)}`}>
+        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(job?.status)}`}>
             {job?.status?.replace('_', ' ') || 'Unknown'}
           </span>
-          {job?.urgency && (
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${getUrgencyColor(job.urgency)}`}>
-              <Icon icon={getUrgencyIcon(job.urgency)} className="w-3 h-3 mr-1" />
-              {job.urgency}
-            </span>
-          )}
         </div>
       </div>
 
       {/* Services Section */}
       {job?.services && job.services.length > 0 && (
-        <div className="mb-4">
+        <div className="mb-6">
+          <h4 className="text-sm font-semibold text-gray-700 mb-3">Required Services</h4>
           <div className="flex flex-wrap gap-2">
             {job.services.map((service, index) => (
               <span
                 key={index}
-                className="px-3 py-1.5 text-xs font-medium text-blue-700 bg-blue-50 rounded-lg border border-blue-200"
+                className="px-4 py-2 text-sm font-medium text-blue-800 bg-blue-100 rounded-lg border border-blue-200 hover:bg-blue-200 transition-colors"
               >
                 {service}
               </span>
@@ -176,90 +182,100 @@ const RepairJobCard = ({ job }) => {
       )}
 
       {/* Device Information */}
-      <div className="bg-gray-50 rounded-lg p-4 mb-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
-          <div>
-            <span className="text-gray-500 block text-xs">Brand</span>
-            <span className="font-medium text-gray-900 capitalize">
+      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-6 border border-gray-200">
+        <h4 className="text-sm font-semibold text-gray-700 mb-3">Device Information</h4>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+              <Icon icon="mdi:tag" className="w-5 h-5 text-gray-600" />
+            </div>
+            <span className="text-xs text-gray-500 block mb-1">Brand</span>
+            <span className="font-semibold text-sm text-gray-900 capitalize">
               {job?.deviceInfo?.brand || 'N/A'}
             </span>
           </div>
-          <div>
-            <span className="text-gray-500 block text-xs">Color</span>
-            <span className="font-medium text-gray-900 capitalize">
+          <div className="text-center">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+              <Icon icon="mdi:palette" className="w-5 h-5 text-gray-600" />
+            </div>
+            <span className="text-xs text-gray-500 block mb-1">Color</span>
+            <span className="font-semibold text-sm text-gray-900 capitalize">
               {job?.deviceInfo?.color || 'N/A'}
             </span>
           </div>
-          <div>
-            <span className="text-gray-500 block text-xs">Warranty</span>
-            <div className="flex items-center gap-1">
-              <Icon icon={warrantyInfo.icon} className={`w-3 h-3 ${warrantyInfo.color}`} />
-              <span className={`font-medium text-xs ${warrantyInfo.color} capitalize`}>
-                {warrantyInfo.text}
-              </span>
+          <div className="text-center">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+              <Icon icon={warrantyInfo.icon} className={`w-5 h-5 ${warrantyInfo.color}`} />
             </div>
-          </div>
-          <div>
-            <span className="text-gray-500 block text-xs">Views</span>
-            <span className="font-medium text-gray-900">
-              {job?.viewCount || 0}
+            <span className="text-xs text-gray-500 block mb-1">Warranty</span>
+            <span className={`font-semibold text-sm ${warrantyInfo.color} capitalize`}>
+              {warrantyInfo.text}
             </span>
           </div>
+          {/* <div className="text-center">
+            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+              <Icon icon="mdi:eye" className="w-5 h-5 text-gray-600" />
+            </div>
+            <span className="text-xs text-gray-500 block mb-1">Views</span>
+            <span className="font-semibold text-sm text-gray-900">
+              {job?.viewCount || 0}
+            </span>
+          </div> */}
         </div>
       </div>
 
       {/* Key Information Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         {/* Budget */}
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-              <Icon icon="mdi:cash" className="w-4 h-4 text-green-600" />
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+              <Icon icon="mdi:cash" className="w-6 h-6 text-green-600" />
             </div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-xs text-gray-500 block">Budget</span>
-            <span className="text-sm font-medium text-gray-900 truncate">
-              {job?.budget?.min && job?.budget?.max 
-                ? `${formatCurrency(job.budget.min, job.budget.currency)} - ${formatCurrency(job.budget.max, job.budget.currency)}`
-                : 'Not specified'
-              }
-            </span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-500 block mb-1 font-medium">Budget Range</span>
+              <span className="text-sm font-bold text-gray-900 truncate">
+                {job?.budget?.min && job?.budget?.max 
+                  ? `${formatCurrency(job.budget.min, job.budget.currency)} - ${formatCurrency(job.budget.max, job.budget.currency)}`
+                  : 'Not specified'
+                }
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Location */}
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Icon icon="mdi:map-marker" className="w-4 h-4 text-blue-600" />
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+              <Icon icon="mdi:map-marker" className="w-6 h-6 text-blue-600" />
             </div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-xs text-gray-500 block">Location</span>
-            <span className="text-sm font-medium text-gray-900 truncate">
-              {job?.location?.city || 'Not specified'}
-            </span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-500 block mb-1 font-medium">Location</span>
+              <span className="text-sm font-bold text-gray-900 truncate">
+                {job?.location?.city || 'Not specified'}
+              </span>
+            </div>
           </div>
         </div>
 
         {/* Service Preference */}
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Icon icon={getServicePreferenceIcon(job?.servicePreference)} className="w-4 h-4 text-purple-600" />
+        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Icon icon={getServicePreferenceIcon(job?.servicePreference)} className="w-6 h-6 text-purple-600" />
             </div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <span className="text-xs text-gray-500 block">Service</span>
-            <span className="text-sm font-medium text-gray-900 capitalize">
-              {job?.servicePreference || 'Not specified'}
-            </span>
+            <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-500 block mb-1 font-medium">Service Type</span>
+              <span className="text-sm font-bold text-gray-900 capitalize">
+                {job?.servicePreference || 'Not specified'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Offers Section */}
+      {/* Offers Section
       {(job?.offersCount > 0 || job?.canReceiveOffers) && (
         <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 mb-4">
           <div className="flex items-center justify-between">
@@ -281,52 +297,64 @@ const RepairJobCard = ({ job }) => {
             </div>
           )}
         </div>
-      )}
+      )} */}
 
       {/* Preferred Time */}
-      {job?.preferredTime && (
-        <div className="mb-4">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Icon icon="mdi:calendar-clock" className="w-4 h-4" />
-            <span>Preferred time: {formatDate(job.preferredTime)}</span>
-          </div>
+      {/* Priority and Timing Section */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          {job?.urgency && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold text-gray-700">Priority:</span>
+              <span className={`inline-flex capitalize items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getUrgencyColor(job.urgency)}`}>
+                {/* <Icon icon={getUrgencyIcon(job.urgency)} className="w-4 h-4 mr-2" /> */}
+                {job.urgency}
+              </span>
+            </div>
+          )}
         </div>
-      )}
+        {job?.preferredTime && (
+          <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
+            <Icon icon="mdi:calendar-clock" className="w-4 h-4 text-gray-500" />
+            <span className="font-medium">Preferred: {formatDate(job.preferredTime)}</span>
+          </div>
+        )}
+      </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between pt-4 border-t border-gray-100">
+      <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-xs text-gray-500">
           {job?.expiresAt && (
-            <div className="flex items-center gap-1">
-              <Icon icon="mdi:clock-outline" className="w-3 h-3" />
-              <span className={isJobExpiringSoon() || isJobExpired() ? 'text-red-600 font-medium' : ''}>
+            <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
+              <Icon icon="mdi:clock-outline" className="w-4 h-4" />
+              <span className={`font-medium ${isJobExpiringSoon() || isJobExpired() ? 'text-red-600' : 'text-gray-600'}`}>
                 Expires: {formatDate(job.expiresAt)}
               </span>
             </div>
           )}
-          <div className="flex items-center gap-1">
-            <Icon icon="mdi:eye" className="w-3 h-3" />
-            <span>{job?.viewCount || 0} views</span>
-          </div>
+          {/* <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
+            <Icon icon="mdi:eye" className="w-4 h-4" />
+            <span className="font-medium text-gray-600">{job?.viewCount || 0} views</span>
+          </div> */}
         </div>
         
-        <div className="flex items-center gap-1">
-          <button 
-            className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+        <div className="flex items-center gap-2">
+          {/* <button 
+            className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors border border-gray-200 hover:border-blue-300"
             title="View details"
-            onClick={() => {/* Handle view details */}}
+            onClick={() => {}}
           >
             <Icon icon="mdi:eye" className="w-4 h-4" />
           </button>
           <button 
-            className="p-2 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+            className="p-2.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors border border-gray-200 hover:border-primary-300"
             title="Edit job"
-            onClick={() => {/* Handle edit */}}
+            onClick={() => {}}
           >
             <Icon icon="mdi:pencil" className="w-4 h-4" />
-          </button>
+          </button> */}
           <button 
-            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            className="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-gray-200 hover:border-red-300"
             title="Delete job"
             onClick={() => {/* Handle delete */}}
           >
@@ -480,7 +508,7 @@ const JobsTabContent = () => {
           <h1 className="text-3xl font-bold text-gray-900">My Repair Jobs</h1>
           <p className="text-gray-600 mt-1">Manage and track your device repair requests</p>
         </div>
-        <Link href="/repair-request">
+        <Link href="/mobile-repair">
           <Button className="mt-4 sm:mt-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
             <Icon icon="mdi:plus" className="w-5 h-5" />
             New Repair Request
@@ -606,7 +634,7 @@ const JobsTabContent = () => {
                 : 'Get started by creating your first repair request.'
               }
             </p>
-            <Link href="/repair-request">
+            <Link href="/mobile-repair">
               <Button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg">
                 <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
                 Create Repair Request
@@ -758,12 +786,12 @@ export default function SettingsPage() {
       icon: 'mdi:briefcase-outline',
       content: <JobsTabContent />
     },
-    account: {
-      id: 'account',
-      label: 'Add Account',
-      icon: 'mdi:account-plus-outline',
-      content: <AddAccountTabContent />
-    }
+    // account: {
+    //   id: 'account',
+    //   label: 'Add Account',
+    //   icon: 'mdi:account-plus-outline',
+    //   content: <AddAccountTabContent />
+    // }
   }), []);
 
   const sidebarNavItems = useMemo(() =>
