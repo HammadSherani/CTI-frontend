@@ -200,15 +200,17 @@ export function MidHeader() {
             {/* <LanguageSwitcher /> */}
           </div>
           
-          <div className="relative group cursor-pointer" aria-label="Account">
+          <Link href="/my-account" className="relative group cursor-pointer" aria-label="Account">
             <Icon 
               icon="mdi:account-circle" 
               className="text-gray-600 hover:text-orange-500 transition-colors duration-200" 
             />
+             </Link>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+           
               My Account
+             
             </div>
-          </div>
           
           {/* Notifications */}
           <div className="relative group cursor-pointer" aria-label="Notifications">

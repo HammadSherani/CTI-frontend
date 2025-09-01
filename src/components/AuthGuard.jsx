@@ -32,16 +32,16 @@ const ROLE_ROUTES = {
     "/settings",
   ],
   repairman: [
-    "/en/repair-man",
-    "/en/repair-man/dashboard",
-    "/en/repair-man/jobs",
-    "/en/repair-man/schedule",
-    "/en/repair-man/history",
-    "/en/repair-man/earnings",
-    "/en/profile",
-    "/en/settings",
+    "/repair-man",
+    "/repair-man/dashboard",
+    "/repair-man/jobs",
+    "/repair-man/schedule",
+    "/repair-man/history",
+    "/repair-man/earnings",
+    "/profile",
+    "/settings",
   ],
-  customer: ["/", "/orders", "/repair-requests", "/wishlist", "/cart", "/profile", "/settings"],
+  customer: ["/", "/orders","/my-account", "/repair-requests", "/wishlist", "/cart", "/profile", "/settings"],
 };
 
 // Default redirects for each role (unchanged)
