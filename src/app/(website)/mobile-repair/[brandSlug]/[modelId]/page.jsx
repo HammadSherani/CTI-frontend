@@ -1,5 +1,6 @@
 "use client";
 
+import Loader from "@/components/Loader";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import Image from "next/image";
@@ -22,18 +23,19 @@ const ColorCard = ({ brandSlug, modelId, color, data, onColorSelect }) => {
     }
   };
 
-  return (
+  return ( 
+    <Loader loading={isValidating}>
     <div
       onClick={handleColorClick}
       className={`group bg-white rounded-lg shadow-md transition-all duration-300 p-4 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg ${
         isValidating ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
-      {isValidating && (
+      {/* {isValidating && (
         <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-lg">
           <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-orange-500"></div>
         </div>
-      )}
+      )} */}
       
       <div className="relative w-20 h-20 md:w-24 md:h-24 overflow-hidden">
         <Image
@@ -51,6 +53,7 @@ const ColorCard = ({ brandSlug, modelId, color, data, onColorSelect }) => {
         {typeof color === 'object' ? color.name : color}
       </h5>
     </div>
+    </Loader>
   );
 };
 
@@ -125,6 +128,7 @@ const ModelColorsPage = () => {
   }, [modelId]);
 
   return (
+    <Loader loading={loading}>
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* 🔹 Title */}
@@ -132,14 +136,8 @@ const ModelColorsPage = () => {
           {`Available Colors`}
         </h4>
 
-        {/* 🔹 Loading Spinner */}
-        {loading && (
-          <div className="flex justify-center items-center min-h-[200px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          </div>
-        )}
+        
 
-        {/* 🔹 Validation Error */}
         {validationError && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6">
             <p>{validationError}</p>
@@ -152,7 +150,6 @@ const ModelColorsPage = () => {
           </div>
         )}
 
-        {/* 🔹 Error State */}
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6">
             <p>{error}</p>
@@ -165,14 +162,12 @@ const ModelColorsPage = () => {
           </div>
         )}
 
-        {/* 🔹 No Colors */}
         {!loading && !error && colors.length === 0 && (
           <p className="text-center text-gray-600">
             No colors available for this model.
           </p>
         )}
 
-        {/* 🔹 Colors Grid */}
         {!loading && !error && colors.length > 0 && (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
             {colors.map((color, index) => (
@@ -189,6 +184,7 @@ const ModelColorsPage = () => {
         )}
       </div>
     </div>
+    </Loader>
   );
 };
 

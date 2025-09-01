@@ -86,14 +86,12 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
         userType: resData.user.role
       }));
 
-      // Reset form and close modal
       reset();
       onClose();
       
-      // Call success callback if provided
-      if (onSuccess) {
+    //   if (onSuccess) {
         onSuccess(resData);
-      }
+    //   }
 
     } catch (error) {
       console.error("Login error:", error);

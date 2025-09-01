@@ -153,7 +153,7 @@ export const ServiceSelector = ({
         <Icon icon="mdi:tools" className="text-2xl text-orange-500" />
         <h3 className="text-lg font-semibold text-gray-800">Select Repair Services</h3>
         {selectedServices.length > 0 && (
-          <span className="bg-orange-100 text-orange-800 text-sm px-2 py-1 rounded-full">
+          <span className="bg-orange-100 text-orange-800 text-lg px-2 py-1 rounded-full">
             {selectedServices.length} selected
           </span>
         )}
@@ -182,14 +182,14 @@ export const ServiceSelector = ({
               >
                 {isSelected && (
                   <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
-                    <Icon icon="mdi:check" className="text-sm" />
+                    <Icon icon="mdi:check" className="text-lg" />
                   </div>
                 )}
                 <div className="flex flex-col items-center text-center space-y-3">
                   <div className={`p-3 rounded-full ${isSelected ? "bg-white" : service.bgColor}`}>
                     <Icon icon={service.icon} className={`text-3xl ${service.color}`} />
                   </div>
-                  <span className={`font-medium text-sm ${isSelected ? service.color : "text-gray-700"}`}>
+                  <span className={`font-medium text-lg ${isSelected ? service.color : "text-gray-700"}`}>
                     {service.label}
                   </span>
                   {isSelected && (
@@ -226,7 +226,7 @@ export const ServiceSelector = ({
                 >
                   {isSelected && (
                     <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full p-1">
-                      <Icon icon="mdi:check" className="text-sm" />
+                      <Icon icon="mdi:check" className="text-lg" />
                     </div>
                   )}
                   <button
@@ -244,7 +244,7 @@ export const ServiceSelector = ({
                     <div className={`p-3 rounded-full ${isSelected ? "bg-white" : "bg-orange-50"}`}>
                       <Icon icon="mdi:wrench" className="text-3xl text-orange-500" />
                     </div>
-                    <span className={`font-medium text-sm ${isSelected ? "text-orange-700" : "text-gray-700"}`}>
+                    <span className={`font-medium text-lg ${isSelected ? "text-orange-700" : "text-gray-700"}`}>
                       {service.name}
                     </span>
                     {isSelected && (

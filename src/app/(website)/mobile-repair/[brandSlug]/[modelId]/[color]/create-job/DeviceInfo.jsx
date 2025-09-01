@@ -13,7 +13,7 @@ export const DeviceInfo = ({ control, errors, Controller }) => (
       control={control}
       render={({ field }) => (
         <div>
-          <label className="block text-xs font-medium text-gray-700 mb-1">Purchase Year (Optional)</label>
+          <label className="block text-base font-medium text-gray-700 mb-1">Purchase Year (Optional)</label>
           <input
             {...field}
             type="number"
@@ -21,7 +21,7 @@ export const DeviceInfo = ({ control, errors, Controller }) => (
             className={`w-full p-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.deviceInfo?.purchaseYear ? 'border-red-300' : 'border-gray-300'}`}
           />
           {errors.deviceInfo?.purchaseYear && (
-            <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+            <p className="mt-1 text-base text-red-600 flex items-center gap-1">
               <Icon icon="mdi:alert-circle" />
               {errors.deviceInfo.purchaseYear.message}
             </p>
@@ -30,7 +30,7 @@ export const DeviceInfo = ({ control, errors, Controller }) => (
       )}
     /> */}
     <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">Warranty Status</label>
+      <label className="block text-base font-medium text-gray-700 mb-1">Warranty Status</label>
       <div className="grid grid-cols-3 gap-2">
         {warrantyOptions.map((warranty) => (
           <Controller
@@ -40,7 +40,7 @@ export const DeviceInfo = ({ control, errors, Controller }) => (
             render={({ field }) => (
               <div
                 onClick={() => field.onChange(warranty.value)}
-                className={`p-2 border rounded-md cursor-pointer text-center text-xs ${field.value === warranty.value ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-300'}`}
+                className={`p-2 border rounded-md cursor-pointer text-center text-base ${field.value === warranty.value ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-300'}`}
               >
                 <Icon icon={warranty.icon} className={`text-base ${warranty.color} mx-auto`} />
                 <span>{warranty.label}</span>
@@ -50,7 +50,7 @@ export const DeviceInfo = ({ control, errors, Controller }) => (
         ))}
       </div>
       {errors.deviceInfo?.warrantyStatus && (
-        <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+        <p className="mt-1 text-base text-red-600 flex items-center gap-1">
           <Icon icon="mdi:alert-circle" />
           {errors.deviceInfo.warrantyStatus.message}
         </p>

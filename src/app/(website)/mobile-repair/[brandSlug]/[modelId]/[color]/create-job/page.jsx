@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import Image from 'next/image';
 import { useSelector } from 'react-redux';
@@ -15,6 +15,8 @@ import { JobDetails } from './JobDetails';
 import { DeviceInfo } from './DeviceInfo';
 import { LocationPreferences } from './LocationPreferences';
 import { BudgetRange } from './BudgetRange';
+import Loader from '@/components/Loader';
+import { toast } from 'react-toastify';
 
 // Yup schema (unchanged)
 const schema = yup.object().shape({
@@ -54,12 +56,12 @@ const CreateRepairJobForm = () => {
   const [isTermsAgreed, setIsTermsAgreed] = useState(false);
   const [modelData, setModelData] = useState(null);
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null); // Store form data when login is required
 
-  const { user } = useSelector((state) => state.auth);
-  const token = user?.token || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI2OGFjNDY4MWNjNjQ4NmE2ZDQzMWQ1MmMiLCJyb2xlIjoiY3VzdG9tZXIiLCJpYXQiOjE3NTY2NTc5OTQsImV4cCI6MTc1NzI2Mjc5NH0.TyJ5hyTDLs6y6iFYrktzCrnRmzXQ0v-PqXRy64bwUI0";
-
+  const { user, token } = useSelector((state) => state.auth);
+  const router = useRouter();
   const { brandSlug, modelId, color } = useParams();
 
   const getModelData = async () => {
@@ -163,14 +165,12 @@ const CreateRepairJobForm = () => {
   };
 
   const onSubmit = async (formData) => {
-    // Check if user is logged in - if not, show login modal
     if (!user || user.role !== "customer") {
-      setPendingFormData(formData); // Store form data
-      setShowLoginModal(true); // Open login modal
+      setPendingFormData(formData);
+      setShowLoginModal(true);
       return;
     }
 
-    // Proceed with submission if user is logged in
     if (!isTermsAgreed) {
       alert('Please agree to the Terms and Conditions');
       return;
@@ -181,6 +181,7 @@ const CreateRepairJobForm = () => {
         deviceInfo: {
           brandId: data?.model?.brandId?._id,
           modelId: modelData?._id || modelId,
+          brand: data?.model?.brandId?.name,
           color: color,
           warrantyStatus: formData.deviceInfo.warrantyStatus,
         },
@@ -203,8 +204,10 @@ const CreateRepairJobForm = () => {
       });
 
       if (response.data.success) {
-        alert('Repair job created successfully!');
-        reset();
+        // alert('Repair job created successfully!');
+        toast.success(response.data.message);
+        router.push('/my-acount/my-jobs');
+        // reset();
         setIsTermsAgreed(false);
       }
 
@@ -221,174 +224,182 @@ const CreateRepairJobForm = () => {
   const handleLoginSuccess = (userData) => {
     console.log('Login successful:', userData);
     setShowLoginModal(false);
-    // If there is pending form data, submit it after login
     if (pendingFormData) {
       onSubmit(pendingFormData);
-      setPendingFormData(null); // Clear pending data after submission
+      setPendingFormData(null);
     }
   };
 
   const handleCloseLoginModal = () => {
     setShowLoginModal(false);
-    setPendingFormData(null); // Clear pending data if modal is closed
+    setPendingFormData(null);
   };
 
+
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false);
+    }, 2000);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="bg-gray-50 p-4 border-b border-gray-200">
-          <div className="flex gap-3">
-            <div className="w-20 h-auto bg-gray-800 rounded-md flex items-center justify-center">
-              {modelData?.icon && (
-                <Image
-                  src={modelData.icon}
-                  alt={modelData?.name || 'Device'}
-                  width={80}
-                  height={80}
-                  className="w-full h-full object-contain"
-                />
-              )}
-            </div>
-            <div className="flex flex-col gap-1">
-              <h2 className="text-2xl font-bold text-gray-900 capitalize">
-                {modelData?.name}
-              </h2>
-              <p className="text-base text-gray-600">
-                Brand: <span className="font-medium capitalize">{data?.model?.brandId?.name}</span>
-              </p>
-              <p className="text-base text-gray-600">
-                Color: <span className="font-medium capitalize">{color}</span>
-              </p>
+    <Loader>
+      <div className="min-h-screen bg-gray-100 p-4">
+        <div className="max-w-7xl mx-auto bg-white rounded-lg shadow-md overflow-hidden">
+          <div className="bg-gray-50 p-4 border-b border-gray-200">
+            <div className="flex gap-3">
+              <div className="w-40 h-auto bg-gray-800 rounded-md flex items-center justify-center">
+                {modelData?.icon && (
+                  <Image
+                    src={modelData.icon}
+                    alt={modelData?.name || 'Device'}
+                    width={1000}
+                    height={1000}
+                    className="w-28 h-auto object-contain"
+                  />
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <h2 className="text-2xl font-bold text-gray-900 capitalize">
+                  {modelData?.name}
+                </h2>
+                <p className="text-lg text-gray-600">
+                  Brand: <span className="font-medium capitalize">{data?.model?.brandId?.name}</span>
+                </p>
+                <p className="text-lg text-gray-600">
+                  Color: <span className="font-medium capitalize">{color}</span>
+                </p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="p-4">
-          <h3 className="text-base font-semibold text-gray-900 mb-2">Pick Your Repair Service</h3>
-          <ServiceSelector
-            control={control}
-            errors={errors}
-            selectedServices={selectedServices}
-            setValue={setValue}
-            watch={watch}
-            Controller={Controller}
-          />
-        </div>
+          <div className="p-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Pick Your Repair Service</h3>
+            <ServiceSelector
+              control={control}
+              errors={errors}
+              selectedServices={selectedServices}
+              setValue={setValue}
+              watch={watch}
+              Controller={Controller}
+            />
+          </div>
 
-        {selectedServices.length > 0 && (
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-            <div className="border-b border-gray-200 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon icon="mdi:clipboard-text" className="text-lg text-orange-500" />
-                <h3 className="text-base font-semibold text-gray-900">Job Details</h3>
+          {selectedServices.length > 0 && (
+            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon icon="mdi:clipboard-text" className="text-lg text-orange-500" />
+                  <h3 className="text-lg font-semibold text-gray-900">Job Details</h3>
+                </div>
+                <JobDetails control={control} errors={errors} Controller={Controller} />
               </div>
-              <JobDetails control={control} errors={errors} Controller={Controller} />
-            </div>
 
-            <div className="border-b border-gray-200 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon icon="mdi:cellphone" className="text-lg text-orange-500" />
-                <h3 className="text-base font-semibold text-gray-900">Device Information</h3>
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon icon="mdi:cellphone" className="text-lg text-orange-500" />
+                  <h3 className="text-lg font-semibold text-gray-900">Device Information</h3>
+                </div>
+                <DeviceInfo control={control} errors={errors} Controller={Controller} />
               </div>
-              <DeviceInfo control={control} errors={errors} Controller={Controller} />
-            </div>
 
-            <div className="border-b border-gray-200 pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon icon="mdi:map-marker" className="text-lg text-orange-500" />
-                <h3 className="text-base font-semibold text-gray-900">Location & Preferences</h3>
+              <div className="border-b border-gray-200 pb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon icon="mdi:map-marker" className="text-lg text-orange-500" />
+                  <h3 className="text-lg font-semibold text-gray-900">Location & Preferences</h3>
+                </div>
+                <LocationPreferences
+                  control={control}
+                  errors={errors}
+                  getCurrentLocation={getCurrentLocation}
+                  isGettingLocation={isGettingLocation}
+                  locationError={locationError}
+                  coordinates={coordinates}
+                  Controller={Controller}
+                />
               </div>
-              <LocationPreferences
-                control={control}
-                errors={errors}
-                getCurrentLocation={getCurrentLocation}
-                isGettingLocation={isGettingLocation}
-                locationError={locationError}
-                coordinates={coordinates}
-                Controller={Controller}
-              />
-            </div>
 
-            <div className="pb-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Icon icon="mdi:currency-usd" className="text-lg text-orange-500" />
-                <h3 className="text-base font-semibold text-gray-900">Budget Range (Optional)</h3>
+              <div className="pb-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Icon icon="mdi:currency-usd" className="text-lg text-orange-500" />
+                  <h3 className="text-lg font-semibold text-gray-900">Budget Range (Optional)</h3>
+                </div>
+                <BudgetRange control={control} errors={errors} Controller={Controller} />
               </div>
-              <BudgetRange control={control} errors={errors} Controller={Controller} />
-            </div>
 
-            <div className="bg-gray-50 p-4 rounded-b-lg">
-              <div className="flex items-center gap-2 mb-3">
+              <div className="bg-gray-50 p-4 rounded-b-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <input
+                    type="checkbox"
+                    id="terms"
+                    checked={isTermsAgreed}
+                    onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                    className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                  />
+                  <label htmlFor="terms" className="text-lg text-gray-600">
+                    I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
+                  </label>
+                </div>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !isTermsAgreed}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 text-lg"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Submitting...
+                    </>
+                  ) : (
+                    <>
+                      <span>Post Job</span>
+                      <Icon icon="mdi:arrow-right" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {selectedServices.length === 0 && (
+            <div className="p-4 bg-gray-50 rounded-b-lg">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Price Summary</h3>
+              <div className="bg-white rounded-md p-3 text-center">
+                <p className="text-gray-500 text-lg">No Service Selected</p>
+                <p className="text-gray-400 text-lg mt-1">Please select a repair service to see the estimated price range.</p>
+              </div>
+              <div className="flex items-center gap-2 my-3">
                 <input
                   type="checkbox"
-                  id="terms"
+                  id="terms-default"
                   checked={isTermsAgreed}
                   onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                  disabled
                   className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
                 />
-                <label htmlFor="terms" className="text-base text-gray-600">
+                <label htmlFor="terms-default" className="text-lg text-gray-400">
                   I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
                 </label>
               </div>
               <button
-                type="submit"
-                disabled={isSubmitting || !isTermsAgreed}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 text-base"
+                type="button"
+                disabled
+                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md opacity-50 cursor-not-allowed text-lg"
               >
-                {isSubmitting ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <span>Book Now</span>
-                    <Icon icon="mdi:arrow-right" />
-                  </>
-                )}
+                <span>Post Jobs</span>
+                <Icon icon="mdi:arrow-right" />
               </button>
             </div>
-          </form>
-        )}
+          )}
+        </div>
 
-        {selectedServices.length === 0 && (
-          <div className="p-4 bg-gray-50 rounded-b-lg">
-            <h3 className="text-base font-semibold text-gray-900 mb-2">Price Summary</h3>
-            <div className="bg-white rounded-md p-3 text-center">
-              <p className="text-gray-500 text-base">No Service Selected</p>
-              <p className="text-gray-400 text-base mt-1">Please select a repair service to see the estimated price range.</p>
-            </div>
-            <div className="flex items-center gap-2 my-3">
-              <input
-                type="checkbox"
-                id="terms-default"
-                checked={isTermsAgreed}
-                onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                disabled
-                className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-              />
-              <label htmlFor="terms-default" className="text-base text-gray-400">
-                I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
-              </label>
-            </div>
-            <button
-              type="button"
-              disabled
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md opacity-50 cursor-not-allowed text-base"
-            >
-              <span>Post Jobs</span>
-              <Icon icon="mdi:arrow-right" />
-            </button>
-          </div>
-        )}
+        <LoginModal
+          isOpen={showLoginModal}
+          onClose={handleCloseLoginModal}
+          onSuccess={handleLoginSuccess}
+        />
       </div>
-
-      <LoginModal
-        isOpen={showLoginModal}
-        onClose={handleCloseLoginModal}
-        onSuccess={handleLoginSuccess}
-      />
-    </div>
+    </Loader>
   );
 };
 

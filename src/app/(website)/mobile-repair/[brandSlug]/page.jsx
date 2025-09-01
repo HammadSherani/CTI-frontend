@@ -1,5 +1,6 @@
 "use client";
 
+import Loader from "@/components/Loader";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import Image from "next/image";
@@ -65,21 +66,13 @@ const ModelPage = () => {
   }, [brandSlug]);
 
   return (
+    <Loader loading={loading} >
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         {/* 🔹 Title */}
         <h4 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
           {brandSlug ? `Models of ${brandSlug}` : "Available Models"}
         </h4>
-
-        {/* 🔹 Loading Spinner */}
-        {loading && (
-          <div className="flex justify-center items-center min-h-[200px]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-          </div>
-        )}
-
-        {/* 🔹 Error State */}
         {error && (
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6">
             <p>{error}</p>
@@ -91,15 +84,6 @@ const ModelPage = () => {
             </button>
           </div>
         )}
-
-        {/* 🔹 No Models */}
-        {!loading && !error && models.length === 0 && (
-          <p className="text-center text-gray-600">
-            No models available for this brand.
-          </p>
-        )}
-
-        {/* 🔹 Models Grid */}
         {!loading && !error && models.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {models.map((model) => (
@@ -112,6 +96,7 @@ const ModelPage = () => {
         )}
       </div>
     </div>
+    </Loader>
   );
 };
 
