@@ -12,7 +12,8 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
 
   // Watch for location changes
   const currentLocation = watch('location');
-  const apiKey  = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  const currentAddress = watch('address');
+  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
 
   // Load Google Maps API
   useEffect(() => {
@@ -36,7 +37,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
   useEffect(() => {
     if (isLoaded && mapRef.current && !map) {
       const initialMap = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 24.8607, lng: 67.0011 }, // Karachi coordinates
+        center: { lat: 24.8607, lng: 67.0011 }, 
         zoom: 12,
         styles: [
           {
@@ -150,14 +151,26 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
       }
     });
 
+    const lat = place.geometry.location.lat();
+    const lng = place.geometry.location.lng();
+
     setValue('city', city);
     setValue('district', district);
     setValue('zipCode', zipCode);
     setValue('fullAddress', place.formatted_address || '');
     setValue('location', {
-      lat: place.geometry.location.lat(),
-      lng: place.geometry.location.lng(),
+      lat: lat,
+      lng: lng,
       address: place.formatted_address || ''
+    });
+
+    // Set address with coordinates in the desired format
+    setValue('address', {
+      city: city,
+      district: district,
+      zipCode: zipCode,
+      fullAddress: place.formatted_address || '',
+      coordinates: [lat, lng]
     });
   };
 
@@ -186,6 +199,15 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
       lat: lat,
       lng: lng,
       address: result.formatted_address
+    });
+
+    // Set address with coordinates in the desired format
+    setValue('address', {
+      city: city,
+      district: district,
+      zipCode: zipCode,
+      fullAddress: result.formatted_address,
+      coordinates: [lat, lng]
     });
   };
 
@@ -258,8 +280,13 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           )}
         </div>
         {currentLocation && (
-          <p className="text-sm  mt-2">
-             <span className='font-bold'>Location selected</span>  : {currentLocation.address}
+          <p className="text-sm mt-2">
+            <span className='font-bold'>Location selected</span>: {currentLocation.address}
+          </p>
+        )}
+        {currentAddress && currentAddress.coordinates && (
+          <p className="text-sm text-blue-600 mt-1">
+            <span className='font-bold'>Coordinates</span>: [{currentAddress.coordinates[0].toFixed(6)}, {currentAddress.coordinates[1].toFixed(6)}]
           </p>
         )}
       </div>
@@ -322,9 +349,9 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           <input
             type="text"
             disabled
-            value={currentLocation ? `${currentLocation.lat.toFixed(6)}, ${currentLocation.lng.toFixed(6)}` : ''}
+            value={currentAddress?.coordinates ? `[${currentAddress.coordinates[0].toFixed(6)}, ${currentAddress.coordinates[1].toFixed(6)}]` : ''}
             className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed text-sm"
-            placeholder="Lat, Lng coordinates"
+            placeholder="[Lat, Lng] coordinates"
           />
         </div>
 
@@ -345,6 +372,16 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           />
         </div>
       </div>
+
+      {/* Debug: Show address object structure */}
+      {currentAddress && (
+        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+          <h3 className="text-sm font-semibold text-gray-700 mb-2">Address Object (for debugging):</h3>
+          <pre className="text-xs text-gray-600 overflow-x-auto">
+            {JSON.stringify(currentAddress, null, 2)}
+          </pre>
+        </div>
+      )}
     </div>
   );
 };

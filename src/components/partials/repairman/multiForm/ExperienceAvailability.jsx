@@ -1,5 +1,7 @@
 "use client";
-import { useState } from "react";
+import axiosInstance from "@/config/axiosInstance";
+import handleError from "@/helper/handleError";
+import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 
 // Custom Chip Input Component - included in this file
@@ -88,6 +90,9 @@ const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error 
 };
 
 const ExperienceAvailability = ({ control, errors }) => {
+  const [brand, setBrand] = useState([]);
+
+
   // Predefined suggestions for chips
   const specializationSuggestions = [
     "Mobile Phone Repair", "Laptop Repair", "Desktop Repair", "Tablet Repair",
@@ -103,6 +108,21 @@ const ExperienceAvailability = ({ control, errors }) => {
   const workingDaysOptions = [
     "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
   ];
+
+
+  const fetchBrand = async () => {
+    try {
+      const { data } = await axiosInstance.get('/public/brands');
+      setBrand(data);
+      console.log(data);
+    } catch (error) {
+      handleError(error);
+    }
+  }
+
+  useEffect(() => {
+    fetchBrand();
+  }, [])
 
   return (
     <div className="space-y-6">
@@ -122,9 +142,8 @@ const ExperienceAvailability = ({ control, errors }) => {
                   min="0"
                   max="50"
                   placeholder="0"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                    errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
               )}
             />
@@ -250,9 +269,8 @@ const ExperienceAvailability = ({ control, errors }) => {
                 <input
                   {...field}
                   type="time"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                    errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
               )}
             />
@@ -268,9 +286,8 @@ const ExperienceAvailability = ({ control, errors }) => {
                 <input
                   {...field}
                   type="time"
-                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                    errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
+                    }`}
                 />
               )}
             />
@@ -288,9 +305,8 @@ const ExperienceAvailability = ({ control, errors }) => {
                 {...field}
                 rows="4"
                 placeholder="Describe your repair services, expertise, and what makes you unique..."
-                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                  errors.description ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.description ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
             )}
           />

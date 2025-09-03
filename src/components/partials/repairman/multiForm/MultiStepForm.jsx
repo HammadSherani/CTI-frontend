@@ -12,6 +12,7 @@ import PersonalInformation from "./PersonalInformation";
 import ContactInformation from "./ContactInformation";
 import AddressLocation from "./AddressLocation";
 import ExperienceAvailability from "./ExperienceAvailability";
+import DocumentUploads from "./DocumentUploads";
 
 // Validation schemas for each step
 const step1Schema = yup.object({
@@ -80,36 +81,36 @@ export default function RepairmanMultiStepForm() {
     "Document Uploads"
   ];
 
-const {
-  control,
-  handleSubmit,
-  formState: { errors },
-  trigger,
-  getValues,
-  setValue,
-  watch
-} = useForm({
-  resolver: yupResolver(schemas[step - 1]),
-  mode: "onChange",
-  defaultValues: {
-    // Existing defaults
-    emailAddress: user?.email || "",
-    
-    // Address & Location defaults
-    shopName: '',
-    city: '',
-    district: '',
-    zipCode: '',
-    fullAddress: '',
-    location: null,
-    
-    // Add other form fields defaults as needed
-    // businessName: '',
-    // phoneNumber: '',
-    // businessType: '',
-    // etc...
-  }
-});
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+    trigger,
+    getValues,
+    setValue,
+    watch
+  } = useForm({
+    resolver: yupResolver(schemas[step - 1]),
+    mode: "onChange",
+    defaultValues: {
+      // Existing defaults
+      emailAddress: user?.email || "",
+
+      // Address & Location defaults
+      shopName: '',
+      city: '',
+      district: '',
+      zipCode: '',
+      fullAddress: '',
+      location: null,
+
+      // Add other form fields defaults as needed
+      // businessName: '',
+      // phoneNumber: '',
+      // businessType: '',
+      // etc...
+    }
+  });
   const nextStep = async () => {
     const isValid = await trigger();
     if (isValid) {
@@ -142,7 +143,7 @@ const {
       try {
         console.log("Received data:", data);
         // return;
-        
+
         const mappedData = {
           ...data
         };
@@ -398,25 +399,6 @@ const {
     }
   };
 
-  // Predefined suggestions for chips
-  const specializationSuggestions = [
-    "Mobile Phone Repair", "Laptop Repair", "Desktop Repair", "Tablet Repair",
-    "Gaming Console Repair", "Smart TV Repair", "Home Appliances", "Audio Equipment",
-    "Camera Repair", "Smartwatch Repair", "Printer Repair", "Router Repair"
-  ];
-
-  const brandSuggestions = [
-    "Samsung", "Apple", "Huawei", "Xiaomi", "Oppo", "Vivo", "OnePlus",
-    "HP", "Dell", "Lenovo", "Asus", "Acer", "Sony", "LG", "Realme", "Nokia"
-  ];
-
-  const workingDaysOptions = [
-    "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
-  ];
-
-  const cities = ["Karachi", "Lahore", "Islamabad", "Rawalpindi", "Faisalabad", "Multan", "Peshawar", "Quetta"];
-
-
   useEffect(() => {
     if (user && isProfileComplete) {
       router.push('/repair-man/dashboard');
@@ -466,138 +448,24 @@ const {
             <ContactInformation control={control} errors={errors} user={user} />
           )}
 
-         {/* Step 3: Address & Location - Using Component */}
           {step === 3 && (
-            <AddressLocation 
-      control={control} 
-      errors={errors} 
-      setValue={setValue} 
-      watch={watch} 
-    />
+            <AddressLocation
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              watch={watch}
+            />
           )}
 
-          
+
           {/* Step 4: Experience & Availability - Using Component */}
           {step === 4 && (
             <ExperienceAvailability control={control} errors={errors} />
           )}
 
-          {/* Step 5: Document Uploads */}
+           {/* Step 5: Document Uploads - Using Component */}
           {step === 5 && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-6">Document Uploads</h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label>
-                  <Controller
-                    name="profilePhoto"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <div className="space-y-2">
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.profilePhoto ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                        />
-                        <p className="text-xs text-gray-500">Upload a clear photo of yourself</p>
-                      </div>
-                    )}
-                  />
-                  {errors.profilePhoto && <p className="text-red-500 text-sm mt-1">{errors.profilePhoto.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">CNIC Scan</label>
-                  <Controller
-                    name="nationalIdOrPassportScan"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <div className="space-y-2">
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.nationalIdOrPassportScan ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                        />
-                        <p className="text-xs text-gray-500">Upload front and back of CNIC</p>
-                      </div>
-                    )}
-                  />
-                  {errors.nationalIdOrPassportScan && <p className="text-red-500 text-sm mt-1">{errors.nationalIdOrPassportScan.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shop Photo</label>
-                  <Controller
-                    name="shopPhoto"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <div className="space-y-2">
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.shopPhoto ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                        />
-                        <p className="text-xs text-gray-500">Upload a photo of your repair shop</p>
-                      </div>
-                    )}
-                  />
-                  {errors.shopPhoto && <p className="text-red-500 text-sm mt-1">{errors.shopPhoto.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Shop Proof Document</label>
-                  <Controller
-                    name="utilityBillOrShopProof"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <div className="space-y-2">
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*,.pdf"
-                          onChange={(e) => onChange(e.target.files[0])}
-                          className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.utilityBillOrShopProof ? 'border-red-500' : 'border-gray-300'
-                            }`}
-                        />
-                        <p className="text-xs text-gray-500">Utility bill or shop ownership proof</p>
-                      </div>
-                    )}
-                  />
-                  {errors.utilityBillOrShopProof && <p className="text-red-500 text-sm mt-1">{errors.utilityBillOrShopProof.message}</p>}
-                </div>
-
-                {/* <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Certifications (Optional)</label>
-                  <Controller
-                    name="certifications"
-                    control={control}
-                    render={({ field: { onChange, value, ...field } }) => (
-                      <div className="space-y-2">
-                        <input
-                          {...field}
-                          type="file"
-                          accept="image/*,.pdf"
-                          multiple
-                          onChange={(e) => onChange(e.target.files)}
-                          className="w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all border-gray-300"
-                        />
-                        <p className="text-xs text-gray-500">Upload any relevant certifications or training certificates</p>
-                      </div>
-                    )}
-                  />
-                </div> */}
-              </div>
-            </div>
+            <DocumentUploads control={control} errors={errors} />
           )}
 
           {/* Navigation Buttons */}
