@@ -9,33 +9,176 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 const MyJobsPage = () => {
-  const [activeTab, setActiveTab] = useState('nearby');
+  const [activeTab, setActiveTab] = useState('open');
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [expandedJob, setExpandedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // GPS Location states
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationLoading, setLocationLoading] = useState(false);
+  const [useGPS, setUseGPS] = useState(false);
+  const [locationError, setLocationError] = useState(null);
+  const [radius, setRadius] = useState(10);
+  
   const { token } = useSelector((state) => state.auth);
   const router = useRouter();
 
-  const fetchJobs = async () => {
+  // Get user's current GPS location
+  const getCurrentLocation = () => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation is not supported by this browser.'));
+        return;
+      }
+
+      const options = {
+        enableHighAccuracy: true,
+        timeout: 15000, // Increased timeout
+        maximumAge: 60000 // 1 minute cache
+      };
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+            accuracy: position.coords.accuracy
+          };
+          console.log('GPS Location obtained:', location);
+          resolve(location);
+        },
+        (error) => {
+          let errorMessage = 'Unable to get location';
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information is unavailable. Please check your GPS settings.';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'Location request timed out. Please try again.';
+              break;
+            default:
+              errorMessage = 'An unknown error occurred while getting location.';
+          }
+          console.error('GPS Error:', error);
+          reject(new Error(errorMessage));
+        },
+        options
+      );
+    });
+  };
+
+  // Handle GPS location toggle
+  const handleGPSToggle = async () => {
+    if (!useGPS) {
+      setLocationLoading(true);
+      setLocationError(null);
+      
+      try {
+        const location = await getCurrentLocation();
+        setCurrentLocation(location);
+        setUseGPS(true);
+        console.log('GPS Location obtained:', location);
+        
+        // Fetch jobs with new location
+        await fetchJobs(location);
+      } catch (error) {
+        console.error('GPS Error:', error);
+        setLocationError(error.message);
+        setUseGPS(false);
+      } finally {
+        setLocationLoading(false);
+      }
+    } else {
+      // Turn off GPS, use profile location
+      setUseGPS(false);
+      setCurrentLocation(null);
+      setLocationError(null);
+      await fetchJobs();
+    }
+  };
+
+  const fetchJobs = async (gpsLocation = null) => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get("/repairman/offers/jobs/nearby", {
+      setError(null);
+
+      // Build query parameters
+      const params = new URLSearchParams({
+        radius: radius.toString(),
+        page: '1',
+        limit: '50'
+      });
+
+      // Add GPS location if available and GPS is enabled
+      if (useGPS && (gpsLocation || currentLocation)) {
+        const location = gpsLocation || currentLocation;
+        params.append('useCurrentLocation', 'true');
+        params.append('lat', location.lat.toString());
+        params.append('lng', location.lng.toString());
+        console.log('Sending GPS coordinates to API:', { 
+          lat: location.lat, 
+          lng: location.lng, 
+          radius: radius 
+        });
+      }
+
+      const url = `/repairman/offers/jobs/nearby?${params}`;
+      console.log('API Request URL:', url);
+
+      const { data } = await axiosInstance.get(url, {
         headers: {
           'Authorization': 'Bearer ' + token,
         }
       });
-      setJobs(data.data.jobs || []);
-      setError(null);
+
+      console.log('API Response:', {
+        jobsCount: data?.data?.jobs?.length || 0,
+        locationMethod: data?.data?.searchParams?.locationUsed,
+        repairmanLocation: data?.data?.searchParams?.repairmanLocation
+      });
+
+      setJobs(data?.data?.jobs || []);
+      
     } catch (error) {
       console.error('Error fetching jobs:', error);
-      setError('Failed to load jobs. Please try again.');
+      const errorMessage = error?.response?.data?.message || 'Failed to load jobs. Please try again.';
+      setError(errorMessage);
       handleError(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  // Refresh current location and jobs
+  const refreshLocation = async () => {
+    if (useGPS) {
+      setLocationLoading(true);
+      try {
+        const location = await getCurrentLocation();
+        setCurrentLocation(location);
+        await fetchJobs(location);
+      } catch (error) {
+        setLocationError(error.message);
+      } finally {
+        setLocationLoading(false);
+      }
+    } else {
+      await fetchJobs();
+    }
+  };
+
+  // Handle radius change
+  const handleRadiusChange = (newRadius) => {
+    setRadius(newRadius);
+    // Auto-fetch jobs when radius changes
+    setTimeout(() => fetchJobs(), 500);
   };
 
   useEffect(() => {
@@ -76,6 +219,7 @@ const MyJobsPage = () => {
       case 'offer-submitted': return 'bg-purple-100 text-purple-800';
       case 'offers_received': return 'bg-blue-100 text-blue-800';
       case 'in-progress': return 'bg-yellow-100 text-yellow-800';
+      case 'accepted': return 'bg-orange-100 text-orange-800';
       case 'completed': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -90,14 +234,21 @@ const MyJobsPage = () => {
     }
   };
 
-  // Categorize jobs based on status and submission state
+  // Categorize jobs based on completion status - Only Open and Completed
   const categorizeJobs = (jobs) => {
-    const nearby = jobs; // Show all jobs in nearby tab
-    const submitted = jobs.filter(job => job.hasSubmittedOffer && job.status === 'offers_received');
-    const active = jobs.filter(job => ['in-progress', 'accepted'].includes(job.status));
+    // Open jobs include: available jobs, offer-submitted jobs, in-progress jobs, accepted jobs
+    const open = jobs.filter(job => 
+      job.status === 'offers_received' || 
+      job.status === 'in-progress' || 
+      job.status === 'accepted' ||
+      job.status === 'open' ||
+      job.status === 'pending'
+    );
+    
+    // Completed jobs
     const completed = jobs.filter(job => job.status === 'completed');
 
-    return { nearby, submitted, active, completed };
+    return { open, completed };
   };
 
   const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
@@ -160,6 +311,17 @@ const MyJobsPage = () => {
                   <span className="flex items-center">
                     <Icon icon="heroicons:map" className="w-4 h-4 mr-1" aria-hidden="true" />
                     {job.distance.toFixed(1)} km away
+                    {useGPS && (
+                      <span className="ml-1 text-green-600 text-xs">
+                        <Icon icon="heroicons:map-pin" className="w-3 h-3" />
+                      </span>
+                    )}
+                  </span>
+                )}
+                {job.travelTimeFormatted && (
+                  <span className="flex items-center text-blue-600">
+                    <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" aria-hidden="true" />
+                    {job.travelTimeFormatted}
                   </span>
                 )}
               </div>
@@ -264,40 +426,46 @@ const MyJobsPage = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-          {activeTab === 'nearby' && !job.hasSubmittedOffer && job.canSubmitOffer && (
-            <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-              Submit Offer
-            </button>
-          )}
-          {activeTab === 'nearby' && job.hasSubmittedOffer && (
-            <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-              View Your Offer
-            </button>
-          )}
-          {activeTab === 'submitted' && (
+          {/* For Open Jobs tab */}
+          {activeTab === 'open' && (
             <>
-              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                View Offer
-              </button>
-              <button className="flex-1 border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                Withdraw Offer
-              </button>
+              {/* Available job - can submit offer */}
+              {!job.hasSubmittedOffer && job.canSubmitOffer && (
+                <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
+                  Submit Offer
+                </button>
+              )}
+              
+              {/* Offer submitted - show offer management */}
+              {job.hasSubmittedOffer && job.status === 'offers_received' && (
+                <>
+                  <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    View Your Offer
+                  </button>
+                  <button className="flex-1 border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    Withdraw Offer
+                  </button>
+                </>
+              )}
+              
+              {/* Active job - in progress or accepted */}
+              {['in-progress', 'accepted'].includes(job.status) && (
+                <>
+                  <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    Update Progress
+                  </button>
+                  <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+                    Message Client
+                  </button>
+                </>
+              )}
             </>
           )}
-          {activeTab === 'active' && (
-            <>
-              <button className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white py-2 px-4 rounded-lg hover:from-blue-700 hover:to-blue-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                Update Progress
-              </button>
-              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                Message Client
-              </button>
-            </>
-          )}
+          
+          {/* View Details button - always available */}
           <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
             <Link href={'/repair-man/job-board/' + job._id} className="w-full h-full">
-            
-            View Details
+              View Details
             </Link>
           </button>
         </div>
@@ -310,10 +478,7 @@ const MyJobsPage = () => {
       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
         <Icon
           icon={
-            type === 'nearby' ? 'heroicons:map-pin' :
-            type === 'submitted' ? 'heroicons:clock' :
-            type === 'active' ? 'heroicons:wrench-screwdriver' :
-            'heroicons:check-circle'
+            type === 'open' ? 'heroicons:briefcase' : 'heroicons:check-circle'
           }
           className="w-8 h-8 text-gray-400"
           aria-hidden="true"
@@ -323,14 +488,11 @@ const MyJobsPage = () => {
         No {type} jobs
       </h3>
       <p className="text-gray-600 mb-4 max-w-md mx-auto">
-        {type === 'nearby' ? 'No nearby jobs available at the moment.' :
-         type === 'submitted' ? 'You haven\'t submitted any offers yet.' :
-         type === 'active' ? 'You don\'t have any active jobs.' :
-         'You haven\'t completed any jobs yet.'}
+        {type === 'open' ? 'No open jobs available at the moment.' : 'You haven\'t completed any jobs yet.'}
       </p>
-      {type === 'nearby' && (
+      {type === 'open' && (
         <button 
-          onClick={fetchJobs}
+          onClick={refreshLocation}
           className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Refresh Jobs
@@ -340,9 +502,7 @@ const MyJobsPage = () => {
   );
 
   const getTabCounts = () => ({
-    nearby: categorizedJobs.nearby?.length || 0,
-    submitted: categorizedJobs.submitted?.length || 0,
-    active: categorizedJobs.active?.length || 0,
+    open: categorizedJobs.open?.length || 0,
     completed: categorizedJobs.completed?.length || 0,
   });
 
@@ -359,6 +519,9 @@ const MyJobsPage = () => {
         <div className="text-center">
           <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-blue-600 animate-spin mx-auto mb-4" />
           <p className="text-gray-600">Loading jobs...</p>
+          {locationLoading && (
+            <p className="text-blue-600 text-sm mt-2">Getting your location...</p>
+          )}
         </div>
       </div>
     );
@@ -372,7 +535,7 @@ const MyJobsPage = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={fetchJobs}
+            onClick={refreshLocation}
             className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Try Again
@@ -389,6 +552,129 @@ const MyJobsPage = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
+        </div>
+
+          {/* GPS Location Control */}
+        <div className="mb-6 bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+          <div className="flex flex-col space-y-4">
+            {/* GPS Toggle and Status */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3">
+                  <button
+                    onClick={handleGPSToggle}
+                    disabled={locationLoading}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-200 ${
+                      useGPS
+                        ? 'bg-green-100 text-green-700 border border-green-300'
+                        : 'bg-gray-100 text-gray-700 border border-gray-300'
+                    } ${locationLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-opacity-80'}`}
+                  >
+                    {locationLoading ? (
+                      <Icon icon="heroicons:arrow-path" className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Icon 
+                        icon={useGPS ? "heroicons:map-pin" : "heroicons:map-pin"} 
+                        className={`w-4 h-4 ${useGPS ? 'text-green-600' : 'text-gray-500'}`} 
+                      />
+                    )}
+                    <span className="text-sm font-medium">
+                      {locationLoading ? 'Getting Location...' : useGPS ? 'GPS Enabled' : 'Enable GPS'}
+                    </span>
+                  </button>
+
+                  {useGPS && currentLocation && (
+                    <button
+                      onClick={refreshLocation}
+                      disabled={locationLoading}
+                      className="flex items-center space-x-1 text-blue-600 hover:text-blue-800 text-sm disabled:opacity-50"
+                    >
+                      <Icon icon="heroicons:arrow-path" className={`w-4 h-4 ${locationLoading ? 'animate-spin' : ''}`} />
+                      <span>Update Location</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Radius Control */}
+                <div className="flex items-center space-x-2">
+                  <label htmlFor="radius" className="text-sm text-gray-600 font-medium">Search Radius:</label>
+                  <select
+                    id="radius"
+                    value={radius}
+                    onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+                    className="px-3 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value={5}>5 km</option>
+                    <option value={10}>10 km</option>
+                    <option value={15}>15 km</option>
+                    <option value={20}>20 km</option>
+                    <option value={30}>30 km</option>
+                    <option value={50}>50 km</option>
+                    <option value={1000}>1000 km</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Location Status */}
+              <div className="text-sm">
+                {useGPS && currentLocation ? (
+                  <div className="flex items-center space-x-1 text-green-600 bg-green-50 px-3 py-1 rounded-lg">
+                    <Icon icon="heroicons:check-circle" className="w-4 h-4" />
+                    <span className="font-medium">GPS Active</span>
+                    {currentLocation.accuracy && currentLocation.accuracy < 100 && (
+                      <span className="text-xs text-gray-500">
+                        (±{Math.round(currentLocation.accuracy)}m)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center space-x-1 text-gray-600 bg-gray-50 px-3 py-1 rounded-lg">
+                    <Icon icon="heroicons:building-office" className="w-4 h-4" />
+                    <span>Profile Location</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Location Error */}
+            {locationError && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start space-x-2 text-red-700">
+                  <Icon icon="heroicons:exclamation-triangle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium">Location Error</p>
+                    <p className="text-sm">{locationError}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* GPS Instructions */}
+            {!useGPS && !locationError && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="flex items-start space-x-2 text-blue-700">
+                  <Icon icon="heroicons:information-circle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium">Get More Accurate Results</p>
+                    <p>Enable GPS to see jobs based on your exact current location ({radius} km radius) instead of your profile address.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* GPS Success Info */}
+            {useGPS && currentLocation && (
+              <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-start space-x-2 text-green-700">
+                  <Icon icon="heroicons:check-circle" className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <div className="text-sm">
+                    <p className="font-medium">GPS Location Active</p>
+                    <p>Showing jobs within {radius} km of your current location. You can adjust the radius or refresh your location anytime.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Search and Filter */}
@@ -433,7 +719,7 @@ const MyJobsPage = () => {
               Clear Filters
             </button>
             <button
-              onClick={fetchJobs}
+              onClick={refreshLocation}
               className="px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm"
               aria-label="Refresh jobs"
             >
@@ -442,15 +728,13 @@ const MyJobsPage = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Only Open Jobs and Completed Jobs */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
               {[
-                { id: 'nearby', label: 'Nearby Jobs', count: tabCounts.nearby },
-                { id: 'submitted', label: 'Submitted Offers', count: tabCounts.submitted },
-                { id: 'active', label: 'Active Jobs', count: tabCounts.active },
-                { id: 'completed', label: 'Completed', count: tabCounts.completed },
+                { id: 'open', label: 'Open Jobs', count: tabCounts.open },
+                { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
               ].map((tab) => (
                 <button
                   key={tab.id}
