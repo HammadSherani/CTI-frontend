@@ -6,7 +6,7 @@ import * as yup from "yup";
 import { useSelector, useDispatch } from "react-redux";
 import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setAuth, setProfileComplete } from "@/store/auth";
 import PersonalInformation from "./PersonalInformation";
 import ContactInformation from "./ContactInformation";
@@ -36,7 +36,7 @@ const step3Schema = yup.object({
   fullAddress: yup.string().required("Full address is required").min(10, "Address must be at least 10 characters"),
   city: yup.string().required("City is required"),
   district: yup.string().required("District is required"),
-  zipCode: yup.string().required("ZIP code is required").matches(/^\d{5}$/, "ZIP code must be 5 digits"),
+  zipCode: yup.string().optional("ZIP code is required").matches(/^\d{5}$/, "ZIP code must be 5 digits"),
 });
 
 const step4Schema = yup.object({
@@ -62,14 +62,83 @@ const step5Schema = yup.object({
 
 const schemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema];
 
+// Custom hook for form persistence
+const useFormPersistence = () => {
+  const KEY_PREFIX = 'repairmanForm_';
 
+  const saveToStorage = (key, data) => {
+    if (typeof window !== 'undefined') {
+      try {
+        sessionStorage.setItem(KEY_PREFIX + key, JSON.stringify(data));
+      } catch (error) {
+        console.warn('Failed to save to sessionStorage:', error);
+      }
+    }
+  };
+
+  const getFromStorage = (key) => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem(KEY_PREFIX + key);
+        return saved ? JSON.parse(saved) : null;
+      } catch (error) {
+        console.warn('Failed to read from sessionStorage:', error);
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const clearStorage = () => {
+    if (typeof window !== 'undefined') {
+      try {
+        Object.keys(sessionStorage)
+          .filter(key => key.startsWith(KEY_PREFIX))
+          .forEach(key => sessionStorage.removeItem(key));
+      } catch (error) {
+        console.warn('Failed to clear sessionStorage:', error);
+      }
+    }
+  };
+
+  return { saveToStorage, getFromStorage, clearStorage };
+};
 
 export default function RepairmanMultiStepForm() {
-  const [step, setStep] = useState(1);
-  const [informationData, setInformationData] = useState({});
-  const [documentData, setDocumentData] = useState({});
-  const { user, token, isProfileComplete } = useSelector(state => state.auth);
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const { saveToStorage, getFromStorage, clearStorage } = useFormPersistence();
+
+  // Initialize step from URL or storage
+  const [step, setStep] = useState(() => {
+    // First check URL params
+    const urlStep = searchParams.get('step');
+    if (urlStep && !isNaN(parseInt(urlStep))) {
+      const parsedStep = parseInt(urlStep, 10);
+      if (parsedStep >= 1 && parsedStep <= 5) {
+        return parsedStep;
+      }
+    }
+
+    // Then check storage
+    const savedStep = getFromStorage('step');
+    if (savedStep && savedStep >= 1 && savedStep <= 5) {
+      return savedStep;
+    }
+
+    return 1; // Default to step 1
+  });
+
+  // Initialize form data from storage
+  const [informationData, setInformationData] = useState(() =>
+    getFromStorage('informationData') || {}
+  );
+
+  const [documentData, setDocumentData] = useState(() =>
+    getFromStorage('documentData') || {}
+  );
+
+  const { user, token, isProfileComplete } = useSelector(state => state.auth);
   const dispatch = useDispatch();
 
   const steps = [1, 2, 3, 4, 5];
@@ -81,6 +150,40 @@ export default function RepairmanMultiStepForm() {
     "Document Uploads"
   ];
 
+  // Update both URL and storage when step changes
+  const updateStep = (newStep) => {
+    if (newStep < 1 || newStep > 5) return;
+
+    setStep(newStep);
+    saveToStorage('step', newStep);
+
+    // Update URL without page reload
+    if (typeof window !== 'undefined') {
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('step', newStep.toString());
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    }
+  };
+
+  // Save data to storage when it changes
+  useEffect(() => {
+    saveToStorage('informationData', informationData);
+  }, [informationData, saveToStorage]);
+
+  useEffect(() => {
+    saveToStorage('documentData', documentData);
+  }, [documentData, saveToStorage]);
+
+  // Update URL on initial load if step is from storage
+  useEffect(() => {
+    const urlStep = searchParams.get('step');
+    if (!urlStep || parseInt(urlStep) !== step) {
+      const newUrl = new URL(window.location);
+      newUrl.searchParams.set('step', step.toString());
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    }
+  }, []);
+
   const {
     control,
     handleSubmit,
@@ -88,15 +191,14 @@ export default function RepairmanMultiStepForm() {
     trigger,
     getValues,
     setValue,
-    watch
+    watch,
+    reset
   } = useForm({
     resolver: yupResolver(schemas[step - 1]),
     mode: "onChange",
     defaultValues: {
-      // Existing defaults
+      // Basic defaults
       emailAddress: user?.email || "",
-
-      // Address & Location defaults
       shopName: '',
       city: '',
       district: '',
@@ -104,19 +206,87 @@ export default function RepairmanMultiStepForm() {
       fullAddress: '',
       location: null,
 
-      // Add other form fields defaults as needed
-      // businessName: '',
-      // phoneNumber: '',
-      // businessType: '',
-      // etc...
+      // Personal Information defaults
+      fullName: '',
+      fatherName: '',
+      nationalIdOrCitizenNumber: '',
+      dob: '',
+      gender: '',
+
+      // Contact Information defaults
+      mobileNumber: '',
+      whatsappNumber: '',
+      emergencyContactPerson: '',
+      emergencyContactNumber: '',
+
+      // Experience defaults
+      yearsOfExperience: '',
+      specializations: [],
+      brandsWorkedWith: [],
+      description: '',
+      workingDays: [],
+      workingHours: { start: '', end: '' },
+      pickupService: false,
+
+      // Document defaults
+      profilePhoto: null,
+      nationalIdOrPassportScan: null,
+      shopPhoto: null,
+      utilityBillOrShopProof: null,
+      certifications: null,
     }
   });
+
+  // Load saved data into form when step changes or component mounts
+  useEffect(() => {
+    const allSavedData = { ...informationData, ...documentData };
+
+    // Reset form with saved data
+    reset({
+      emailAddress: user?.email || "",
+      shopName: '',
+      city: '',
+      district: '',
+      zipCode: '',
+      fullAddress: '',
+      location: null,
+
+      fullName: '',
+      fatherName: '',
+      nationalIdOrCitizenNumber: '',
+      dob: '',
+      gender: '',
+
+      mobileNumber: '',
+      whatsappNumber: '',
+      emergencyContactPerson: '',
+      emergencyContactNumber: '',
+
+      yearsOfExperience: '',
+      specializations: [],
+      brandsWorkedWith: [],
+      description: '',
+      workingDays: [],
+      workingHours: { start: '', end: '' },
+      pickupService: false,
+
+      profilePhoto: null,
+      nationalIdOrPassportScan: null,
+      shopPhoto: null,
+      utilityBillOrShopProof: null,
+      certifications: null,
+
+      // Override with saved data
+      ...allSavedData,
+    });
+  }, [step, reset, informationData, documentData, user?.email]);
+
   const nextStep = async () => {
     const isValid = await trigger();
     if (isValid) {
       const currentData = getValues();
 
-      // Store data based on step (1-4 for information, 5 for documents)
+      // Save current step data
       if (step <= 4) {
         setInformationData(prev => ({ ...prev, ...currentData }));
       } else {
@@ -124,287 +294,227 @@ export default function RepairmanMultiStepForm() {
       }
 
       if (step < steps.length) {
-        setStep(prev => prev + 1);
+        updateStep(step + 1);
       }
     }
   };
 
   const prevStep = () => {
     if (step > 1) {
-      setStep(prev => prev - 1);
+      // Save current data before going back
+      const currentData = getValues();
+      if (step <= 4) {
+        setInformationData(prev => ({ ...prev, ...currentData }));
+      } else {
+        setDocumentData(prev => ({ ...prev, ...currentData }));
+      }
+
+      updateStep(step - 1);
     }
   };
 
-  console.log(token);
+const onSubmit = async (data) => {
+  if (step <= 4) {
+    try {
+      console.log("Received data:", data);
 
+      const mappedData = { ...data };
+      console.log("Mapped data before transformation:", mappedData);
 
-  const onSubmit = async (data) => {
-    if (step <= 4) {
-      try {
-        console.log("Received data:", data);
-        // return;
-
-        const mappedData = {
-          ...data
-        };
-
-        // Fix field name mapping
-        if (data.brandsWorkedWith) {
-          mappedData.brands = data.brandsWorkedWith;
-          delete mappedData.brandsWorkedWith;
-        }
-
-        // Fix experience field name if needed
-        if (data.yearsOfExperience) {
-          mappedData.experience = data.yearsOfExperience.toString();
-          delete mappedData.yearsOfExperience;
-        }
-
-        const payload = {
-          repairmanProfile: { ...informationData, ...mappedData },
-        };
-
-        console.log("Sending payload:", payload); // Debug log
-
-        const response = await axiosInstance.put("/repairman/profile", payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        toast.success(response.data.message);
-        setStep(5);
-      } catch (error) {
-        console.error("Profile update error:", error);
-        toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
+      if (data.brandsWorkedWith) {
+        mappedData.brands = data.brandsWorkedWith.map(brand => brand.id || brand._id);
+        delete mappedData.brandsWorkedWith;
+        console.log("Transformed brands:", mappedData.brands);
       }
-    } else {
-      // Document upload step - ye same rakhna hai
-      const finalDocumentData = { ...documentData, ...data };
 
-      try {
-        console.log("Processing Document Data:", finalDocumentData);
+      // Fix experience field name if needed
+      if (data.yearsOfExperience) {
+        mappedData.experience = data.yearsOfExperience.toString();
+        delete mappedData.yearsOfExperience;
+      }
 
-        // Show loading state
-        toast.info("Uploading documents to cloud... Please wait.");
+      const payload = {
+        repairmanProfile: { ...informationData, ...mappedData },
+      };
 
-        // Function to upload single file to Cloudinary
-        const uploadToCloudinary = async (file) => {
-          if (!file) return null;
+      console.log("Sending payload:", payload);
 
-          const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
-          const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET || 'repair_jobs_unsigned';
+      const response = await axiosInstance.put("/repairman/profile", payload, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
-          if (!cloudName) {
-            console.error('Cloudinary cloud name not found in environment variables');
-            throw new Error('Upload service not configured. Please contact support.');
-          }
+      toast.success(response.data.message);
+      updateStep(5);
+    } catch (error) {
+      console.error("Profile update error:", error);
+      toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
+    }
+  } else {
+    // Document upload step - Updated for S3
+    const finalDocumentData = { ...documentData, ...data };
 
-          console.log('Uploading to Cloudinary:', {
-            cloudName,
-            uploadPreset,
-            fileName: file.name,
-            fileSize: file.size
-          });
+    try {
+      console.log("Processing Document Data for S3 Upload:", finalDocumentData);
 
-          const formData = new FormData();
-          formData.append('file', file);
-          formData.append('upload_preset', uploadPreset);
-          formData.append('folder', 'repairman_documents');
+      // Validate that we have at least some files
+      const hasRequiredFiles = finalDocumentData.profilePhoto || 
+                              finalDocumentData.nationalIdOrPassportScan || 
+                              finalDocumentData.shopPhoto || 
+                              finalDocumentData.utilityBillOrShopProof;
 
-          // Only allowed parameters for unsigned upload
-          formData.append('public_id', `${Date.now()}_${file.name.split('.')[0]}`);
-          formData.append('tags', 'repairman,document');
+      if (!hasRequiredFiles) {
+        toast.error("Please select at least one required document to upload.");
+        return;
+      }
 
-          try {
-            const response = await fetch(
-              `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
-              {
-                method: 'POST',
-                body: formData,
-              }
-            );
+      // Show loading state
+      toast.info("Uploading documents to secure cloud storage... Please wait.");
 
-            const responseText = await response.text();
-            console.log('Cloudinary response status:', response.status);
+      // Create FormData for S3 upload
+      const formData = new FormData();
 
-            if (!response.ok) {
-              console.error('Cloudinary error response:', {
-                status: response.status,
-                statusText: response.statusText,
-                body: responseText
-              });
+      // Add individual files to FormData
+      if (finalDocumentData.profilePhoto) {
+        formData.append('profilePhoto', finalDocumentData.profilePhoto);
+        console.log("Added profilePhoto:", finalDocumentData.profilePhoto.name);
+      }
 
-              try {
-                const errorData = JSON.parse(responseText);
-                if (errorData.error?.message) {
-                  throw new Error(errorData.error.message);
-                }
-              } catch (parseError) {
-                throw new Error(`Upload failed: ${response.status} - ${responseText}`);
-              }
-            }
+      if (finalDocumentData.nationalIdOrPassportScan) {
+        formData.append('nationalIdOrPassportScan', finalDocumentData.nationalIdOrPassportScan);
+        console.log("Added nationalIdOrPassportScan:", finalDocumentData.nationalIdOrPassportScan.name);
+      }
 
-            const result = JSON.parse(responseText);
-            console.log('Upload successful:', result.secure_url);
-            return result.secure_url;
+      if (finalDocumentData.shopPhoto) {
+        formData.append('shopPhoto', finalDocumentData.shopPhoto);
+        console.log("Added shopPhoto:", finalDocumentData.shopPhoto.name);
+      }
 
-          } catch (error) {
-            console.error('Cloudinary upload error:', error);
+      if (finalDocumentData.utilityBillOrShopProof) {
+        formData.append('utilityBillOrShopProof', finalDocumentData.utilityBillOrShopProof);
+        console.log("Added utilityBillOrShopProof:", finalDocumentData.utilityBillOrShopProof.name);
+      }
 
-            if (error.message.includes('Upload preset must be specified')) {
-              throw new Error('Upload configuration error. Please contact support.');
-            } else if (error.message.includes('Invalid upload preset')) {
-              throw new Error('Upload preset not found. Please contact support.');
-            } else if (error.message.includes('File size too large')) {
-              throw new Error('File size is too large. Please choose a smaller image (max 5MB).');
-            } else if (error.message.includes('Invalid image file')) {
-              throw new Error('Invalid image format. Please use JPG, PNG, or WEBP.');
-            } else if (error.message.includes('Transformation parameter is not allowed')) {
-              throw new Error('Upload configuration issue. Please contact support.');
-            } else {
-              throw new Error(error.message || 'Failed to upload image. Please try again.');
-            }
-          }
-        };
-
-        const uploadCertifications = async (files) => {
-          if (!files || files.length === 0) return [];
-
-          const uploadPromises = Array.from(files).map(async (file, index) => {
-            try {
-              console.log(`Uploading certification ${index + 1}:`, file.name);
-              return await uploadToCloudinary(file);
-            } catch (error) {
-              console.error(`Failed to upload certification ${index + 1}:`, error);
-              throw error;
-            }
-          });
-
-          return await Promise.all(uploadPromises);
-        };
-
-        // Upload all documents to Cloudinary
-        console.log("Starting Cloudinary uploads...");
-
-        const uploadResults = await Promise.allSettled([
-          finalDocumentData.profilePhoto ? uploadToCloudinary(finalDocumentData.profilePhoto) : Promise.resolve(null),
-          finalDocumentData.nationalIdOrPassportScan ? uploadToCloudinary(finalDocumentData.nationalIdOrPassportScan) : Promise.resolve(null),
-          finalDocumentData.shopPhoto ? uploadToCloudinary(finalDocumentData.shopPhoto) : Promise.resolve(null),
-          finalDocumentData.utilityBillOrShopProof ? uploadToCloudinary(finalDocumentData.utilityBillOrShopProof) : Promise.resolve(null),
-          // finalDocumentData.certifications ? uploadToCloudinary(finalDocumentData.certifications) : Promise.resolve(null)
-        ]);
-
-        // Process upload results
-        const [
-          profilePhotoResult,
-          nationalIdResult,
-          shopPhotoResult,
-          shopProofResult,
-          // certificationsResult
-        ] = uploadResults;
-
-        // Check for upload failures
-        const failedUploads = uploadResults
-          .map((result, index) => ({ result, index }))
-          .filter(({ result }) => result.status === 'rejected')
-          .map(({ index }) => {
-            const fieldNames = ['profilePhoto', 'nationalIdOrPassportScan', 'shopPhoto', 'utilityBillOrShopProof']; // 'certifications'
-            return fieldNames[index];
-          });
-
-        if (failedUploads.length > 0) {
-          console.error('Failed uploads:', failedUploads);
-          toast.error(`Failed to upload: ${failedUploads.join(', ')}`);
-          return;
-        }
-
-        // Extract successful URLs
-        const documentUrls = {
-          profilePhoto: profilePhotoResult.status === 'fulfilled' ? profilePhotoResult.value : null,
-          nationalIdOrPassportScan: nationalIdResult.status === 'fulfilled' ? nationalIdResult.value : null,
-          shopPhoto: shopPhotoResult.status === 'fulfilled' ? shopPhotoResult.value : null,
-          utilityBillOrShopProof: shopProofResult.status === 'fulfilled' ? shopProofResult.value : null,
-          // certifications: certificationsResult.status === 'fulfilled'
-          //   ? (Array.isArray(certificationsResult.value) ? certificationsResult.value[0] : certificationsResult.value)
-          //   : null
-        };
-
-        Object.keys(documentUrls).forEach(key => {
-          if (documentUrls[key] === null || (Array.isArray(documentUrls[key]) && documentUrls[key].length === 0)) {
-            delete documentUrls[key];
-          }
+      // Handle multiple certification files
+      if (finalDocumentData.certifications && finalDocumentData.certifications.length > 0) {
+        Array.from(finalDocumentData.certifications).forEach((file, index) => {
+          formData.append('certifications', file);
+          console.log(`Added certification ${index + 1}:`, file.name);
         });
+      }
 
-        console.log("All uploads completed successfully:", documentUrls);
+      console.log("FormData prepared, starting S3 upload...");
 
-        // Update loading message
-        toast.info("Saving document information...");
-
-        // Send URLs to backend
-        const response = await axiosInstance.post(
-          "/repairman/profile/upload-documents",
-          {
-            documents: documentUrls,
+      // Upload directly to S3 via your backend
+      const response = await axiosInstance.post(
+        "/repairman/profile/upload-documents",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
           },
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 30000,
+          timeout: 120000, // 2 minutes timeout for large file uploads
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            console.log(`Upload progress: ${percentCompleted}%`);
+            // Optional: You can show progress to user here
+            // toast.info(`Uploading... ${percentCompleted}%`);
           }
-        );
+        }
+      );
 
-        console.log("Backend response:", response.data);
+      console.log("S3 Upload Response:", response.data);
 
-        // Show success message
-        toast.success("Registration completed successfully!");
+      // Show success message
+      toast.success("Registration completed successfully!");
 
-        // Optional: Show completion details
-        // if (response.data.data) {
-        const { isProfileComplete, completionPercentage } = response.data.data;
+      // Clear all stored form data
+      clearStorage();
+
+      // Remove step parameter from URL
+      if (typeof window !== 'undefined') {
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('step');
+        router.replace(newUrl.pathname, { scroll: false });
+      }
+
+      // Show completion details
+      if (response.data.data) {
+        const { isProfileComplete, completionPercentage, uploadedDocuments } = response.data.data;
         console.log(`Profile completion: ${completionPercentage}%`);
+        console.log('Uploaded documents:', uploadedDocuments);
 
         if (isProfileComplete) {
           toast.success("Your profile is now complete!");
-          // Redirect to dashboard or next step
           dispatch(setProfileComplete(true));
+          // Optional: Redirect to dashboard
           // router.push('/repair-man/dashboard');
-        }
-        // }
-
-      } catch (error) {
-        console.error("Error in document upload process:", error);
-
-        // Handle different types of errors
-        if (error.response) {
-          // Server responded with error status
-          const errorMessage = error.response.data?.message || "Server error occurred";
-          toast.error(errorMessage);
-
-          console.error("Server error details:", {
-            status: error.response.status,
-            data: error.response.data,
-            headers: error.response.headers
-          });
-        } else if (error.request) {
-          // Request was made but no response received
-          toast.error("Network error. Please check your connection.");
-          console.error("Network error:", error.request);
         } else {
-          // Something else happened
-          toast.error("Error uploading documents. Please try again.");
-          console.error("Upload error:", error.message);
+          toast.info(`Profile ${completionPercentage}% complete. Some additional information may be required.`);
         }
       }
+
+    } catch (error) {
+      console.error("Error in S3 document upload process:", error);
+
+      // Handle different types of errors
+      if (error.response) {
+        // Server responded with error status
+        const errorMessage = error.response.data?.message || "Server error occurred during upload";
+        
+        // Handle specific S3/upload errors
+        if (error.response.status === 413) {
+          toast.error("File size too large. Please reduce file sizes and try again.");
+        } else if (error.response.status === 415) {
+          toast.error("Invalid file type. Please use JPG, PNG, or PDF files only.");
+        } else if (error.response.status === 400 && errorMessage.includes('file')) {
+          toast.error("Invalid file format or corrupted file. Please check your files and try again.");
+        } else {
+          toast.error(errorMessage);
+        }
+
+        console.error("Server error details:", {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        });
+      } else if (error.request) {
+        // Request was made but no response received (network error)
+        if (error.code === 'ECONNABORTED') {
+          toast.error("Upload timeout. Please check your internet connection and try again.");
+        } else {
+          toast.error("Network error. Please check your connection and try again.");
+        }
+        console.error("Network error:", error.request);
+      } else if (error.message?.includes('File size')) {
+        // File size validation error
+        toast.error("One or more files exceed the maximum size limit of 5MB.");
+      } else {
+        // Something else happened
+        toast.error("Error uploading documents. Please try again.");
+        console.error("Upload error:", error.message);
+      }
+
+      // Optional: Clear loading states or reset form partially
+      // You might want to keep the form data so user doesn't lose their selections
     }
-  };
+  }
+};
 
   useEffect(() => {
     if (user && isProfileComplete) {
       router.push('/repair-man/dashboard');
     }
-  }, [user, isProfileComplete]);
+  }, [user, isProfileComplete, router]);
 
+  // Debug logging
+  useEffect(() => {
+    console.log('Current step:', step);
+    console.log('Information data:', informationData);
+    console.log('Document data:', documentData);
+  }, [step, informationData, documentData]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 p-4">
@@ -457,13 +567,12 @@ export default function RepairmanMultiStepForm() {
             />
           )}
 
-
           {/* Step 4: Experience & Availability - Using Component */}
           {step === 4 && (
             <ExperienceAvailability control={control} errors={errors} />
           )}
 
-           {/* Step 5: Document Uploads - Using Component */}
+          {/* Step 5: Document Uploads - Using Component */}
           {step === 5 && (
             <DocumentUploads control={control} errors={errors} />
           )}
