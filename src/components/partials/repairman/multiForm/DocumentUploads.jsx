@@ -21,7 +21,7 @@ const DocumentUploads = ({ control, errors }) => {
                   {...field}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => onChange(e.target.files[0])}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
                   className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                     errors.profilePhoto ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -56,7 +56,7 @@ const DocumentUploads = ({ control, errors }) => {
                   {...field}
                   type="file"
                   accept="image/*,.pdf"
-                  onChange={(e) => onChange(e.target.files[0])}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
                   className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                     errors.nationalIdOrPassportScan ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -91,7 +91,7 @@ const DocumentUploads = ({ control, errors }) => {
                   {...field}
                   type="file"
                   accept="image/*"
-                  onChange={(e) => onChange(e.target.files[0])}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
                   className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                     errors.shopPhoto ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -126,7 +126,7 @@ const DocumentUploads = ({ control, errors }) => {
                   {...field}
                   type="file"
                   accept="image/*,.pdf"
-                  onChange={(e) => onChange(e.target.files[0])}
+                  onChange={(e) => onChange(e.target.files?.[0] || null)}
                   className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                     errors.utilityBillOrShopProof ? 'border-red-500' : 'border-gray-300'
                   }`}
