@@ -139,7 +139,7 @@ function JobDetailPage() {
             {/* Header */}
             <div className="space-y-4">
               <h1 className="text-2xl font-bold text-gray-900">
-                {job.title || job.turkishTitle}
+                {job?.deviceInfo?.brand} {job?.deviceInfo?.model} - {job.services.map(s => s).join(', ')}
               </h1>
               
               <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
@@ -198,7 +198,6 @@ function JobDetailPage() {
               </div>
             )}
 
-            {/* Job Description */}
             <div className="border-t border-gray-200 pt-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Description</h3>
               <div className="prose max-w-none">
@@ -418,7 +417,7 @@ function JobDetailPage() {
                     </div>
                   </div>
                   
-                  <button className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium">
+                  <button className="w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition-colors font-medium">
                     Submit Offer
                   </button>
                   
