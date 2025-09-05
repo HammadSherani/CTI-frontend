@@ -37,8 +37,8 @@ const MyJobsPage = () => {
 
       const options = {
         enableHighAccuracy: true,
-        timeout: 15000, // Increased timeout
-        maximumAge: 60000 // 1 minute cache
+        timeout: 15000, 
+        maximumAge: 60000 
       };
 
       navigator.geolocation.getCurrentPosition(
@@ -104,14 +104,18 @@ const MyJobsPage = () => {
     }
   };
 
-  const fetchJobs = async (gpsLocation = null) => {
+  // FIXED: Updated fetchJobs to accept custom radius parameter
+  const fetchJobs = async (gpsLocation = null, customRadius = null) => {
     try {
       setLoading(true);
       setError(null);
 
+      // Use the custom radius if provided, otherwise use state radius
+      const searchRadius = customRadius !== null ? customRadius : radius;
+
       // Build query parameters
       const params = new URLSearchParams({
-        radius: radius.toString(),
+        radius: searchRadius.toString(),
         page: '1',
         limit: '50'
       });
@@ -125,12 +129,13 @@ const MyJobsPage = () => {
         console.log('Sending GPS coordinates to API:', { 
           lat: location.lat, 
           lng: location.lng, 
-          radius: radius 
+          radius: searchRadius 
         });
       }
 
       const url = `/repairman/offers/jobs/nearby?${params}`;
       console.log('API Request URL:', url);
+      console.log('Using radius:', searchRadius);
 
       const { data } = await axiosInstance.get(url, {
         headers: {
@@ -141,7 +146,8 @@ const MyJobsPage = () => {
       console.log('API Response:', {
         jobsCount: data?.data?.jobs?.length || 0,
         locationMethod: data?.data?.searchParams?.locationUsed,
-        repairmanLocation: data?.data?.searchParams?.repairmanLocation
+        repairmanLocation: data?.data?.searchParams?.repairmanLocation,
+        searchRadius: searchRadius
       });
 
       setJobs(data?.data?.jobs || []);
@@ -174,12 +180,18 @@ const MyJobsPage = () => {
     }
   };
 
-  // Handle radius change
+  // FIXED: Handle radius change properly
   const handleRadiusChange = (newRadius) => {
+    console.log('Radius changing from', radius, 'to', newRadius);
     setRadius(newRadius);
-    // Auto-fetch jobs when radius changes
-    setTimeout(() => fetchJobs(), 500);
+    // Pass the new radius directly to fetchJobs since state update is async
+    fetchJobs(useGPS ? currentLocation : null, newRadius);
   };
+
+  // Debug: Monitor radius state changes
+  useEffect(() => {
+    console.log('Radius state updated to:', radius);
+  }, [radius]);
 
   useEffect(() => {
     fetchJobs();
@@ -287,7 +299,7 @@ const MyJobsPage = () => {
             <div className="flex-1">
               <div className="flex justify-between items-start">
                 <h3 className="font-bold text-xl text-gray-900 mb-1">
-                  {job.title || job.turkishTitle}
+                  {job?.deviceInfo?.brand} {job?.deviceInfo?.model} -  {job.services.map(s => s).join(', ')} 
                 </h3>
                 <button
                   onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
@@ -595,7 +607,7 @@ const MyJobsPage = () => {
                   )}
                 </div>
 
-                {/* Radius Control */}
+                {/* FIXED: Radius Control with proper onChange */}
                 <div className="flex items-center space-x-2">
                   <label htmlFor="radius" className="text-sm text-gray-600 font-medium">Search Radius:</label>
                   <select
@@ -612,6 +624,8 @@ const MyJobsPage = () => {
                     <option value={50}>50 km</option>
                     <option value={1000}>1000 km</option>
                   </select>
+                  {/* Debug: Show current radius */}
+                  <span className="text-xs text-gray-500 ml-2">Current: {radius}km</span>
                 </div>
               </div>
 
