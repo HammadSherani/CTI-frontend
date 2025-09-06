@@ -20,6 +20,7 @@ import { toast } from 'react-toastify';
 
 // Yup schema (unchanged)
 const schema = yup.object().shape({
+  description: yup.string().required('Description is required').min(10, 'Please provide more details (minimum 20 characters)'),
   deviceInfo: yup.object().shape({
     warrantyStatus: yup.string().required('Warranty status is required'),
   }),
@@ -37,9 +38,9 @@ const schema = yup.object().shape({
     city: yup.string().required('City is required'),
     district: yup.string().optional(),
     zipCode: yup.string().optional(),
-    coordinates: yup.array().of(yup.number().required()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
+    coordinates: yup.array().of(yup.number().optional()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
   }),
-  preferredTime: yup.date().min(new Date(), 'Preferred time must be in the future').required('Preferred time is required'),
+  preferredDate: yup.date().min(new Date(), 'Preferred time must be in the future').required('Preferred time is required'),
   servicePreference: yup.string().required('Service preference is required'),
   selectedServices: yup.array().min(1, 'At least one service must be selected').required('Please select at least one service'),
   customServices: yup.array().of(
@@ -142,8 +143,10 @@ const CreateRepairJobForm = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        setValue('location.coordinates', [latitude, longitude], { shouldValidate: true });
+        // Fix: Set coordinates as [longitude, latitude] - remove space and fix order
+        setValue('location.coordinates', [longitude, latitude], { shouldValidate: true });
         try {
+          // Fix: Pass latitude first, then longitude to reverseGeocode
           const locationData = await reverseGeocode(latitude, longitude);
           if (locationData) {
             setValue('location.address', locationData.address);
@@ -186,10 +189,14 @@ const CreateRepairJobForm = () => {
           color: color,
           warrantyStatus: formData.deviceInfo.warrantyStatus,
         },
+        preferredDate: formData.preferredDate
+          ? new Date(formData.preferredDate).toISOString().split("T")[0]
+          : null,
+        description: formData.description,
         urgency: formData.urgency,
         budget: formData.budget,
         location: formData.location,
-        preferredTime: formData.preferredTime,
+        // preferredTime: formData.preferredTime,
         servicePreference: formData.servicePreference,
         services: formData.selectedServices || [],
         maxOffers: 10,
@@ -316,6 +323,7 @@ const CreateRepairJobForm = () => {
                   isGettingLocation={isGettingLocation}
                   locationError={locationError}
                   coordinates={coordinates}
+                  setValue={setValue} // Ye prop add karna zaroori hai
                   Controller={Controller}
                 />
               </div>

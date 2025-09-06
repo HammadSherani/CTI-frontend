@@ -88,7 +88,7 @@ const ModelPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
             {models.map((model) => (
               <React.Fragment key={model.id}>
-                <ModelCard brandSlug={brandSlug} model={model} />
+                {/* <ModelCard brandSlug={brandSlug} model={model} /> */}
                 <ModelCard brandSlug={brandSlug} model={model} goToCreateJob />
               </React.Fragment>
             ))}

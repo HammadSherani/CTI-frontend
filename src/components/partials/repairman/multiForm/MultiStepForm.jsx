@@ -105,6 +105,7 @@ const useFormPersistence = () => {
 };
 
 export default function RepairmanMultiStepForm() {
+  const [isDocumentsUploaded, setIsDocumentsUploaded] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { saveToStorage, getFromStorage, clearStorage } = useFormPersistence();
@@ -313,195 +314,197 @@ export default function RepairmanMultiStepForm() {
     }
   };
 
-const onSubmit = async (data) => {
-  if (step <= 4) {
-    try {
-      console.log("Received data:", data);
+  const onSubmit = async (data) => {
+    if (step <= 4) {
+      try {
+        console.log("Received data:", data);
 
-      const mappedData = { ...data };
-      console.log("Mapped data before transformation:", mappedData);
+        const mappedData = { ...data };
+        console.log("Mapped data before transformation:", mappedData);
 
-      if (data.brandsWorkedWith) {
-        mappedData.brands = data.brandsWorkedWith.map(brand => brand.id || brand._id);
-        delete mappedData.brandsWorkedWith;
-        console.log("Transformed brands:", mappedData.brands);
-      }
+        if (data.brandsWorkedWith) {
+          mappedData.brands = data.brandsWorkedWith.map(brand => brand.id || brand._id);
+          delete mappedData.brandsWorkedWith;
+          console.log("Transformed brands:", mappedData.brands);
+        }
 
-      // Fix experience field name if needed
-      if (data.yearsOfExperience) {
-        mappedData.experience = data.yearsOfExperience.toString();
-        delete mappedData.yearsOfExperience;
-      }
+        // Fix experience field name if needed
+        if (data.yearsOfExperience) {
+          mappedData.experience = data.yearsOfExperience.toString();
+          delete mappedData.yearsOfExperience;
+        }
 
-      const payload = {
-        repairmanProfile: { ...informationData, ...mappedData },
-      };
+        const payload = {
+          repairmanProfile: { ...informationData, ...mappedData },
+        };
 
-      console.log("Sending payload:", payload);
+        console.log("Sending payload:", payload);
 
-      const response = await axiosInstance.put("/repairman/profile", payload, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      toast.success(response.data.message);
-      updateStep(5);
-    } catch (error) {
-      console.error("Profile update error:", error);
-      toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
-    }
-  } else {
-    // Document upload step - Updated for S3
-    const finalDocumentData = { ...documentData, ...data };
-
-    try {
-      console.log("Processing Document Data for S3 Upload:", finalDocumentData);
-
-      // Validate that we have at least some files
-      const hasRequiredFiles = finalDocumentData.profilePhoto || 
-                              finalDocumentData.nationalIdOrPassportScan || 
-                              finalDocumentData.shopPhoto || 
-                              finalDocumentData.utilityBillOrShopProof;
-
-      if (!hasRequiredFiles) {
-        toast.error("Please select at least one required document to upload.");
-        return;
-      }
-
-      // Show loading state
-      toast.info("Uploading documents to secure cloud storage... Please wait.");
-
-      // Create FormData for S3 upload
-      const formData = new FormData();
-
-      // Add individual files to FormData
-      if (finalDocumentData.profilePhoto) {
-        formData.append('profilePhoto', finalDocumentData.profilePhoto);
-        console.log("Added profilePhoto:", finalDocumentData.profilePhoto.name);
-      }
-
-      if (finalDocumentData.nationalIdOrPassportScan) {
-        formData.append('nationalIdOrPassportScan', finalDocumentData.nationalIdOrPassportScan);
-        console.log("Added nationalIdOrPassportScan:", finalDocumentData.nationalIdOrPassportScan.name);
-      }
-
-      if (finalDocumentData.shopPhoto) {
-        formData.append('shopPhoto', finalDocumentData.shopPhoto);
-        console.log("Added shopPhoto:", finalDocumentData.shopPhoto.name);
-      }
-
-      if (finalDocumentData.utilityBillOrShopProof) {
-        formData.append('utilityBillOrShopProof', finalDocumentData.utilityBillOrShopProof);
-        console.log("Added utilityBillOrShopProof:", finalDocumentData.utilityBillOrShopProof.name);
-      }
-
-      // Handle multiple certification files
-      if (finalDocumentData.certifications && finalDocumentData.certifications.length > 0) {
-        Array.from(finalDocumentData.certifications).forEach((file, index) => {
-          formData.append('certifications', file);
-          console.log(`Added certification ${index + 1}:`, file.name);
+        const response = await axiosInstance.put("/repairman/profile", payload, {
+          headers: { Authorization: `Bearer ${token}` },
         });
+
+        toast.success(response.data.message);
+        updateStep(5);
+      } catch (error) {
+        console.error("Profile update error:", error);
+        toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
       }
+    } else {
+      // Document upload step - Updated for S3
+      const finalDocumentData = { ...documentData, ...data };
 
-      console.log("FormData prepared, starting S3 upload...");
+      try {
+        console.log("Processing Document Data for S3 Upload:", finalDocumentData);
 
-      // Upload directly to S3 via your backend
-      const response = await axiosInstance.post(
-        "/repairman/profile/upload-documents",
-        formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          },
-          timeout: 120000, // 2 minutes timeout for large file uploads
-          onUploadProgress: (progressEvent) => {
-            const percentCompleted = Math.round(
-              (progressEvent.loaded * 100) / progressEvent.total
-            );
-            console.log(`Upload progress: ${percentCompleted}%`);
-            // Optional: You can show progress to user here
-            // toast.info(`Uploading... ${percentCompleted}%`);
+        // Validate that we have at least some files
+        const hasRequiredFiles = finalDocumentData.profilePhoto ||
+          finalDocumentData.nationalIdOrPassportScan ||
+          finalDocumentData.shopPhoto ||
+          finalDocumentData.utilityBillOrShopProof;
+
+        if (!hasRequiredFiles) {
+          toast.error("Please select at least one required document to upload.");
+          return;
+        }
+
+        // Show loading state
+        setIsDocumentsUploaded(true)
+        // toast.info("Uploading documents to secure cloud storage... Please wait.");
+
+        // Create FormData for S3 upload
+        const formData = new FormData();
+
+        // Add individual files to FormData
+        if (finalDocumentData.profilePhoto) {
+          formData.append('profilePhoto', finalDocumentData.profilePhoto);
+          console.log("Added profilePhoto:", finalDocumentData.profilePhoto.name);
+        }
+
+        if (finalDocumentData.nationalIdOrPassportScan) {
+          formData.append('nationalIdOrPassportScan', finalDocumentData.nationalIdOrPassportScan);
+          console.log("Added nationalIdOrPassportScan:", finalDocumentData.nationalIdOrPassportScan.name);
+        }
+
+        if (finalDocumentData.shopPhoto) {
+          formData.append('shopPhoto', finalDocumentData.shopPhoto);
+          console.log("Added shopPhoto:", finalDocumentData.shopPhoto.name);
+        }
+
+        if (finalDocumentData.utilityBillOrShopProof) {
+          formData.append('utilityBillOrShopProof', finalDocumentData.utilityBillOrShopProof);
+          console.log("Added utilityBillOrShopProof:", finalDocumentData.utilityBillOrShopProof.name);
+        }
+
+        // Handle multiple certification files
+        if (finalDocumentData.certifications && finalDocumentData.certifications.length > 0) {
+          Array.from(finalDocumentData.certifications).forEach((file, index) => {
+            formData.append('certifications', file);
+            console.log(`Added certification ${index + 1}:`, file.name);
+          });
+        }
+
+        console.log("FormData prepared, starting S3 upload...");
+
+        // Upload directly to S3 via your backend
+        const response = await axiosInstance.post(
+          "/repairman/profile/upload-documents",
+          formData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'multipart/form-data'
+            },
+            timeout: 120000, // 2 minutes timeout for large file uploads
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round(
+                (progressEvent.loaded * 100) / progressEvent.total
+              );
+              console.log(`Upload progress: ${percentCompleted}%`);
+              // Optional: You can show progress to user here
+              // toast.info(`Uploading... ${percentCompleted}%`);
+            }
+          }
+        );
+
+        console.log("S3 Upload Response:", response.data);
+
+        // Show success message
+        toast.success("Registration completed successfully!");
+        setIsDocumentsUploaded(false);
+
+        // Clear all stored form data
+        clearStorage();
+
+        // Remove step parameter from URL
+        if (typeof window !== 'undefined') {
+          const newUrl = new URL(window.location);
+          newUrl.searchParams.delete('step');
+          router.replace(newUrl.pathname, { scroll: false });
+        }
+
+        // Show completion details
+        if (response.data.data) {
+          const { isProfileComplete, completionPercentage, uploadedDocuments } = response.data.data;
+          console.log(`Profile completion: ${completionPercentage}%`);
+          console.log('Uploaded documents:', uploadedDocuments);
+
+          if (isProfileComplete) {
+            toast.success("Your profile is now complete!");
+            dispatch(setProfileComplete(true));
+            // Optional: Redirect to dashboard
+            // router.push('/repair-man/dashboard');
+          } else {
+            toast.info(`Profile ${completionPercentage}% complete. Some additional information may be required.`);
           }
         }
-      );
 
-      console.log("S3 Upload Response:", response.data);
+      } catch (error) {
+        console.error("Error in S3 document upload process:", error);
 
-      // Show success message
-      toast.success("Registration completed successfully!");
+        // Handle different types of errors
+        if (error.response) {
+          // Server responded with error status
+          const errorMessage = error.response.data?.message || "Server error occurred during upload";
 
-      // Clear all stored form data
-      clearStorage();
+          // Handle specific S3/upload errors
+          if (error.response.status === 413) {
+            toast.error("File size too large. Please reduce file sizes and try again.");
+          } else if (error.response.status === 415) {
+            toast.error("Invalid file type. Please use JPG, PNG, or PDF files only.");
+          } else if (error.response.status === 400 && errorMessage.includes('file')) {
+            toast.error("Invalid file format or corrupted file. Please check your files and try again.");
+          } else {
+            toast.error(errorMessage);
+          }
 
-      // Remove step parameter from URL
-      if (typeof window !== 'undefined') {
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.delete('step');
-        router.replace(newUrl.pathname, { scroll: false });
-      }
-
-      // Show completion details
-      if (response.data.data) {
-        const { isProfileComplete, completionPercentage, uploadedDocuments } = response.data.data;
-        console.log(`Profile completion: ${completionPercentage}%`);
-        console.log('Uploaded documents:', uploadedDocuments);
-
-        if (isProfileComplete) {
-          toast.success("Your profile is now complete!");
-          dispatch(setProfileComplete(true));
-          // Optional: Redirect to dashboard
-          // router.push('/repair-man/dashboard');
+          console.error("Server error details:", {
+            status: error.response.status,
+            data: error.response.data,
+            headers: error.response.headers
+          });
+        } else if (error.request) {
+          // Request was made but no response received (network error)
+          if (error.code === 'ECONNABORTED') {
+            toast.error("Upload timeout. Please check your internet connection and try again.");
+          } else {
+            toast.error("Network error. Please check your connection and try again.");
+          }
+          console.error("Network error:", error.request);
+        } else if (error.message?.includes('File size')) {
+          // File size validation error
+          toast.error("One or more files exceed the maximum size limit of 5MB.");
         } else {
-          toast.info(`Profile ${completionPercentage}% complete. Some additional information may be required.`);
-        }
-      }
-
-    } catch (error) {
-      console.error("Error in S3 document upload process:", error);
-
-      // Handle different types of errors
-      if (error.response) {
-        // Server responded with error status
-        const errorMessage = error.response.data?.message || "Server error occurred during upload";
-        
-        // Handle specific S3/upload errors
-        if (error.response.status === 413) {
-          toast.error("File size too large. Please reduce file sizes and try again.");
-        } else if (error.response.status === 415) {
-          toast.error("Invalid file type. Please use JPG, PNG, or PDF files only.");
-        } else if (error.response.status === 400 && errorMessage.includes('file')) {
-          toast.error("Invalid file format or corrupted file. Please check your files and try again.");
-        } else {
-          toast.error(errorMessage);
+          // Something else happened
+          toast.error("Error uploading documents. Please try again.");
+          console.error("Upload error:", error.message);
         }
 
-        console.error("Server error details:", {
-          status: error.response.status,
-          data: error.response.data,
-          headers: error.response.headers
-        });
-      } else if (error.request) {
-        // Request was made but no response received (network error)
-        if (error.code === 'ECONNABORTED') {
-          toast.error("Upload timeout. Please check your internet connection and try again.");
-        } else {
-          toast.error("Network error. Please check your connection and try again.");
-        }
-        console.error("Network error:", error.request);
-      } else if (error.message?.includes('File size')) {
-        // File size validation error
-        toast.error("One or more files exceed the maximum size limit of 5MB.");
-      } else {
-        // Something else happened
-        toast.error("Error uploading documents. Please try again.");
-        console.error("Upload error:", error.message);
+        // Optional: Clear loading states or reset form partially
+        // You might want to keep the form data so user doesn't lose their selections
       }
-
-      // Optional: Clear loading states or reset form partially
-      // You might want to keep the form data so user doesn't lose their selections
     }
-  }
-};
+  };
 
   useEffect(() => {
     if (user && isProfileComplete) {
@@ -602,10 +605,42 @@ const onSubmit = async (data) => {
             ) : step === 5 ? (
               <button
                 type="submit"
-                className="px-6 py-3 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors shadow-lg"
+                disabled={isDocumentsUploaded}
+                className={`px-6 py-3 rounded-lg font-medium transition-colors shadow-lg flex items-center justify-center gap-2
+    ${isDocumentsUploaded
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-green-500 hover:bg-green-600 text-white"
+                  }`}
               >
-                Upload Documents & Complete
+                {isDocumentsUploaded ? (
+                  <div className="flex items-center gap-2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                      ></path>
+                    </svg>
+                    <span>Submitting...</span>
+                  </div>
+                ) : (
+                  "Upload Documents & Complete"
+                )}
               </button>
+
             ) : (
               <button
                 type="button"

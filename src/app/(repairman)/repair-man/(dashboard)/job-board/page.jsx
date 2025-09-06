@@ -7,6 +7,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Loader from '@/components/Loader';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('open');
@@ -289,47 +290,33 @@ const MyJobsPage = () => {
     const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
     return (
-      <div className="group bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm hover:shadow-2xl hover:border-gray-300 transition-all duration-300 ease-in-out transform hover:-translate-y-1">
-        {/* Header Section */}
-        <div className="p-6 pb-4">
-          <div className="flex items-start gap-4">
-            {/* Customer Avatar */}
+      <div className=" bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm  hover:border-gray-300 transition-all duration-300 ease-in-out transform ">
+        <div className="">
+          <div className="flex items-start gap-4 p-3 pb-4">
             <div className="relative">
-              <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-lg font-bold text-white">{customerInitials}</span>
-              </div>
               {urgency === 'high' && (
                 <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-white text-xs">!</span>
                 </div>
               )}
             </div>
-
-            {/* Main Info */}
             <div className="flex-1 min-w-0">
+              <span className="text-xs text-gray-500 mb-3">Posted {new Date(job.createdAt).toLocaleDateString()}</span>
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1">
-                  <h3 className="font-bold text-xl text-gray-900 mb-1 group-hover:text-primary-600 transition-colors">
+                  <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
                     {job?.deviceInfo?.brand} {job?.deviceInfo?.model}
                   </h3>
-                  <p className="text-sm text-gray-600 mb-3 flex items-center gap-1">
-                    <Icon icon="heroicons:user" className="w-4 h-4" />
-                    {job.customerId?.name || 'Anonymous'}
-                  </p>
-                </div>
-
-                {/* Price Badge */}
-                <div className="text-right flex-shrink-0">
-                  <div className="bg-gradient-to-r from-green-100 to-emerald-100 px-4 py-2 rounded-xl border border-green-200">
-                    <p className="text-lg font-bold text-green-700">
-                      {formatCurrency(job.budget?.min)} - {formatCurrency(job.budget?.max)}
-                    </p>
-                    <p className="text-xs text-green-600 font-medium">{job.budget?.currency}</p>
+                  <div className="text-sm text-gray-700 mb-2">
+                    <span className="font-bold">Budget Range</span> -
+                    <span className="ml-1">Est. Budget: {formatCurrency(job.budget?.min)} - {formatCurrency(job.budget?.max)}</span> 
                   </div>
                 </div>
               </div>
+              <div className='mb-3'>
+                <span className='mb-3'>{job?.description}</span>
+              </div>
 
-              {/* Service Tags */}
               <div className="flex flex-wrap gap-2 mb-3">
                 {job.services?.map((service, index) => (
                   <span
@@ -341,156 +328,54 @@ const MyJobsPage = () => {
                   </span>
                 ))}
               </div>
-
-              {/* Status and Priority Row */}
-              <div className="flex flex-wrap items-center gap-3 text-sm">
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getStatusColor(jobStatus)}`}>
-                  <div className={`w-2 h-2 rounded-full mr-2 ${jobStatus === 'open' ? 'bg-green-400' :
-                      jobStatus === 'in-progress' ? 'bg-yellow-400' : 'bg-gray-400'
-                    }`}></div>
-                  {jobStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getUrgencyColor(urgency)}`}>
-                  <Icon icon="heroicons:clock" className="w-3 h-3 mr-1" />
-                  {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
-                </span>
-
-                {job.timeRemaining && (
-                  <span className="inline-flex items-center text-orange-600 font-medium">
-                    <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
-                    Expires in {getTimeRemaining(job.timeRemaining)}
-                  </span>
-                )}
-              </div>
             </div>
           </div>
-        </div>
 
-        {/* Location & Distance Info */}
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-          <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-            <div className="flex items-center gap-1">
-              <Icon icon="heroicons:map-pin" className="w-4 h-4 text-gray-400" />
-              <span className="font-medium">{job.location?.address}, {job.location?.city}</span>
-            </div>
-
-            {job.distance && (
+          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
-                <Icon icon="heroicons:map" className="w-4 h-4 text-gray-400" />
-                <span>{job.distance.toFixed(1)} km away</span>
-                {useGPS && (
-                  <Icon icon="heroicons:signal" className="w-3 h-3 text-green-500 ml-1" />
-                )}
+                <Icon icon="heroicons:map-pin" className="w-4 h-4 text-gray-400" />
+                <span className="font-medium">{job.location?.address}, {job.location?.city}</span>
               </div>
-            )}
 
-            {job.travelTimeFormatted && (
-              <div className="flex items-center gap-1 text-primary-600">
-                <Icon icon="heroicons:clock" className="w-4 h-4" />
-                <span className="font-medium">{job.travelTimeFormatted}</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Device Info */}
-        {job.deviceInfo && (
-          <div className="px-6 py-3 border-t border-gray-100">
-            <div className="flex flex-wrap items-center gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 text-gray-400" />
-                <span className="font-medium text-gray-700">{job.deviceInfo.brand} {job.deviceInfo.model}</span>
-              </div>
-              {job.deviceInfo.color && (
-                <div className="flex items-center gap-2">
-                  <div className={`w-3 h-3 rounded-full border-2 border-gray-300 ${job.deviceInfo.color.toLowerCase() === 'black' ? 'bg-black' :
-                      job.deviceInfo.color.toLowerCase() === 'white' ? 'bg-white' :
-                        job.deviceInfo.color.toLowerCase() === 'primary' ? 'bg-primary-500' :
-                          job.deviceInfo.color.toLowerCase() === 'red' ? 'bg-red-500' :
-                            'bg-gray-400'
-                    }`}></div>
-                  <span className="text-gray-600">{job.deviceInfo.color}</span>
+              {job.distance && (
+                <div className="flex items-center gap-1">
+                  <Icon icon="heroicons:map" className="w-4 h-4 text-gray-400" />
+                  <span>{job.distance.toFixed(1)} km away</span>
+                  {useGPS && (
+                    <Icon icon="heroicons:signal" className="w-3 h-3 text-green-500 ml-1" />
+                  )}
                 </div>
               )}
-              {job.categoryId && (
-                <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-md text-xs font-medium">
-                  {job.categoryId.name}
-                </span>
+
+              {job.travelTimeFormatted && (
+                <div className="flex items-center gap-1 text-primary-600">
+                  <Icon icon="heroicons:clock" className="w-4 h-4" />
+                  <span className="font-medium">{job.travelTimeFormatted}</span>
+                </div>
               )}
             </div>
           </div>
-        )}
 
-        {/* Expandable Details */}
-        <div className="border-t border-gray-100">
-          <button
-            onClick={() => setExpandedJob(expandedJob === job._id ? null : job._id)}
-            className="w-full px-6 py-3 text-left hover:bg-gray-50 transition-colors focus:outline-none focus:bg-gray-50"
-            aria-expanded={expandedJob === job._id}
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                {expandedJob === job._id ? 'Hide Details' : 'Show Details'}
+          <div className="flex px-6 py-3 flex-wrap items-center gap-3 text-sm">
+            <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getStatusColor(jobStatus)}`}>
+              <div className={`w-2 h-2 rounded-full mr-2 ${jobStatus === 'open' ? 'bg-green-400' :
+                jobStatus === 'in-progress' ? 'bg-yellow-400' : 'bg-gray-400'
+                }`}></div>
+              {jobStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            </span>
+
+            <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getUrgencyColor(urgency)}`}>
+              <Icon icon="heroicons:clock" className="w-3 h-3 mr-1" />
+              {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+            </span>
+
+            {job.timeRemaining && (
+              <span className="inline-flex items-center text-orange-600 font-medium">
+                <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
+                Expires in {getTimeRemaining(job.timeRemaining)}
               </span>
-              <Icon
-                icon={expandedJob === job._id ? 'heroicons:chevron-up' : 'heroicons:chevron-down'}
-                className="w-5 h-5 text-gray-400 transition-transform"
-              />
-            </div>
-          </button>
-
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedJob === job._id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
-            }`}>
-            <div className="px-6 pb-4 space-y-4">
-              {(job.description || job.turkishDescription) && (
-                <div>
-                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Description</h4>
-                  <p className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-                    {job.description || job.turkishDescription}
-                  </p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Service Preference:</span>
-                    <span className="font-medium text-gray-700">{job.servicePreference}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Job Radius:</span>
-                    <span className="font-medium text-gray-700">{job.jobRadius} km</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Max Offers:</span>
-                    <span className="font-medium text-gray-700">{job.maxOffers}</span>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  {job.preferredTime && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Preferred Time:</span>
-                      <span className="font-medium text-gray-700">
-                        {new Date(job.preferredTime).toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Posted:</span>
-                    <span className="font-medium text-gray-700">
-                      {new Date(job.createdAt).toLocaleDateString()}
-                    </span>
-                  </div>
-                  {job.travelTime && (
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Travel Time:</span>
-                      <span className="font-medium text-gray-700">{job.travelTime}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -566,7 +451,7 @@ const MyJobsPage = () => {
       {type === 'open' && (
         <button
           onClick={refreshLocation}
-          className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Refresh Jobs
         </button>
@@ -586,19 +471,19 @@ const MyJobsPage = () => {
     setUrgencyFilter('all');
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading jobs...</p>
-          {locationLoading && (
-            <p className="text-primary-600 text-sm mt-2">Getting your location...</p>
-          )}
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
+  //         <p className="text-gray-600">Loading jobs...</p>
+  //         {locationLoading && (
+  //           <p className="text-primary-600 text-sm mt-2">Getting your location...</p>
+  //         )}
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (error) {
     return (
@@ -619,172 +504,175 @@ const MyJobsPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
-          <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
-        </div>
 
-        <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 ">
-          <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+    <Loader loading={loading}>
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
+            <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
+          </div>
 
-            <div className="flex flex-wrap items-center gap-4">
-              {useGPS && currentLocation && (
-                <button
-                  onClick={refreshLocation}
-                  disabled={locationLoading}
-                  className="flex items-center gap-1 rounded-md bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-100 disabled:opacity-50"
-                >
-                  <Icon
-                    icon="heroicons:arrow-path"
-                    className={`h-4 w-4 ${locationLoading ? "animate-spin" : ""}`}
-                  />
-                  Update Location
-                </button>
-              )}
+          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 ">
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
 
-              <div className="flex items-center gap-2">
-                <label
-                  htmlFor="radius"
-                  className="text-sm font-medium text-gray-700"
-                >
-                  Radius
-                </label>
-                <select
-                  id="radius"
-                  value={radius}
-                  onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
-                  className="rounded-lg border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                >
-                  {[5, 10, 15, 20, 30, 50, 1000].map((r) => (
-                    <option key={r} value={r}>
-                      {r} km
-                    </option>
-                  ))}
-                </select>
+              <div className="flex flex-wrap items-center gap-4">
+                {useGPS && currentLocation && (
+                  <button
+                    onClick={refreshLocation}
+                    disabled={locationLoading}
+                    className="flex items-center gap-1 rounded-md bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-100 disabled:opacity-50"
+                  >
+                    <Icon
+                      icon="heroicons:arrow-path"
+                      className={`h-4 w-4 ${locationLoading ? "animate-spin" : ""}`}
+                    />
+                    Update Location
+                  </button>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <label
+                    htmlFor="radius"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    Radius
+                  </label>
+                  <select
+                    id="radius"
+                    value={radius}
+                    onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+                    className="rounded-lg border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
+                  >
+                    {[5, 10, 15, 20, 30, 50, 1000].map((r) => (
+                      <option key={r} value={r}>
+                        {r} km
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Right section: Status indicator */}
+              <div className="flex items-center">
+                {useGPS && currentLocation ? (
+                  <div className="flex items-center gap-1 rounded-lg bg-green-50 px-3 py-1.5 text-sm font-medium text-green-600">
+                    <Icon icon="heroicons:check-circle" className="h-4 w-4" />
+                    GPS Active
+                    {currentLocation.accuracy && currentLocation.accuracy < 100 && (
+                      <span className="ml-1 text-xs text-gray-500">
+                        (±{Math.round(currentLocation.accuracy)}m)
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-sm text-gray-600">
+                    <Icon icon="heroicons:building-office" className="h-4 w-4" />
+                    Profile Location
+                  </div>
+                )}
               </div>
             </div>
+          </div>
 
-            {/* Right section: Status indicator */}
-            <div className="flex items-center">
-              {useGPS && currentLocation ? (
-                <div className="flex items-center gap-1 rounded-lg bg-green-50 px-3 py-1.5 text-sm font-medium text-green-600">
-                  <Icon icon="heroicons:check-circle" className="h-4 w-4" />
-                  GPS Active
-                  {currentLocation.accuracy && currentLocation.accuracy < 100 && (
-                    <span className="ml-1 text-xs text-gray-500">
-                      (±{Math.round(currentLocation.accuracy)}m)
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-sm text-gray-600">
-                  <Icon icon="heroicons:building-office" className="h-4 w-4" />
-                  Profile Location
-                </div>
+
+          {/* Search and Filter */}
+          <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full">
+              <input
+                type="text"
+                placeholder="Search jobs by title, client, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
+                aria-label="Search jobs"
+              />
+              <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label="Clear search"
+                >
+                  <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+                </button>
               )}
             </div>
-          </div>
-        </div>
-
-
-        {/* Search and Filter */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <input
-              type="text"
-              placeholder="Search jobs by title, client, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
-              aria-label="Search jobs"
-            />
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                aria-label="Clear search"
+            <div className="flex gap-4 w-full sm:w-auto">
+              <select
+                value={urgencyFilter}
+                onChange={(e) => setUrgencyFilter(e.target.value)}
+                className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+                aria-label="Filter by urgency"
               >
-                <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+                <option value="all">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
+                aria-label="Clear all filters"
+              >
+                Clear Filters
               </button>
-            )}
+              <button
+                onClick={refreshLocation}
+                className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+                aria-label="Refresh jobs"
+              >
+                <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-          <div className="flex gap-4 w-full sm:w-auto">
-            <select
-              value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
-              aria-label="Filter by urgency"
-            >
-              <option value="all">All Priorities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <button
-              onClick={handleClearFilters}
-              className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
-              aria-label="Clear all filters"
-            >
-              Clear Filters
-            </button>
-            <button
-              onClick={refreshLocation}
-              className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
-              aria-label="Refresh jobs"
-            >
-              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
 
-        {/* Tabs - Only Open Jobs and Completed Jobs */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
-              {[
-                { id: 'open', label: 'Open Jobs', count: tabCounts.open },
-                { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${activeTab === tab.id
+          {/* Tabs - Only Open Jobs and Completed Jobs */}
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
+                {[
+                  { id: 'open', label: 'Open Jobs', count: tabCounts.open },
+                  { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${activeTab === tab.id
                       ? 'border-primary-500 text-primary-600'
                       : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
-                    }`}
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  aria-controls={`${tab.id}-panel`}
-                >
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
-            {filteredJobs.length > 0 ? (
-              <div className="space-y-6">
-                {filteredJobs.map((job) => (
-                  <JobCard key={job._id} job={job} />
+                      }`}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`${tab.id}-panel`}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
                 ))}
-              </div>
-            ) : (
-              <EmptyState type={activeTab} />
-            )}
+              </nav>
+            </div>
+
+            <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
+              {filteredJobs.length > 0 ? (
+                <div className="space-y-6">
+                  {filteredJobs.map((job) => (
+                    <JobCard key={job._id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState type={activeTab} />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </Loader>
   );
 };
 
