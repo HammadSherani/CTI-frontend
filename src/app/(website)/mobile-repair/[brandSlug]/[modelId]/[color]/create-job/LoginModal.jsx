@@ -12,6 +12,7 @@ import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import Logins from "../../../../../../../../public/assets/user/login.png"; // Adjust path as needed
+import Link from "next/link";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -287,6 +288,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                           transition: { delay: 0.7, duration: 0.3 }
                         }}
                       >
+
                         Sign in to create and manage your repair jobs
                       </motion.p>
                       <motion.div 
@@ -618,7 +620,10 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
+                      <Link href={"/auth/register"}>
                       Create Account
+                      </Link>
+                      
                     </motion.button>
                   </motion.div>
 
