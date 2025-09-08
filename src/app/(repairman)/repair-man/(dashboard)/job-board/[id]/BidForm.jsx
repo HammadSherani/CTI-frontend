@@ -1,6 +1,8 @@
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
+import axiosInstance from "@/config/axiosInstance";
+import { useState } from "react";
 
 const schema = yup.object({
     basePrice: yup
@@ -56,11 +58,12 @@ const schema = yup.object({
 export default function BidForm({ 
     jobId, 
     repairmanId, 
-    onSubmitSuccess, 
-    onSubmitError,
-    defaultExperience = { similarRepairs: 0, successRate: 95 },
-    isSubmitting = false
 }) {
+
+    const [isSubmitting, setIsSubmitting] = useState(false); // isSubmitting state can be managed if needed
+
+    console.log(jobId, repairmanId);
+    
     const {
         control,
         handleSubmit,
@@ -150,7 +153,7 @@ export default function BidForm({
                 
                 // Default fields
                 servicesIncluded: [],
-                experience: defaultExperience,
+                // experience: defaultExperience,
                 status: 'pending',
                 expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
                 viewedByCustomer: false,
@@ -167,7 +170,14 @@ export default function BidForm({
             };
             
             console.log("Payload to send:", payload);
+
+            const res  = await axiosInstance.post(`/repairman/offers/job/${jobId}/offer`, payload, {
+                headers: {
+                    'Authorization': 'Bearer ' + repairmanId,
+                }
+            });
             
+            console.log("Response from server:", res.data);
             // Here you would make the API call
             // Example:
             // const response = await fetch('/api/repair-offers', {
@@ -180,9 +190,9 @@ export default function BidForm({
             // const result = await response.json();
             
             // Call success callback if provided
-            if (onSubmitSuccess) {
-                onSubmitSuccess(payload);
-            }
+            // if (onSubmitSuccess) {
+            //     onSubmitSuccess(payload);
+            // }
             
         } catch (error) {
             console.error("Error submitting offer:", error);
@@ -657,6 +667,7 @@ export default function BidForm({
                             ) : (
                                 'Submit Offer'
                             )}
+                            
                         </button>
                     </div>
 

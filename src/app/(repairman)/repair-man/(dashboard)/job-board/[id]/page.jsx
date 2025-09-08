@@ -391,7 +391,10 @@ function JobDetailPage() {
                 </div>
               </div>
 
-              <BidForm />
+              <BidForm 
+              repairmanId={token}
+              jobId={id}
+              />
 
 
             </div>
