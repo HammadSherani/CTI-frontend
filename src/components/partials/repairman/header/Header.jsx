@@ -24,7 +24,7 @@ function Header() {
   const primaryNavLinks = [
     { name: "Dashboard", path: `/repair-man/dashboard`, icon: "mdi:view-dashboard-outline" },
     { name: "Job Board", path: "/repair-man/job-board", icon: "mdi:clipboard-list-outline" },
-    { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
+    { name: "My Offer", path: "/repair-man/my-offers", icon: "mdi:handshake-outline" },
     { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
     { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
     { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },

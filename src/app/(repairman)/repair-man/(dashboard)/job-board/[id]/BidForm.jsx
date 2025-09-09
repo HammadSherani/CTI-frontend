@@ -3,6 +3,9 @@ import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "@/config/axiosInstance";
 import { useState } from "react";
+import handleError from "@/helper/handleError";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 
 const schema = yup.object({
     basePrice: yup
@@ -60,7 +63,8 @@ export default function BidForm({
     repairmanId, 
 }) {
 
-    const [isSubmitting, setIsSubmitting] = useState(false); // isSubmitting state can be managed if needed
+    const [isSubmitting, setIsSubmitting] = useState(false); 
+    const router = useRouter()
 
     console.log(jobId, repairmanId);
     
@@ -171,11 +175,14 @@ export default function BidForm({
             
             console.log("Payload to send:", payload);
 
-            const res  = await axiosInstance.post(`/repairman/offers/job/${jobId}/offer`, payload, {
+            const res  = await axiosInstance.post(`/repairman/offers/jobs/${jobId}/offer`, payload, {
                 headers: {
                     'Authorization': 'Bearer ' + repairmanId,
                 }
             });
+
+            toast.success(res.data.message);
+            router.push('/repair-man/dashboard');
             
             console.log("Response from server:", res.data);
             // Here you would make the API call
@@ -195,12 +202,7 @@ export default function BidForm({
             // }
             
         } catch (error) {
-            console.error("Error submitting offer:", error);
-            
-            // Call error callback if provided
-            if (onSubmitError) {
-                onSubmitError(error);
-            }
+            handleError(error)
         }
     };
 
