@@ -5,6 +5,7 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
+import OfferCard from './OfferCard';
 
 // Reusable Pagination Component
 const Pagination = ({ 
@@ -136,42 +137,7 @@ const MyOffersPage = () => {
     getAlloffers(currentPage);
   }, [currentPage]);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'pending': return 'bg-primary-100 text-primary-800';
-      case 'under_review': return 'bg-yellow-100 text-yellow-800';
-      case 'accepted': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      case 'withdrawn': return 'bg-gray-100 text-gray-800';
-      case 'expired': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getUrgencyColor = (urgency) => {
-    switch (urgency) {
-      case 'urgent': return 'text-red-600';
-      case 'high': return 'text-orange-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-gray-600';
-      default: return 'text-gray-600';
-    }
-  };
-
-  const getTimeLeftColor = (hours) => {
-    if (hours <= 0) return 'text-red-600';
-    if (hours <= 24) return 'text-red-600';
-    if (hours <= 48) return 'text-orange-600';
-    return 'text-green-600';
-  };
-
-  const formatTimeLeft = (hours) => {
-    if (hours <= 0) return 'Expired';
-    if (hours < 24) return `${hours}h left`;
-    const days = Math.floor(hours / 24);
-    const remainingHours = hours % 24;
-    return `${days}d ${remainingHours}h left`;
-  };
+ 
 
   // Filter and search offers
   const filteredOffers = useMemo(() => {
@@ -268,200 +234,6 @@ const MyOffersPage = () => {
     );
   };
 
-  const OfferCard = ({ offer }) => {
-    const jobTitle = `${offer.jobId?.deviceInfo?.brand || ''} ${offer.jobId?.deviceInfo?.model || ''} Repair`;
-    const clientInitials = 'CL'; // You'll need to get actual client data
-    const location = offer.jobId?.location?.address || 'Location not specified';
-    
-    return (
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 shadow-sm hover:shadow-xl transition-all duration-300 ease-in-out">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-          <div className="flex items-start space-x-4 w-full">
-            <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-base font-semibold text-primary-700">{clientInitials}</span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start">
-                <h3 className="font-bold text-xl text-gray-900 mb-1">{jobTitle}</h3>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center space-y-2 sm:space-y-0 sm:space-x-4 text-sm text-gray-600 mb-2">
-                <span>Device: {offer.jobId?.deviceInfo?.color} {offer.jobId?.deviceInfo?.brand} {offer.jobId?.deviceInfo?.model}</span>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
-                <span className="flex items-center">
-                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                  {location}
-                </span>
-                {offer.jobId?.urgency && (
-                  <span className={`font-medium ${getUrgencyColor(offer.jobId.urgency)}`} aria-label={`Priority: ${offer.jobId.urgency}`}>
-                    {offer.jobId.urgency.charAt(0).toUpperCase() + offer.jobId.urgency.slice(1)} Priority
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="text-right w-full sm:w-auto">
-            <p className="text-2xl font-bold text-gray-900">{offer.pricing?.currency} {offer.pricing?.totalPrice?.toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Base: {offer.pricing?.currency} {offer.pricing?.basePrice}</p>
-            <p className="text-sm text-gray-600">Parts: {offer.pricing?.currency} {offer.pricing?.partsEstimate}</p>
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium mt-2 ${getStatusColor(offer.isExpired ? 'expired' : offer.status)}`}>
-              {offer.isExpired ? 'Expired' : offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
-            </span>
-          </div>
-        </div>
-
-        {/* Always Visible Details */}
-        <div className="pt-4 border-t border-gray-100">
-          {/* Time-sensitive information */}
-          {offer.timeRemaining > 0 && !offer.isExpired && (
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center">
-                <Icon icon="heroicons:clock" className="w-4 h-4 text-yellow-600 mr-2" aria-hidden="true" />
-                <span className={`font-medium ${getTimeLeftColor(offer.timeRemaining)}`} aria-label={`Time left: ${formatTimeLeft(offer.timeRemaining)}`}>
-                  {formatTimeLeft(offer.timeRemaining)} to respond
-                </span>
-              </div>
-            </div>
-          )}
-
-          {offer.isExpired && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
-              <div className="flex items-center">
-                <Icon icon="heroicons:exclamation-triangle" className="w-4 h-4 text-red-600 mr-2" aria-hidden="true" />
-                <span className="font-medium text-red-700">This offer has expired</span>
-              </div>
-            </div>
-          )}
-
-          {/* Offer Details */}
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <h4 className="font-medium text-gray-900 mb-3">Your Offer Details</h4>
-            <p className="text-sm text-gray-600 mb-4">{offer.description}</p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-              <div>
-                <span className="text-gray-600">Timeline:</span>
-                <span className="font-medium ml-2">{offer.estimatedTime?.value} {offer.estimatedTime?.unit}</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Warranty:</span>
-                <span className="font-medium ml-2">{offer.warranty?.duration} days</span>
-              </div>
-              <div>
-                <span className="text-gray-600">Distance:</span>
-                <span className="font-medium ml-2">{offer.locationInfo?.distance?.toFixed(1)} km</span>
-              </div>
-            </div>
-            
-            {/* Service Options */}
-            <div className="mt-4">
-              <h5 className="font-medium text-gray-900 mb-2">Service Options:</h5>
-              <div className="space-y-1 text-sm">
-                {offer.serviceOptions?.homeService && (
-                  <div className="flex justify-between">
-                    <span>Home Service:</span>
-                    <span className="font-medium">+{offer.pricing?.currency} {offer.serviceOptions.homeServiceCharge}</span>
-                  </div>
-                )}
-                {offer.serviceOptions?.pickupAvailable && (
-                  <div className="flex justify-between">
-                    <span>Pickup Service:</span>
-                    <span className="font-medium">+{offer.pricing?.currency} {offer.serviceOptions.pickupCharge}</span>
-                  </div>
-                )}
-                {offer.serviceOptions?.dropOffLocation && (
-                  <div className="mt-2">
-                    <span className="text-gray-600">Drop-off Location:</span>
-                    <p className="text-sm text-gray-700 mt-1">{offer.serviceOptions.dropOffLocation}</p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Experience */}
-            <div className="mt-4 pt-4 border-t border-gray-200">
-              <h5 className="font-medium text-gray-900 mb-2">Experience:</h5>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Success Rate:</span>
-                  <span className="font-medium ml-2">{offer.experience?.successRate}%</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Similar Repairs:</span>
-                  <span className="font-medium ml-2">{offer.experience?.similarRepairs}</span>
-                </div>
-              </div>
-            </div>
-
-            {offer.warranty?.description && (
-              <div className="mt-3">
-                <span className="text-gray-600 text-sm">Warranty Details:</span>
-                <p className="text-sm text-gray-700 mt-1">"{offer.warranty.description}"</p>
-              </div>
-            )}
-          </div>
-
-          {/* Dates */}
-          <div className="flex flex-col sm:flex-row justify-between text-sm text-gray-600 border-t border-gray-100 pt-4">
-            <div className="flex flex-col sm:flex-row sm:space-x-4 space-y-2 sm:space-y-0">
-              <span>Submitted: {new Date(offer.createdAt).toLocaleDateString()}</span>
-              <span>Updated: {new Date(offer.updatedAt).toLocaleDateString()}</span>
-              {offer.availability?.canStartBy && (
-                <span className="text-green-600">Can start by: {new Date(offer.availability.canStartBy).toLocaleDateString()}</span>
-              )}
-            </div>
-            <div className="flex flex-col text-xs text-gray-500 mt-2 sm:mt-0">
-              <span>Job ID: {offer.jobId?._id}</span>
-              <span>Viewed: {offer.viewedByCustomer ? 'Yes' : 'No'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-          {offer.status === 'pending' && !offer.isExpired && (
-            <>
-              <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                Edit Offer
-              </button>
-              <button className="flex-1 border border-red-300 text-red-700 py-2 px-4 rounded-lg hover:bg-red-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
-                Withdraw
-              </button>
-            </>
-          )}
-          {offer.status === 'under_review' && (
-            <>
-              <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                Message Client
-              </button>
-              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                View Job Details
-              </button>
-            </>
-          )}
-          {offer.status === 'accepted' && (
-            <>
-              <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                Start Job
-              </button>
-              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                Message Client
-              </button>
-            </>
-          )}
-          {(offer.status === 'rejected' || offer.status === 'withdrawn' || offer.isExpired) && (
-            <>
-              <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-                View Job Details
-              </button>
-              <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                Find Similar Jobs
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   const EmptyState = ({ type }) => (
     <div className="text-center py-12">
@@ -627,7 +399,6 @@ const MyOffersPage = () => {
                 <>
                   {filteredOffers.map((offer) => <OfferCard key={offer._id} offer={offer} />)}
                   
-                  {/* Pagination */}
                   {offers?.pagination && (
                     <Pagination
                       currentPage={offers.pagination.current}
