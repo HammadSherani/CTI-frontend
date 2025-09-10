@@ -51,6 +51,39 @@ const JOB_DATA = [
   }
 ];
 
+
+const JobDescription = ({ job }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const description = job?.description || '';
+  const wordLimit = 100;
+
+  // Function to split description into words
+  const getShortDescription = () => {
+    const words = description.split(' ');
+    if (words.length > wordLimit) {
+      return words.slice(0, wordLimit).join(' ') + '...';
+    }
+    return description;
+  };
+
+  return (
+    <div className="job-description mb-4">
+      <h3 className="text-base mb-1">
+        {isExpanded ? description : getShortDescription()}
+      </h3>
+      {description.split(' ').length > wordLimit && (
+        <button
+          className="text-sm text-blue-500 mt-2 hover:underline focus:outline-none"
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          {isExpanded ? 'See Less' : 'See More'}
+        </button>
+      )}
+    </div>
+  );
+};
+
 // Task Card Component
 const RepairJobCard = ({ job }) => {
   const getStatusColor = (status) => {
@@ -126,43 +159,58 @@ const RepairJobCard = ({ job }) => {
 
   const warrantyInfo = getWarrantyInfo(job?.deviceInfo?.warrantyStatus);
   const jobId = job?._id?.slice(-8) || 'N/A';
-  const deviceName = `${job?.deviceInfo?.brand || ''} ${job?.deviceInfo?.model || ''}`.trim() || 'Unknown Device';
+  const deviceName = `${job?.deviceInfo?.brand + " " + job?.deviceInfo?.model + " - " + job?.services?.map(service => service).join(', ') || 'N/A'}`;
+
+  const totalOffer = job?.offers?.length || 0;
+
 
   return (
-    <div className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${
-      isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
-    }`}>
+    <div className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
+      }`}>
       {/* Header Section */}
-      <div className="flex justify-between items-start mb-6">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-primary-100 rounded-lg">
-              <Icon icon="mdi:tools" className="w-6 h-6 text-primary-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-xl text-gray-900 truncate capitalize">
+      <div className="flex justify-between  flex-1 mb-3">
+        <div className=" ">
+          <div className="flex items-center gap-3 mb-2 flex-1">
+            <div className=" ">
+              <h3 className="font-bold flex-1  text-gray-800  line-clamp-3 min-w-[70%] max-w-[98%] text-lg capitalize">
                 {deviceName}
               </h3>
               <div className="flex items-center gap-3 mt-1">
-                <span className="text-sm text-gray-500">ID: {jobId}</span>
-                <span className="text-sm text-gray-400">•</span>
+                {/* <span className="text-sm text-gray-500">ID: {jobId}</span> */}
+                {/* <span className="text-sm text-gray-400">•</span>
                 <span className="text-sm text-gray-500">{formatDate(job?.createdAt)}</span>
                 {isJobExpiringSoon() && (
                   <div className="flex items-center gap-1">
                     <Icon icon="mdi:clock-alert" className="w-4 h-4 text-amber-500" />
                     <span className="text-xs text-amber-600 font-medium">Expiring Soon</span>
                   </div>
-                )}
+                )} */}
               </div>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-shrink-0 ml-4">
-          <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold border ${getStatusColor(job?.status)}`}>
-            {job?.status?.replace('_', ' ') || 'Unknown'}
-          </span>
+        <div className="flex items-center gap-4 flex-shrink-0 ml-4">
+          {/* <div className="flex items-center gap-2">
+    <span className="text-sm text-gray-700 font-medium">Total Offer</span>
+    <span className="text-lg font-semibold text-gray-900">{totalOffer}</span>
+  </div> */}
+
+          <div className="text-right">
+            {/* Budget display */}
+            {job?.budget?.min && job?.budget?.max ? (
+              <p className="text-xl font-semibold text-gray-900">
+                {formatCurrency(job.budget.min, job.budget.currency)} -{' '}
+                {formatCurrency(job.budget.max, job.budget.currency)}
+              </p>
+            ) : (
+              <p className="text-sm text-gray-500">Not specified</p>
+            )}
+          </div>
         </div>
       </div>
+
+      <JobDescription job={job} />
+
 
       {/* Services Section */}
       {job?.services && job.services.length > 0 && (
@@ -172,7 +220,7 @@ const RepairJobCard = ({ job }) => {
             {job.services.map((service, index) => (
               <span
                 key={index}
-                className="px-4 py-2 text-sm font-medium text-blue-800 bg-blue-100 rounded-lg border border-blue-200 hover:bg-blue-200 transition-colors"
+                className="px-4 py-2 text-sm font-medium text-blue-800  rounded-lg border "
               >
                 {service}
               </span>
@@ -182,7 +230,7 @@ const RepairJobCard = ({ job }) => {
       )}
 
       {/* Device Information */}
-      <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-6 border border-gray-200">
+      {/* <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-6 border border-gray-200">
         <h4 className="text-sm font-semibold text-gray-700 mb-3">Device Information</h4>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <div className="text-center">
@@ -212,7 +260,7 @@ const RepairJobCard = ({ job }) => {
               {warrantyInfo.text}
             </span>
           </div>
-          {/* <div className="text-center">
+          <div className="text-center">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
               <Icon icon="mdi:eye" className="w-5 h-5 text-gray-600" />
             </div>
@@ -220,13 +268,12 @@ const RepairJobCard = ({ job }) => {
             <span className="font-semibold text-sm text-gray-900">
               {job?.viewCount || 0}
             </span>
-          </div> */}
+          </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Key Information Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        {/* Budget */}
+      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
@@ -235,16 +282,12 @@ const RepairJobCard = ({ job }) => {
             <div className="flex-1 min-w-0">
               <span className="text-xs text-gray-500 block mb-1 font-medium">Budget Range</span>
               <span className="text-sm font-bold text-gray-900 truncate">
-                {job?.budget?.min && job?.budget?.max 
-                  ? `${formatCurrency(job.budget.min, job.budget.currency)} - ${formatCurrency(job.budget.max, job.budget.currency)}`
-                  : 'Not specified'
-                }
+                
               </span>
             </div>
           </div>
         </div>
 
-        {/* Location */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
@@ -259,7 +302,6 @@ const RepairJobCard = ({ job }) => {
           </div>
         </div>
 
-        {/* Service Preference */}
         <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
@@ -273,7 +315,7 @@ const RepairJobCard = ({ job }) => {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Offers Section
       {(job?.offersCount > 0 || job?.canReceiveOffers) && (
@@ -337,7 +379,7 @@ const RepairJobCard = ({ job }) => {
             <span className="font-medium text-gray-600">{job?.viewCount || 0} views</span>
           </div> */}
         </div>
-        
+
         <div className="flex items-center gap-2">
           {/* <button 
             className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors border border-gray-200 hover:border-blue-300"
@@ -353,10 +395,10 @@ const RepairJobCard = ({ job }) => {
           >
             <Icon icon="mdi:pencil" className="w-4 h-4" />
           </button> */}
-          <button 
+          <button
             className="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-gray-200 hover:border-red-300"
             title="Delete job"
-            onClick={() => {/* Handle delete */}}
+            onClick={() => {/* Handle delete */ }}
           >
             <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
           </button>
@@ -412,7 +454,7 @@ const JobsTabContent = () => {
       job?.urgency?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
       job?.servicePreference?.toLowerCase()?.includes(searchTerm.toLowerCase())
     );
-    
+
     const matchesStatus = filterStatus === 'all' || job?.status === filterStatus;
 
     return matchesSearch && matchesStatus;
@@ -547,7 +589,7 @@ const JobsTabContent = () => {
 
       {/* Updated Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl p-6 text-white">
+        <div className="bg-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-blue-100 text-sm font-medium">Total Jobs</p>
@@ -557,36 +599,37 @@ const JobsTabContent = () => {
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-xl p-6 text-white">
+        <div className="bg-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-green-100 text-sm font-medium">Open Jobs</p>
+              <p className="text-blue-100 text-sm font-medium">Open Jobs</p>
               <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'open').length}</p>
             </div>
-            <Icon icon="mdi:clock-outline" className="w-8 h-8 text-green-200" />
+            <Icon icon="mdi:clock-outline" className="w-8 h-8 text-blue-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-xl p-6 text-white">
+        <div className="bg-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-yellow-100 text-sm font-medium">In Progress</p>
+              <p className="text-blue-100 text-sm font-medium">In Progress</p>
               <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'in_progress').length}</p>
             </div>
-            <Icon icon="mdi:cog" className="w-8 h-8 text-yellow-200" />
+            <Icon icon="mdi:cog" className="w-8 h-8 text-blue-200" />
           </div>
         </div>
 
-        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl p-6 text-white">
+        <div className="bg-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-purple-100 text-sm font-medium">Offers Received</p>
+              <p className="text-blue-100 text-sm font-medium">Offers Received</p>
               <p className="text-3xl font-bold">{jobs.reduce((total, job) => total + (job.offersCount || 0), 0)}</p>
             </div>
-            <Icon icon="mdi:handshake" className="w-8 h-8 text-purple-200" />
+            <Icon icon="mdi:handshake" className="w-8 h-8 text-blue-200" />
           </div>
         </div>
       </div>
+
 
       {/* Results Info */}
       {filteredJobs.length > 0 && (
@@ -652,8 +695,8 @@ const JobsTabContent = () => {
               onClick={handlePreviousPage}
               disabled={currentPage === 1}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 1
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
                 }`}
             >
               <Icon icon="mdi:chevron-left" className="w-4 h-4 mr-1" />
@@ -668,10 +711,10 @@ const JobsTabContent = () => {
                 onClick={() => pageNumber !== '...' && handlePageChange(pageNumber)}
                 disabled={pageNumber === '...'}
                 className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pageNumber === currentPage
-                    ? 'bg-primary-600 text-white'
-                    : pageNumber === '...'
-                      ? 'text-gray-400 cursor-default'
-                      : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                  ? 'bg-primary-600 text-white'
+                  : pageNumber === '...'
+                    ? 'text-gray-400 cursor-default'
+                    : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
                   }`}
               >
                 {pageNumber}
@@ -684,8 +727,8 @@ const JobsTabContent = () => {
               onClick={handleNextPage}
               disabled={currentPage === totalPages}
               className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === totalPages
-                  ? 'text-gray-400 cursor-not-allowed'
-                  : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                ? 'text-gray-400 cursor-not-allowed'
+                : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
                 }`}
             >
               Next
