@@ -342,8 +342,8 @@ function JobDetails() {
                 {
                     offerId: selectedOffer._id,
                     serviceType: bookingData.serviceType,
-                    scheduledDate: bookingData.scheduledDate,
-                    timeSlot: bookingData.timeSlot,
+                    scheduledDate: selectedOffer?.availability?.canStartBy,
+                    // timeSlot: bookingData.timeSlot,
                     specialInstructions: bookingData.specialInstructions
                 },
                 {
@@ -360,7 +360,7 @@ function JobDetails() {
                 await fetchJob();
                 
                 // Optionally redirect to booking details or jobs list
-                router.push('/bookings');
+                // router.push('/bookings');
             }
         } catch (error) {
             handleError(error);

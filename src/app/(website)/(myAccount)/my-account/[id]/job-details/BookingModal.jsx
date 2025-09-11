@@ -1,39 +1,85 @@
 import React, { useState } from 'react'
+import * as yup from 'yup'
 
 const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) => {
     const [formData, setFormData] = useState({
         serviceType: '',
-        scheduledDate: job?.availability?.canStartBy,
-        // timeSlot: '',
         specialInstructions: ''
     });
     const [errors, setErrors] = useState({});
 
-    
-
-    const validateForm = () => {
-        const newErrors = {};
+    // Yup validation schema
+    const validationSchema = yup.object().shape({
+        serviceType: yup
+            .string()
+            .required('Service type is required')
+            .oneOf(['shop', 'pickup', 'home-service'], 'Please select a valid service type'),
         
-        if (!formData.serviceType) newErrors.serviceType = 'Service type is required';
-        if (!formData.scheduledDate) newErrors.scheduledDate = 'Scheduled date is required';
-        if (!formData.timeSlot) newErrors.timeSlot = 'Time slot is required';
+        specialInstructions: yup
+            .string()
+            .max(500, 'Special instructions cannot exceed 500 characters')
+            .optional()
+    });
 
-        // Validate date is not in the past
-        const selectedDate = new Date(formData.scheduledDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
-        if (selectedDate < today) {
-            newErrors.scheduledDate = 'Date cannot be in the past';
+    const validateForm = async () => {
+        try {
+            await validationSchema.validate(formData, { abortEarly: false });
+            setErrors({});
+            return true;
+        } catch (validationError) {
+            const newErrors = {};
+            
+            if (validationError.inner) {
+                validationError.inner.forEach(error => {
+                    newErrors[error.path] = error.message;
+                });
+            }
+            
+            setErrors(newErrors);
+            return false;
         }
-
-        setErrors(newErrors);
-        return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (e) => {
+    // Real-time field validation
+    const validateField = async (fieldName, value) => {
+        try {
+            await validationSchema.validateAt(fieldName, { [fieldName]: value });
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[fieldName];
+                return newErrors;
+            });
+        } catch (validationError) {
+            setErrors(prev => ({
+                ...prev,
+                [fieldName]: validationError.message
+            }));
+        }
+    };
+
+    const handleInputChange = (fieldName, value) => {
+        setFormData(prev => ({ ...prev, [fieldName]: value }));
+        
+        // Clear error when user starts typing
+        if (errors[fieldName]) {
+            setErrors(prev => {
+                const newErrors = { ...prev };
+                delete newErrors[fieldName];
+                return newErrors;
+            });
+        }
+        
+        // Validate field after a short delay (debounce)
+        setTimeout(() => {
+            validateField(fieldName, value);
+        }, 300);
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (validateForm()) {
+        const isValid = await validateForm();
+        
+        if (isValid) {
             onSubmit(formData);
         }
     };
@@ -76,7 +122,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                             </label>
                             <select
                                 value={formData.serviceType}
-                                onChange={(e) => setFormData(prev => ({ ...prev, serviceType: e.target.value }))}
+                                onChange={(e) => handleInputChange('serviceType', e.target.value)}
                                 className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                                     errors.serviceType ? 'border-red-500' : 'border-gray-300'
                                 }`}
@@ -100,20 +146,27 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                             )}
                         </div>
 
-                        
-
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Special Instructions
+                                <span className="text-gray-400 text-xs ml-1">
+                                    ({formData.specialInstructions.length}/500)
+                                </span>
                             </label>
                             <textarea
                                 value={formData.specialInstructions}
-                                onChange={(e) => setFormData(prev => ({ ...prev, specialInstructions: e.target.value }))}
+                                onChange={(e) => handleInputChange('specialInstructions', e.target.value)}
                                 placeholder="Any special instructions or requirements..."
                                 rows={3}
-                                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                                maxLength={500}
+                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                    errors.specialInstructions ? 'border-red-500' : 'border-gray-300'
+                                }`}
                                 disabled={isSubmitting}
                             />
+                            {errors.specialInstructions && (
+                                <p className="text-red-500 text-xs mt-1">{errors.specialInstructions}</p>
+                            )}
                         </div>
 
                         <div className="bg-blue-50 p-3 rounded-lg">
@@ -152,9 +205,9 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                             </button>
                             <button
                                 type="submit"
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || Object.keys(errors).length > 0}
                                 className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
-                                    isSubmitting 
+                                    isSubmitting || Object.keys(errors).length > 0
                                         ? 'bg-blue-400 cursor-not-allowed' 
                                         : 'bg-blue-600 hover:bg-blue-700'
                                 }`}
@@ -179,4 +232,4 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
     );
 };
 
-export default BookingModal
+export default BookingModal;
