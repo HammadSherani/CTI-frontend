@@ -6,50 +6,9 @@ import Link from 'next/link';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
+import { useRouter } from 'next/navigation';
 
-// Sample data for jobs
-const JOB_DATA = [
-  {
-    id: 1,
-    title: 'Design UI Mockups for Dashboard',
-    description: 'Create high-fidelity mockups for the new user dashboard page using Figma. Focus on a clean and intuitive layout.',
-    startTime: '10:00 AM',
-    endTime: '1:00 PM',
-    tags: ['UI/UX', 'Design', 'Figma'],
-    status: 'In Progress',
-    priority: 'Medium'
-  },
-  {
-    id: 2,
-    title: 'API Integration for Payment Gateway',
-    description: 'Integrate Stripe API to handle user subscriptions and one-time payments. Ensure all endpoints are secure.',
-    startTime: '2:00 PM',
-    endTime: '5:30 PM',
-    tags: ['Development', 'API', 'High Priority'],
-    status: 'Pending',
-    priority: 'High'
-  },
-  {
-    id: 3,
-    title: 'Weekly Team Sync-Up',
-    description: 'Discuss project progress, identify any blockers, and plan jobs for the upcoming sprint with the development team.',
-    startTime: '9:00 AM',
-    endTime: '9:45 AM',
-    tags: ['Meeting', 'Planning'],
-    status: 'Completed',
-    priority: 'Low'
-  },
-  {
-    id: 4,
-    title: 'Code Review - Authentication Module',
-    description: 'Review pull requests for the new authentication system implementation. Check for security vulnerabilities.',
-    startTime: '3:30 PM',
-    endTime: '4:15 PM',
-    tags: ['Code Review', 'Security'],
-    status: 'Pending',
-    priority: 'High'
-  }
-];
+
 
 
 const JobDescription = ({ job }) => {
@@ -69,7 +28,7 @@ const JobDescription = ({ job }) => {
 
   return (
     <div className="job-description mb-4">
-      <h3 className="text-base mb-1">
+      <h3 className="text-sm leading-5 mb-1">
         {isExpanded ? description : getShortDescription()}
       </h3>
       {description.split(' ').length > wordLimit && (
@@ -86,6 +45,8 @@ const JobDescription = ({ job }) => {
 
 // Task Card Component
 const RepairJobCard = ({ job }) => {
+  const router = useRouter();
+
   const getStatusColor = (status) => {
     const statusColors = {
       'completed': 'bg-green-100 text-green-800 border-green-200',
@@ -165,7 +126,9 @@ const RepairJobCard = ({ job }) => {
 
 
   return (
-    <div className={`bg-white border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
+    <div 
+    onClick={() => router.push(`/my-account/${job?._id}/job-details`)}
+    className={`bg-white hover:bg-gray-100 hover:cursor-pointer border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
       }`}>
       {/* Header Section */}
       <div className="flex justify-between  flex-1 mb-3">
@@ -214,7 +177,7 @@ const RepairJobCard = ({ job }) => {
 
       {/* Services Section */}
       {job?.services && job.services.length > 0 && (
-        <div className="mb-6">
+        <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Required Services</h4>
           <div className="flex flex-wrap gap-2">
             {job.services.map((service, index) => (
@@ -343,13 +306,13 @@ const RepairJobCard = ({ job }) => {
 
       {/* Preferred Time */}
       {/* Priority and Timing Section */}
-      <div className="flex items-center justify-between mb-6">
+      {/* <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           {job?.urgency && (
             <div className="flex items-center gap-2">
               <span className="text-sm font-semibold text-gray-700">Priority:</span>
               <span className={`inline-flex capitalize items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getUrgencyColor(job.urgency)}`}>
-                {/* <Icon icon={getUrgencyIcon(job.urgency)} className="w-4 h-4 mr-2" /> */}
+                <Icon icon={getUrgencyIcon(job.urgency)} className="w-4 h-4 mr-2" />
                 {job.urgency}
               </span>
             </div>
@@ -361,7 +324,7 @@ const RepairJobCard = ({ job }) => {
             <span className="font-medium">Preferred: {formatDate(job.preferredTime)}</span>
           </div>
         )}
-      </div>
+      </div> */}
 
       {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
@@ -395,13 +358,12 @@ const RepairJobCard = ({ job }) => {
           >
             <Icon icon="mdi:pencil" className="w-4 h-4" />
           </button> */}
-          <button
+          {/* <button
             className="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-gray-200 hover:border-red-300"
             title="Delete job"
-            onClick={() => {/* Handle delete */ }}
           >
             <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
-          </button>
+          </button> */}
         </div>
       </div>
     </div>
@@ -588,7 +550,7 @@ const JobsTabContent = () => {
       </div>
 
       {/* Updated Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-blue-600 rounded-xl p-6 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -628,7 +590,7 @@ const JobsTabContent = () => {
             <Icon icon="mdi:handshake" className="w-8 h-8 text-blue-200" />
           </div>
         </div>
-      </div>
+      </div> */}
 
 
       {/* Results Info */}
