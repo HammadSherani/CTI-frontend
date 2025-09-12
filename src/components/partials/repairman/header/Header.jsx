@@ -1,15 +1,16 @@
 "use client"
 import Image from 'next/image';
 import Link from 'next/link';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { usePathname } from 'next/navigation';
 import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
-import NotificationBell from '../NotificationBell';
 import NotificationPanel from '../NotificationPanel';
+import socketService from '@/utils/socketService';
+import { useNotifications } from '@/hooks/useNotifications';
 
 function Header() {
   const pathname = usePathname();
@@ -19,11 +20,28 @@ function Header() {
   const [showNotifications, setShowNotifications] = useState(false);
   const dispatch = useDispatch();
 
-  const {user, token } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
+  const { unreadCount } = useNotifications(token);
 
-  const handleLogout = () => {
+  // Socket connection for repairmen only
+  useEffect(() => {
+    if (token && user?.role === 'repairman') {
+      console.log('Connecting socket for repairman:', user.name);
+      socketService.connect(token);
+      socketService.requestNotificationPermission();
+    }
+    
+    return () => {
+      if (user?.role === 'repairman') {
+        socketService.disconnect();
+      }
+    };
+  }, [token, user?.role, user?.name]);
+
+  const handleLogout = useCallback(() => {
+    socketService.disconnect();
     dispatch(clearAuth());
-  }
+  }, [dispatch]);
 
   const primaryNavLinks = [
     { name: "Dashboard", path: `/repair-man/dashboard`, icon: "mdi:view-dashboard-outline" },
@@ -40,10 +58,10 @@ function Header() {
     { name: "Disputes", path: "/disputes", icon: "mdi:gavel" },
     { name: "Notifications", path: "/notification-center", icon: "mdi:bell-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
-    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true, },
+    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true },
   ];
 
-  // Close dropdown when clicking outside
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -58,19 +76,27 @@ function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Close dropdown on route change
+  // Close dropdowns on route change
   useEffect(() => {
     setIsDropdownOpen(false);
     setShowNotifications(false);
   }, [pathname]);
 
-  const isActiveLink = (linkPath) => {
+  const isActiveLink = useCallback((linkPath) => {
     return pathname === linkPath || pathname.startsWith(linkPath + '/');
-  };
+  }, [pathname]);
+
+  const toggleNotifications = useCallback(() => {
+    setShowNotifications(prev => !prev);
+  }, []);
+
+  const toggleDropdown = useCallback(() => {
+    setIsDropdownOpen(prev => !prev);
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
-      <div className="container mx-auto py-1  flex items-center justify-between">
+      <div className="container mx-auto py-1 flex items-center justify-between">
         {/* Logo and Navigation */}
         <div className="flex items-center gap-8">
           <Link href="/repair-man/dashboard" className="flex-shrink-0">
@@ -108,47 +134,55 @@ function Header() {
 
         {/* Right Side - Notifications + Profile */}
         <div className="flex items-center gap-4">
-          {/* Notification Bell */}
-          <div className="relative" ref={notificationRef}>
-            <button
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <Icon icon="mdi:bell-outline" className="w-6 h-6" />
-              
-              {/* Notification Badge - You'll connect this to actual unread count */}
-              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                3
-              </div>
-            </button>
+          {/* Notification Bell - Only show for repairmen */}
+          {user?.role === 'repairman' && (
+            <div className="relative" ref={notificationRef}>
+              <button
+                onClick={toggleNotifications}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                aria-label="Notifications"
+              >
+                <Icon icon="mdi:bell-outline" className="w-6 h-6" />
+                
+                {/* Notification Badge */}
+                {unreadCount > 0 && (
+                  <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </div>
+                )}
+              </button>
 
-            {/* Notification Panel */}
-            {showNotifications && (
-              <NotificationPanel 
-                isOpen={showNotifications}
-                onClose={() => setShowNotifications(false)}
-                userToken={token}
-              />
-            )}
-          </div>
+              {/* Notification Panel */}
+              {showNotifications && (
+                <NotificationPanel 
+                  isOpen={showNotifications}
+                  onClose={() => setShowNotifications(false)}
+                  userToken={token}
+                />
+              )}
+            </div>
+          )}
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
             <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={toggleDropdown}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group
                 ${isDropdownOpen
                   ? 'bg-gray-100 shadow-sm'
                   : 'hover:bg-gray-50'
                 }`}
+              aria-label="Profile menu"
             >
-              {/* Minimalist Avatar */}
+              {/* Avatar */}
               <div className="relative">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm ring-2 ring-white">
-                  <span className="text-xs font-semibold text-white">{getInitials(user?.name)}</span>
+                  <span className="text-xs font-semibold text-white">
+                    {getInitials(user?.name)}
+                  </span>
                 </div>
                 {/* Online indicator */}
-                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full" />
               </div>
 
               {/* User Info - Hidden on mobile */}
@@ -171,7 +205,9 @@ function Header() {
                 <div className="px-4 py-3 border-b border-gray-100">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center">
-                      <span className="text-sm font-semibold text-white">{getInitials(user?.name)}</span>
+                      <span className="text-sm font-semibold text-white">
+                        {getInitials(user?.name)}
+                      </span>
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{user?.name}</p>
@@ -182,7 +218,7 @@ function Header() {
 
                 {/* Menu Items */}
                 <div className="py-2">
-                  {dropdownLinks.map((link, index) => (
+                  {dropdownLinks.map((link) => (
                     <React.Fragment key={link.name}>
                       {link.isLogout && <div className="border-t border-gray-100 my-2" />}
                       <Link
@@ -193,7 +229,6 @@ function Header() {
                             : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                           }`}
                         onClick={() => link.isLogout && handleLogout()}
-
                       >
                         <Icon
                           icon={link.icon}

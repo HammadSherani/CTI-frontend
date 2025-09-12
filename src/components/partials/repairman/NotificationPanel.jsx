@@ -109,6 +109,8 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
 
   return (
     <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+{/* 
+      Lorem ipsum dolor sit amet, consectetur adipisicing elit. Odio tempora error repudiandae suscipit reiciendis voluptatum ea id minus sed commodi labore adipisci perspiciatis beatae reprehenderit maiores nemo similique quia quis, obcaecati voluptatem? Nobis sapiente maxime optio, debitis placeat aliquam quae ipsum distinctio cum repellendus sunt sequi fugit corporis quod officia saepe id eaque, in ad quos quam impedit, tempora numquam eligendi. Possimus soluta quo a voluptates libero. Veniam debitis at corrupti hic aperiam harum tempora dolorum. Labore aspernatur quis a. Debitis beatae, blanditiis soluta excepturi, perferendis nisi eius sequi non aperiam cupiditate aspernatur ut vitae in nesciunt praesentium quo. Repudiandae? */}
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h3 className="font-semibold text-gray-900">
