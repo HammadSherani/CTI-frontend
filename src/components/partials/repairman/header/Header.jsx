@@ -47,8 +47,8 @@ function Header() {
     { name: "Dashboard", path: `/repair-man/dashboard`, icon: "mdi:view-dashboard-outline" },
     { name: "Job Board", path: "/repair-man/job-board", icon: "mdi:clipboard-list-outline" },
     { name: "My Offer", path: "/repair-man/my-offers", icon: "mdi:handshake-outline" },
-    { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
-    { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
+    { name: "My Jobs", path: "/repair-man/my-jobs", icon: "mdi:briefcase-outline" },
+    // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
     { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },
   ];
 
@@ -133,7 +133,8 @@ function Header() {
         </div>
 
         {/* Right Side - Notifications + Profile */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Icon icon="fluent:chat-24-regular" width="24" height="24" />
           {/* Notification Bell - Only show for repairmen */}
           {user?.role === 'repairman' && (
             <div className="relative" ref={notificationRef}>
@@ -152,6 +153,8 @@ function Header() {
                 )}
               </button>
 
+              
+
               {/* Notification Panel */}
               {showNotifications && (
                 <NotificationPanel 
@@ -162,6 +165,8 @@ function Header() {
               )}
             </div>
           )}
+
+          
 
           {/* Profile Dropdown */}
           <div className="relative" ref={dropdownRef}>
