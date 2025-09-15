@@ -254,7 +254,7 @@ class SocketService {
   showOfferAcceptedNotification(data) {
     this.showBrowserNotification(
       '✅ Offer Accepted!',
-      `Your offer for "${data.jobTitle}" has been accepted!`,
+      `Your offer for "${data?.deviceInfo?.brand} ${data?.deviceInfo?.model}" has been accepted!`,
       '/success-icon.png'
     );
 
@@ -262,7 +262,7 @@ class SocketService {
       <div>
         <div className="font-bold">Congratulations! 🎉</div>
         <div className="text-sm">Your offer has been accepted</div>
-        <div className="text-xs">{data.jobTitle}</div>
+        <div className="text-xs">{data?.deviceInfo?.brand} {data?.deviceInfo?.model}</div>
       </div>,
       { duration: 8000 }
     );
@@ -275,7 +275,7 @@ class SocketService {
       <div>
         <div className="font-bold">Offer Update</div>
         <div className="text-sm">Job assigned to another repairman</div>
-        <div className="text-xs">{data.jobTitle}</div>
+        <div className="text-xs">{data?.deviceInfo?.brand} {data?.deviceInfo?.model}</div>
       </div>,
       { duration: 5000 }
     );
@@ -285,7 +285,7 @@ class SocketService {
     toast.error(
       <div>
         <div className="font-bold">Job Cancelled</div>
-        <div className="text-sm">{data.jobTitle}</div>
+        <div className="text-sm">{data?.deviceInfo?.brand} {data?.deviceInfo?.model}</div>
         <div className="text-xs">Reason: {data.cancellationReason}</div>
       </div>,
       { duration: 6000 }

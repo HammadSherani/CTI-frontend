@@ -13,7 +13,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
         serviceType: yup
             .string()
             .required('Service type is required')
-            .oneOf(['shop', 'pickup', 'home-service'], 'Please select a valid service type'),
+            .oneOf(['drop-off', 'pickup', 'home-service'], 'Please select a valid service type'),
         
         specialInstructions: yup
             .string()
@@ -129,7 +129,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                                 disabled={isSubmitting}
                             >
                                 <option value="">Select service type</option>
-                                <option value="shop">Bring to Shop</option>
+                                <option value="drop-off">Bring to Shop</option>
                                 {offer.serviceOptions?.pickupAvailable && (
                                     <option value="pickup">
                                         Pickup Service (+₨{offer.serviceOptions.pickupCharge})

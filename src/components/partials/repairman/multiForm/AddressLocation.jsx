@@ -373,15 +373,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
         </div>
       </div>
 
-      {/* Debug: Show address object structure */}
-      {currentAddress && (
-        <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <h3 className="text-sm font-semibold text-gray-700 mb-2">Address Object (for debugging):</h3>
-          <pre className="text-xs text-gray-600 overflow-x-auto">
-            {JSON.stringify(currentAddress, null, 2)}
-          </pre>
-        </div>
-      )}
+      
     </div>
   );
 };

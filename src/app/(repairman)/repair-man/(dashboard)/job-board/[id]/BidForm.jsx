@@ -117,6 +117,7 @@ export default function BidForm({
 
     const onSubmit = async (data) => {
         try {
+            setIsSubmitting(true);
             const payload = {
                 jobId: jobId,
                 repairmanId: repairmanId,
@@ -203,6 +204,8 @@ export default function BidForm({
             
         } catch (error) {
             handleError(error)
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
