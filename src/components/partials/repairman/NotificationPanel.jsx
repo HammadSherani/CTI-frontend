@@ -18,7 +18,7 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
     
     // Navigate based on notification type
     if (notification.type === 'new_job') {
-      window.location.href = `/repairman/jobs/${notification.data.jobId}`;
+      window.location.href = `/repair-man/job-board/${notification.data.jobId}`;
     } else if (notification.type === 'offer_accepted') {
       window.location.href = `/repairman/bookings/${notification.data.bookingId}`;
     }
