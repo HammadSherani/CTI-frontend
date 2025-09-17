@@ -115,6 +115,7 @@ const MyOffersPage = () => {
   const {token} = useSelector((state) => state.auth); 
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const getAlloffers = async (page = 1) => {
     setLoading(true);
@@ -135,7 +136,12 @@ const MyOffersPage = () => {
 
   useEffect(() => {
     getAlloffers(currentPage);
-  }, [currentPage]);
+  }, [currentPage, refreshTrigger]);
+
+  // Function to handle job acceptance and trigger refresh
+  const handleJobAccepted = () => {
+    setRefreshTrigger(prev => prev + 1);
+  };
 
  
 
@@ -145,9 +151,12 @@ const MyOffersPage = () => {
     
     let offersToFilter = offers.offers;
     
+    // Filter out in_progress offers completely
+    offersToFilter = offersToFilter.filter(offer => offer.status !== 'in_progress');
+    
     // Filter by status if not "all"
     if (activeTab !== 'all') {
-      offersToFilter = offers.offers.filter(offer => {
+      offersToFilter = offersToFilter.filter(offer => {
         if (activeTab === 'expired') return offer.isExpired;
         return offer.status === activeTab;
       });
@@ -397,7 +406,13 @@ const MyOffersPage = () => {
             <div className="space-y-6">
               {filteredOffers?.length > 0 ? (
                 <>
-                  {filteredOffers.map((offer) => <OfferCard key={offer._id} offer={offer} />)}
+                  {filteredOffers.map((offer) => (
+                    <OfferCard 
+                      key={offer._id} 
+                      offer={offer} 
+                      onJobAccepted={handleJobAccepted}
+                    />
+                  ))}
                   
                   {offers?.pagination && (
                     <Pagination
