@@ -165,74 +165,74 @@ const MyOffersPage = () => {
   }, [activeTab, searchQuery, urgencyFilter, offers]);
 
   // Summary Component
-  const OffersSummary = () => {
-    const summary = offers?.summary || {};
-    const totalOffers = offers?.pagination?.totalOffers || 0;
+  // const OffersSummary = () => {
+  //   const summary = offers?.summary || {};
+  //   const totalOffers = offers?.pagination?.totalOffers || 0;
 
-    return (
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <Icon icon="heroicons:document-text" className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Total Offers</p>
-              <p className="text-2xl font-bold text-gray-900">{totalOffers}</p>
-            </div>
-          </div>
-        </div>
+  //   return (
+  //     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-blue-100 rounded-lg">
+  //             <Icon icon="heroicons:document-text" className="w-6 h-6 text-blue-600" />
+  //           </div>
+  //           <div className="ml-3">
+  //             <p className="text-sm font-medium text-gray-600">Total Offers</p>
+  //             <p className="text-2xl font-bold text-gray-900">{totalOffers}</p>
+  //           </div>
+  //         </div>
+  //       </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-yellow-100 rounded-lg">
-              <Icon icon="heroicons:clock" className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.pending || 0}</p>
-            </div>
-          </div>
-        </div>
+  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-yellow-100 rounded-lg">
+  //             <Icon icon="heroicons:clock" className="w-6 h-6 text-yellow-600" />
+  //           </div>
+  //           <div className="ml-3">
+  //             <p className="text-sm font-medium text-gray-600">Pending</p>
+  //             <p className="text-2xl font-bold text-gray-900">{summary.pending || 0}</p>
+  //           </div>
+  //         </div>
+  //       </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-green-100 rounded-lg">
-              <Icon icon="heroicons:check-circle" className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Accepted</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.accepted || 0}</p>
-            </div>
-          </div>
-        </div>
+  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-green-100 rounded-lg">
+  //             <Icon icon="heroicons:check-circle" className="w-6 h-6 text-green-600" />
+  //           </div>
+  //           <div className="ml-3">
+  //             <p className="text-sm font-medium text-gray-600">Accepted</p>
+  //             <p className="text-2xl font-bold text-gray-900">{summary.accepted || 0}</p>
+  //           </div>
+  //         </div>
+  //       </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-red-100 rounded-lg">
-              <Icon icon="heroicons:x-circle" className="w-6 h-6 text-red-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Rejected</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.rejected || 0}</p>
-            </div>
-          </div>
-        </div>
+  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-red-100 rounded-lg">
+  //             <Icon icon="heroicons:x-circle" className="w-6 h-6 text-red-600" />
+  //           </div>
+  //           <div className="ml-3">
+  //             <p className="text-sm font-medium text-gray-600">Rejected</p>
+  //             <p className="text-2xl font-bold text-gray-900">{summary.rejected || 0}</p>
+  //           </div>
+  //         </div>
+  //       </div>
 
-        <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-100 rounded-lg">
-              <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-gray-600" />
-            </div>
-            <div className="ml-3">
-              <p className="text-sm font-medium text-gray-600">Expired</p>
-              <p className="text-2xl font-bold text-gray-900">{summary.expired || 0}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
+  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+  //         <div className="flex items-center">
+  //           <div className="p-2 bg-gray-100 rounded-lg">
+  //             <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-gray-600" />
+  //           </div>
+  //           <div className="ml-3">
+  //             <p className="text-sm font-medium text-gray-600">Expired</p>
+  //             <p className="text-2xl font-bold text-gray-900">{summary.expired || 0}</p>
+  //           </div>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // };
 
 
   const EmptyState = ({ type }) => (
@@ -312,7 +312,7 @@ const MyOffersPage = () => {
         </div>
 
         {/* Summary Cards */}
-        <OffersSummary />
+        {/* <OffersSummary /> */}
 
         {/* Search and Filter */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">

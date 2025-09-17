@@ -28,7 +28,7 @@ class SocketService {
     }
 
     // Check if backend server is running
-    this.checkServerHealth();
+    // this.checkServerHealth();
 
     // Socket configuration with improved settings
     const socketConfig = {
@@ -74,23 +74,23 @@ class SocketService {
   }
 
   // Check if backend server is reachable
-  async checkServerHealth() {
-    try {
-      const response = await fetch('http://localhost:5000/health', {
-        method: 'GET',
-        timeout: 5000
-      });
+  // async checkServerHealth() {
+  //   try {
+  //     const response = await fetch('http://localhost:5000/health', {
+  //       method: 'GET',
+  //       timeout: 5000
+  //     });
       
-      if (response.ok) {
-        console.log("✅ Backend server is running");
-      } else {
-        console.warn("⚠️ Backend server responded with status:", response.status);
-      }
-    } catch (error) {
-      console.error("❌ Backend server is not reachable:", error.message);
-      toast.error("Cannot connect to server. Please ensure the backend is running on port 5000.");
-    }
-  }
+  //     if (response.ok) {
+  //       console.log("✅ Backend server is running");
+  //     } else {
+  //       console.warn("⚠️ Backend server responded with status:", response.status);
+  //     }
+  //   } catch (error) {
+  //     console.error("❌ Backend server is not reachable:", error.message);
+  //     toast.error("Cannot connect to server. Please ensure the backend is running on port 5000.");
+  //   }
+  // }
 
   setupEventListeners() {
     this.socket.on('connect', () => {

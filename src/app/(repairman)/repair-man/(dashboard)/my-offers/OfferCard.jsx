@@ -3,11 +3,19 @@ import React, { useState } from 'react';
 import EditOfferModal from './EditOfferModal';
 import Link from 'next/link';
 import WithdrawModal from './WithdrawModal';
+import axiosInstance from '@/config/axiosInstance';
+import handleError from '@/helper/handleError';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 
 const OfferCard = ({ offer, handleUpdateOffer }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [iswithdrawModalOpen, setIswithdrawModalOpen] = useState(false)
+    const { token } = useSelector((state) => state.auth);
+
+    console.log(offer, 'offer');
+
 
     const jobTitle = `${offer.jobId?.deviceInfo?.brand || ''} ${offer.jobId?.deviceInfo?.model || ''} Repair`;
     const clientInitials = 'CL';
@@ -50,6 +58,27 @@ const OfferCard = ({ offer, handleUpdateOffer }) => {
             setIsUpdating(false);
         }
     };
+
+
+    const handleStartJob = async (id) => {
+        try {
+            const { data: { message } } = await axiosInstance.patch(
+                `/repairman/offers/start-job/${id}`,
+                {},
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            toast.success(message);
+        } catch (error) {
+            handleError(error);
+        }
+    };
+
+
+    console.log(offer);
+
 
     return (
         <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -128,9 +157,9 @@ const OfferCard = ({ offer, handleUpdateOffer }) => {
 
                             </button>
                         </Link>
-                        <button 
-                        onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
-                        className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md hover:bg-red-50 transition-colors text-sm font-medium">
+                        <button
+                            onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
+                            className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md hover:bg-red-50 transition-colors text-sm font-medium">
                             Withdraw
                         </button>
                     </>
@@ -147,7 +176,9 @@ const OfferCard = ({ offer, handleUpdateOffer }) => {
                 )}
                 {offer.status === 'accepted' && (
                     <>
-                        <button className="flex-1 bg-green-600 text-white py-2 px-3 rounded-md hover:bg-green-700 transition-colors text-sm font-medium">
+                        <button
+                            onClick={() => handleStartJob(offer?.jobId?._id)}
+                            className="flex-1 bg-green-600 text-white py-2 px-3 rounded-md hover:bg-green-700 transition-colors text-sm font-medium">
                             Start Job
                         </button>
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">

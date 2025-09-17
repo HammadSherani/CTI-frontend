@@ -126,10 +126,10 @@ const RepairJobCard = ({ job }) => {
 
 
   return (
-    <div 
-    onClick={() => router.push(`/my-account/${job?._id}/job-details`)}
-    className={`bg-white hover:bg-gray-100 hover:cursor-pointer border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
-      }`}>
+    <div
+      onClick={() => router.push(`/my-account/${job?._id}/job-details`)}
+      className={`bg-white hover:bg-gray-100 hover:cursor-pointer border rounded-xl p-6 shadow-sm hover:shadow-sm transition-all duration-200 hover:border-gray-300 ${isJobExpired() ? 'opacity-75 border-red-200' : 'border-gray-200'
+        }`}>
       {/* Header Section */}
       <div className="flex justify-between  flex-1 mb-3">
         <div className=" ">
@@ -139,27 +139,12 @@ const RepairJobCard = ({ job }) => {
                 {deviceName}
               </h3>
               <div className="flex items-center gap-3 mt-1">
-                {/* <span className="text-sm text-gray-500">ID: {jobId}</span> */}
-                {/* <span className="text-sm text-gray-400">•</span>
-                <span className="text-sm text-gray-500">{formatDate(job?.createdAt)}</span>
-                {isJobExpiringSoon() && (
-                  <div className="flex items-center gap-1">
-                    <Icon icon="mdi:clock-alert" className="w-4 h-4 text-amber-500" />
-                    <span className="text-xs text-amber-600 font-medium">Expiring Soon</span>
-                  </div>
-                )} */}
               </div>
             </div>
           </div>
         </div>
         <div className="flex items-center gap-4 flex-shrink-0 ml-4">
-          {/* <div className="flex items-center gap-2">
-    <span className="text-sm text-gray-700 font-medium">Total Offer</span>
-    <span className="text-lg font-semibold text-gray-900">{totalOffer}</span>
-  </div> */}
-
           <div className="text-right">
-            {/* Budget display */}
             {job?.budget?.min && job?.budget?.max ? (
               <p className="text-xl font-semibold text-gray-900">
                 {formatCurrency(job.budget.min, job.budget.currency)} -{' '}
@@ -171,11 +156,8 @@ const RepairJobCard = ({ job }) => {
           </div>
         </div>
       </div>
-
       <JobDescription job={job} />
 
-
-      {/* Services Section */}
       {job?.services && job.services.length > 0 && (
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Required Services</h4>
@@ -192,178 +174,33 @@ const RepairJobCard = ({ job }) => {
         </div>
       )}
 
-      {/* Device Information */}
-      {/* <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-5 mb-6 border border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">Device Information</h4>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
-              <Icon icon="mdi:tag" className="w-5 h-5 text-gray-600" />
-            </div>
-            <span className="text-xs text-gray-500 block mb-1">Brand</span>
-            <span className="font-semibold text-sm text-gray-900 capitalize">
-              {job?.deviceInfo?.brand || 'N/A'}
-            </span>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
-              <Icon icon="mdi:palette" className="w-5 h-5 text-gray-600" />
-            </div>
-            <span className="text-xs text-gray-500 block mb-1">Color</span>
-            <span className="font-semibold text-sm text-gray-900 capitalize">
-              {job?.deviceInfo?.color || 'N/A'}
-            </span>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
-              <Icon icon={warrantyInfo.icon} className={`w-5 h-5 ${warrantyInfo.color}`} />
-            </div>
-            <span className="text-xs text-gray-500 block mb-1">Warranty</span>
-            <span className={`font-semibold text-sm ${warrantyInfo.color} capitalize`}>
-              {warrantyInfo.text}
-            </span>
-          </div>
-          <div className="text-center">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
-              <Icon icon="mdi:eye" className="w-5 h-5 text-gray-600" />
-            </div>
-            <span className="text-xs text-gray-500 block mb-1">Views</span>
-            <span className="font-semibold text-sm text-gray-900">
-              {job?.viewCount || 0}
-            </span>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Key Information Grid */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-              <Icon icon="mdi:cash" className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-gray-500 block mb-1 font-medium">Budget Range</span>
-              <span className="text-sm font-bold text-gray-900 truncate">
-                
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Icon icon="mdi:map-marker" className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-gray-500 block mb-1 font-medium">Location</span>
-              <span className="text-sm font-bold text-gray-900 truncate">
-                {job?.location?.city || 'Not specified'}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white border border-gray-200 rounded-xl p-4 hover:shadow-md transition-shadow">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <Icon icon={getServicePreferenceIcon(job?.servicePreference)} className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-gray-500 block mb-1 font-medium">Service Type</span>
-              <span className="text-sm font-bold text-gray-900 capitalize">
-                {job?.servicePreference || 'Not specified'}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div> */}
-
-      {/* Offers Section
-      {(job?.offersCount > 0 || job?.canReceiveOffers) && (
-        <div className="bg-gradient-to-r from-orange-50 to-orange-100 border border-orange-200 rounded-lg p-3 mb-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Icon icon="mdi:handshake" className="w-4 h-4 text-orange-600" />
-              <span className="text-sm font-medium text-orange-800">
-                {job?.offersCount > 0 ? `${job.offersCount} Offers Received` : 'Ready for Offers'}
-              </span>
-            </div>
-            {job?.offersCount > 0 && (
-              <button className="text-xs text-orange-700 hover:text-orange-800 font-medium">
-                View Offers
-              </button>
-            )}
-          </div>
-          {job?.latestOffer && (
-            <div className="mt-2 text-xs text-orange-700">
-              Latest: {formatCurrency(job.latestOffer.amount, job.latestOffer.currency)}
-            </div>
-          )}
-        </div>
-      )} */}
-
-      {/* Preferred Time */}
-      {/* Priority and Timing Section */}
-      {/* <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          {job?.urgency && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-semibold text-gray-700">Priority:</span>
-              <span className={`inline-flex capitalize items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${getUrgencyColor(job.urgency)}`}>
-                <Icon icon={getUrgencyIcon(job.urgency)} className="w-4 h-4 mr-2" />
-                {job.urgency}
-              </span>
-            </div>
-          )}
-        </div>
-        {job?.preferredTime && (
-          <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 px-3 py-2 rounded-lg">
-            <Icon icon="mdi:calendar-clock" className="w-4 h-4 text-gray-500" />
-            <span className="font-medium">Preferred: {formatDate(job.preferredTime)}</span>
-          </div>
-        )}
-      </div> */}
-
-      {/* Footer */}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-        <div className="flex items-center gap-4 text-xs text-gray-500">
-          {job?.expiresAt && (
-            <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
-              <Icon icon="mdi:clock-outline" className="w-4 h-4" />
-              <span className={`font-medium ${isJobExpiringSoon() || isJobExpired() ? 'text-red-600' : 'text-gray-600'}`}>
-                Expires: {formatDate(job.expiresAt)}
-              </span>
-            </div>
-          )}
-          {/* <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
-            <Icon icon="mdi:eye" className="w-4 h-4" />
-            <span className="font-medium text-gray-600">{job?.viewCount || 0} views</span>
-          </div> */}
-        </div>
+       <div className="flex items-center gap-4 text-xs text-gray-500">
+  {/* Status badge */}
+  {job?.status && (
+    <span className="inline-block bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full capitalize">
+      {job.status}
+    </span>
+  )}
+
+  {/* Expiry date badge */}
+  {job?.expiresAt && (
+    <div className="flex items-center gap-1 bg-gray-50 px-3 py-1.5 rounded-lg">
+      <Icon icon="mdi:clock-outline" className="w-4 h-4" />
+      <span
+        className={`font-medium ${
+          isJobExpiringSoon() || isJobExpired() ? 'text-red-600' : 'text-gray-600'
+        }`}
+      >
+        Expires: {formatDate(job.expiresAt)}
+      </span>
+    </div>
+  )}
+</div>
+
 
         <div className="flex items-center gap-2">
-          {/* <button 
-            className="p-2.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors border border-gray-200 hover:border-blue-300"
-            title="View details"
-            onClick={() => {}}
-          >
-            <Icon icon="mdi:eye" className="w-4 h-4" />
-          </button>
-          <button 
-            className="p-2.5 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-xl transition-colors border border-gray-200 hover:border-primary-300"
-            title="Edit job"
-            onClick={() => {}}
-          >
-            <Icon icon="mdi:pencil" className="w-4 h-4" />
-          </button> */}
-          {/* <button
-            className="p-2.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-gray-200 hover:border-red-300"
-            title="Delete job"
-          >
-            <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
-          </button> */}
+          Offers Received: {totalOffer}
         </div>
       </div>
     </div>
@@ -373,7 +210,7 @@ const RepairJobCard = ({ job }) => {
 // Jobs Tab Content
 const JobsTabContent = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('all'); // Changed from filterStatus to activeTab
   const [filterPriority, setFilterPriority] = useState('all');
   const [jobs, setJobs] = useState([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -403,7 +240,29 @@ const JobsTabContent = () => {
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterStatus, filterPriority]);
+  }, [searchTerm, activeTab, filterPriority]);
+
+  // Tab configuration
+  const tabs = [
+    { id: 'all', label: 'All Jobs', icon: 'mdi:view-list' },
+    { id: 'open', label: 'Open', icon: 'mdi:clock-outline' },
+    { id: 'booked', label: 'Booked', icon: 'mdi:clock-outline' },
+    { id: 'in_progress', label: 'In Progress', icon: 'mdi:cog' },
+    { id: 'completed', label: 'Completed', icon: 'mdi:check-circle' }
+  ];
+
+  // Get job counts for each tab
+  const getJobCounts = () => {
+    return {
+      all: jobs.length,
+      open: jobs.filter(job => job.status === 'open').length,
+      booked: jobs.filter(job => job.status === 'booked').length,
+      in_progress: jobs.filter(job => job.status === 'in_progress').length,
+      completed: jobs.filter(job => job.status === 'completed').length
+    };
+  };
+
+  const jobCounts = getJobCounts();
 
   const filteredJobs = jobs.filter(job => {
     // Update search logic to match your actual data structure
@@ -417,12 +276,11 @@ const JobsTabContent = () => {
       job?.servicePreference?.toLowerCase()?.includes(searchTerm.toLowerCase())
     );
 
-    const matchesStatus = filterStatus === 'all' || job?.status === filterStatus;
+    const matchesStatus = activeTab === 'all' || job?.status === activeTab;
 
     return matchesSearch && matchesStatus;
   });
 
-  // Pagination calculations
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
@@ -431,7 +289,6 @@ const JobsTabContent = () => {
   // Pagination handlers
   const handlePageChange = (page) => {
     setCurrentPage(page);
-    // Optional: Scroll to top of jobs list
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -483,18 +340,6 @@ const JobsTabContent = () => {
     return pageNumbers;
   };
 
-  // Get status display name
-  const getStatusDisplayName = (status) => {
-    const statusMap = {
-      'open': 'Open',
-      'in_progress': 'In Progress',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled',
-      'pending': 'Pending'
-    };
-    return statusMap[status] || status;
-  };
-
   // Get urgency counts for stats
   const getUrgencyStats = () => {
     const urgent = jobs.filter(job => job.urgency === 'high').length;
@@ -520,10 +365,35 @@ const JobsTabContent = () => {
         </Link>
       </div>
 
-      <div className="bg-gray-50 rounded-xl p-6 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Search */}
-          <div className="relative col-span-2">
+      {/* Tab Menu */}
+      <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden">
+        <div className="border-b border-gray-200">
+          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === tab.id
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
+              >
+                <Icon icon={tab.icon} className="w-4 h-4" />
+                {tab.label}
+                <span className={`px-2 py-1 text-xs rounded-full ${activeTab === tab.id
+                    ? 'bg-primary-100 text-primary-600'
+                    : 'bg-gray-100 text-gray-600'
+                  }`}>
+                  {jobCounts[tab.id]}
+                </span>
+              </button>
+            ))}
+          </nav>
+        </div>
+
+        {/* Search Bar inside tab container */}
+        <div className="p-6">
+          <div className="relative">
             <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
             <input
               type="text"
@@ -533,65 +403,8 @@ const JobsTabContent = () => {
               className="pl-10 pr-4 py-3 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
             />
           </div>
-
-          <select
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-          >
-            <option value="all">All Statuses</option>
-            <option value="open">Open</option>
-            <option value="in_progress">In Progress</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-            <option value="pending">Pending</option>
-          </select>
         </div>
       </div>
-
-      {/* Updated Stats Cards */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-blue-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Total Jobs</p>
-              <p className="text-3xl font-bold">{jobs?.length || 0}</p>
-            </div>
-            <Icon icon="mdi:tools" className="w-8 h-8 text-blue-200" />
-          </div>
-        </div>
-
-        <div className="bg-blue-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Open Jobs</p>
-              <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'open').length}</p>
-            </div>
-            <Icon icon="mdi:clock-outline" className="w-8 h-8 text-blue-200" />
-          </div>
-        </div>
-
-        <div className="bg-blue-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">In Progress</p>
-              <p className="text-3xl font-bold">{jobs.filter(job => job.status === 'in_progress').length}</p>
-            </div>
-            <Icon icon="mdi:cog" className="w-8 h-8 text-blue-200" />
-          </div>
-        </div>
-
-        <div className="bg-blue-600 rounded-xl p-6 text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-blue-100 text-sm font-medium">Offers Received</p>
-              <p className="text-3xl font-bold">{jobs.reduce((total, job) => total + (job.offersCount || 0), 0)}</p>
-            </div>
-            <Icon icon="mdi:handshake" className="w-8 h-8 text-blue-200" />
-          </div>
-        </div>
-      </div> */}
-
 
       {/* Results Info */}
       {filteredJobs.length > 0 && (
@@ -632,10 +445,12 @@ const JobsTabContent = () => {
         ) : (
           <div className="text-center py-12 bg-gray-50 rounded-xl">
             <Icon icon="mdi:tools" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No repair jobs found</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              {activeTab === 'all' ? 'No repair jobs found' : `No ${activeTab.replace('_', ' ')} jobs found`}
+            </h3>
             <p className="text-gray-500 mb-4">
-              {searchTerm || filterStatus !== 'all' || filterPriority !== 'all'
-                ? 'Try adjusting your search or filters.'
+              {searchTerm || activeTab !== 'all'
+                ? 'Try adjusting your search or switching to a different tab.'
                 : 'Get started by creating your first repair request.'
               }
             </p>

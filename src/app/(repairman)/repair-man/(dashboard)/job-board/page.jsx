@@ -451,7 +451,7 @@ const MyJobsPage = () => {
       {type === 'open' && (
         <button
           onClick={refreshLocation}
-          className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+          className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Refresh Jobs
         </button>

@@ -53,12 +53,12 @@ const UrgencyBadge = ({ urgency, className = "" }) => {
 // Expandable Description Component
 const ExpandableDescription = ({ description, maxLength = 150 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-    
+
     if (!description) return <p className="text-gray-500 text-sm">No description provided.</p>;
-    
+
     const shouldTruncate = description.length > maxLength;
     const displayText = isExpanded ? description : description.slice(0, maxLength);
-    
+
     return (
         <div className="text-gray-700 text-sm">
             <p className="leading-relaxed">
@@ -101,10 +101,26 @@ const RatingStars = ({ rating = 0, size = "text-lg" }) => {
 
 
 // Offer Card Component
-const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferId }) => {
+const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferId, data }) => {
     const currencySymbol = offer.pricing?.currency === 'TRY' ? '₺' : '₹';
     const isThisOfferSubmitting = isSubmitting && submittingOfferId === offer._id;
-    
+
+    const isBooked = data?.status === 'booked';
+    const isDisabled = isBooked || isSubmitting || isThisOfferSubmitting;
+
+    const baseClasses = "px-4 py-2 rounded text-sm transition-colors duration-200 flex items-center gap-2";
+    const disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
+    const submittingClasses = "bg-blue-400 text-white cursor-not-allowed";
+    const activeClasses = "bg-blue-600 text-white hover:bg-blue-700";
+
+    const getButtonClasses = () => {
+        if (isBooked || isSubmitting) return `${baseClasses} ${disabledClasses}`;
+        if (isThisOfferSubmitting) return `${baseClasses} ${submittingClasses}`;
+        return `${baseClasses} ${activeClasses}`;
+    };
+
+    const label = offer.repairmanId?.name || `Professional ${index + 1}`;
+
     return (
         <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
             <div className="flex flex-col md:flex-row gap-6">
@@ -122,7 +138,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                                 <span className="text-white text-xs">✓</span>
                             </div>
                         </div>
-                        
+
                         {/* Pricing */}
                         <div className="text-right">
                             <div className="text-xl font-bold text-gray-900">
@@ -140,19 +156,19 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                     {/* Rating and Stats */}
                     <div className="flex flex-wrap gap-3 mb-4">
                         <RatingStars rating={offer.repairmanId?.repairmanProfile?.rating} />
-                        
+
                         <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded">
                             🔧 {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
                         </span>
-                        
+
                         <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">
                             ✅ {offer.experience?.successRate || 0}% success
                         </span>
-                        
+
                         <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
                             📍 {offer.locationContext?.distance?.toFixed(1) || 'N/A'} km
                         </span>
-                        
+
                         <div className="flex items-center gap-1">
                             <span className="text-xs">🇵🇰</span>
                             <span className="text-sm text-gray-600">
@@ -166,7 +182,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         <div className="text-sm font-medium text-gray-700">
                             {offer.repairmanId?.repairmanProfile?.shopName || 'Repair Service'} - {offer.experience?.similarRepairs || 0} similar repairs
                         </div>
-                        
+
                         {/* Service Options Badges */}
                         <div className="flex flex-wrap gap-2">
                             {offer.serviceOptions?.pickupAvailable && (
@@ -215,19 +231,13 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                                 </div>
                             )}
                         </div>
-                        
+
                         <div className="flex gap-3">
                             <button
                                 onClick={() => onAcceptOffer(offer)}
-                                disabled={isSubmitting}
-                                className={`px-4 py-2 rounded text-sm transition-colors duration-200 flex items-center gap-2 ${
-                                    isThisOfferSubmitting
-                                        ? 'bg-blue-400 text-white cursor-not-allowed'
-                                        : isSubmitting
-                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                                }`}
-                                aria-label={`Accept offer from ${offer.repairmanId?.name || `Professional ${index + 1}`}`}
+                                disabled={isDisabled}
+                                className={getButtonClasses()}
+                                aria-label={`Accept offer from ${label}`}
                             >
                                 {isThisOfferSubmitting ? (
                                     <>
@@ -241,7 +251,8 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                                     'Accept Offer'
                                 )}
                             </button>
-                            <button 
+
+                            <button
                                 className="text-red-500 text-sm hover:text-red-700 hover:underline transition-colors duration-200"
                                 disabled={isSubmitting}
                             >
@@ -264,7 +275,7 @@ function JobDetails() {
     const [selectedOffer, setSelectedOffer] = useState(null);
     const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
     const [submittingOfferId, setSubmittingOfferId] = useState(null);
-    
+
     const { id } = useParams();
     const { token } = useSelector(state => state.auth);
     const router = useRouter();
@@ -352,13 +363,13 @@ function JobDetails() {
             );
 
             if (response.data.success) {
-                alert('Booking created successfully!');
+                // alert('Booking created successfully!');
                 setShowBookingModal(false);
                 setSelectedOffer(null);
-                
+
                 // Refresh job data to see updated status
                 await fetchJob();
-                
+
                 // Optionally redirect to booking details or jobs list
                 // router.push('/bookings');
             }
@@ -427,9 +438,8 @@ function JobDetails() {
                         <button
                             onClick={handleDelete}
                             disabled={isDeleting}
-                            className={`px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 ${
-                                isDeleting ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
-                            }`}
+                            className={`px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center gap-2 ${isDeleting ? 'bg-red-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700'
+                                }`}
                         >
                             {isDeleting ? (
                                 <>
@@ -461,8 +471,8 @@ function JobDetails() {
                         </svg>
                         <span className="text-yellow-800 text-sm font-medium">
                             {data.status === 'booked' ? 'This job has been booked and offers can no longer be accepted.' :
-                             data.status === 'closed' ? 'This job has been closed.' :
-                             'This job is no longer accepting offers.'}
+                                data.status === 'closed' ? 'This job has been closed.' :
+                                    'This job is no longer accepting offers.'}
                         </span>
                     </div>
                 </div>
@@ -473,21 +483,19 @@ function JobDetails() {
                 <nav className="flex space-x-8">
                     <button
                         onClick={() => setActiveTab('details')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                            activeTab === 'details'
+                        className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'details'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                            }`}
                     >
                         Details
                     </button>
                     <button
                         onClick={() => setActiveTab('proposals')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${
-                            activeTab === 'proposals'
+                        className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'proposals'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
-                        }`}
+                            }`}
                     >
                         Offers ({offersCount})
                     </button>
@@ -591,13 +599,14 @@ function JobDetails() {
                     {offersCount > 0 ? (
                         <div className="space-y-6">
                             {offers.map((offer, index) => (
-                                <OfferCard 
-                                    key={offer._id || index} 
-                                    offer={offer} 
+                                <OfferCard
+                                    key={offer._id || index}
+                                    offer={offer}
                                     index={index}
                                     onAcceptOffer={canAcceptOffers ? handleAcceptOffer : null}
                                     isSubmitting={isSubmittingOffer}
                                     submittingOfferId={submittingOfferId}
+                                    data={data}
                                 />
                             ))}
                         </div>
