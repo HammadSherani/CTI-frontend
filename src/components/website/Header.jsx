@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 import Link from "next/link";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useSelector } from "react-redux";
 
 export  function TopHeader() {
   const [language, setLanguage] = useState("English");
@@ -386,6 +388,12 @@ function LowerHeader() {
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+
+  const { token } = useSelector((state) => state.auth);
+  const { unreadCount, notifications} = useNotifications(token);
+
+  console.log("Notifications in Header:", notifications);
+  
 
   useEffect(() => {
     const handleScroll = () => {

@@ -31,7 +31,7 @@ export const useNotifications = (userToken) => {
       }
 
       const data = await response.json();
-      
+
       if (data.success) {
         setNotifications(data.data.notifications);
         setUnreadCount(data.data.unreadCount);
@@ -82,9 +82,9 @@ export const useNotifications = (userToken) => {
       const data = await response.json();
       if (data.success) {
         // Update local state
-        setNotifications(prev => 
-          prev.map(notification => 
-            notification._id === notificationId 
+        setNotifications(prev =>
+          prev.map(notification =>
+            notification._id === notificationId
               ? { ...notification, isRead: true }
               : notification
           )
@@ -113,7 +113,7 @@ export const useNotifications = (userToken) => {
       const data = await response.json();
       if (data.success) {
         // Update local state
-        setNotifications(prev => 
+        setNotifications(prev =>
           prev.map(notification => ({ ...notification, isRead: true }))
         );
         setUnreadCount(0);
@@ -153,6 +153,8 @@ export const useNotifications = (userToken) => {
     }
   }, [userToken, API_BASE, notifications]);
 
+
+  
   // Clear all notifications (local only)
   const clearNotifications = useCallback(() => {
     setNotifications([]);
@@ -169,34 +171,47 @@ export const useNotifications = (userToken) => {
     fetchNotifications();
 
     // Setup socket listener for real-time notifications
-    const unsubscribe = socketService.addListener((event, data) => {
-      console.log('Socket notification event received:', event, data);
-      
-      if (event === 'notification') {
-        // Add new notification to the beginning of the list
-        setNotifications(prev => [data, ...prev]);
-        
-        // Increment unread count if notification is unread
-        if (!data.read && !data.isRead) {
-          setUnreadCount(prev => prev + 1);
-        }
-        
-        console.log('Real-time notification added to list');
+   const unsubscribe = socketService.addListener((event, data) => {
+    console.log('Socket notification event received:', event, data);
+
+    if (event === 'notification') {
+      setNotifications(prev => [data, ...prev]);
+      if (!data.read && !data.isRead) {
+        setUnreadCount(prev => prev + 1);
       }
-      
-      if (event === 'notification_read') {
-        // Handle notification read event
-        markAsRead(data.id);
-      }
-      
-      if (event === 'all_notifications_read') {
-        markAllAsRead();
-      }
-      
-      if (event === 'notifications_cleared') {
-        clearNotifications();
-      }
-    });
+    }
+
+    if (event === 'booking_status_update') {
+      // 👇 yahan booking updates handle kar sakte ho
+      const newNotification = {
+        _id: Date.now().toString(), // temp ID
+        type: 'booking_status_update',
+        bookingId: data.bookingId,
+        status: data.status,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+        ...data
+      };
+
+      setNotifications(prev => [newNotification, ...prev]);
+      setUnreadCount(prev => prev + 1);
+
+      console.log(`📩 Booking ${data.bookingId} updated to ${data.status}`);
+    }
+
+    if (event === 'notification_read') {
+      markAsRead(data.id);
+    }
+
+    if (event === 'all_notifications_read') {
+      markAllAsRead();
+    }
+
+    if (event === 'notifications_cleared') {
+      clearNotifications();
+    }
+  });
+
 
     return () => {
       unsubscribe();
