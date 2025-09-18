@@ -606,6 +606,13 @@ export default function SettingsPage() {
       icon: 'mdi:briefcase-outline',
       content: <JobsTabContent />
     },
+
+    bookedJobs: {
+      id: 'bookedJobs',
+      label: 'Booked Jobs',
+      icon: 'mdi:briefcase-outline',
+      content:<AddAccountTabContent />
+    },
     // account: {
     //   id: 'account',
     //   label: 'Add Account',

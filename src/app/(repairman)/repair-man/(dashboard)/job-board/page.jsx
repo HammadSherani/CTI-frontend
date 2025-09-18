@@ -471,20 +471,6 @@ const MyJobsPage = () => {
     setUrgencyFilter('all');
   };
 
-  // if (loading) {
-  //   return (
-  //     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-  //       <div className="text-center">
-  //         <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-  //         <p className="text-gray-600">Loading jobs...</p>
-  //         {locationLoading && (
-  //           <p className="text-primary-600 text-sm mt-2">Getting your location...</p>
-  //         )}
-  //       </div>
-  //     </div>
-  //   );
-  // }
-
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
@@ -514,70 +500,6 @@ const MyJobsPage = () => {
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
-          <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 ">
-            <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-
-              <div className="flex flex-wrap items-center gap-4">
-                {useGPS && currentLocation && (
-                  <button
-                    onClick={refreshLocation}
-                    disabled={locationLoading}
-                    className="flex items-center gap-1 rounded-md bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-600 transition hover:bg-primary-100 disabled:opacity-50"
-                  >
-                    <Icon
-                      icon="heroicons:arrow-path"
-                      className={`h-4 w-4 ${locationLoading ? "animate-spin" : ""}`}
-                    />
-                    Update Location
-                  </button>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <label
-                    htmlFor="radius"
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Radius
-                  </label>
-                  <select
-                    id="radius"
-                    value={radius}
-                    onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
-                    className="rounded-lg border-gray-300 px-3 py-1.5 text-sm focus:border-primary-500 focus:ring-2 focus:ring-primary-500"
-                  >
-                    {[5, 10, 15, 20, 30, 50, 1000].map((r) => (
-                      <option key={r} value={r}>
-                        {r} km
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Right section: Status indicator */}
-              <div className="flex items-center">
-                {useGPS && currentLocation ? (
-                  <div className="flex items-center gap-1 rounded-lg bg-green-50 px-3 py-1.5 text-sm font-medium text-green-600">
-                    <Icon icon="heroicons:check-circle" className="h-4 w-4" />
-                    GPS Active
-                    {currentLocation.accuracy && currentLocation.accuracy < 100 && (
-                      <span className="ml-1 text-xs text-gray-500">
-                        (±{Math.round(currentLocation.accuracy)}m)
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1 rounded-lg bg-gray-50 px-3 py-1.5 text-sm text-gray-600">
-                    <Icon icon="heroicons:building-office" className="h-4 w-4" />
-                    Profile Location
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-
-          {/* Search and Filter */}
           <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
             <div className="relative flex-1 w-full">
               <input
@@ -610,6 +532,19 @@ const MyJobsPage = () => {
                 <option value="high">High</option>
                 <option value="medium">Medium</option>
                 <option value="low">Low</option>
+              </select>
+              <select
+                id="radius"
+                value={radius}
+                onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+                className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+                aria-label="Filter by radius"
+              >
+                {[5, 10, 15, 20, 30, 50, 1000].map((r) => (
+                  <option key={r} value={r}>
+                    {r} km
+                  </option>
+                ))}
               </select>
               <button
                 onClick={handleClearFilters}

@@ -20,15 +20,18 @@ const StatusBadge = ({ status, className = "" }) => {
     const getStatusColor = (status) => {
         switch (status) {
             case 'open': return 'text-green-600 bg-green-50';
+            case 'offers_received': return 'text-blue-600 bg-blue-50';
             case 'closed': return 'text-red-600 bg-red-50';
-            case 'in-progress': return 'text-yellow-600 bg-yellow-50';
+            case 'in_progress': return 'text-yellow-600 bg-yellow-50';
+            case 'booked': return 'text-purple-600 bg-purple-50';
+            case 'completed': return 'text-gray-600 bg-gray-50';
             default: return 'text-gray-600 bg-gray-50';
         }
     };
 
     return (
         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(status)} ${className}`}>
-            {status?.toUpperCase()}
+            {status?.replace('_', ' ').toUpperCase()}
         </span>
     );
 };
@@ -97,15 +100,12 @@ const RatingStars = ({ rating = 0, size = "text-lg" }) => {
     );
 };
 
-// Booking Modal Component
-
-
 // Offer Card Component
 const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferId, data }) => {
     const currencySymbol = offer.pricing?.currency === 'TRY' ? '₺' : '₹';
     const isThisOfferSubmitting = isSubmitting && submittingOfferId === offer._id;
 
-    const isBooked = data?.status === 'booked';
+    const isBooked = data?.status === 'booked' || data?.status === 'in_progress' || data?.status === 'completed' || data?.status === 'accepted' || data?.status === 'expired';
     const isDisabled = isBooked || isSubmitting || isThisOfferSubmitting;
 
     const baseClasses = "px-4 py-2 rounded text-sm transition-colors duration-200 flex items-center gap-2";
@@ -354,7 +354,6 @@ function JobDetails() {
                     offerId: selectedOffer._id,
                     serviceType: bookingData.serviceType,
                     scheduledDate: selectedOffer?.availability?.canStartBy,
-                    // timeSlot: bookingData.timeSlot,
                     specialInstructions: bookingData.specialInstructions
                 },
                 {
@@ -363,15 +362,9 @@ function JobDetails() {
             );
 
             if (response.data.success) {
-                // alert('Booking created successfully!');
                 setShowBookingModal(false);
                 setSelectedOffer(null);
-
-                // Refresh job data to see updated status
                 await fetchJob();
-
-                // Optionally redirect to booking details or jobs list
-                // router.push('/bookings');
             }
         } catch (error) {
             handleError(error);
@@ -402,8 +395,13 @@ function JobDetails() {
         return offers?.length || 0;
     }, [offers]);
 
-    // Check if job can accept offers (not booked/closed)
+    // Check if job can accept offers - ONLY open or offers_received
     const canAcceptOffers = useMemo(() => {
+        return data && ['open', 'offers_received'].includes(data.status);
+    }, [data]);
+
+    // Check if offers should be displayed - ONLY for open or offers_received status
+    const shouldShowOffers = useMemo(() => {
         return data && ['open', 'offers_received'].includes(data.status);
     }, [data]);
 
@@ -472,13 +470,15 @@ function JobDetails() {
                         <span className="text-yellow-800 text-sm font-medium">
                             {data.status === 'booked' ? 'This job has been booked and offers can no longer be accepted.' :
                                 data.status === 'closed' ? 'This job has been closed.' :
+                                    data.status === 'in_progress' ? 'This job is currently in progress.' :
+                                    data.status === 'completed' ? 'This job has been completed.' :
                                     'This job is no longer accepting offers.'}
                         </span>
                     </div>
                 </div>
             )}
 
-            {/* Tab Navigation */}
+            {/* Tab Navigation - Conditional Offers Tab */}
             <div className="border-b border-gray-200 mb-6">
                 <nav className="flex space-x-8">
                     <button
@@ -490,15 +490,18 @@ function JobDetails() {
                     >
                         Details
                     </button>
-                    <button
-                        onClick={() => setActiveTab('proposals')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'proposals'
-                                ? 'border-blue-500 text-blue-600'
-                                : 'border-transparent text-gray-500 hover:text-gray-700'
-                            }`}
-                    >
-                        Offers ({offersCount})
-                    </button>
+                    {/* Only show Offers tab if job status allows it */}
+                    {shouldShowOffers && (
+                        <button
+                            onClick={() => setActiveTab('proposals')}
+                            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'proposals'
+                                    ? 'border-blue-500 text-blue-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
+                        >
+                            Offers ({offersCount})
+                        </button>
+                    )}
                 </nav>
             </div>
 
@@ -568,7 +571,7 @@ function JobDetails() {
                         </div>
                         <div>
                             <span className="text-sm text-gray-500">Current Offers</span>
-                            <p className="font-semibold">{offersCount}</p>
+                            <p className="font-semibold">{shouldShowOffers ? offersCount : 'Hidden'}</p>
                         </div>
                         <div>
                             <span className="text-sm text-gray-500">View Count</span>
@@ -587,7 +590,7 @@ function JobDetails() {
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'proposals' && shouldShowOffers ? (
                 <div className="bg-white border border-gray-200 rounded-lg p-4">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">Offers</h2>
@@ -616,6 +619,17 @@ function JobDetails() {
                             <div className="text-sm">Waiting for repair professionals to submit their offers!</div>
                         </div>
                     )}
+                </div>
+            ) : (
+                // Fallback content if somehow proposals tab is accessed when shouldn't be shown
+                <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
+                    <div className="text-gray-500">
+                        <svg className="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 0h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">Offers Not Available</h3>
+                        <p className="text-gray-600">Offers are only visible when the job status is 'Open' or 'Offers Received'.</p>
+                    </div>
                 </div>
             )}
 

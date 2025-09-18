@@ -143,23 +143,22 @@ const MyOffersPage = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
- 
-
-  // Filter and search offers
+  // Filter and search offers - Filter out in_progress offers completely
   const filteredOffers = useMemo(() => {
     if (!offers?.offers) return [];
     
     let offersToFilter = offers.offers;
     
-    // Filter out in_progress offers completely
+    // ALWAYS filter out in_progress offers from all tabs
     offersToFilter = offersToFilter.filter(offer => offer.status !== 'in_progress');
     
     // Filter by status if not "all"
     if (activeTab !== 'all') {
-      offersToFilter = offersToFilter.filter(offer => {
-        if (activeTab === 'expired') return offer.isExpired;
-        return offer.status === activeTab;
-      });
+      if (activeTab === 'expired') {
+        offersToFilter = offersToFilter.filter(offer => offer.isExpired);
+      } else {
+        offersToFilter = offersToFilter.filter(offer => offer.status === activeTab);
+      }
     }
 
     return offersToFilter.filter((offer) => {
@@ -173,77 +172,6 @@ const MyOffersPage = () => {
     });
   }, [activeTab, searchQuery, urgencyFilter, offers]);
 
-  // Summary Component
-  // const OffersSummary = () => {
-  //   const summary = offers?.summary || {};
-  //   const totalOffers = offers?.pagination?.totalOffers || 0;
-
-  //   return (
-  //     <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
-  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  //         <div className="flex items-center">
-  //           <div className="p-2 bg-blue-100 rounded-lg">
-  //             <Icon icon="heroicons:document-text" className="w-6 h-6 text-blue-600" />
-  //           </div>
-  //           <div className="ml-3">
-  //             <p className="text-sm font-medium text-gray-600">Total Offers</p>
-  //             <p className="text-2xl font-bold text-gray-900">{totalOffers}</p>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  //         <div className="flex items-center">
-  //           <div className="p-2 bg-yellow-100 rounded-lg">
-  //             <Icon icon="heroicons:clock" className="w-6 h-6 text-yellow-600" />
-  //           </div>
-  //           <div className="ml-3">
-  //             <p className="text-sm font-medium text-gray-600">Pending</p>
-  //             <p className="text-2xl font-bold text-gray-900">{summary.pending || 0}</p>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  //         <div className="flex items-center">
-  //           <div className="p-2 bg-green-100 rounded-lg">
-  //             <Icon icon="heroicons:check-circle" className="w-6 h-6 text-green-600" />
-  //           </div>
-  //           <div className="ml-3">
-  //             <p className="text-sm font-medium text-gray-600">Accepted</p>
-  //             <p className="text-2xl font-bold text-gray-900">{summary.accepted || 0}</p>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  //         <div className="flex items-center">
-  //           <div className="p-2 bg-red-100 rounded-lg">
-  //             <Icon icon="heroicons:x-circle" className="w-6 h-6 text-red-600" />
-  //           </div>
-  //           <div className="ml-3">
-  //             <p className="text-sm font-medium text-gray-600">Rejected</p>
-  //             <p className="text-2xl font-bold text-gray-900">{summary.rejected || 0}</p>
-  //           </div>
-  //         </div>
-  //       </div>
-
-  //       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-  //         <div className="flex items-center">
-  //           <div className="p-2 bg-gray-100 rounded-lg">
-  //             <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-gray-600" />
-  //           </div>
-  //           <div className="ml-3">
-  //             <p className="text-sm font-medium text-gray-600">Expired</p>
-  //             <p className="text-2xl font-bold text-gray-900">{summary.expired || 0}</p>
-  //           </div>
-  //         </div>
-  //       </div>
-  //     </div>
-  //   );
-  // };
-
-
   const EmptyState = ({ type }) => (
     <div className="text-center py-12">
       <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -253,6 +181,7 @@ const MyOffersPage = () => {
             type === 'accepted' ? 'heroicons:check-circle' :
             type === 'rejected' ? 'heroicons:x-circle' :
             type === 'expired' ? 'heroicons:exclamation-triangle' :
+            type === 'in_progress' ? 'heroicons:cog-6-tooth' :
             'heroicons:document-text'
           }
           className="w-8 h-8 text-gray-400"
@@ -260,7 +189,9 @@ const MyOffersPage = () => {
         />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        No {type === 'expired' ? 'expired offers' : `${type} offers`}
+        No {type === 'expired' ? 'expired offers' : 
+             type === 'in_progress' ? 'jobs in progress' :
+             `${type} offers`}
       </h3>
       <p className="text-gray-600 mb-4 max-w-md mx-auto">
         {type === 'pending' ? 'You haven\'t submitted any pending offers yet.' :
@@ -268,6 +199,7 @@ const MyOffersPage = () => {
          type === 'rejected' ? 'No rejected offers to show.' :
          type === 'withdrawn' ? 'No withdrawn offers.' :
          type === 'expired' ? 'No expired offers.' :
+         type === 'in_progress' ? 'No jobs currently in progress.' :
          'No offers found.'}
       </p>
       <button className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
@@ -276,15 +208,20 @@ const MyOffersPage = () => {
     </div>
   );
 
+  // Calculate counts properly - excluding in_progress from all counts
   const getTabCounts = () => {
-    const summary = offers?.summary || {};
-    return {
-      all: offers?.pagination?.totalOffers || 0,
-      pending: summary.pending || 0,
-      accepted: summary.accepted || 0,
-      rejected: summary.rejected || 0,
-      expired: summary.expired || 0,
+    if (!offers?.offers) return { all: 0, pending: 0, accepted: 0, rejected: 0, expired: 0 };
+    
+    const allOffers = offers.offers.filter(offer => offer.status !== 'in_progress'); // Filter out in_progress
+    const counts = {
+      all: allOffers.length,
+      pending: allOffers.filter(offer => offer.status === 'pending').length,
+      accepted: allOffers.filter(offer => offer.status === 'accepted').length,
+      rejected: allOffers.filter(offer => offer.status === 'rejected').length,
+      expired: allOffers.filter(offer => offer.isExpired).length,
     };
+    
+    return counts;
   };
 
   const tabCounts = getTabCounts();
@@ -319,9 +256,6 @@ const MyOffersPage = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Offers</h1>
           <p className="text-gray-600 text-lg">Track and manage all your job offers with ease</p>
         </div>
-
-        {/* Summary Cards */}
-        {/* <OffersSummary /> */}
 
         {/* Search and Filter */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
@@ -368,7 +302,7 @@ const MyOffersPage = () => {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tabs - Removed In Progress tab */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-6 px-4 sm:px-6 -mb-px overflow-x-auto" role="tablist">
