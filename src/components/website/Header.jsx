@@ -172,7 +172,7 @@ export function MidHeader() {
               <div className="p-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2">Popular Searches</h3>
                 <div className="flex flex-wrap gap-2">
-                  {['iPhone Repair', 'Screen Fix', 'Battery Replacement', 'Water Damage'].map((term) => (
+                  {['iPhone Repair', 'Screen Fix', 'Battery Replacement', 'Water Damage']?.map((term) => (
                     <span key={term} className="bg-gray-100 px-3 py-1 rounded-full text-sm cursor-pointer hover:bg-orange-100">
                       {term}
                     </span>
@@ -253,12 +253,28 @@ function LowerHeader() {
   const [activeCategory, setActiveCategory] = useState(null);
   const dropdownRef = useRef(null);
 
+
+ const navItems = [
+  { label: "Home", icon: "mdi:home", path: "/" },
+  { label: "Hire Repairman", icon: "mdi:map-marker", path: "/hire-repairman" },
+  { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New" },
+  { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" },
+  { label: "Deals", icon: "mdi:tag", path: "/deals" },
+  { label: "Contact", icon: "mdi:phone", path: "/contact" },
+];
+
   const categories = [
     {
       icon: "mdi:cellphone",
       name: "Mobile Repair",
       subCategories: ["iPhone Repair", "Android Repair", "Screen Replacement", "Battery Service"],
       link: "/mobile-repair"
+    },
+    {
+      icon: "mdi:cellphone",
+      name: "Hire Repairman",
+      // subCategories: ["iPhone Repair", "Android Repair", "Screen Replacement", "Battery Service"],
+      link: "/hire-repairman"
     },
 
   ];
@@ -306,7 +322,7 @@ function LowerHeader() {
 
             {isCategoryOpen && (
               <div className="absolute top-full left-0 mt-2 bg-white shadow-sm rounded-lg w-80 z-50 border border-gray-200 overflow-hidden">
-                {categories.map((category, index) => (
+                {categories?.map((category, index) => (
                   <div
                     key={category.name}
                     className="relative group"
@@ -324,7 +340,7 @@ function LowerHeader() {
                       <div className="absolute left-full top-0 ml-1 bg-white shadow-xl rounded-lg w-64 border border-gray-200 z-60">
                         <div className="p-3">
                           <h4 className="font-semibold text-gray-800 mb-2">{category.name}</h4>
-                          {category.subCategories.map((sub) => (
+                          {category.subCategories?.map((sub) => (
                             <div key={sub} className="px-3 py-2 hover:bg-gray-100 rounded cursor-pointer text-sm transition-colors duration-200">
                               {sub}
                             </div>
@@ -339,35 +355,28 @@ function LowerHeader() {
           </div>
 
           {/* Navigation Links */}
-          <ul className={`${isNavOpen ? "flex" : "hidden"
-            } md:flex flex-col md:flex-row gap-4 md:gap-8 text-sm w-full md:w-auto transition-all duration-300`}>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:home" />
-              <span>Home</span>
-            </li>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:flash" />
-              <span>Quick Service</span>
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">New</span>
-            </li>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:map-marker" />
-              <span>Find Technician</span>
-            </li>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:store" />
-              <span>Repair Shops</span>
-            </li>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:tag" />
-              <span>Deals</span>
-            </li>
-            <li className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium">
-              <Icon icon="mdi:phone" />
-              <span>Contact</span>
-            </li>
-          </ul>
-
+        <ul
+      className={`${
+        isNavOpen ? "flex" : "hidden"
+      } md:flex flex-col md:flex-row gap-4 md:gap-8 text-sm w-full md:w-auto transition-all duration-300`}
+    >
+      {navItems.map((item, index) => (
+        <li key={index}>
+          <Link
+            href={item.path}
+            className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium"
+          >
+            <Icon icon={item.icon} />
+            <span>{item.label}</span>
+            {item.badge && (
+              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                {item.badge}
+              </span>
+            )}
+          </Link>
+        </li>
+      ))}
+    </ul>
           {/* Quick Actions */}
           {/* <div className="hidden lg:flex items-center gap-4 ml-auto">
             <div className="flex items-center gap-2 text-sm text-gray-600">
