@@ -19,7 +19,7 @@ export const useNotifications = (userToken) => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE}/api/notifications?page=${page}&limit=20`, {
+      const response = await fetch(`${API_BASE}/notifications?page=${page}&limit=20`, {
         headers: {
           'Authorization': `Bearer ${userToken}`,
           'Content-Type': 'application/json'
@@ -181,23 +181,23 @@ export const useNotifications = (userToken) => {
       }
     }
 
-    if (event === 'booking_status_update') {
-      // 👇 yahan booking updates handle kar sakte ho
-      const newNotification = {
-        _id: Date.now().toString(), // temp ID
-        type: 'booking_status_update',
-        bookingId: data.bookingId,
-        status: data.status,
-        isRead: false,
-        createdAt: new Date().toISOString(),
-        ...data
-      };
+    // if (event === 'booking_status_update') {
+    //   // 👇 yahan booking updates handle kar sakte ho
+    //   const newNotification = {
+    //     _id: Date.now().toString(), // temp ID
+    //     type: 'booking_status_update',
+    //     bookingId: data.bookingId,
+    //     status: data.status,
+    //     isRead: false,
+    //     createdAt: new Date().toISOString(),
+    //     ...data
+    //   };
 
-      setNotifications(prev => [newNotification, ...prev]);
-      setUnreadCount(prev => prev + 1);
+    //   setNotifications(prev => [newNotification, ...prev]);
+    //   setUnreadCount(prev => prev + 1);
 
-      console.log(`📩 Booking ${data.bookingId} updated to ${data.status}`);
-    }
+    //   console.log(`📩 Booking ${data.bookingId} updated to ${data.status}`);
+    // }
 
     if (event === 'notification_read') {
       markAsRead(data.id);

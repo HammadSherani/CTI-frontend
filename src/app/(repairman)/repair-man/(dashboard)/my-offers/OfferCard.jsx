@@ -8,7 +8,7 @@ import handleError from '@/helper/handleError';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
-const OfferCard = ({ offer, handleUpdateOffer }) => {
+const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [iswithdrawModalOpen, setIswithdrawModalOpen] = useState(false)
@@ -60,24 +60,10 @@ const OfferCard = ({ offer, handleUpdateOffer }) => {
     };
 
 
-    const handleStartJob = async (id) => {
-        try {
-            const { data: { message } } = await axiosInstance.patch(
-                `/repairman/offers/start-job/${id}`,
-                {},
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            toast.success(message);
-        } catch (error) {
-            handleError(error);
-        }
-    };
 
 
-    console.log(offer);
+
+    console.log(isChangeStatus);
 
 
     return (
@@ -178,9 +164,20 @@ const OfferCard = ({ offer, handleUpdateOffer }) => {
                     <>
                         <button
                             onClick={() => handleStartJob(offer?.jobId?._id)}
-                            className="flex-1 bg-green-600 text-white py-2 px-3 rounded-md hover:bg-green-700 transition-colors text-sm font-medium">
-                            Start Job
+                            disabled={isChangeStatus}
+                            className={`flex items-center justify-center gap-2 flex-1 bg-green-600 text-white py-2 px-3 rounded-md transition-colors text-sm font-medium 
+    ${isChangeStatus ? "opacity-70 cursor-not-allowed" : "hover:bg-green-700"}`}
+                        >
+                            {isChangeStatus ? (
+                                <>
+                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                                    Updating...
+                                </>
+                            ) : (
+                                "Start Job"
+                            )}
                         </button>
+
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
                             Message Client
                         </button>

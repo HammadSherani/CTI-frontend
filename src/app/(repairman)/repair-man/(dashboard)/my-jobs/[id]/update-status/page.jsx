@@ -6,6 +6,7 @@ import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -48,45 +49,44 @@ function UpdateStatus() {
   }, [id]);
 
   const handleStatusUpdate = async () => {
-    if (!selectedStatus) {
-      alert('Please select a status');
-      return;
-    }
+  if (!selectedStatus) {
+    toast.error('Please select a status');
+    return;
+  }
 
-    try {
-      setUpdating(true);
-      const { data } = await axiosInstance.patch(`/repairman/my-booking/${id}/status`, {
-        status: selectedStatus,
-        notes: notes
-      }, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-        }
-      });
-      
-      if (data.success) {
-        setStatusUpdateResult(data.data);
-        setShowSuccessMessage(true);
-        fetchJobDetails(); // Refresh job details
-        setSelectedStatus('');
-        setNotes('');
-        
-        // Hide success message after 5 seconds
-        setTimeout(() => {
-          setShowSuccessMessage(false);
-          setStatusUpdateResult(null);
-        }, 5000);
-      } else {
-        alert(data.message || 'Failed to update status');
+  try {
+    setUpdating(true);
+    const { data } = await axiosInstance.patch(`/repairman/my-booking/${id}/status`, {
+      status: selectedStatus,
+      notes: notes
+    }, {
+      headers: {
+        'Authorization': 'Bearer ' + token,
       }
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Failed to update status. Please try again.';
-      alert(errorMessage);
-      handleError(error);
-    } finally {
-      setUpdating(false);
-    }
-  };
+    });
+    
+    // Success case
+    toast.success(data.message || 'Status updated successfully!');
+    setStatusUpdateResult(data.data);
+    setShowSuccessMessage(true);
+    fetchJobDetails(); // Refresh job details
+    setSelectedStatus('');
+    setNotes('');
+    
+    // Hide success message after 5 seconds
+    setTimeout(() => {
+      setShowSuccessMessage(false);
+      setStatusUpdateResult(null);
+    }, 5000);
+    
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || 'Failed to update status. Please try again.';
+    toast.error(errorMessage);
+    handleError(error);
+  } finally {
+    setUpdating(false);
+  }
+};
 
   const formatCurrency = (amount, currency = 'PKR') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;

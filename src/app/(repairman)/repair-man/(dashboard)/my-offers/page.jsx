@@ -6,15 +6,16 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import OfferCard from './OfferCard';
+import { toast } from 'react-toastify';
 
 // Reusable Pagination Component
-const Pagination = ({ 
-  currentPage, 
-  totalPages, 
-  onPageChange, 
+const Pagination = ({
+  currentPage,
+  totalPages,
+  onPageChange,
   totalItems,
   itemsPerPage,
-  className = "" 
+  className = ""
 }) => {
   const getVisiblePages = () => {
     const delta = 2;
@@ -80,13 +81,12 @@ const Pagination = ({
               key={index}
               onClick={() => typeof page === 'number' && onPageChange(page)}
               disabled={page === '...'}
-              className={`px-3 py-2 text-sm font-medium rounded-lg ${
-                page === currentPage
-                  ? 'bg-primary-600 text-white border border-primary-600'
-                  : page === '...'
+              className={`px-3 py-2 text-sm font-medium rounded-lg ${page === currentPage
+                ? 'bg-primary-600 text-white border border-primary-600'
+                : page === '...'
                   ? 'text-gray-400 cursor-default'
                   : 'text-gray-500 bg-white border border-gray-300 hover:bg-gray-50 hover:text-gray-700'
-              }`}
+                }`}
             >
               {page}
             </button>
@@ -112,14 +112,18 @@ const MyOffersPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
-  const {token} = useSelector((state) => state.auth); 
+  const { token } = useSelector((state) => state.auth);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [isChangeStatus, setIsChangeStatus] = useState(false)
+  // setIsChangeStatus(true)
+  // console.log(isChangeStatus);
+
 
   const getAlloffers = async (page = 1) => {
     setLoading(true);
-    try{
+    try {
       const res = await axiosInstance.get(`/repairman/offers/my-offers?page=${page}&limit=10`, {
         headers: {
           'Authorization': 'Bearer ' + token,
@@ -127,7 +131,7 @@ const MyOffersPage = () => {
       });
 
       setOffers(res.data.data);
-    }catch(error){
+    } catch (error) {
       handleError(error);
     } finally {
       setLoading(false);
@@ -138,6 +142,31 @@ const MyOffersPage = () => {
     getAlloffers(currentPage);
   }, [currentPage, refreshTrigger]);
 
+
+  const handleStartJob = async (id) => {
+    try {
+      setIsChangeStatus(true)
+
+
+      const { data } = await axiosInstance.patch(
+        `/repairman/offers/start-job/${id}`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      getAlloffers(currentPage)
+      toast.success(data?.message);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsChangeStatus(false)
+    }
+  };
+
+
+
+
   // Function to handle job acceptance and trigger refresh
   const handleJobAccepted = () => {
     setRefreshTrigger(prev => prev + 1);
@@ -146,12 +175,12 @@ const MyOffersPage = () => {
   // Filter and search offers - Filter out in_progress offers completely
   const filteredOffers = useMemo(() => {
     if (!offers?.offers) return [];
-    
+
     let offersToFilter = offers.offers;
-    
+
     // ALWAYS filter out in_progress offers from all tabs
     offersToFilter = offersToFilter.filter(offer => offer.status !== 'in_progress');
-    
+
     // Filter by status if not "all"
     if (activeTab !== 'all') {
       if (activeTab === 'expired') {
@@ -164,9 +193,9 @@ const MyOffersPage = () => {
     return offersToFilter.filter((offer) => {
       const jobTitle = offer.jobId?.deviceInfo?.brand + ' ' + offer.jobId?.deviceInfo?.model || '';
       const description = offer.description || '';
-      
+
       const matchesSearch = jobTitle.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                           description.toLowerCase().includes(searchQuery.toLowerCase());
+        description.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesUrgency = urgencyFilter === 'all' || offer.jobId?.urgency === urgencyFilter;
       return matchesSearch && matchesUrgency;
     });
@@ -178,29 +207,29 @@ const MyOffersPage = () => {
         <Icon
           icon={
             type === 'pending' ? 'heroicons:paper-airplane' :
-            type === 'accepted' ? 'heroicons:check-circle' :
-            type === 'rejected' ? 'heroicons:x-circle' :
-            type === 'expired' ? 'heroicons:exclamation-triangle' :
-            type === 'in_progress' ? 'heroicons:cog-6-tooth' :
-            'heroicons:document-text'
+              type === 'accepted' ? 'heroicons:check-circle' :
+                type === 'rejected' ? 'heroicons:x-circle' :
+                  type === 'expired' ? 'heroicons:exclamation-triangle' :
+                    type === 'in_progress' ? 'heroicons:cog-6-tooth' :
+                      'heroicons:document-text'
           }
           className="w-8 h-8 text-gray-400"
           aria-hidden="true"
         />
       </div>
       <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        No {type === 'expired' ? 'expired offers' : 
-             type === 'in_progress' ? 'jobs in progress' :
-             `${type} offers`}
+        No {type === 'expired' ? 'expired offers' :
+          type === 'in_progress' ? 'jobs in progress' :
+            `${type} offers`}
       </h3>
       <p className="text-gray-600 mb-4 max-w-md mx-auto">
         {type === 'pending' ? 'You haven\'t submitted any pending offers yet.' :
-         type === 'accepted' ? 'You don\'t have any accepted offers.' :
-         type === 'rejected' ? 'No rejected offers to show.' :
-         type === 'withdrawn' ? 'No withdrawn offers.' :
-         type === 'expired' ? 'No expired offers.' :
-         type === 'in_progress' ? 'No jobs currently in progress.' :
-         'No offers found.'}
+          type === 'accepted' ? 'You don\'t have any accepted offers.' :
+            type === 'rejected' ? 'No rejected offers to show.' :
+              type === 'withdrawn' ? 'No withdrawn offers.' :
+                type === 'expired' ? 'No expired offers.' :
+                  type === 'in_progress' ? 'No jobs currently in progress.' :
+                    'No offers found.'}
       </p>
       <button className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-2 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
         Browse Jobs
@@ -211,7 +240,7 @@ const MyOffersPage = () => {
   // Calculate counts properly - excluding in_progress from all counts
   const getTabCounts = () => {
     if (!offers?.offers) return { all: 0, pending: 0, accepted: 0, rejected: 0, expired: 0 };
-    
+
     const allOffers = offers.offers.filter(offer => offer.status !== 'in_progress'); // Filter out in_progress
     const counts = {
       all: allOffers.length,
@@ -220,7 +249,7 @@ const MyOffersPage = () => {
       rejected: allOffers.filter(offer => offer.status === 'rejected').length,
       expired: allOffers.filter(offer => offer.isExpired).length,
     };
-    
+
     return counts;
   };
 
@@ -316,11 +345,10 @@ const MyOffersPage = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${
-                    activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
-                  }`}
+                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                    }`}
                   role="tab"
                   aria-selected={activeTab === tab.id}
                   aria-controls={`${tab.id}-panel`}
@@ -341,13 +369,15 @@ const MyOffersPage = () => {
               {filteredOffers?.length > 0 ? (
                 <>
                   {filteredOffers.map((offer) => (
-                    <OfferCard 
-                      key={offer._id} 
-                      offer={offer} 
+                    <OfferCard
+                      key={offer._id}
+                      offer={offer}
                       onJobAccepted={handleJobAccepted}
+                      handleStartJob={handleStartJob}
+                      isChangeStatus={isChangeStatus}
                     />
                   ))}
-                  
+
                   {offers?.pagination && (
                     <Pagination
                       currentPage={offers.pagination.current}
