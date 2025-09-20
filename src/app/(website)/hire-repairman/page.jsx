@@ -4,6 +4,7 @@ import axiosInstance from '@/config/axiosInstance'
 import handleError from '@/helper/handleError'
 import React, { useEffect, useState } from 'react'
 import { Icon } from '@iconify/react'
+import Link from 'next/link'
 
 function HireRepairman() {
   const [repairman, setRepairman] = useState([])
@@ -108,7 +109,8 @@ function HireRepairman() {
         {/* Repairmen Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {repairman.map((repair) => (
-            <div
+            <Link href={`/hire-repairman/${repair._id}`} key={repair._id}>
+ <div
               key={repair._id}
               className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex"
             >
@@ -133,24 +135,24 @@ function HireRepairman() {
               <div className="w-2/3 p-2 flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between">
-  <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">
-    {repair.repairmanProfile.fullName}
-  </h3>
+                    <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">
+                      {repair.repairmanProfile.fullName}
+                    </h3>
 
-  <div className="flex items-center gap-2">
-    {/* Chat Button */}
-    <button className="flex items-center gap-1 px-3 py-1 text-sm border rounded-md text-gray-700 hover:bg-orange-100 hover:text-orange-500 transition">
-      <Icon icon="mdi:chat" className="text-lg" />
-      Chat
-    </button>
+                    <div className="flex items-center gap-2">
+                      {/* Chat Button */}
+                      <button className="flex items-center gap-1 px-3 py-1 text-sm border rounded-md text-gray-700 hover:bg-orange-100 hover:text-orange-500 transition">
+                        <Icon icon="mdi:chat" className="text-lg" />
+                        Chat
+                      </button>
 
-    {/* Verified Badge */}
-    <span className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
-      <Icon icon="mdi:check-decagram" className="text-base text-green-500" />
-      Verified
-    </span>
-  </div>
-</div>
+                      {/* Verified Badge */}
+                      <span className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
+                        <Icon icon="mdi:check-decagram" className="text-base text-green-500" />
+                        Verified
+                      </span>
+                    </div>
+                  </div>
 
 
                   <div className="flex items-center mb-3">
@@ -203,6 +205,8 @@ function HireRepairman() {
 
               </div>
             </div>
+            </Link>
+           
           ))}
         </div>
 

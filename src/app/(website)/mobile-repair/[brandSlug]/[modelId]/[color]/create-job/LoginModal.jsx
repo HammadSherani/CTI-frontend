@@ -13,6 +13,7 @@ import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import Logins from "../../../../../../../../public/assets/user/login.png"; // Adjust path as needed
 import Link from "next/link";
+import { setCurrentUser } from "@/store/chat";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -86,6 +87,9 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
         token: resData.token,
         userType: resData.user.role
       }));
+
+
+      dispatch(setCurrentUser(resData.user));
 
       reset();
       onClose();

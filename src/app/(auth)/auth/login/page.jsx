@@ -13,6 +13,7 @@ import handleError from "../../../../helper/handleError";
 import { useRouter } from "next/navigation";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
+import { setCurrentUser } from "@/store/chat";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -75,6 +76,8 @@ function Login() {
         token: resData.token,
         userType: resData.user.role
       }))
+
+      dispatch(setCurrentUser(resData.user));
 
 
       // if(response.data.)
