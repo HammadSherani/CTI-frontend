@@ -26,6 +26,7 @@ const initialState = {
     selectedFile: null,
     onlineUsers: [], // Changed from Set to Array
     unreadCounts: authUser?.unreadCounts || {},
+    totalUnreadCount: 0,
 };
 
 const chatSlice = createSlice({
@@ -96,62 +97,62 @@ const chatSlice = createSlice({
         },
 
         addMessage: (state, action) => {
-    const { chatId, message } = action.payload;
-    console.log('=== AddMessage Reducer Debug ===');
-    console.log('Payload chatId:', chatId);
-    console.log('Payload chatId type:', typeof chatId);
-    console.log('Payload message:', message);
-    console.log('Available chats:', state.chats.map(c => ({
-        id: c.id, 
-        chatId: c.chatId,
-        idType: typeof c.id,
-        chatIdType: typeof c.chatId
-    })));
-    
-    // Try both id and chatId matching
-    const chatIndexById = state.chats.findIndex(c => c.id === chatId);
-    const chatIndexByChatId = state.chats.findIndex(c => c.chatId === chatId);
-    
-    console.log('Found chat by id index:', chatIndexById);
-    console.log('Found chat by chatId index:', chatIndexByChatId);
-    
-    const chatIndex = chatIndexById !== -1 ? chatIndexById : chatIndexByChatId;
-    console.log('Final chat index used:', chatIndex);
-    
-    if (chatIndex !== -1) {
-        console.log('✅ Chat found! Adding message...');
-        
-        // Add message
-        if (!state.messages[chatId]) state.messages[chatId] = [];
-        state.messages[chatId].push({
-            ...message,
-            id: Date.now() + Math.random(),
-            timestamp: new Date().toISOString(),
-        });
+            const { chatId, message } = action.payload;
+            // console.log('=== AddMessage Reducer Debug ===');
+            // console.log('Payload chatId:', chatId);
+            // console.log('Payload chatId type:', typeof chatId);
+            // console.log('Payload message:', message);
+            // console.log('Available chats:', state.chats.map(c => ({
+            //     id: c.id,
+            //     chatId: c.chatId,
+            //     idType: typeof c.id,
+            //     chatIdType: typeof c.chatId
+            // })));
 
-        console.log('Message added. Total messages now:', state.messages[chatId].length);
+            // Try both id and chatId matching
+            const chatIndexById = state.chats.findIndex(c => c.id === chatId);
+            const chatIndexByChatId = state.chats.findIndex(c => c.chatId === chatId);
 
-        // Update lastMessage
-        state.chats[chatIndex].lastMessage = message.text || message.content || "Media";
-        state.chats[chatIndex].timestamp = new Date().toISOString();
+            console.log('Found chat by id index:', chatIndexById);
+            console.log('Found chat by chatId index:', chatIndexByChatId);
 
-        // Reorder chat to top
-        const [updatedChat] = state.chats.splice(chatIndex, 1);
-        state.chats.unshift(updatedChat);
+            const chatIndex = chatIndexById !== -1 ? chatIndexById : chatIndexByChatId;
+            console.log('Final chat index used:', chatIndex);
 
-        // Update unread count if chat is not selected
-        if (message.sender !== 'user' && state.selectedChat?.id !== chatId) {
-            console.log('Incrementing unread count for chatId:', chatId);
-            state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
-        } else {
-            console.log('Not incrementing unread - sender is user or chat is selected');
-        }
-    } else {
-        console.log('❌ Chat NOT found for chatId:', chatId);
-        console.log('Available chat IDs:', state.chats.map(c => c.id));
-        console.log('Available chatIds:', state.chats.map(c => c.chatId));
-    }
-},
+            if (chatIndex !== -1) {
+                console.log('✅ Chat found! Adding message...');
+
+                // Add message
+                if (!state.messages[chatId]) state.messages[chatId] = [];
+                state.messages[chatId].push({
+                    ...message,
+                    id: Date.now() + Math.random(),
+                    timestamp: new Date().toISOString(),
+                });
+
+                console.log('Message added. Total messages now:', state.messages[chatId].length);
+
+                // Update lastMessage
+                state.chats[chatIndex].lastMessage = message.text || message.content || "Media";
+                state.chats[chatIndex].timestamp = new Date().toISOString();
+
+                // Reorder chat to top
+                const [updatedChat] = state.chats.splice(chatIndex, 1);
+                state.chats.unshift(updatedChat);
+
+                // Update unread count if chat is not selected
+                if (message.sender !== 'user' && state.selectedChat?.id !== chatId) {
+                    console.log('Incrementing unread count for chatId:', chatId);
+                    state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
+                } else {
+                    console.log('Not incrementing unread - sender is user or chat is selected');
+                }
+            } else {
+                console.log('❌ Chat NOT found for chatId:', chatId);
+                console.log('Available chat IDs:', state.chats.map(c => c.id));
+                console.log('Available chatIds:', state.chats.map(c => c.chatId));
+            }
+        },
 
         sendMessage: (state, action) => {
             const { content, chatId } = action.payload;
@@ -254,6 +255,44 @@ const chatSlice = createSlice({
             state.messages = messages || {};
             state.unreadCounts = unreadCounts || {};
         },
+
+        updateChatLastMessage: (state, action) => {
+            const { chatId, lastMessage } = action.payload;
+            const chatIndex = state.chats.findIndex(c => c.id === chatId || c.chatId === chatId);
+
+            if (chatIndex !== -1) {
+                // Fix: Handle object or string
+                if (typeof lastMessage === 'object') {
+                    state.chats[chatIndex].lastMessage = {
+                        content: lastMessage.content,
+                        timestamp: lastMessage.timestamp,
+                        senderType: lastMessage.senderType,
+                        messageType: lastMessage.messageType
+                    };
+                } else {
+                    state.chats[chatIndex].lastMessage = lastMessage;
+                }
+
+                // Move chat to top
+                const [updatedChat] = state.chats.splice(chatIndex, 1);
+                state.chats.unshift(updatedChat);
+            }
+        },
+
+        incrementUnreadCount: (state, action) => {
+            const { chatId } = action.payload;
+            state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0);
+        },
+
+        resetUnreadCount: (state, action) => {
+            const { chatId } = action.payload;
+            state.unreadCounts[chatId] = 0;
+        },
+
+        updateTotalUnreadCount: (state) => {
+            const total = Object.values(state.unreadCounts).reduce((sum, count) => sum + count, 0);
+            state.totalUnreadCount = total;
+        },
     },
 });
 
@@ -276,6 +315,9 @@ export const {
     setUserOffline,
     markChatAsRead,
     loadUserChats,
+    updateChatLastMessage,
+    incrementUnreadCount,
+    resetUnreadCount,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

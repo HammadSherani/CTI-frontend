@@ -41,35 +41,46 @@ export const SocketProvider = ({ children }) => {
         console.log('Server confirmation:', data);
       });
 
-     
-newSocket.on('new_message', (messageData) => {
-  console.log('=== Socket Message Debug ===');
-  console.log('Raw messageData:', messageData);
-  console.log('messageData.chatId:', messageData.chatId);
-  console.log('messageData keys:', Object.keys(messageData));
-  
-  dispatch(addMessage({
-    chatId: messageData.chatId,
-    message: {
-      _id: messageData.messageId,
-      messageId: messageData.messageId,
-      content: messageData.content,
-      messageType: messageData.messageType,
-      senderType: messageData.senderType,
-      senderId: messageData.senderId,
-      timestamp: messageData.timestamp,
-      mediaUrl: messageData.mediaUrl,
-      fileName: messageData.fileName,
-      status: 'delivered',
-      user: {
-        _id: messageData.senderId,
-        name: messageData.senderName,
-        avatar: messageData.senderAvatar,
-        role: messageData.senderType
-      }
-    }
-  }));
-});
+      // Listen for new messages
+      newSocket.on('new_message', (messageData) => {
+        console.log('=== Socket Message Debug ===');
+        console.log('Raw messageData:', messageData);
+        console.log('messageData.chatId:', messageData.chatId);
+        console.log('messageData keys:', Object.keys(messageData));
+        
+        dispatch(addMessage({
+          chatId: messageData.chatId,
+          message: {
+            _id: messageData.messageId,
+            messageId: messageData.messageId,
+            content: messageData.content,
+            messageType: messageData.messageType,
+            senderType: messageData.senderType,
+            senderId: messageData.senderId,
+            timestamp: messageData.timestamp,
+            mediaUrl: messageData.mediaUrl,
+            fileName: messageData.fileName,
+            status: 'delivered',
+            user: {
+              _id: messageData.senderId,
+              name: messageData.senderName,
+              avatar: messageData.senderAvatar,
+              role: messageData.senderType
+            }
+          }
+        }));
+      });
+
+      // Listen for chat join confirmations
+      newSocket.on('chat_joined', (data) => {
+        console.log('Successfully joined chat:', data.chatId);
+        console.log('Chat info:', data.chatInfo);
+      });
+
+      // Listen for chat errors
+      newSocket.on('chat_error', (error) => {
+        console.error('Chat error received:', error);
+      });
 
       newSocket.on('message_sent', (data) => {
         console.log('Message sent confirmation:', data);
@@ -92,12 +103,13 @@ newSocket.on('new_message', (messageData) => {
       });
 
       // Error handling
-      newSocket.on('chat_error', (error) => {
-        console.error('Chat error:', error);
-      });
-
       newSocket.on('error', (error) => {
         console.error('Socket error:', error);
+      });
+
+      // Debug all socket events
+      newSocket.onAny((eventName, ...args) => {
+        console.log('🔥 Socket Event Received:', eventName, args);
       });
 
       setSocket(newSocket);
@@ -120,19 +132,21 @@ newSocket.on('new_message', (messageData) => {
     connected,
     // Helper functions
     joinChat: (chatId) => {
-      if (socket) {
-        console.log('Joining chat:', chatId);
+      if (socket && connected) {
+        console.log('🔥 Emitting join_chat for chatId:', chatId);
         socket.emit('join_chat', { chatId });
+      } else {
+        console.warn('Cannot join chat - socket not connected:', { socket: !!socket, connected });
       }
     },
     leaveChat: (chatId) => {
-      if (socket) {
+      if (socket && connected) {
         console.log('Leaving chat:', chatId);
         socket.emit('leave_chat', { chatId });
       }
     },
     sendMessage: (chatId, content, messageType = 'text', mediaUrl = null, fileName = null, fileSize = null) => {
-      if (socket) {
+      if (socket && connected) {
         console.log('Sending message:', { chatId, content, messageType });
         socket.emit('send_message', {
           chatId,
@@ -142,21 +156,23 @@ newSocket.on('new_message', (messageData) => {
           fileName,
           fileSize
         });
+      } else {
+        console.warn('Cannot send message - socket not connected');
       }
     },
     markMessagesRead: (chatId, messageIds) => {
-      if (socket) {
+      if (socket && connected) {
         console.log('Marking messages as read:', { chatId, messageIds });
         socket.emit('mark_messages_read', { chatId, messageIds });
       }
     },
     startTyping: (chatId) => {
-      if (socket) {
+      if (socket && connected) {
         socket.emit('typing_start', { chatId });
       }
     },
     stopTyping: (chatId) => {
-      if (socket) {
+      if (socket && connected) {
         socket.emit('typing_stop', { chatId });
       }
     }

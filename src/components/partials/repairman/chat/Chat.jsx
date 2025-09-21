@@ -6,7 +6,16 @@ import { useChat } from '../../../../hooks/useChat';
 import { useDispatch, useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import { loadUserChats, setMessages, addMessage, setInputText, clearSelectedFile, setSelectedFile } from '../../../../store/chat';
+import {
+    loadUserChats,
+    setMessages,
+    addMessage,
+    setInputText,
+    clearSelectedFile,
+    updateChatLastMessage,
+    incrementUnreadCount,
+    resetUnreadCount
+} from '../../../../store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
 
 const MessageBar = React.memo(({ onClick, unreadCount }) => (
@@ -36,83 +45,193 @@ const LoadingSpinner = () => (
 );
 
 const ChatInbox = ({ onSelectChat, onClose }) => {
-    const { unreadCounts, chats } = useChat();
+    // Direct Redux selectors instead of useChat hook for better debugging
+    const chats = useSelector((state) => state.chat.chats);
+    const unreadCounts = useSelector((state) => state.chat.unreadCounts);
+    const selectedChat = useSelector((state) => state.chat.selectedChat);
+
     const { user, token } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
 
-    // ChatInbox component mein fetchChatList ke baad add karo:
-const fetchChatList = useCallback(async () => {
-    if (!token) return;
+    const {
+        socket,
+        connected,
+        joinChat,
+        leaveChat
+    } = useSocket();
 
-    setLoading(true);
-    try {
-        const { data } = await axiosInstance.get("/chat/list", {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-        
-        console.log('Raw chat data from API:', data.chats);
-        
-        // Fix: Ensure each chat has proper id field
-        const processedChats = (data.chats || []).map(chat => {
-            console.log('Processing individual chat:', chat);
-            return {
-                ...chat,
-                id: chat.chatId // Map chatId to id for Redux compatibility
+    // Debug re-renders
+    useEffect(() => {
+        console.log('=== ChatInbox Re-render Check ===');
+        console.log('Chats length:', chats?.length);
+        console.log('Unread counts:', unreadCounts);
+        console.log('Component rendered at:', new Date().toISOString());
+        console.log('Chats data:', chats);
+    }, [chats, unreadCounts]);
+
+    // Auto-join all available chats for inbox notifications
+    useEffect(() => {
+        if (socket && connected && chats && chats.length > 0) {
+            console.log('Auto-joining all chats for inbox notifications');
+
+            chats.forEach(chat => {
+                const chatId = chat.chatId || chat.id;
+                if (chatId) {
+                    console.log('Joining chat for notifications:', chatId);
+                    joinChat(chatId);
+                }
+            });
+
+            // Cleanup function to leave all chats when component unmounts
+            return () => {
+                console.log('Leaving all chats - ChatInbox cleanup');
+                chats.forEach(chat => {
+                    const chatId = chat.chatId || chat.id;
+                    if (chatId) {
+                        leaveChat(chatId);
+                    }
+                });
             };
-        });
-        
-        console.log('Processed chats:', processedChats);
-        
-        dispatch(loadUserChats({
-            chats: processedChats,
-            messages: {},
-            unreadCounts: {}
-        }));
-    } catch (error) {
-        handleError(error);
-    } finally {
-        setLoading(false);
-    }
-}, [token, dispatch]);
+        }
+    }, [socket, connected, chats, joinChat, leaveChat]);
 
-useEffect(() => {
-    fetchChatList();
-}, [fetchChatList]);
+    // Real-time socket events for chat list updates
+    useEffect(() => {
+        if (socket && connected) {
+            console.log('Setting up ChatInbox socket listeners');
 
-useEffect(() => {
-    if (chats && chats.length > 0) {
-        console.log('Chat object structure:', JSON.stringify(chats[0], null, 2));
-        console.log('Chat IDs available:', chats.map(c => ({ id: c.id, chatId: c.chatId })));
-    }
-}, [chats]);
+            // Listen for new messages to update chat list
+            const handleNewMessage = (messageData) => {
+                console.log('=== Socket Message Received ===');
+                console.log('Message received for chatId:', messageData.chatId);
+                console.log('Currently selected chat:', selectedChat?.id);
+                console.log('Before dispatch - chats length:', chats?.length);
+                console.log('Before dispatch - unreadCounts:', unreadCounts);
+
+                // Only update if user is NOT currently in this specific chat
+                if (!selectedChat || selectedChat.id !== messageData.chatId) {
+                    console.log('✅ Updating chat list - user not in this chat');
+
+                    // Dispatch updateChatLastMessage
+                    dispatch(updateChatLastMessage({
+                        chatId: messageData.chatId,
+                        lastMessage: {
+                            content: messageData.content,
+                            senderType: messageData.senderType,
+                            timestamp: messageData.timestamp,
+                            messageType: messageData.messageType
+                        }
+                    }));
+
+                    // Update unread count if message is not from current user
+                    if (messageData.senderType !== user?.role) {
+                        console.log('Incrementing unread count for chatId:', messageData.chatId);
+                        dispatch(incrementUnreadCount({
+                            chatId: messageData.chatId
+                        }));
+                    }
+
+                    console.log('Actions dispatched successfully');
+                } else {
+                    console.log('❌ NOT updating chat list - user is currently in this chat');
+                }
+            };
+
+            // Listen for messages marked as read
+            const handleMessagesRead = (data) => {
+                console.log('ChatInbox: Messages marked as read:', data);
+                dispatch(resetUnreadCount({
+                    chatId: data.chatId
+                }));
+            };
+
+            socket.on('new_message', handleNewMessage);
+            socket.on('messages_read', handleMessagesRead);
+
+            return () => {
+                console.log('Cleaning up ChatInbox socket listeners');
+                socket.off('new_message', handleNewMessage);
+                socket.off('messages_read', handleMessagesRead);
+            };
+        }
+    }, [socket, connected, dispatch, user?.role, selectedChat]);
+
+    const fetchChatList = useCallback(async () => {
+        if (!token) return;
+
+        setLoading(true);
+        try {
+            const { data } = await axiosInstance.get("/chat/list", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            console.log('Raw chat data from API:', data.chats);
+
+            // Fix: Ensure each chat has proper id field
+            const processedChats = (data.chats || []).map(chat => {
+                console.log('Processing individual chat:', chat);
+                return {
+                    ...chat,
+                    id: chat.chatId // Map chatId to id for Redux compatibility
+                };
+            });
+
+            // Extract unread counts from API response
+            const unreadCountsFromAPI = {};
+            data.chats.forEach(chat => {
+                if (chat.unreadCount > 0) {
+                    unreadCountsFromAPI[chat.chatId] = chat.unreadCount;
+                }
+            });
+
+            console.log('Processed chats:', processedChats);
+            console.log('Extracted unread counts:', unreadCountsFromAPI);
+
+            dispatch(loadUserChats({
+                chats: processedChats,
+                messages: {},
+                unreadCounts: unreadCountsFromAPI // Preserve actual unread counts from backend
+            }));
+        } catch (error) {
+            handleError(error);
+        } finally {
+            setLoading(false);
+        }
+    }, [token, dispatch]);
+
+    useEffect(() => {
+        fetchChatList();
+    }, [fetchChatList]);
+
     const filteredChats = chats?.filter(chat =>
         chat?.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
-    // ChatInbox component mein handleChatSelect function update karo:
+    const handleChatSelect = useCallback((chat) => {
+        console.log('Selected chat object:', chat);
+        console.log('Chat ID:', chat.chatId);
 
-const handleChatSelect = useCallback((chat) => {
-    console.log('Selected chat object:', chat); // Debug log
-    console.log('Chat ID:', chat.chatId); // Debug log
-    
-    onSelectChat({
-        id: chat.chatId, // Ye important change hai - chat.chatId use kar rahe hain
-        chatId: chat.chatId, // Backend ke liye
-        name: chat.otherUser?.name,
-        avatar: chat.otherUser?.avatar,
-        online: chat.online,
-        verified: chat.verified,
-        username: chat.otherUser?.username || `@${chat.otherUser?.name?.toLowerCase()}`,
-    });
-}, [onSelectChat]);
+        onSelectChat({
+            id: chat.chatId,
+            chatId: chat.chatId,
+            name: chat.otherUser?.name,
+            avatar: chat.otherUser?.avatar,
+            online: chat.online,
+            verified: chat.verified,
+            username: chat.otherUser?.username || `@${chat.otherUser?.name?.toLowerCase()}`,
+        });
+    }, [onSelectChat]);
 
     return (
         <div className="w-96 bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 h-[500px]">
             <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <div className="flex gap-4 items-center">
+                    {/* Socket connection indicator */}
+                    <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
+                        title={connected ? 'Connected' : 'Disconnected'} />
                     <Icon
                         icon="mdi:refresh"
                         width={20}
@@ -139,7 +258,7 @@ const handleChatSelect = useCallback((chat) => {
 
             <div className="flex justify-between items-center px-4 py-2 text-sm font-semibold">
                 <span>Chats ({filteredChats.length})</span>
-                <span className="text-blue-500 cursor-pointer">Requests</span>
+                {/* <span className="text-blue-500 cursor-pointer">Requests</span> */}
             </div>
 
             <div className="overflow-y-auto max-h-[400px]">
@@ -161,7 +280,7 @@ const handleChatSelect = useCallback((chat) => {
                 ) : (
                     filteredChats.map((chat) => (
                         <div
-                            key={chat?._id}
+                            key={chat?.chatId || chat?._id}
                             onClick={() => handleChatSelect(chat)}
                             className="flex items-start px-4 py-3 hover:bg-gray-50 cursor-pointer relative transition-colors"
                         >
@@ -175,8 +294,7 @@ const handleChatSelect = useCallback((chat) => {
                                     }}
                                 />
                                 <span
-                                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${chat?.online ? 'bg-green-500' : 'bg-gray-400'
-                                        }`}
+                                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${chat?.online ? 'bg-green-500' : 'bg-gray-400'}`}
                                 />
                             </div>
                             <div className="ml-3 flex-1">
@@ -193,15 +311,20 @@ const handleChatSelect = useCallback((chat) => {
                                         )}
                                     </div>
                                     <span className="text-xs text-gray-400">
-                                        {chat?.lastMessage?.createdAt ?
-                                            new Date(chat.lastMessage.createdAt).toLocaleDateString() :
-                                            'Now'
+                                        {typeof chat?.lastMessage === 'object' && chat?.lastMessage?.timestamp ?
+                                            new Date(chat.lastMessage.timestamp).toLocaleDateString() :
+                                            chat?.lastMessage?.createdAt ?
+                                                new Date(chat.lastMessage.createdAt).toLocaleDateString() :
+                                                'Now'
                                         }
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <p className="text-sm text-gray-700 truncate max-w-[200px]">
-                                        {chat?.lastMessage?.content || 'Start a conversation...'}
+                                        {typeof chat?.lastMessage === 'object'
+                                            ? chat.lastMessage.content || 'Media message'
+                                            : chat?.lastMessage || 'Start a conversation...'
+                                        }
                                     </p>
                                     {unreadCounts[chat?.chatId] > 0 && (
                                         <span className="text-xs bg-pink-600 text-white rounded-full w-5 h-5 flex items-center justify-center ml-2">
@@ -227,18 +350,14 @@ const ChatView = ({ chat, onBack }) => {
 
     const { token, user } = useSelector((state) => state.auth);
     const { messages, inputText, selectedFile, setInputText: updateInputText } = useChat();
-    
-    // ADD SOCKET INTEGRATION - Import useSocket hook
-    const { 
-        socket, 
-        connected, 
-        joinChat, 
-        leaveChat, 
-        sendMessage: socketSendMessage 
+
+    const {
+        socket,
+        connected,
+        joinChat,
+        leaveChat,
+        sendMessage: socketSendMessage
     } = useSocket();
-    
-    // Add useSocket import at top of file
-    // import { useSocket } from '@/contexts/SocketProvider';
 
     const chatMessages = messages[chat.id] || [];
 
@@ -247,7 +366,7 @@ const ChatView = ({ chat, onBack }) => {
         if (chat.id && connected) {
             console.log('Auto-joining chat:', chat.id);
             joinChat(chat.id);
-            
+
             return () => {
                 console.log('Auto-leaving chat:', chat.id);
                 leaveChat(chat.id);
@@ -289,7 +408,6 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [dispatch]);
 
-    // UPDATED SEND MESSAGE WITH SOCKET
     const handleSendMessage = useCallback(async (e) => {
         e.preventDefault();
         if ((!inputText.trim() && !selectedFile) || sending) return;
@@ -303,25 +421,22 @@ const ChatView = ({ chat, onBack }) => {
             console.log('Chat ID:', chat.id);
             console.log('Will use socket:', !!(connected && socket));
 
-            // If socket connected, use socket
             if (connected && socket) {
                 console.log('Using socket to send message');
-                
+
                 if (selectedFile) {
-                    // Handle file upload first, then send via socket
                     const formData = new FormData();
                     formData.append('content', inputText.trim());
                     formData.append('media', selectedFile);
                     formData.append('messageType', selectedFile.type.startsWith('image/') ? 'image' : 'file');
 
                     await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                        headers: { 
+                        headers: {
                             Authorization: `Bearer ${token}`,
                             'Content-Type': 'multipart/form-data'
                         },
                     });
                 } else {
-                    // Send text message via socket
                     socketSendMessage(
                         chat.id,
                         inputText.trim(),
@@ -330,7 +445,6 @@ const ChatView = ({ chat, onBack }) => {
                 }
             } else {
                 console.log('Using HTTP API fallback');
-                // Fallback to HTTP API
                 const messageData = {
                     content: inputText.trim(),
                     messageType: selectedFile ? (selectedFile.type.startsWith('image/') ? 'image' : 'file') : 'text',
@@ -343,7 +457,7 @@ const ChatView = ({ chat, onBack }) => {
                     formData.append('messageType', messageData.messageType);
 
                     await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                        headers: { 
+                        headers: {
                             Authorization: `Bearer ${token}`,
                             'Content-Type': 'multipart/form-data'
                         },
@@ -355,13 +469,12 @@ const ChatView = ({ chat, onBack }) => {
                 }
             }
 
-            // Clear input
             updateInputText("");
             dispatch(clearSelectedFile());
             if (fileInputRef.current) {
                 fileInputRef.current.value = '';
             }
-            
+
         } catch (error) {
             console.error("Error sending message:", error);
             handleError(error);
@@ -376,12 +489,6 @@ const ChatView = ({ chat, onBack }) => {
             handleSendMessage(e);
         }
     }, [handleSendMessage]);
-
-    console.log('=== Messages Debug ===');
-    console.log('Messages for current chat:', messages[chat.id]);
-    console.log('All message keys:', Object.keys(messages));
-    console.log('Chat ID we are looking for:', chat.id);
-    console.log('Socket connected:', connected);
 
     return (
         <div className="flex flex-col w-96 h-[500px] bg-white rounded-lg shadow-xl border border-gray-200">
@@ -403,9 +510,8 @@ const ChatView = ({ chat, onBack }) => {
                             {chat.verified && (
                                 <Icon icon="mdi:check-decagram" className="text-blue-500" width={16} />
                             )}
-                            {/* Socket connection indicator */}
-                            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} 
-                                 title={connected ? 'Connected' : 'Disconnected'} />
+                            <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
+                                title={connected ? 'Connected' : 'Disconnected'} />
                         </div>
                         <span className="text-xs text-gray-400">
                             {chat.online ? 'Online' : chat.username || 'Offline'}
@@ -421,7 +527,7 @@ const ChatView = ({ chat, onBack }) => {
             </div>
 
             {/* Messages */}
-            <div 
+            <div
                 className="flex-1 overflow-y-auto p-4 bg-gray-50"
                 style={{ overscrollBehavior: 'contain' }}
             >
@@ -440,8 +546,8 @@ const ChatView = ({ chat, onBack }) => {
                         >
                             <div
                                 className={`max-w-[70%] p-2 rounded-lg ${user.role === message.senderType
-                                        ? "bg-blue-500 text-white"  
-                                        : "bg-gray-200 text-gray-800" 
+                                    ? "bg-blue-500 text-white"
+                                    : "bg-gray-200 text-gray-800"
                                     }`}
                             >
                                 {message.media && (
