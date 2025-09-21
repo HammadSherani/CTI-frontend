@@ -1,6 +1,6 @@
 "use client"
 
-import Chat from '@/components/partials/repairman/chat/Chat'
+import Chat from '@/components/chat/GlobalChat'
 import Header from '@/components/partials/repairman/header/Header'
 import React from 'react'
 import { useSelector } from 'react-redux';
