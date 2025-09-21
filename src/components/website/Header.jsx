@@ -400,23 +400,23 @@ export default function Header() {
   const { user, token } = useSelector((state) => state.auth);
   const { unreadCount, notifications } = useNotifications(token);
 
-  console.log('Socket connected:', socketService.isConnected);
-  useEffect(() => {
-    if (token && user?.role === 'customer') {
-      console.log('Connecting socket for repairman:', user.name);
-      socketService.connect(token);
-      socketService.requestNotificationPermission();
-    }
+  // console.log('Socket connected:', socketService.isConnected);
+  // useEffect(() => {
+  //   if (token && user?.role === 'customer') {
+  //     console.log('Connecting socket for repairman:', user.name);
+  //     socketService.connect(token);
+  //     socketService.requestNotificationPermission();
+  //   }
 
-    return () => {
-      if (user?.role === 'repairman') {
-        socketService.disconnect();
-      }
-    };
-  }, [token, user?.role, user?.name]);
+  //   return () => {
+  //     if (user?.role === 'repairman') {
+  //       socketService.disconnect();
+  //     }
+  //   };
+  // }, [token, user?.role, user?.name]);
 
   // const handleLogout = useCallback(() => {
-  //   socketService.disconnect();
+  //   // socketService.disconnect();
   //   dispatch(clearAuth());
   // }, [dispatch]);
 

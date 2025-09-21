@@ -73,9 +73,16 @@ function RepairmanDetail() {
 
             // Chat box kholna
             openChat();
-
+            
             // Us chat ko select karna
-            selectChat(data.chat._id);
+            selectChat({
+                id: data?.chat._id,
+                name: data?.chat?.user.name,
+                avatar: data?.chat?.user.avatar,
+                // online: chat.online,
+                // verified: chat.verified,
+                // username: chat.user?.username || `@${chat.user?.name?.toLowerCase()}`,
+            });
 
             // router.push(`/hire-repairman/${id}/chat/${data.chat._id}`);
         } catch (error) {

@@ -9,7 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import NotificationPanel from '../NotificationPanel';
-import socketService from '@/utils/socketService';
+// import socketService from '@/utils/socketService';
 import { useNotifications } from '@/hooks/useNotifications';
 
 function Header() {
@@ -24,22 +24,22 @@ function Header() {
   const { unreadCount } = useNotifications(token);
 
   // Socket connection for repairmen only
-  useEffect(() => {
-    if (token && user?.role === 'repairman') {
-      console.log('Connecting socket for repairman:', user.name);
-      socketService.connect(token);
-      socketService.requestNotificationPermission();
-    }
+  // useEffect(() => {
+  //   if (token && user?.role === 'repairman') {
+  //     console.log('Connecting socket for repairman:', user.name);
+  //     socketService.connect(token);
+  //     socketService.requestNotificationPermission();
+  //   }
     
-    return () => {
-      if (user?.role === 'repairman') {
-        socketService.disconnect();
-      }
-    };
-  }, [token, user?.role, user?.name]);
+  //   return () => {
+  //     if (user?.role === 'repairman') {
+  //       socketService.disconnect();
+  //     }
+  //   };
+  // }, [token, user?.role, user?.name]);
 
   const handleLogout = useCallback(() => {
-    socketService.disconnect();
+    // socketService.disconnect();
     dispatch(clearAuth());
   }, [dispatch]);
 

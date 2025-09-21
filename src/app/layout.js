@@ -1,18 +1,19 @@
+// app/layout.js
 import "./globals.css";
 import { ToastContainer } from "react-toastify";
 import ReduxProvider from "@/components/website/provider/ReduxProvider";
-
-
+import { SocketProvider } from "@/contexts/SocketProvider";
 
 export default async function RootLayout({ children }) {
-
   return (
     <html>
       <body className="antialiased">
-          <ReduxProvider>
+        <ReduxProvider>
+          <SocketProvider>
             {children}
             <ToastContainer />
-          </ReduxProvider>
+          </SocketProvider>
+        </ReduxProvider>
       </body>
     </html>
   );
