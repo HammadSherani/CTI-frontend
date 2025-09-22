@@ -26,6 +26,9 @@ const quotationSchema = yup.object().shape({
         .min(0, 'Parts price cannot be negative')
         .nullable()
         .transform((value, originalValue) => originalValue === '' ? null : value),
+    partsQuality: yup
+        .string()
+        .nullable(),
     estimatedDuration: yup
         .string()
         .required('Estimated duration is required')
@@ -96,12 +99,18 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
 
     const onSubmit = async (data) => {
         setLoading(true);
+
+        console.log(data);
+        
+
+        // return;
         try {
             const validUntil = new Date();
             validUntil.setHours(validUntil.getHours() + parseInt(data.validityDuration));
 
             const quotationData = {
                 description: data.description.trim(),
+                partsQuality: data.partsQuality,
                 serviceCharge: parseFloat(data.serviceCharge),
                 partsPrice: parseFloat(data.partsPrice) || 0,
                 estimatedDuration: data.estimatedDuration.trim(),
@@ -137,9 +146,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                 {/* Header */}
                 <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Create Quotation</h2>
-                    <Icon 
-                        icon="mdi:close" 
-                        width={24} 
+                    <Icon
+                        icon="mdi:close"
+                        width={24}
                         className="cursor-pointer hover:opacity-70"
                         onClick={onClose}
                     />
@@ -161,9 +170,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         {...field}
                                         placeholder="Describe the repair work to be done..."
                                         rows={3}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                            errors.description ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                         maxLength={500}
                                     />
                                 )}
@@ -191,9 +199,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         placeholder="Enter service charge"
                                         min="0"
                                         step="0.01"
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                            errors.serviceCharge ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.serviceCharge ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                     />
                                 )}
                             />
@@ -202,10 +209,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             )}
                         </div>
 
-                        {/* Parts Price */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Parts Price (PKR)
+                                Parts Price
                             </label>
                             <Controller
                                 name="partsPrice"
@@ -217,9 +223,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         placeholder="Enter parts cost (if any)"
                                         min="0"
                                         step="0.01"
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                            errors.partsPrice ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.partsPrice ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                     />
                                 )}
                             />
@@ -227,8 +232,34 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 <p className="text-red-500 text-xs mt-1">{errors.partsPrice.message}</p>
                             )}
                         </div>
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Parts Quality
+                            </label>
+                            <Controller
+                                name="partsQuality"
+                                control={control}
+                                render={({ field }) => (
+                                    <select
+                                        {...field}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.partsQuality ? 'border-red-500' : 'border-gray-300'
+                                            }`}
+                                    >
+                                        <option value="">Select quality</option>
+                                        <option value="original">Original</option>
+                                        <option value="a-plus">A-Plus</option>
+                                        <option value="china-copy">China Copy</option>
+                                        <option value="refurbished-original">Refurbished Original</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                )}
+                            />
+                            {errors.partsQuality && (
+                                <p className="text-red-500 text-xs mt-1">{errors.partsQuality.message}</p>
+                            )}
+                        </div>
 
-                        {/* Total Amount Display */}
+
                         <div className="bg-gray-50 p-3 rounded-md">
                             <div className="flex justify-between items-center">
                                 <span className="font-medium text-gray-700">Total Amount:</span>
@@ -251,9 +282,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         {...field}
                                         type="text"
                                         placeholder="e.g., 2-3 hours, 1-2 days"
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                            errors.estimatedDuration ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.estimatedDuration ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                     />
                                 )}
                             />
@@ -278,9 +308,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                             placeholder="Enter hours (e.g., 24)"
                                             min="1"
                                             max="168"
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                errors.validityDuration ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.validityDuration ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                         <div className="flex flex-wrap gap-2">
                                             <button

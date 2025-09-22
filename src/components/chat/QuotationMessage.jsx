@@ -14,6 +14,7 @@ const QuotationMessage = ({ message, isOwner }) => {
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
     const {
+        partsQuality = '',
         serviceCharge = 0,
         partsPrice = 0,
         totalAmount = quotationData.totalAmount || (quotationData.serviceCharge + quotationData.partsPrice),
@@ -124,6 +125,13 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 <span className="font-medium">PKR {partsPrice?.toFixed(2)}</span>
                             </div>
                         )}
+
+                         {partsQuality && (
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Parts Quality:</span>
+                                <span className="font-medium">{partsQuality}</span>
+                            </div>
+                         )} 
                         <div className="border-t pt-2 mt-2">
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold text-gray-800">Total Amount:</span>
@@ -237,7 +245,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                                     )}
                                 </button>
                                 <button
-                                    onClick={() => handleQuotationResponse('reject')}
+                                    onClick={() => handleQuotationResponse('rejected')}
                                     disabled={responding}
                                     className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
                                 >
