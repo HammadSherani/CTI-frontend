@@ -400,7 +400,15 @@ function AdminRepairmanPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         <Link
-                                                            href={`/admin/repairman/${repairman._id}/edit`}
+                                                            href={`/admin/repair-man/${repairman._id}/view`}
+                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
+                                                            title="Edit repairman"
+                                                        >
+                                                            <Icon icon="famicons:eye" className="w-5 h-5" />
+                                                        </Link>
+
+                                                         <Link
+                                                            href={`/admin/repair-man/${repairman._id}/edit`}
                                                             className="text-primary-600 hover:text-primary-900 transition-colors"
                                                             title="Edit repairman"
                                                         >
