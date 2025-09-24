@@ -9,7 +9,7 @@ import { Icon } from '@iconify/react';
 import { produce } from 'immer';
 
 // Input component for reusability
-const InputField = ({ label, name, value, onChange, type = 'text', required = false, ...props }) => (
+const InputField = ({ label, name, value, onChange, type = 'text', required = false, error, ...props }) => (
   <div>
     <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
     <input
@@ -17,10 +17,11 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
       required={required}
       {...props}
     />
+    {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
   </div>
 );
 
@@ -58,11 +59,39 @@ const CheckboxField = ({ label, name, checked, onChange, id }) => (
   </div>
 );
 
+// File Input component for document uploads
+const FileInput = ({ label, name, onChange, accept, currentUrl }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    {currentUrl && (
+      <div className="mb-2">
+        <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+          View Current {label}
+        </a>
+      </div>
+    )}
+    <input
+      type="file"
+      name={name}
+      onChange={onChange}
+      accept={accept}
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+    />
+  </div>
+);
+
 function RepairmanEditPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
+  const [files, setFiles] = useState({
+    profilePhoto: null,
+    nationalIdOrPassportScan: null,
+    shopPhoto: null,
+    utilityBillOrShopProof: null,
+    certifications: []
+  });
   const { token } = useSelector(state => state.auth);
   const { id } = useParams();
   const router = useRouter();
@@ -90,6 +119,11 @@ function RepairmanEditPage() {
       city: '',
       district: '',
       zipCode: '',
+      profilePhoto: '',
+      nationalIdOrPassportScan: '',
+      shopPhoto: '',
+      utilityBillOrShopProof: '',
+      certifications: [],
       yearsOfExperience: '',
       specializations: [],
       brandsWorkedWith: [],
@@ -142,6 +176,11 @@ function RepairmanEditPage() {
               end: repairman.repairmanProfile?.workingHours?.end || ''
             },
             dob: repairman.repairmanProfile?.dob ? repairman.repairmanProfile.dob.split('T')[0] : '',
+            profilePhoto: repairman.repairmanProfile?.profilePhoto || '',
+            nationalIdOrPassportScan: repairman.repairmanProfile?.nationalIdOrPassportScan || '',
+            shopPhoto: repairman.repairmanProfile?.shopPhoto || '',
+            utilityBillOrShopProof: repairman.repairmanProfile?.utilityBillOrShopProof || '',
+            certifications: repairman.repairmanProfile?.certifications || [],
             specializations: repairman.repairmanProfile?.specializations || [],
             brandsWorkedWith: repairman.repairmanProfile?.brandsWorkedWith || [],
             workingDays: repairman.repairmanProfile?.workingDays || []
@@ -176,6 +215,21 @@ function RepairmanEditPage() {
     setErrors(prev => ({ ...prev, [name.split('.').pop()]: '' }));
   }, []);
 
+  const handleFileChange = useCallback((e) => {
+    const { name, files: selectedFiles } = e.target;
+    if (name === 'repairmanProfile.certifications') {
+      setFiles(prev => ({
+        ...prev,
+        certifications: Array.from(selectedFiles)
+      }));
+    } else {
+      setFiles(prev => ({
+        ...prev,
+        [name.split('.').pop()]: selectedFiles[0]
+      }));
+    }
+  }, []);
+
   const handleArrayChange = useCallback((field, value) => {
     setFormData(produce(draft => {
       const [parent, child] = field.split('.');
@@ -208,16 +262,35 @@ function RepairmanEditPage() {
 
     try {
       setSaving(true);
-      await axiosInstance.put(`/admin/repairman/${id}`, {
-        ...formData,
-        repairmanProfile: {
-          ...formData.repairmanProfile,
-          dob: formData.repairmanProfile.dob ? new Date(formData.repairmanProfile.dob).toISOString() : null
-        }
-      }, {
+      const formDataToSend = new FormData();
+      
+      // Append form data
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('status', formData.status);
+      formDataToSend.append('isActive', formData.isActive);
+      
+      // Append repairmanProfile data
+      const profileData = {
+        ...formData.repairmanProfile,
+        dob: formData.repairmanProfile.dob ? new Date(formData.repairmanProfile.dob).toISOString() : null
+      };
+      formDataToSend.append('repairmanProfile', JSON.stringify(profileData));
+
+      // Append files
+      if (files.profilePhoto) formDataToSend.append('profilePhoto', files.profilePhoto);
+      if (files.nationalIdOrPassportScan) formDataToSend.append('nationalIdOrPassportScan', files.nationalIdOrPassportScan);
+      if (files.shopPhoto) formDataToSend.append('shopPhoto', files.shopPhoto);
+      if (files.utilityBillOrShopProof) formDataToSend.append('utilityBillOrShopProof', files.utilityBillOrShopProof);
+      files.certifications.forEach((file, index) => {
+        formDataToSend.append(`certifications[${index}]`, file);
+      });
+
+      await axiosInstance.put(`/admin/repairman/${id}`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         }
       });
       alert('Repairman updated successfully!');
@@ -228,7 +301,7 @@ function RepairmanEditPage() {
     } finally {
       setSaving(false);
     }
-  }, [formData, id, token, router, validateForm]);
+  }, [formData, files, id, token, router, validateForm]);
 
   if (loading) {
     return (
@@ -413,6 +486,71 @@ function RepairmanEditPage() {
                   rows={4}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Brief description about services and expertise..."
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Documents */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <Icon icon="mdi:folder" className="w-6 h-6 mr-2 text-teal-600" />
+              Documents
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <FileInput
+                label="Profile Photo"
+                name="repairmanProfile.profilePhoto"
+                onChange={handleFileChange}
+                accept="image/*"
+                currentUrl={formData.repairmanProfile.profilePhoto}
+              />
+              <FileInput
+                label="National ID/Passport Scan"
+                name="repairmanProfile.nationalIdOrPassportScan"
+                onChange={handleFileChange}
+                accept="image/*"
+                currentUrl={formData.repairmanProfile.nationalIdOrPassportScan}
+              />
+              <FileInput
+                label="Shop Photo"
+                name="repairmanProfile.shopPhoto"
+                onChange={handleFileChange}
+                accept="image/*"
+                currentUrl={formData.repairmanProfile.shopPhoto}
+              />
+              <FileInput
+                label="Utility Bill/Shop Proof"
+                name="repairmanProfile.utilityBillOrShopProof"
+                onChange={handleFileChange}
+                accept="image/*"
+                currentUrl={formData.repairmanProfile.utilityBillOrShopProof}
+              />
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
+                {formData.repairmanProfile.certifications.length > 0 && (
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Current Certifications:</p>
+                    {formData.repairmanProfile.certifications.map((url, index) => (
+                      <a
+                        key={index}
+                        href={url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline block"
+                      >
+                        Certification {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                )}
+                <input
+                  type="file"
+                  name="repairmanProfile.certifications"
+                  onChange={handleFileChange}
+                  accept="image/*"
+                  multiple
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
