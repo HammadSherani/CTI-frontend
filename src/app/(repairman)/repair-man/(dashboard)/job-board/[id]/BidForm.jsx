@@ -58,16 +58,16 @@ const schema = yup.object({
     })
 });
 
-export default function BidForm({ 
-    jobId, 
-    repairmanId, 
+export default function BidForm({
+    jobId,
+    repairmanId,
 }) {
 
-    const [isSubmitting, setIsSubmitting] = useState(false); 
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const router = useRouter()
 
     console.log(jobId, repairmanId);
-    
+
     const {
         control,
         handleSubmit,
@@ -101,9 +101,11 @@ export default function BidForm({
     });
 
     const watchedValues = watch();
-    const platformFee = 5;
+    const platformFeePercentage = 5;
     const totalPrice = (parseFloat(watchedValues.basePrice) || 0) + (parseFloat(watchedValues.partsEstimate) || 0);
+    const platformFee = (totalPrice * platformFeePercentage) / 100;
     const netAmount = totalPrice ? Math.max(0, totalPrice - platformFee) : 0;
+
     const characterCount = watchedValues.description?.length || 0;
     const minCharacters = 100;
 
@@ -121,7 +123,7 @@ export default function BidForm({
             const payload = {
                 jobId: jobId,
                 repairmanId: repairmanId,
-                
+
                 pricing: {
                     basePrice: parseFloat(data.basePrice),
                     partsEstimate: parseFloat(data.partsEstimate) || 0,
@@ -129,25 +131,25 @@ export default function BidForm({
                     partsQuality: data.partsQuality,
                     currency: 'TRY'
                 },
-                
+
                 estimatedTime: {
                     value: parseInt(data.estimatedTime),
                     unit: data.timeUnit
                 },
-                
+
                 description: data.description,
-                
+
                 warranty: {
                     duration: parseInt(data.warranty.duration),
                     description: data.warranty.description || '',
                     terms: data.warranty.terms || ''
                 },
-                
+
                 availability: {
                     canStartBy: new Date(data.availability.canStartBy),
                     preferredSlots: [] // Can be enhanced later
                 },
-                
+
                 serviceOptions: {
                     pickupAvailable: data.serviceOptions.pickupAvailable,
                     pickupCharge: data.serviceOptions.pickupCharge || 0,
@@ -155,28 +157,28 @@ export default function BidForm({
                     homeServiceCharge: data.serviceOptions.homeServiceCharge || 0,
                     dropOffLocation: ""
                 },
-                
+
                 // Default fields
                 servicesIncluded: [],
                 // experience: defaultExperience,
                 status: 'pending',
                 expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
                 viewedByCustomer: false,
-                
+
                 // Location context
                 locationContext: {
                     submissionMethod: 'profile-stored',
                     submittedAt: new Date(),
                     accuracyLevel: 'profile-based'
                 },
-                
+
                 // Communication array
                 messages: []
             };
-            
+
             console.log("Payload to send:", payload);
 
-            const res  = await axiosInstance.post(`/repairman/offers/jobs/${jobId}/offer`, payload, {
+            const res = await axiosInstance.post(`/repairman/offers/jobs/${jobId}/offer`, payload, {
                 headers: {
                     'Authorization': 'Bearer ' + repairmanId,
                 }
@@ -184,7 +186,7 @@ export default function BidForm({
 
             toast.success(res.data.message);
             router.push('/repair-man/dashboard');
-            
+
             console.log("Response from server:", res.data);
             // Here you would make the API call
             // Example:
@@ -196,12 +198,12 @@ export default function BidForm({
             // 
             // if (!response.ok) throw new Error('Failed to submit offer');
             // const result = await response.json();
-            
+
             // Call success callback if provided
             // if (onSubmitSuccess) {
             //     onSubmitSuccess(payload);
             // }
-            
+
         } catch (error) {
             handleError(error)
         } finally {
@@ -255,11 +257,10 @@ export default function BidForm({
                                         {...field}
                                         id="basePrice"
                                         type="number"
-                                        className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                            errors.basePrice
+                                        className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.basePrice
                                                 ? 'border-red-500 ring-2 ring-red-100'
                                                 : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                        } focus:outline-none`}
+                                            } focus:outline-none`}
                                         placeholder="0.00"
                                         min="0"
                                         step="0.01"
@@ -289,11 +290,10 @@ export default function BidForm({
                                         {...field}
                                         id="partsEstimate"
                                         type="number"
-                                        className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                            errors.partsEstimate
+                                        className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.partsEstimate
                                                 ? 'border-red-500 ring-2 ring-red-100'
                                                 : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                        } focus:outline-none`}
+                                            } focus:outline-none`}
                                         placeholder="0.00"
                                         min="0"
                                         step="0.01"
@@ -318,11 +318,10 @@ export default function BidForm({
                                 <select
                                     {...field}
                                     id="partsQuality"
-                                    className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                        errors.partsQuality
+                                    className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.partsQuality
                                             ? 'border-red-500 ring-2 ring-red-100'
                                             : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                    } focus:outline-none`}
+                                        } focus:outline-none`}
                                 >
                                     {partsQualityOptions.map(option => (
                                         <option key={option.value} value={option.value}>
@@ -351,11 +350,10 @@ export default function BidForm({
                                         {...field}
                                         id="estimatedTime"
                                         type="number"
-                                        className={`flex-1 px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                            errors.estimatedTime
+                                        className={`flex-1 px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.estimatedTime
                                                 ? 'border-red-500 ring-2 ring-red-100'
                                                 : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                        } focus:outline-none`}
+                                            } focus:outline-none`}
                                         placeholder="2"
                                         min="1"
                                     />
@@ -369,7 +367,7 @@ export default function BidForm({
                                         {...field}
                                         className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                                     >
-                                        <option value="hours">Hours</option>
+                                        {/* <option value="hours">Hours</option> */}
                                         <option value="days">Days</option>
                                     </select>
                                 )}
@@ -394,11 +392,10 @@ export default function BidForm({
                                         {...field}
                                         id="warrantyDuration"
                                         type="number"
-                                        className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                            getFieldError('warranty.duration')
+                                        className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${getFieldError('warranty.duration')
                                                 ? 'border-red-500 ring-2 ring-red-100'
                                                 : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                        } focus:outline-none`}
+                                            } focus:outline-none`}
                                         placeholder="30"
                                         min="1"
                                     />
@@ -426,11 +423,10 @@ export default function BidForm({
                                     {...field}
                                     id="availability"
                                     type="date"
-                                    className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${
-                                        getFieldError('availability.canStartBy')
+                                    className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${getFieldError('availability.canStartBy')
                                             ? 'border-red-500 ring-2 ring-red-100'
                                             : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                    } focus:outline-none`}
+                                        } focus:outline-none`}
                                     min={getMinDateTime()}
                                 />
                             )}
@@ -442,7 +438,7 @@ export default function BidForm({
                 </div>
 
                 {/* Service Options */}
-                <div className="mt-6 space-y-4">
+                {/* <div className="mt-6 space-y-4">
                     <h6 className="text-lg font-medium text-gray-900">Service Options</h6>
                     
                     <div className="flex items-start space-x-3">
@@ -524,7 +520,7 @@ export default function BidForm({
                             )}
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 {/* Warranty Description */}
                 <div className="mt-6 space-y-2">
@@ -580,11 +576,10 @@ export default function BidForm({
                                 <textarea
                                     {...field}
                                     id="description"
-                                    className={`block w-full px-3 py-3 border rounded-lg text-sm resize-none transition-colors duration-200 ${
-                                        errors.description
+                                    className={`block w-full px-3 py-3 border rounded-lg text-sm resize-none transition-colors duration-200 ${errors.description
                                             ? 'border-red-500 ring-2 ring-red-100'
                                             : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                    } focus:outline-none`}
+                                        } focus:outline-none`}
                                     rows={6}
                                     placeholder="Explain how you'll approach this repair, your relevant experience, and why you're the right person for the job..."
                                     maxLength={300}
@@ -596,9 +591,8 @@ export default function BidForm({
                         <span className="text-gray-500">
                             Minimum {minCharacters} characters required (Max 300)
                         </span>
-                        <span className={`font-medium ${
-                            characterCount >= minCharacters ? 'text-green-600' : 'text-gray-500'
-                        }`}>
+                        <span className={`font-medium ${characterCount >= minCharacters ? 'text-green-600' : 'text-gray-500'
+                            }`}>
                             {characterCount}/{minCharacters}
                         </span>
                     </div>
@@ -655,11 +649,10 @@ export default function BidForm({
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
-                            className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-200 ${
-                                isValid && !isSubmitting
+                            className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-200 ${isValid && !isSubmitting
                                     ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md'
                                     : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                            }`}
+                                }`}
                         >
                             {isSubmitting ? (
                                 <div className="flex items-center gap-2">
@@ -672,7 +665,7 @@ export default function BidForm({
                             ) : (
                                 'Submit Offer'
                             )}
-                            
+
                         </button>
                     </div>
 

@@ -12,24 +12,24 @@ const MyJobsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
 
-  const [jobs, setJobs] = useState([]);
+  const [allJobs, setAllJobs] = useState([]); // Store all jobs
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState({});
   const { token } = useSelector((state) => state.auth);
 
-  const fetchJobs = async (status = null) => {
+  // Fetch all jobs only once
+  const fetchAllJobs = async () => {
     try {
       setLoading(true);
-      const url = status ? `/repairman/my-booking?status=${status}` : "/repairman/my-booking";
-      const { data } = await axiosInstance.get(url, {
+      const { data } = await axiosInstance.get("/repairman/my-booking", {
         headers: {
           'Authorization': 'Bearer ' + token,
         }
       });
 
       if (data.success) {
-        setJobs(data.data.jobs || []);
+        setAllJobs(data.data.jobs || []);
         setSummary(data.data.summary || {});
         setError(null);
       } else {
@@ -45,7 +45,7 @@ const MyJobsPage = () => {
   };
 
   useEffect(() => {
-    fetchJobs();
+    fetchAllJobs();
   }, []);
 
   // Helper function to get booking status
@@ -88,6 +88,7 @@ const MyJobsPage = () => {
       case 'confirmed': return 'bg-primary-100 text-primary-800';
       case 'in_progress': return 'bg-yellow-100 text-yellow-800';
       case 'completed': return 'bg-green-100 text-green-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'scheduled': return 'bg-purple-100 text-purple-800';
       case 'parts_needed': return 'bg-orange-100 text-orange-800';
@@ -105,30 +106,28 @@ const MyJobsPage = () => {
     }
   };
 
-  // Categorize jobs based on their booking status
-  const categorizeJobs = (jobs) => {
-    const active = jobs.filter(job => [
+  // Categorize jobs based on their booking status - using memoization
+  const categorizedJobs = useMemo(() => {
+    const active = allJobs.filter(job => [
       'confirmed', 'repairman_notified', 'scheduled', 'in_progress', 'parts_needed', 'quality_check'
     ].includes(job.bookingDetails?.status));
 
-    const completed = jobs.filter(job => [
+    const completed = allJobs.filter(job => [
       'completed', 'delivered'
     ].includes(job.bookingDetails?.status));
 
-    const cancelled = jobs.filter(job =>
+    const cancelled = allJobs.filter(job =>
       job.bookingDetails?.status === 'cancelled'
     );
 
-    const disputed = jobs.filter(job =>
+    const disputed = allJobs.filter(job =>
       job.bookingDetails?.status === 'disputed'
     );
 
     return { active, completed, cancelled, disputed };
-  };
+  }, [allJobs]);
 
-  const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
-
-  // Filter and search jobs
+  // Filter and search jobs based on active tab
   const filteredJobs = useMemo(() => {
     const jobsToFilter = categorizedJobs[activeTab] || [];
     return jobsToFilter.filter((job) => {
@@ -193,10 +192,6 @@ const MyJobsPage = () => {
             </div>
           </div>
           <div className="text-right w-full sm:w-auto">
-
-            <div>
-
-            </div>
             <p className="text-2xl font-bold text-gray-900 whitespace-nowrap">
               {formatCurrency(
                 bookingDetails.pricing?.totalAmount,
@@ -256,48 +251,6 @@ const MyJobsPage = () => {
             </p>
           </div>
         )}
-
-        {/* Job Details Grid */}
-        {/* <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm text-gray-600 mb-4">
-          {jobDetails.servicePreference && (
-            <div>
-              <span className="font-medium">Service Preference:</span> {jobDetails.servicePreference}
-            </div>
-          )}
-          {jobDetails.preferredTime && (
-            <div>
-              <span className="font-medium">Preferred Time:</span>{' '}
-              {new Date(jobDetails.preferredTime).toLocaleString()}
-            </div>
-          )}
-          {bookingDetails.pricing && (
-            <>
-              <div>
-                <span className="font-medium">Base Price:</span> {formatCurrency(bookingDetails.pricing.basePrice, bookingDetails.pricing.currency)}
-              </div>
-              <div>
-                <span className="font-medium">Parts Price:</span> {formatCurrency(bookingDetails.pricing.partsPrice, bookingDetails.pricing.currency)}
-              </div>
-            </>
-          )}
-          {customer.phone && (
-            <div>
-              <span className="font-medium">Customer Phone:</span> {customer.phone}
-            </div>
-          )}
-          <div>
-            <span className="font-medium">Posted:</span>{' '}
-            {new Date(jobDetails.createdAt).toLocaleDateString()}
-          </div>
-        </div> */}
-
-        {/* Address */}
-        {/* {jobDetails.location?.address && (
-          <div className="mb-4">
-            <span className="text-sm font-medium text-gray-700 block mb-1">Address:</span>
-            <p className="text-sm text-gray-600">{jobDetails.location.address}</p>
-          </div>
-        )} */}
 
         {/* Images */}
         {jobDetails.images && jobDetails.images.length > 0 && (
@@ -375,7 +328,7 @@ const MyJobsPage = () => {
               'No disputed jobs found.'}
       </p>
       <button
-        onClick={() => fetchJobs()}
+        onClick={() => fetchAllJobs()}
         className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
       >
         <Icon icon="heroicons:arrow-path" className="w-4 h-4 mr-2 inline" />
@@ -384,11 +337,12 @@ const MyJobsPage = () => {
     </div>
   );
 
+  // Calculate tab counts from categorized jobs
   const getTabCounts = () => ({
-    active: summary.activeBookings || 0,
-    completed: summary.completedBookings || 0,
-    cancelled: summary.cancelledBookings || 0,
-    disputed: summary.disputedBookings || 0,
+    active: categorizedJobs.active?.length || 0,
+    completed: categorizedJobs.completed?.length || 0,
+    cancelled: categorizedJobs.cancelled?.length || 0,
+    disputed: categorizedJobs.disputed?.length || 0,
   });
 
   const tabCounts = getTabCounts();
@@ -398,16 +352,9 @@ const MyJobsPage = () => {
     setUrgencyFilter('all');
   };
 
+  // Simple tab change without API call
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    // Fetch jobs with specific status filter
-    const statusMap = {
-      'active': null, // null means get all active statuses
-      'completed': 'completed',
-      'cancelled': 'cancelled',
-      'disputed': 'disputed'
-    };
-    fetchJobs(statusMap[tabId]);
   };
 
   if (loading) {
@@ -429,7 +376,7 @@ const MyJobsPage = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={() => fetchJobs()}
+            onClick={() => fetchAllJobs()}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
             Try Again
@@ -446,28 +393,8 @@ const MyJobsPage = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair bookings and track progress</p>
-
-          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-primary-600">{summary.totalJobs || 0}</div>
-              <div className="text-sm text-gray-600">Total Jobs</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-yellow-600">{summary.activeBookings || 0}</div>
-              <div className="text-sm text-gray-600">Active</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-green-600">{summary.completedBookings || 0}</div>
-              <div className="text-sm text-gray-600">Completed</div>
-            </div>
-            <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-              <div className="text-2xl font-bold text-red-600">{summary.cancelledBookings || 0}</div>
-              <div className="text-sm text-gray-600">Cancelled</div>
-            </div>
-          </div> */}
         </div>
 
-        {/* Search and Filter */}
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
           <div className="relative flex-1 w-full">
             <input
@@ -509,7 +436,7 @@ const MyJobsPage = () => {
               Clear Filters
             </button>
             <button
-              onClick={() => fetchJobs()}
+              onClick={() => fetchAllJobs()}
               className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
               aria-label="Refresh jobs"
             >
@@ -518,7 +445,6 @@ const MyJobsPage = () => {
           </div>
         </div>
 
-        {/* Tabs */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
