@@ -59,6 +59,24 @@ const CheckboxField = ({ label, name, checked, onChange, id }) => (
   </div>
 );
 
+// Status Badge Component
+const StatusBadge = ({ status }) => {
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
+      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
+      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+    }
+  };
+
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(status)}`}>
+      {status.charAt(0).toUpperCase() + status.slice(1)}
+    </span>
+  );
+};
+
 // File Input component for document uploads
 const FileInput = ({ label, name, onChange, accept, currentUrl }) => (
   <div>
@@ -142,7 +160,12 @@ function RepairmanEditPage() {
     { value: 'Female', label: 'Female' },
     { value: 'Other', label: 'Other' }
   ], []);
-  const statusOptions = useMemo(() => ['pending', 'approved', 'rejected'], []);
+  const statusOptions = useMemo(() => [
+    { value: '', label: 'Select Status' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'approved', label: 'Approved' },
+    { value: 'rejected', label: 'Rejected' }
+  ], []);
 
   const validateForm = useCallback(() => {
     const newErrors = {};
@@ -341,25 +364,63 @@ function RepairmanEditPage() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Status Management - Separate Section */}
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
+              <Icon icon="mdi:shield-check" className="w-6 h-6 mr-2 text-blue-600" />
+              Status Management
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
+                <div className="flex items-center space-x-3 mb-4">
+                  <StatusBadge status={formData.status} />
+                  <span className="text-sm text-gray-500">
+                    ({formData.isActive ? 'Active' : 'Inactive'})
+                  </span>
+                </div>
+                <SelectField 
+                  label="Change Status" 
+                  name="status" 
+                  value={formData.status} 
+                  onChange={handleInputChange} 
+                  options={statusOptions} 
+                />
+              </div>
+              <div className="flex flex-col justify-center">
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <CheckboxField 
+                    label="Account Active Status" 
+                    name="isActive" 
+                    id="isActive" 
+                    checked={formData.isActive} 
+                    onChange={handleInputChange} 
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Toggle to activate/deactivate the repairman account
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Basic Information */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:account-settings" className="w-6 h-6 mr-2 text-blue-600" />
+              <Icon icon="mdi:account-settings" className="w-6 h-6 mr-2 text-green-600" />
               Basic Information
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <InputField label="Name" name="name" value={formData.name} onChange={handleInputChange} required error={errors.name} />
               <InputField label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required error={errors.email} />
               <InputField label="Phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required error={errors.phone} />
-              <SelectField label="Status" name="status" value={formData.status} onChange={handleInputChange} options={statusOptions} />
-              <CheckboxField label="Active Status" name="isActive" id="isActive" checked={formData.isActive} onChange={handleInputChange} />
             </div>
           </div>
 
           {/* Personal Information */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-green-600" />
+              <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-purple-600" />
               Personal Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -375,7 +436,7 @@ function RepairmanEditPage() {
           {/* Contact Information */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:phone" className="w-6 h-6 mr-2 text-purple-600" />
+              <Icon icon="mdi:phone" className="w-6 h-6 mr-2 text-indigo-600" />
               Contact Information
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -413,7 +474,7 @@ function RepairmanEditPage() {
           {/* Working Information */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:clock" className="w-6 h-6 mr-2 text-indigo-600" />
+              <Icon icon="mdi:clock" className="w-6 h-6 mr-2 text-teal-600" />
               Working Information
             </h3>
             <div className="space-y-6">
@@ -469,14 +530,13 @@ function RepairmanEditPage() {
                   onChange={(e) => handleSpecializationChange(e.target.value)}
                   placeholder="e.g., iPhone, Samsung, Android"
                 />
-                <InputField
-                  label="Brands Worked With"
-                  value={formData.repairmanProfile.brandsWorkedWith.join(', ')}
-                  onChange={(e) => handleBrandsChange(e.target.value)}
-                  placeholder="e.g., Apple, Samsung, Huawei"
-                  className="md:col-span-2"
-                />
               </div>
+              <InputField
+                label="Brands Worked With"
+                value={formData.repairmanProfile.brandsWorkedWith.join(', ')}
+                onChange={(e) => handleBrandsChange(e.target.value)}
+                placeholder="e.g., Apple, Samsung, Huawei"
+              />
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
                 <textarea
@@ -494,7 +554,7 @@ function RepairmanEditPage() {
           {/* Documents */}
           <div className="bg-white rounded-xl shadow-md p-6">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:folder" className="w-6 h-6 mr-2 text-teal-600" />
+              <Icon icon="mdi:folder" className="w-6 h-6 mr-2 text-red-600" />
               Documents
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -556,7 +616,14 @@ function RepairmanEditPage() {
             </div>
           </div>
 
-          <div className="flex justify-end">
+          <div className="flex justify-end space-x-4">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
             <button
               type="submit"
               disabled={saving}

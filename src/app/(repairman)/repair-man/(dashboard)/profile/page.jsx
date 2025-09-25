@@ -1,23 +1,26 @@
-"use client";
+"use client"
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 
 function ProfilePage() {
-  // Mock profile data
+  const [profileImage, setProfileImage] = useState(null);
+  const [coverImage, setCoverImage] = useState(null);
+
   const profileData = {
-    name: 'Ahmed Hassan',
-    title: 'Expert Mobile Device Repair Technician | iPhone & Android Specialist',
-    location: 'Karachi, Sindh, Pakistan',
-    joinDate: 'January 2022',
+    name: 'Hammad S.',
+    username: '@Hammadkhan678910',
+    title: 'Scalable & Efficient MERN Stack Developer',
+    location: 'Pakistan (7:29 AM)',
+    joinDate: 'July 12, 2020',
     availability: 'Available now',
-    rate: 800, // per hour in PKR
+    rate: 5, // per hour in USD
     totalEarned: 485000,
-    jobSuccess: 98,
-    completedJobs: 147,
+    jobSuccess: 0,
+    completedJobs: 0,
     totalHours: 1250,
-    rating: 4.9,
-    reviewsCount: 89,
+    rating: 0.0,
+    reviewsCount: 0,
     responseTime: '1 hour',
     languages: [
       { name: 'Urdu', level: 'Native or bilingual' },
@@ -25,230 +28,301 @@ function ProfilePage() {
       { name: 'Punjabi', level: 'Conversational' }
     ],
     avatar: null,
-    verified: true,
-    topRated: true,
-    overview: `Experienced Mobile Device Repair Technician with 5+ years of expertise in iPhone, Samsung, and Android device repairs. Specialized in screen replacements, water damage restoration, battery replacements, and complex hardware troubleshooting.
+    verified: false,
+    topRated: false,
+    overview: `I'm well known in MS office (MS word, MS excel, MS power point etc) i can convert pdf to word and at least in excel and I'm able to write a description blog`,
 
-🔧 Core Expertise:
-• iPhone repair (all models from 6 to 14 Pro Max)
-• Samsung Galaxy series repair and maintenance
-• Water damage assessment and restoration
-• Micro-soldering and motherboard repairs
-• Battery replacement and power management
-• Camera and sensor repairs
-• Software troubleshooting and data recovery
-
-🏆 What sets me apart:
-• 98% job success rate with 147+ completed repairs
-• Same-day service for most repairs
-• 6-month warranty on all hardware repairs
-• Genuine parts and professional tools
-• Certified technician with ongoing training
-
-I pride myself on clear communication, quick turnaround times, and delivering quality repairs that exceed expectations. Whether it's a cracked screen, water damage, or complex hardware issue, I provide reliable solutions with transparent pricing.`,
-    
     skills: [
-      { name: 'iPhone Repair', level: 'Expert', years: 5 },
-      { name: 'Samsung Repair', level: 'Expert', years: 4 },
-      { name: 'Android Troubleshooting', level: 'Expert', years: 5 },
-      { name: 'Screen Replacement', level: 'Expert', years: 5 },
-      { name: 'Water Damage Repair', level: 'Advanced', years: 3 },
-      { name: 'Micro-soldering', level: 'Advanced', years: 2 },
-      { name: 'Battery Replacement', level: 'Expert', years: 4 },
-      { name: 'Data Recovery', level: 'Intermediate', years: 2 }
+      { name: 'MERN Stack', level: 'Expert', years: 3 },
+      { name: 'React.js', level: 'Expert', years: 4 },
+      { name: 'Node.js', level: 'Expert', years: 3 },
+      { name: 'MongoDB', level: 'Advanced', years: 3 },
+      { name: 'Express.js', level: 'Expert', years: 3 },
+      { name: 'JavaScript', level: 'Expert', years: 5 },
+      { name: 'MS Office', level: 'Expert', years: 4 },
+      { name: 'Data Entry', level: 'Advanced', years: 2 }
     ],
-    
+
     portfolio: [
       {
         id: 1,
-        title: 'iPhone 13 Pro Water Damage Recovery',
-        description: 'Complete restoration of water-damaged iPhone 13 Pro including motherboard cleaning and component replacement.'
+        title: 'E-commerce MERN Application',
+        description: 'Full-stack e-commerce solution with payment integration and admin dashboard.'
       },
       {
         id: 2,
-        title: 'Samsung Galaxy S22 Screen Assembly',
-        description: 'Professional screen replacement with OLED display calibration and touch functionality testing.'
+        title: 'Task Management System',
+        description: 'React-based task management app with real-time updates and team collaboration features.'
       },
       {
         id: 3,
-        title: 'Bulk Phone Repair Service',
-        description: 'Completed 25+ device repairs for local electronics shop including various iPhone and Android models.'
+        title: 'Data Processing & Excel Automation',
+        description: 'Automated data processing workflows and Excel macro development for business operations.'
       }
     ],
-    
-    recentReviews: [
-      {
-        id: 1,
-        client: 'Sarah K.',
-        rating: 5,
-        date: '1 week ago',
-        jobTitle: 'iPhone 14 Screen Replacement',
-        review: 'Ahmed did an excellent job repairing my iPhone 14 screen. Quick turnaround, professional service, and the phone works perfectly. Highly recommended!',
-        jobAmount: 12000
-      },
-      {
-        id: 2,
-        client: 'Mohammad A.',
-        rating: 5,
-        date: '2 weeks ago',
-        jobTitle: 'Samsung Galaxy Water Damage',
-        review: 'Amazing work! My phone was completely dead after water damage and Ahmed brought it back to life. Great communication throughout the process.',
-        jobAmount: 8500
-      },
-      {
-        id: 3,
-        client: 'Fatima R.',
-        rating: 5,
-        date: '3 weeks ago',
-        jobTitle: 'Multiple Phone Repairs',
-        review: 'Very professional and skilled technician. Fixed multiple phones for our family with warranty. Will definitely hire again.',
-        jobAmount: 15000
-      }
-    ],
-    
+
+    recentReviews: [],
+
     certifications: [
-      { name: 'iPhone Certified Repair Technician', issuer: 'Apple Authorized', year: 2023 },
-      { name: 'Samsung Mobile Repair Certificate', issuer: 'Samsung Electronics', year: 2022 },
-      { name: 'Micro-soldering Advanced Course', issuer: 'TechRepair Institute', year: 2023 }
+      { name: 'MERN Stack Development', issuer: 'MongoDB University', year: 2023 },
+      { name: 'Microsoft Office Specialist', issuer: 'Microsoft', year: 2022 },
+      { name: 'JavaScript ES6+ Certification', issuer: 'FreeCodeCamp', year: 2023 }
     ],
-    
-    workHistory: [
-      {
-        id: 1,
-        title: 'iPhone 12 Pro Max Complete Repair',
-        client: 'Ali S.',
-        amount: 18000,
-        date: '2 days ago',
-        rating: 5,
-        feedback: 'Perfect repair work with quick delivery'
-      },
-      {
-        id: 2,
-        title: 'Bulk Android Phone Service',
-        client: 'TechMart Electronics',
-        amount: 35000,
-        date: '1 week ago',
-        rating: 5,
-        feedback: 'Professional bulk repair service for our store'
-      }
-    ]
+
+    workHistory: [],
+
+    verifications: {
+      identity: false,
+      payment: false,
+      phone: false,
+      email: false,
+      facebook: false
+    }
+  };
+
+  const handleImageUpload = (event, type) => {
+    const file = event.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        if (type === 'profile') {
+          setProfileImage(e.target.result);
+        } else if (type === 'cover') {
+          setCoverImage(e.target.result);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row md:items-start space-y-6 md:space-y-0 md:space-x-8">
-            
-            {/* Avatar */}
-            <div className="flex-shrink-0">
-              <div className="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-4xl font-bold text-blue-600">AH</span>
-              </div>
-              {profileData.topRated && (
-                <div className="mt-2 text-center">
-                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                    <Icon icon="heroicons:star" className="w-3 h-3 mr-1" />
-                    Top Rated
-                  </span>
-                </div>
-              )}
-            </div>
+      <div className="relative">
+        <div
+          className="h-80 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden"
+          style={{
+            backgroundImage: coverImage ? `url(${coverImage})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        >
+          {/* <div className="absolute top-4 right-4">
+            <label className="cursor-pointer bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200 flex items-center space-x-2">
+              <Icon icon="heroicons:camera" className="w-4 h-4" />
+              <span className="text-sm">Upload cover photo</span>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handleImageUpload(e, 'cover')}
+                className="hidden"
+              />
+            </label>
+          </div> */}
 
-            {/* Profile Info */}
-            <div className="flex-1">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <h1 className="text-3xl font-bold text-gray-900">{profileData.name}</h1>
-                    {profileData.verified && (
-                      <Icon icon="heroicons:check-badge" className="w-6 h-6 text-blue-500" />
+          {/* <div className="absolute top-4 right-48">
+            <button className="bg-white bg-opacity-20 backdrop-blur-sm text-white px-4 py-2 rounded-lg hover:bg-opacity-30 transition-all duration-200 flex items-center space-x-2">
+              <Icon icon="heroicons:eye" className="w-4 h-4" />
+              <span className="text-sm">View client profile</span>
+            </button>
+          </div> */}
+        </div>
+
+        {/* Profile Section */}
+        <div className="relative -mt-[185px]  mx-auto px-6">
+          <div className="flex items-end justify-between">
+            <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-4">
+
+              {/* Profile Image */}
+              <div className=" flex items-center gap-3 bg-white/90 p-6 rounded-md">
+
+                <div className='relative'>
+                  <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200">
+                    {profileImage ? (
+                      <img
+                        src={profileImage}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-blue-100 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-blue-600">
+                          {profileData.name.split(' ').map(n => n[0]).join('')}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  
-                  <h2 className="text-xl text-gray-700 mb-4">{profileData.title}</h2>
-                  
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
-                    <div className="flex items-center">
-                      <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                      {profileData.location}
-                    </div>
-                    <div className="flex items-center">
-                      <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
-                      {profileData.availability}
-                    </div>
-                    <div className="flex items-center">
-                      <Icon icon="heroicons:calendar" className="w-4 h-4 mr-1" />
-                      Member since {profileData.joinDate}
-                    </div>
-                  </div>
 
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div>
-                      <div className="flex items-center mb-1">
-                        <div className="flex">
-                          {[...Array(5)].map((_, i) => (
-                            <Icon 
-                              key={i} 
-                              icon="heroicons:star" 
-                              className={`w-4 h-4 ${i < Math.floor(profileData.rating) ? 'text-yellow-400' : 'text-gray-300'}`} 
-                            />
-                          ))}
-                        </div>
-                        <span className="ml-2 text-sm font-medium">{profileData.rating}</span>
-                      </div>
-                      <p className="text-xs text-gray-600">{profileData.reviewsCount} reviews</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">{profileData.jobSuccess}%</p>
-                      <p className="text-xs text-gray-600">Job Success</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">{profileData.completedJobs}</p>
-                      <p className="text-xs text-gray-600">jobs completed</p>
-                    </div>
-                    
-                    <div>
-                      <p className="text-lg font-bold text-gray-900">{profileData.totalHours}</p>
-                      <p className="text-xs text-gray-600">total hours</p>
-                    </div>
-                  </div>
+                  {/* Edit Profile Image Button */}
+                  <label className="absolute bottom-2 right-2 cursor-pointer bg-white rounded-full p-2 shadow-md hover:shadow-lg transition-shadow">
+                    <Icon icon="heroicons:camera" className="w-4 h-4 text-gray-600" />
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageUpload(e, 'profile')}
+                      className="hidden"
+                    />
+                  </label>
                 </div>
 
-                {/* Rate Display */}
-                <div className="mt-6 lg:mt-0 lg:ml-8 text-center">
-                  <div className="text-center">
-                    <p className="text-2xl font-bold text-gray-900">₹{profileData.rate}</p>
-                    <p className="text-sm text-gray-600">per hour</p>
+
+
+                <div className="">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h1 className="text-3xl font-bold text-gray-900">{profileData.name}</h1>
+                    <span className="text-gray-500">{profileData.username}</span>
+                    <button className="text-gray-400 hover:text-gray-600">
+                      <Icon icon="heroicons:share" className="w-5 h-5" />
+                    </button>
                   </div>
+
+                  {/* Rating and Stats */}
+                  <div className="flex items-center space-x-6 mb-4">
+                    <div className="flex items-center space-x-2">
+                      <div className="flex">
+                        {[...Array(5)].map((_, i) => (
+                          <Icon
+                            key={i}
+                            icon="heroicons:star"
+                            className={`w-4 h-4 ${i < Math.floor(profileData.rating) ? 'text-yellow-400' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-sm font-medium">{profileData.rating}</span>
+                      <span className="text-sm text-gray-500">({profileData.reviewsCount})</span>
+                    </div>
+
+                    <div className="flex items-center space-x-1">
+                      <Icon icon="heroicons:currency-dollar" className="w-4 h-4 text-green-600" />
+                      <span className="text-sm font-medium">{profileData.jobSuccess}%</span>
+                    </div>
+
+                    <div className="flex items-center space-x-1">
+                      <Icon icon="heroicons:clock" className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm">{profileData.completedJobs}%</span>
+                    </div>
+                  </div>
+
+                  <h2 className="text-xl text-gray-700 mb-4 font-medium">{profileData.title}</h2>
+
+                  {/* <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-4">
+                      <div className="flex items-center space-x-2">
+                        <span className="font-semibold text-gray-900">${profileData.rate} USD / Hour</span>
+                        <span>•</span>
+                        <Icon icon="heroicons:flag" className="w-4 h-4 text-green-600" />
+                        <span>{profileData.location}</span>
+                        <span>•</span>
+                        <span>Joined on {profileData.joinDate}</span>
+                      </div>
+                    </div> */}
+
+                  {/* Profile Description */}
+                  {/* <div className="mb-6">
+                      <p className="text-gray-700 leading-relaxed">{profileData.overview}</p>
+                    </div> */}
+                </div>
+                {/* Online Status */}
+                {/* <div className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white"></div> */}
+              </div>
+
+              {/* Profile Info */}
+              <div className="">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between">
+
+
+                  {/* Edit Profile Button */}
+                  {/* <div className="mt-6 lg:mt-0">
+                    <button className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+                      <Icon icon="heroicons:pencil" className="w-4 h-4" />
+                      <span>Edit profile</span>
+                    </button>
+                  </div> */}
                 </div>
               </div>
+            </div>
+
+            <div class="flex items-end gap-3">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm text-sm font-medium
+           bg-white border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2
+           focus:ring-indigo-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M4 5a2 2 0 00-2 2v6a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-2.4l-.72-1.08A2 2 0 0011.9 3H8.1a2 2 0 00-1.98 1.92L5.4 5H4z" />
+                  <path d="M10 8a3 3 0 100 6 3 3 0 000-6z" />
+                </svg>
+                update shop photo
+              </button>
+
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium
+           bg-indigo-600 text-white shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2
+           focus:ring-indigo-500"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 2a4 4 0 100 8 4 4 0 000-8zM2 16a6 6 0 1116 0H2z" clip-rule="evenodd" />
+                </svg>
+                update profile
+              </button>
+            </div>
+
+
+            {/* Tabs */}
+            {/* <div className="mt-8 border-t pt-6">
+              <div className="flex items-center space-x-8 border-b">
+                <button className="pb-4 border-b-2 border-green-600 text-green-600 font-medium">
+                  <Icon icon="heroicons:user" className="w-4 h-4 inline mr-2" />
+                  General
+                </button>
+                <button className="pb-4 text-gray-600 hover:text-gray-900 font-medium flex items-center">
+                  <Icon icon="heroicons:plus" className="w-4 h-4 mr-2" />
+                  Add profile
+                </button>
+              </div>
+            </div> */}
+          </div>
+        </div>
+      </div>
+
+      {/* Verifications Section */}
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Verifications</h3>
+          <div className="flex items-center space-x-6">
+            <div className={`flex items-center space-x-2 ${profileData.verifications.identity ? 'text-green-600' : 'text-gray-400'}`}>
+              <Icon icon="heroicons:identification" className="w-5 h-5" />
+              <span className="text-sm">ID Verified</span>
+            </div>
+            <div className={`flex items-center space-x-2 ${profileData.verifications.payment ? 'text-green-600' : 'text-gray-400'}`}>
+              <Icon icon="heroicons:credit-card" className="w-5 h-5" />
+              <span className="text-sm">Payment Verified</span>
+            </div>
+            <div className={`flex items-center space-x-2 ${profileData.verifications.phone ? 'text-green-600' : 'text-gray-400'}`}>
+              <Icon icon="heroicons:phone" className="w-5 h-5" />
+              <span className="text-sm">Phone Verified</span>
+            </div>
+            <div className={`flex items-center space-x-2 ${profileData.verifications.email ? 'text-green-600' : 'text-gray-400'}`}>
+              <Icon icon="heroicons:envelope" className="w-5 h-5" />
+              <span className="text-sm">Email Verified</span>
+            </div>
+            <div className={`flex items-center space-x-2 ${profileData.verifications.facebook ? 'text-blue-600' : 'text-gray-400'}`}>
+              <Icon icon="heroicons:globe-alt" className="w-5 h-5" />
+              <span className="text-sm">Facebook</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="max-w-6xl mx-auto px-4 py-8">
+      <div className="max-w-7xl mx-auto px-6 pb-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
+
           {/* Main Column */}
           <div className="lg:col-span-2 space-y-8">
-            
-            {/* About */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">About Ahmed</h3>
-              <div className="prose max-w-none">
-                <p className="text-gray-700 leading-relaxed whitespace-pre-line">{profileData.overview}</p>
-              </div>
-            </div>
 
             {/* Skills */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">Skills & Expertise</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {profileData.skills.map((skill, index) => (
@@ -257,11 +331,10 @@ I pride myself on clear communication, quick turnaround times, and delivering qu
                       <p className="font-medium text-gray-900">{skill.name}</p>
                       <p className="text-sm text-gray-600">{skill.years} years experience</p>
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                      skill.level === 'Expert' ? 'bg-green-100 text-green-800' :
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${skill.level === 'Expert' ? 'bg-green-100 text-green-800' :
                       skill.level === 'Advanced' ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
+                        'bg-gray-100 text-gray-800'
+                      }`}>
                       {skill.level}
                     </span>
                   </div>
@@ -270,12 +343,12 @@ I pride myself on clear communication, quick turnaround times, and delivering qu
             </div>
 
             {/* Portfolio */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            {/* <div className="bg-white rounded-lg shadow-sm p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-6">Portfolio</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {profileData.portfolio.map((item) => (
                   <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-                    <div className="w-full h-48 bg-gray-200 flex items-center justify-center">
+                    <div className="w-full h-48 bg-gray-100 flex items-center justify-center">
                       <Icon icon="heroicons:photo" className="w-12 h-12 text-gray-400" />
                     </div>
                     <div className="p-4">
@@ -285,73 +358,25 @@ I pride myself on clear communication, quick turnaround times, and delivering qu
                   </div>
                 ))}
               </div>
-            </div>
-
-            {/* Recent Reviews */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">Recent Reviews</h3>
-              <div className="space-y-6">
-                {profileData.recentReviews.map((review) => (
-                  <div key={review.id} className="border-b border-gray-200 pb-6 last:border-b-0">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                          <span className="text-sm font-medium text-blue-600">{review.client.charAt(0)}</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{review.client}</p>
-                          <p className="text-sm text-gray-600">{review.date}</p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center mb-1">
-                          {[...Array(review.rating)].map((_, i) => (
-                            <Icon key={i} icon="heroicons:star" className="w-4 h-4 text-yellow-400" />
-                          ))}
-                        </div>
-                        <p className="text-sm text-gray-600">₹{review.jobAmount.toLocaleString()}</p>
-                      </div>
-                    </div>
-                    <h4 className="font-medium text-gray-900 mb-2">"{review.jobTitle}"</h4>
-                    <p className="text-gray-700">{review.review}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            </div> */}
 
             {/* Work History */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-6">Work History</h3>
-              <div className="space-y-4">
-                {profileData.workHistory.map((work) => (
-                  <div key={work.id} className="p-4 border border-gray-200 rounded-lg">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h4 className="font-medium text-gray-900">{work.title}</h4>
-                        <p className="text-sm text-gray-600">Client: {work.client}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold text-gray-900">₹{work.amount.toLocaleString()}</p>
-                        <p className="text-sm text-gray-600">{work.date}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {[...Array(work.rating)].map((_, i) => (
-                        <Icon key={i} icon="heroicons:star" className="w-4 h-4 text-yellow-400" />
-                      ))}
-                      <span className="text-sm text-gray-600">"{work.feedback}"</span>
-                    </div>
-                  </div>
-                ))}
+            {profileData.workHistory.length > 0 && (
+              <div className="bg-white rounded-lg shadow-sm p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-6">Work History</h3>
+                <div className="text-center py-8 text-gray-500">
+                  <Icon icon="heroicons:briefcase" className="w-12 h-12 mx-auto mb-4" />
+                  <p>No work history available yet</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            
+
             {/* Languages */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
               <h4 className="font-semibold text-gray-900 mb-4">Languages</h4>
               <div className="space-y-3">
                 {profileData.languages.map((lang, index) => (
@@ -363,27 +388,8 @@ I pride myself on clear communication, quick turnaround times, and delivering qu
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Quick Stats</h4>
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Response time:</span>
-                  <span className="font-medium">{profileData.responseTime}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total earned:</span>
-                  <span className="font-medium">₹{profileData.totalEarned.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Job success:</span>
-                  <span className="font-medium">{profileData.jobSuccess}%</span>
-                </div>
-              </div>
-            </div>
-
             {/* Certifications */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6">
               <h4 className="font-semibold text-gray-900 mb-4">Certifications</h4>
               <div className="space-y-4">
                 {profileData.certifications.map((cert, index) => (
