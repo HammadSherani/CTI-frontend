@@ -165,6 +165,10 @@ function JobDetails() {
 
         setIsSubmittingOffer(true);
         setSubmittingOfferId(selectedOffer._id);
+        router.push(`/my-account/${id}/offer/${selectedOffer._id}/check-out`);
+
+
+        return;
 
         try {
             const response = await axiosInstance.post(
