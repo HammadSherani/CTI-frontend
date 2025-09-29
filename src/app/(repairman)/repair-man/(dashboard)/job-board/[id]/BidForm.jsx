@@ -81,7 +81,7 @@ export default function BidForm({
             partsEstimate: "",
             partsQuality: "original",
             estimatedTime: "",
-            timeUnit: "hours",
+            timeUnit: "days",
             description: "",
             warranty: {
                 duration: "",

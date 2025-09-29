@@ -102,7 +102,7 @@ export default function CreateRepairJobForm() {
       budget: {
         min: '',
         max: '',
-        currency: 'PKR'
+        currency: 'TRY'
       },
       location: {
         address: '',
@@ -593,7 +593,7 @@ export default function CreateRepairJobForm() {
                         {...field}
                         className="w-full p-2.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 border-gray-200"
                       >
-                        <option value="PKR">PKR</option>
+                        {/* <option value="PKR">PKR</option> */}
                         <option value="TRY">TRY</option> {/* Added Turkish Lira */}
                         <option value="USD">USD</option>
                         {/* <option value="EUR">EUR</option> */}

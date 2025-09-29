@@ -55,7 +55,7 @@ export const BudgetRange = ({ Controller, control, errors }) => (
               {...field}
               className={`w-full p-2 text-base border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.budget?.currency ? 'border-red-300' : 'border-gray-300'}`}
             >
-              <option value="PKR">PKR</option>
+              {/* <option value="PKR">PKR</option> */}
               <option value="TRY">TRY</option>
               <option value="USD">USD</option>
               <option value="EUR">EUR</option>

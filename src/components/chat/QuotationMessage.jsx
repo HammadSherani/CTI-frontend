@@ -11,6 +11,9 @@ const QuotationMessage = ({ message, isOwner }) => {
     const [responding, setResponding] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
 
+    // console.log('message:', message);
+    
+
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
     const {
@@ -31,7 +34,7 @@ const QuotationMessage = ({ message, isOwner }) => {
         setResponding(true);
         try {
             const response = await axiosInstance.post(
-                `/chat/quotation/${message.quotationId}/respond`,
+                `/chat/quotation/${message?.quotationData?.quotationId}/respond`,
                 {
                     action,
                     customerResponse

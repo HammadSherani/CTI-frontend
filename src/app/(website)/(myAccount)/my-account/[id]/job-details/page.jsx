@@ -157,15 +157,19 @@ function JobDetails() {
 
     const handleAcceptOffer = useCallback((offer) => {
         setSelectedOffer(offer);
-        setShowBookingModal(true);
+
+        console.log('Accepting offer:', offer);
+        
+        // setSubmittingOfferId(selectedOffer._id);
+        // setShowBookingModal(true);
+        router.push(`/my-account/${id}/offer/${offer?._id}/check-out`)
     }, []);
 
     const handleSubmitBooking = useCallback(async (bookingData) => {
         if (!selectedOffer) return;
 
         setIsSubmittingOffer(true);
-        setSubmittingOfferId(selectedOffer._id);
-        router.push(`/my-account/${id}/offer/${selectedOffer._id}/check-out`);
+        // router.push(`/my-account/${id}/offer/${selectedOffer._id}/check-out`);
 
 
         return;
@@ -207,6 +211,9 @@ function JobDetails() {
     useEffect(() => {
         fetchJob();
     }, [fetchJob]);
+
+    console.log(offers, 'offers');
+    
 
     const deviceTitle = useMemo(() => {
         if (!job) return '';
@@ -441,7 +448,7 @@ function JobDetails() {
                                     key={offer._id || index}
                                     offer={offer}
                                     index={index}
-                                    onAcceptOffer={canAcceptOffers && !job.selectedOffer ? handleAcceptOffer : null}
+                                    onAcceptOffer={handleAcceptOffer}
                                     isSubmitting={isSubmittingOffer}
                                     submittingOfferId={submittingOfferId}
                                     job={job}
