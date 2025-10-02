@@ -11,7 +11,6 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 
-// Yup validation schema
 const cardSchema = yup.object().shape({
     cardNumber: yup
         .string()
@@ -34,7 +33,6 @@ const cardSchema = yup.object().shape({
         .min(2, 'Please enter a valid cardholder name')
 });
 
-// Quotation Payment Component
 function QuotationPayment({ quotationId, jobId, token, router }) {
     const [orderData, setOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -420,7 +418,6 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     );
 }
 
-// Offer Payment Component
 function OfferPayment({ offerId, jobId, token, router }) {
     const [orderData, setOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -815,7 +812,6 @@ function OfferPayment({ offerId, jobId, token, router }) {
     );
 }
 
-// Main Payment Page Component
 function PaymentPage() {
     const token = useSelector(state => state.auth.token);
     const router = useRouter();
@@ -825,13 +821,11 @@ function PaymentPage() {
     const jobId = searchParams.get('jobId');
     const quotationId = searchParams.get('quotationId');
 
-    // Determine which component to render based on parameters
     if (quotationId && jobId) {
         return <QuotationPayment quotationId={quotationId} jobId={jobId} token={token} router={router} />;
     } else if (offerId && jobId) {
         return <OfferPayment offerId={offerId} jobId={jobId} token={token} router={router} />;
     } else {
-        // No valid parameters found
         return (
             <div className="min-h-screen bg-gray-50/40 flex items-center justify-center">
                 <div className="text-center">

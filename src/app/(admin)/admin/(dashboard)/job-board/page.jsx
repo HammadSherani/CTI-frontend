@@ -12,91 +12,53 @@ function JobBoardPage() {
     const [jobs, setJobs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterStatus, setFilterStatus] = useState('all');
-    const [filterPriority, setFilterPriority] = useState('all');
-    const [submitError, setSubmitError] = useState('');
-    const [submitSuccess, setSubmitSuccess] = useState('');
+    const [filterStatus, setFilterStatus] = useState('');
+    const [filterUrgency, setFilterUrgency] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
         totalJobs: 0,
-        hasNext: false,
-        hasPrev: false
+        hasMore: false
     });
+    const [stats, setStats] = useState({});
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [selectedJob, setSelectedJob] = useState(null);
+    const [repairmen, setRepairmen] = useState([]);
+    const [selectedRepairman, setSelectedRepairman] = useState('');
+    const [assignmentReason, setAssignmentReason] = useState('');
+    
     const { token } = useSelector((state) => state.auth);
 
     useEffect(() => {
         fetchJobs();
-    }, [currentPage, searchTerm, filterStatus, filterPriority]);
+    }, [currentPage, searchTerm, filterStatus, filterUrgency]);
 
     const fetchJobs = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get('/admin/jobs', {
+            const params = new URLSearchParams({
+                page: currentPage,
+                limit: 10,
+                sortBy: 'createdAt',
+                sortOrder: 'desc'
+            });
+
+            if (searchTerm) params.append('search', searchTerm);
+            if (filterStatus) params.append('status', filterStatus);
+            if (filterUrgency) params.append('urgency', filterUrgency);
+
+            const { data } = await axiosInstance.get(`/admin/jobboard?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
 
-            // Process the API response to match component expectations
-            const processedJobs = (data?.data?.jobs || [])?.map(job => ({
-                ...job,
-                // Map API fields to component expected fields
-                title: job.title || job.jobTitle || 'Untitled Job',
-                customerName: job.customer?.name || job.customerName || 'N/A',
-                customerPhone: job.customer?.phone || job.customerPhone || 'N/A',
-                repairmanName: job.repairman?.name || job.assignedRepairman?.name || 'Unassigned',
-                location: job.address || job.location || 'N/A',
-                createdDate: job.createdAt || job.dateCreated || new Date().toISOString(),
-                priority: job.priority || 'medium',
-                status: job.status || 'pending',
-                estimatedCost: job.estimatedCost || job.cost || 0,
-                description: job.description || job.details || '',
-                category: job.category || job.serviceType || 'General',
-                completionDate: job.completedAt || job.completionDate,
-                isActive: job.status !== 'cancelled' && job.status !== 'deleted'
-            }));
-
-            // Apply client-side filtering
-            let filteredJobs = processedJobs;
-
-            // Apply search filter
-            if (searchTerm) {
-                filteredJobs = filteredJobs.filter(job =>
-                    job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    job.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    job.repairmanName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    job.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                    job.category.toLowerCase().includes(searchTerm.toLowerCase())
-                );
+            if (data.success) {
+                setJobs(data.data.jobs);
+                setPagination(data.data.pagination);
+                setStats(data.data.stats);
             }
-
-            // Apply status filter
-            if (filterStatus !== 'all') {
-                filteredJobs = filteredJobs.filter(job => job.status === filterStatus);
-            }
-
-            // Apply priority filter
-            if (filterPriority !== 'all') {
-                filteredJobs = filteredJobs.filter(job => job.priority === filterPriority);
-            }
-
-            // Client-side pagination
-            const pageSize = 10;
-            const totalJobs = filteredJobs.length;
-            const totalPages = Math.ceil(totalJobs / pageSize);
-            const startIndex = (currentPage - 1) * pageSize;
-            const paginatedJobs = filteredJobs.slice(startIndex, startIndex + pageSize);
-
-            setJobs(paginatedJobs);
-            setPagination({
-                currentPage,
-                totalPages,
-                totalJobs,
-                hasNext: currentPage < totalPages,
-                hasPrev: currentPage > 1
-            });
 
         } catch (error) {
             handleError(error);
@@ -106,47 +68,104 @@ function JobBoardPage() {
         }
     };
 
-    const handleEdit = (job) => {
-        console.log('Edit job:', job);
+    const fetchRepairmen = async () => {
+        try {
+            const { data } = await axiosInstance.get('/admin/users?role=repairman&status=approved', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setRepairmen(data.data || []);
+        } catch (error) {
+            console.error('Error fetching repairmen:', error);
+            toast.error('Failed to load repairmen');
+        }
     };
 
-    const handleDelete = async (jobId) => {
-        if (window.confirm('Are you sure you want to delete this job?')) {
-            try {
-                await axiosInstance.delete(`/admin/jobs/${jobId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                toast.success('Job deleted successfully');
-                setSubmitSuccess('Job deleted successfully!');
-                setTimeout(() => setSubmitSuccess(''), 3000);
+    const handleAssignJob = async () => {
+        if (!selectedRepairman) {
+            toast.error('Please select a repairman');
+            return;
+        }
+
+        try {
+            const { data } = await axiosInstance.post('/admin/jobboard/assign', {
+                jobId: selectedJob._id,
+                repairmanId: selectedRepairman,
+                reason: assignmentReason
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (data.success) {
+                toast.success('Job assigned successfully');
+                setShowAssignModal(false);
+                setSelectedJob(null);
+                setSelectedRepairman('');
+                setAssignmentReason('');
                 fetchJobs();
-            } catch (error) {
-                console.error('Delete error:', error);
-                setSubmitError('Failed to delete job. Please try again.');
-                toast.error('Failed to delete job');
             }
+        } catch (error) {
+            handleError(error);
+            toast.error('Failed to assign job');
+        }
+    };
+
+    const handleCancelJob = async (jobId) => {
+        const reason = prompt('Enter cancellation reason:');
+        if (!reason) return;
+
+        const cancellationType = prompt('Cancellation type (fraud/duplicate/other):') || 'other';
+
+        try {
+            const { data } = await axiosInstance.post(`/admin/jobboard/${jobId}/cancel`, {
+                reason,
+                cancellationType
+            }, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (data.success) {
+                toast.success('Job cancelled successfully');
+                fetchJobs();
+            }
+        } catch (error) {
+            handleError(error);
+            toast.error('Failed to cancel job');
         }
     };
 
     const updateJobStatus = async (jobId, newStatus) => {
+        const reason = prompt('Enter reason for status change (optional):');
+        
         try {
-            await axiosInstance.patch(`/admin/jobs/${jobId}/status`, {
-                status: newStatus
+            const { data } = await axiosInstance.patch(`/admin/jobboard/${jobId}/status`, {
+                status: newStatus,
+                reason: reason || `Status updated to ${newStatus}`
             }, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
             
-            toast.success(`Job status updated to ${newStatus}`);
-            fetchJobs();
+            if (data.success) {
+                toast.success(`Job status updated to ${newStatus}`);
+                fetchJobs();
+            }
         } catch (error) {
-            console.error('Update status error:', error);
-            setSubmitError('Failed to update job status. Please try again.');
+            handleError(error);
             toast.error('Failed to update job status');
         }
+    };
+
+    const openAssignModal = (job) => {
+        setSelectedJob(job);
+        setShowAssignModal(true);
+        fetchRepairmen();
     };
 
     const handlePageChange = (page) => {
@@ -154,33 +173,27 @@ function JobBoardPage() {
     };
 
     const getStatusColor = (status) => {
-        switch (status?.toLowerCase()) {
-            case 'pending':
-                return 'bg-yellow-100 text-yellow-800';
-            case 'assigned':
-                return 'bg-blue-100 text-blue-800';
-            case 'in-progress':
-                return 'bg-purple-100 text-purple-800';
-            case 'completed':
-                return 'bg-green-100 text-green-800';
-            case 'cancelled':
-                return 'bg-red-100 text-red-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
+        const colors = {
+            'draft': 'bg-gray-100 text-gray-800',
+            'open': 'bg-blue-100 text-blue-800',
+            'offers_received': 'bg-cyan-100 text-cyan-800',
+            'booked': 'bg-purple-100 text-purple-800',
+            'in_progress': 'bg-yellow-100 text-yellow-800',
+            'completed': 'bg-green-100 text-green-800',
+            'cancelled': 'bg-red-100 text-red-800',
+            'expired': 'bg-orange-100 text-orange-800'
+        };
+        return colors[status] || 'bg-gray-100 text-gray-800';
     };
 
-    const getPriorityColor = (priority) => {
-        switch (priority?.toLowerCase()) {
-            case 'high':
-                return 'bg-red-100 text-red-800';
-            case 'medium':
-                return 'bg-orange-100 text-orange-800';
-            case 'low':
-                return 'bg-green-100 text-green-800';
-            default:
-                return 'bg-gray-100 text-gray-800';
-        }
+    const getUrgencyColor = (urgency) => {
+        const colors = {
+            'low': 'bg-green-100 text-green-800',
+            'medium': 'bg-yellow-100 text-yellow-800',
+            'high': 'bg-orange-100 text-orange-800',
+            'urgent': 'bg-red-100 text-red-800'
+        };
+        return colors[urgency] || 'bg-gray-100 text-gray-800';
     };
 
     const formatDate = (dateString) => {
@@ -188,8 +201,14 @@ function JobBoardPage() {
         return new Date(dateString).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'short',
-            day: 'numeric'
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
         });
+    };
+
+    const formatStatus = (status) => {
+        return status?.replace(/_/g, ' ').toUpperCase();
     };
 
     const renderPagination = () => {
@@ -204,19 +223,17 @@ function JobBoardPage() {
             startPage = Math.max(1, endPage - maxVisiblePages + 1);
         }
 
-        // Previous button
         pages.push(
             <button
                 key="prev"
                 onClick={() => handlePageChange(currentPage - 1)}
-                disabled={!pagination.hasPrev}
+                disabled={currentPage === 1}
                 className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Previous
             </button>
         );
 
-        // Page numbers
         for (let i = startPage; i <= endPage; i++) {
             pages.push(
                 <button
@@ -233,12 +250,11 @@ function JobBoardPage() {
             );
         }
 
-        // Next button
         pages.push(
             <button
                 key="next"
                 onClick={() => handlePageChange(currentPage + 1)}
-                disabled={!pagination.hasNext}
+                disabled={currentPage === pagination.totalPages}
                 className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 Next
@@ -259,12 +275,6 @@ function JobBoardPage() {
         );
     };
 
-    // Calculate stats from current jobs data
-    const totalJobsCount = pagination.totalJobs;
-    const pendingJobsCount = jobs.filter(job => job.status === 'pending').length;
-    const completedJobsCount = jobs.filter(job => job.status === 'completed').length;
-    const inProgressJobsCount = jobs.filter(job => job.status === 'in-progress').length;
-
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
@@ -273,83 +283,134 @@ function JobBoardPage() {
                     <div className="flex justify-between items-center">
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">Job Board Management</h1>
-                            <p className="text-gray-600 mt-1">Manage repair jobs and assignments</p>
+                            <p className="text-gray-600 mt-1">Monitor and manage all repair jobs</p>
                         </div>
                         <Link
-                            href="/admin/jobs/create"
+                            href="/admin/jobboard/statistics"
                             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                         >
-                            <Icon icon="mdi:plus" className="w-5 h-5" />
-                            Create Job
+                            <Icon icon="mdi:chart-line" className="w-5 h-5" />
+                            View Statistics
                         </Link>
                     </div>
                 </div>
 
-                {/* Success/Error Messages */}
-                {submitSuccess && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                {/* Stats Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
-                            <Icon icon="mdi:check-circle" className="w-5 h-5 text-green-600 mr-2" />
-                            <p className="text-green-800">{submitSuccess}</p>
+                            <div className="flex-shrink-0">
+                                <Icon icon="mdi:briefcase" className="w-8 h-8 text-blue-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-500">Total Jobs</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {loading ? '...' : pagination.totalJobs || 0}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                )}
 
-                {submitError && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
-                            <Icon icon="mdi:alert-circle" className="w-5 h-5 text-red-600 mr-2" />
-                            <p className="text-red-800">{submitError}</p>
+                            <div className="flex-shrink-0">
+                                <Icon icon="mdi:clock-outline" className="w-8 h-8 text-yellow-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-500">Open Jobs</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {loading ? '...' : (stats.open || 0)}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                )}
 
-                {/* Filters and Search */}
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <Icon icon="mdi:progress-clock" className="w-8 h-8 text-purple-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-500">In Progress</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {loading ? '...' : (stats.in_progress || 0)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="bg-white p-6 rounded-lg shadow-sm">
+                        <div className="flex items-center">
+                            <div className="flex-shrink-0">
+                                <Icon icon="mdi:check-circle" className="w-8 h-8 text-green-600" />
+                            </div>
+                            <div className="ml-4">
+                                <p className="text-sm font-medium text-gray-500">Completed</p>
+                                <p className="text-2xl font-semibold text-gray-900">
+                                    {loading ? '...' : (stats.completed || 0)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Filters */}
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="flex flex-col lg:flex-row gap-4">
+                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
                         {/* Search */}
-                        <div className="flex-1">
+                        <div className="lg:col-span-2">
                             <div className="relative">
                                 <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                                 <input
                                     type="text"
-                                    placeholder="Search jobs by title, customer, repairman, or location..."
+                                    placeholder="Search by title, description, customer..."
                                     value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                    onChange={(e) => {
+                                        setSearchTerm(e.target.value);
+                                        setCurrentPage(1);
+                                    }}
                                     className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 />
                             </div>
                         </div>
 
                         {/* Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:filter" className="text-gray-400 w-5 h-5" />
+                        <div>
                             <select
                                 value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                onChange={(e) => {
+                                    setFilterStatus(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                                <option value="all">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="assigned">Assigned</option>
-                                <option value="in-progress">In Progress</option>
+                                <option value="">All Status</option>
+                                <option value="draft">Draft</option>
+                                <option value="open">Open</option>
+                                <option value="offers_received">Offers Received</option>
+                                <option value="booked">Booked</option>
+                                <option value="in_progress">In Progress</option>
                                 <option value="completed">Completed</option>
                                 <option value="cancelled">Cancelled</option>
+                                <option value="expired">Expired</option>
                             </select>
                         </div>
 
-                        {/* Priority Filter */}
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:priority-high" className="text-gray-400 w-5 h-5" />
+                        {/* Urgency Filter */}
+                        <div>
                             <select
-                                value={filterPriority}
-                                onChange={(e) => setFilterPriority(e.target.value)}
-                                className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                value={filterUrgency}
+                                onChange={(e) => {
+                                    setFilterUrgency(e.target.value);
+                                    setCurrentPage(1);
+                                }}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                             >
-                                <option value="all">All Priority</option>
-                                <option value="high">High</option>
-                                <option value="medium">Medium</option>
+                                <option value="">All Urgency</option>
                                 <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="urgent">Urgent</option>
                             </select>
                         </div>
                     </div>
@@ -374,16 +435,16 @@ function JobBoardPage() {
                                                 Job Details
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Customer Info
+                                                Customer
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Assigned Repairman
+                                                Device
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Priority & Status
+                                                Offers
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Cost & Date
+                                                Status
                                             </th>
                                             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Actions
@@ -394,75 +455,98 @@ function JobBoardPage() {
                                         {jobs?.map((job) => (
                                             <tr key={job._id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4">
-                                                    <div>
-                                                        <div className="text-sm font-medium text-gray-900">
-                                                            {job.title}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">
-                                                            {job.category}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500 mt-1">
-                                                            📍 {job.location}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-900">{job.customerName}</div>
-                                                    <div className="text-sm text-gray-500">{job.customerPhone}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-900">{job.repairmanName}</div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-2">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPriorityColor(job.priority)}`}>
-                                                            {job.priority?.toUpperCase()}
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-medium text-gray-900">
+                                                            {job.title || 'Untitled Job'}
                                                         </span>
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
-                                                            {job.status?.replace('-', ' ').toUpperCase()}
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(job.createdAt)}
+                                                        </span>
+                                                        <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
+                                                            {job.urgency?.toUpperCase()}
                                                         </span>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-900">
-                                                        ${job.estimatedCost}
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-gray-900">
+                                                            {job.customerId?.name || 'N/A'}
+                                                        </div>
+                                                        <div className="text-gray-500">
+                                                            {job.customerId?.phone || 'N/A'}
+                                                        </div>
                                                     </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {formatDate(job.createdDate)}
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm">
+                                                        <div className="font-medium text-gray-900">
+                                                            {job.deviceInfo?.brand || 'N/A'}
+                                                        </div>
+                                                        <div className="text-gray-500">
+                                                            {job.deviceInfo?.model || 'N/A'}
+                                                        </div>
                                                     </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="flex items-center">
+                                                        <Icon icon="mdi:file-document-outline" className="w-4 h-4 text-gray-400 mr-1" />
+                                                        <span className="text-sm text-gray-900">
+                                                            {job.offers?.length || 0} offers
+                                                        </span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
+                                                        {formatStatus(job.status)}
+                                                    </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         <Link
-                                                            href={`/admin/jobs/${job._id}/view`}
-                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                            title="View job"
+                                                            href={`/admin/jobboard/${job._id}`}
+                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                            title="View Details"
                                                         >
                                                             <Icon icon="mdi:eye" className="w-5 h-5" />
                                                         </Link>
-                                                        <Link
-                                                            href={`/admin/jobs/${job._id}/edit`}
-                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                            title="Edit job"
-                                                        >
-                                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                                        </Link>
-                                                        {job.status === 'pending' && (
+
+                                                        {(job.status === 'open' || job.status === 'offers_received') && (
                                                             <button
-                                                                onClick={() => updateJobStatus(job._id, 'assigned')}
-                                                                className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                                title="Assign job"
+                                                                onClick={() => openAssignModal(job)}
+                                                                className="text-green-600 hover:text-green-900 transition-colors"
+                                                                title="Assign Job"
                                                             >
-                                                                <Icon icon="mdi:account-check" className="w-5 h-5" />
+                                                                <Icon icon="mdi:account-arrow-right" className="w-5 h-5" />
                                                             </button>
                                                         )}
-                                                        <button
-                                                            onClick={() => handleDelete(job._id)}
-                                                            className="text-red-600 hover:text-red-900 transition-colors"
-                                                            title="Delete job"
+
+                                                        {job.status !== 'cancelled' && job.status !== 'completed' && (
+                                                            <button
+                                                                onClick={() => handleCancelJob(job._id)}
+                                                                className="text-red-600 hover:text-red-900 transition-colors"
+                                                                title="Cancel Job"
+                                                            >
+                                                                <Icon icon="mdi:close-circle" className="w-5 h-5" />
+                                                            </button>
+                                                        )}
+
+                                                        {/* Status Update Dropdown */}
+                                                        <select
+                                                            onChange={(e) => {
+                                                                if (e.target.value) {
+                                                                    updateJobStatus(job._id, e.target.value);
+                                                                    e.target.value = '';
+                                                                }
+                                                            }}
+                                                            className="text-xs border border-gray-300 rounded px-2 py-1"
+                                                            defaultValue=""
                                                         >
-                                                            <Icon icon="mdi:trash-can" className="w-5 h-5" />
-                                                        </button>
+                                                            <option value="">Change Status</option>
+                                                            <option value="open">Open</option>
+                                                            <option value="booked">Booked</option>
+                                                            <option value="in_progress">In Progress</option>
+                                                            <option value="completed">Completed</option>
+                                                        </select>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -472,94 +556,104 @@ function JobBoardPage() {
 
                                 {!loading && jobs.length === 0 && (
                                     <div className="text-center py-12">
-                                        <Icon icon="mdi:briefcase" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <Icon icon="mdi:briefcase-off" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                         <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
                                         <p className="text-gray-500">
-                                            {searchTerm || filterStatus !== 'all' || filterPriority !== 'all'
-                                                ? 'Try adjusting your search or filters.'
-                                                : 'Get started by creating your first job.'
+                                            {searchTerm || filterStatus || filterUrgency
+                                                ? 'Try adjusting your filters.'
+                                                : 'No jobs have been posted yet.'
                                             }
                                         </p>
-                                        {(!searchTerm && filterStatus === 'all' && filterPriority === 'all') && (
-                                            <Link
-                                                href="/admin/jobs/create"
-                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 mt-4"
-                                            >
-                                                <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
-                                                Create your first job
-                                            </Link>
-                                        )}
                                     </div>
                                 )}
                             </div>
 
-                            {/* Pagination */}
                             {!loading && renderPagination()}
                         </>
                     )}
                 </div>
+            </div>
 
-                {/* Stats */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:briefcase" className="w-8 h-8 text-primary-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Jobs</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : totalJobsCount}
-                                </p>
-                            </div>
+            {/* Assignment Modal */}
+            {showAssignModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-lg font-semibold">Assign Job Manually</h3>
+                            <button
+                                onClick={() => {
+                                    setShowAssignModal(false);
+                                    setSelectedJob(null);
+                                    setSelectedRepairman('');
+                                    setAssignmentReason('');
+                                }}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <Icon icon="mdi:close" className="w-6 h-6" />
+                            </button>
                         </div>
-                    </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:clock-outline" className="w-8 h-8 text-yellow-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Pending Jobs</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : pendingJobsCount}
-                                </p>
-                            </div>
+                        <div className="mb-4">
+                            <p className="text-sm text-gray-600 mb-2">
+                                Job: <span className="font-medium">{selectedJob?.title}</span>
+                            </p>
                         </div>
-                    </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:progress-clock" className="w-8 h-8 text-purple-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">In Progress</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : inProgressJobsCount}
-                                </p>
-                            </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Select Repairman *
+                            </label>
+                            <select
+                                value={selectedRepairman}
+                                onChange={(e) => setSelectedRepairman(e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            >
+                                <option value="">Choose a repairman</option>
+                                {repairmen.map((repairman) => (
+                                    <option key={repairman._id} value={repairman._id}>
+                                        {repairman.name} - {repairman.repairmanProfile?.rating || 0}★
+                                    </option>
+                                ))}
+                            </select>
                         </div>
-                    </div>
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:check-circle" className="w-8 h-8 text-green-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Completed Jobs</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : completedJobsCount}
-                                </p>
-                            </div>
+                        <div className="mb-4">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Reason for Manual Assignment
+                            </label>
+                            <textarea
+                                value={assignmentReason}
+                                onChange={(e) => setAssignmentReason(e.target.value)}
+                                placeholder="Why are you assigning this manually?"
+                                rows="3"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            />
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowAssignModal(false);
+                                    setSelectedJob(null);
+                                    setSelectedRepairman('');
+                                    setAssignmentReason('');
+                                }}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleAssignJob}
+                                className="flex-1 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                            >
+                                Assign Job
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
+            )}
         </div>
     );
 }
 
-export default JobBoardPage;    
+export default JobBoardPage;
