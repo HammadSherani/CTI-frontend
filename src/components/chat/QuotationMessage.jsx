@@ -5,14 +5,13 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
+import Link from 'next/link';
 
 const QuotationMessage = ({ message, isOwner }) => {
     const { token, user } = useSelector((state) => state.auth);
-    const [responding, setResponding] = useState(false);
+    const [acceptLoading, setAcceptLoading] = useState(false);
+    const [rejectLoading, setRejectLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
-
-    // console.log('message:', message);
-    
 
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
@@ -31,7 +30,13 @@ const QuotationMessage = ({ message, isOwner }) => {
     } = quotationData;
 
     const handleQuotationResponse = async (action, customerResponse = '') => {
-        setResponding(true);
+        // Set appropriate loading state based on action
+        if (action === 'accepted') {
+            setAcceptLoading(true);
+        } else if (action === 'rejected') {
+            setRejectLoading(true);
+        }
+
         try {
             const response = await axiosInstance.post(
                 `/chat/quotation/${message?.quotationData?.quotationId}/respond`,
@@ -51,7 +56,9 @@ const QuotationMessage = ({ message, isOwner }) => {
             console.error(`Error ${action}ing quotation:`, error);
             handleError(error);
         } finally {
-            setResponding(false);
+            // Reset loading states
+            setAcceptLoading(false);
+            setRejectLoading(false);
         }
     };
 
@@ -77,12 +84,12 @@ const QuotationMessage = ({ message, isOwner }) => {
 
     const isExpired = quotationData.validUntil && new Date() > new Date(quotationData.validUntil);
     const canRespond = !isOwner && user?.role === 'customer' && status === 'sent' && !isExpired;
+    const isAnyButtonLoading = acceptLoading || rejectLoading;
 
     return (
         <div className={`max-w-[85%] ${isOwner ? 'ml-auto' : 'mr-auto'} mb-4`}>
-            <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${
-                isOwner ? 'border-blue-200' : 'border-green-200'
-            }`}>
+            <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${isOwner ? 'border-blue-200' : 'border-green-200'
+                }`}>
                 {/* Header */}
                 <div className={`px-4 py-3 ${isOwner ? 'bg-blue-50' : 'bg-green-50'} border-b`}>
                     <div className="flex items-center justify-between">
@@ -100,9 +107,9 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 onClick={() => setShowDetails(!showDetails)}
                                 className="p-1 hover:bg-gray-200 rounded"
                             >
-                                <Icon 
-                                    icon={showDetails ? "mdi:chevron-up" : "mdi:chevron-down"} 
-                                    width={16} 
+                                <Icon
+                                    icon={showDetails ? "mdi:chevron-up" : "mdi:chevron-down"}
+                                    width={16}
                                 />
                             </button>
                         </div>
@@ -129,12 +136,12 @@ const QuotationMessage = ({ message, isOwner }) => {
                             </div>
                         )}
 
-                         {partsQuality && (
+                        {partsQuality && (
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-gray-600">Parts Quality:</span>
                                 <span className="font-medium">{partsQuality}</span>
                             </div>
-                         )} 
+                        )}
                         <div className="border-t pt-2 mt-2">
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold text-gray-800">Total Amount:</span>
@@ -159,27 +166,24 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                     {/* Validity Status */}
                     {validUntil && (
-                        <div className={`p-3 rounded-lg mb-3 ${
-                            new Date() > new Date(validUntil) 
-                                ? 'bg-red-50 border border-red-200' 
+                        <div className={`p-3 rounded-lg mb-3 ${new Date() > new Date(validUntil)
+                                ? 'bg-red-50 border border-red-200'
                                 : 'bg-blue-50 border border-blue-200'
-                        }`}>
+                            }`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                    <Icon 
-                                        icon={new Date() > new Date(validUntil) ? "mdi:clock-alert" : "mdi:clock-outline"} 
-                                        width={16} 
+                                    <Icon
+                                        icon={new Date() > new Date(validUntil) ? "mdi:clock-alert" : "mdi:clock-outline"}
+                                        width={16}
                                         className={new Date() > new Date(validUntil) ? "text-red-600" : "text-blue-600"}
                                     />
-                                    <span className={`text-sm font-medium ${
-                                        new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
-                                    }`}>
+                                    <span className={`text-sm font-medium ${new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
+                                        }`}>
                                         {new Date() > new Date(validUntil) ? "Expired" : "Valid Until"}
                                     </span>
                                 </div>
-                                <span className={`text-sm font-semibold ${
-                                    new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
-                                }`}>
+                                <span className={`text-sm font-semibold ${new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
+                                    }`}>
                                     {new Date(validUntil).toLocaleDateString()} at{' '}
                                     {new Date(validUntil).toLocaleTimeString([], {
                                         hour: '2-digit',
@@ -197,14 +201,14 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 <div className="mb-3">
                                     <span className="text-gray-500 text-sm">Warranty:</span>
                                     <p className="font-medium">
-                                        {typeof warranty === 'object' 
+                                        {typeof warranty === 'object'
                                             ? `${warranty.duration} - ${warranty.description}`
                                             : warranty
                                         }
                                     </p>
                                 </div>
                             )}
-                            
+
                             {repairmanNotes && (
                                 <div className="mb-3">
                                     <span className="text-gray-500 text-sm">Additional Notes:</span>
@@ -227,32 +231,32 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Expired Notice - Removed as it's now handled in validity status */}
-
                     {/* Customer Response Buttons */}
                     {canRespond && (
                         <div className="mt-4 pt-4 border-t">
                             <div className="flex gap-3">
                                 <button
-                                    onClick={() => handleQuotationResponse('accept')}
-                                    disabled={responding}
-                                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
+                                    // onClick={() => handleQuotationResponse('accept')}
+                                    // disabled={isAnyButtonLoading}
+                                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
                                 >
-                                    {responding ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    ) : (
-                                        <>
-                                            <Icon icon="mdi:check" width={16} />
-                                            Accept
-                                        </>
-                                    )}
+                                    <Link href={`/payment?quotationId=${message?.quotationData?.quotationId}`} className='flex items-center gap-1'>
+                                        {acceptLoading ? (
+                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        ) : (
+                                            <>
+                                                <Icon icon="mdi:check" width={16} />
+                                                Accept
+                                            </>
+                                        )}
+                                    </Link>
                                 </button>
                                 <button
                                     onClick={() => handleQuotationResponse('rejected')}
-                                    disabled={responding}
-                                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium"
+                                    disabled={isAnyButtonLoading}
+                                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
                                 >
-                                    {responding ? (
+                                    {rejectLoading ? (
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                     ) : (
                                         <>
@@ -268,9 +272,8 @@ const QuotationMessage = ({ message, isOwner }) => {
                     {/* Response Status */}
                     {(status === 'accepted' || status === 'rejected') && (
                         <div className="mt-3 p-2 rounded text-center">
-                            <span className={`text-sm font-medium ${
-                                status === 'accepted' ? 'text-green-600' : 'text-red-600'
-                            }`}>
+                            <span className={`text-sm font-medium ${status === 'accepted' ? 'text-green-600' : 'text-red-600'
+                                }`}>
                                 Quotation {status} by customer
                             </span>
                         </div>

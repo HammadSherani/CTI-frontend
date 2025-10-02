@@ -403,7 +403,6 @@ function CheckoutPage() {
                                 </div>
                             </div>
 
-                            {/* Service Options Info */}
                             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
                                     <Icon icon="lucide:info" className="w-5 h-5 text-blue-600" />
@@ -422,7 +421,6 @@ function CheckoutPage() {
                                 </div>
                             </div>
 
-                            {/* Payment Button */}
                             <button
                                 onClick={handleSubmit(onSubmit)}
                                 disabled={isProcessing || (selectedPaymentMethod === 'card' && Object.keys(errors).length > 0)}
@@ -441,7 +439,6 @@ function CheckoutPage() {
                                 )}
                             </button>
 
-                            {/* Terms and Conditions */}
                             <div className="mt-6 flex items-start gap-3 text-sm text-gray-600">
                                 <input type="checkbox" className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 rounded" />
                                 <span>
@@ -451,7 +448,6 @@ function CheckoutPage() {
                                 </span>
                             </div>
 
-                            {/* Trust Badges */}
                             <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-gray-500">
                                 <div className="flex items-center gap-2">
                                     <Icon icon="lucide:shield" className="w-5 h-5" />

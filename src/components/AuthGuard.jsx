@@ -4,7 +4,7 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
-import { clearAuth } from "../store/auth"; // Adjust path as needed
+import { clearAuth } from "../store/auth"; 
 
 // Role-based route configuration (unchanged)
 const ROLE_ROUTES = {
@@ -41,7 +41,7 @@ const ROLE_ROUTES = {
     "/profile",
     "/settings",
   ],
-  customer: ["/", "/orders","/my-account", "/repair-requests", "/wishlist", "/cart", "/profile", "/settings"],
+  customer: ["/", "/orders","/my-account", "/repair-requests", "/wishlist", "/cart", "/profile", "/settings", '/payment'],
 };
 
 // Default redirects for each role (unchanged)

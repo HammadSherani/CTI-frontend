@@ -1,11 +1,11 @@
 import AuthGuard from '@/components/AuthGuard'
 import React from 'react'
 
-function layout({children}) {
+function layout({ children }) {
   return (
     <div>
-        <AuthGuard>
-      {children}
+      <AuthGuard>
+        {children}
       </AuthGuard>
     </div>
   )
