@@ -9,8 +9,20 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 
-// Validation schema
 const quotationSchema = yup.object().shape({
+    brandName: yup
+        .string()
+        .required('Brand name is required')
+        .min(2, 'Brand name must be at least 2 characters'),
+    modelName: yup
+        .string()
+        .required('Model name is required')
+        .min(2, 'Model name must be at least 2 characters'),
+    repairService: yup
+        .string()
+        .required('Repair service is required')
+        .min(3, 'Repair service must be at least 3 characters'),
+
     description: yup
         .string()
         .required('Service description is required')
@@ -65,12 +77,15 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     } = useForm({
         resolver: yupResolver(quotationSchema),
         defaultValues: {
+            brandName: '',
+            modelName: '',
+            repairService: '',
             description: '',
             serviceCharge: '',
             partsPrice: '',
             estimatedDuration: '',
             serviceType: 'drop-off',
-            validityDuration: 24, // Default 24 hours
+            validityDuration: 24,
             warranty: '',
             repairmanNotes: ''
         }
@@ -82,7 +97,6 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         { value: 'home-service', label: 'Home Service' }
     ];
 
-    // Watch form values for total calculation
     const watchedValues = watch(['serviceCharge', 'partsPrice', 'validityDuration']);
     const calculateTotal = () => {
         const serviceCharge = parseFloat(watchedValues[0]) || 0;
@@ -101,21 +115,21 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         setLoading(true);
 
         console.log(data);
-        
 
-        // return;
         try {
-            const validUntil = new Date();
-            validUntil.setHours(validUntil.getHours() + parseInt(data.validityDuration));
-
             const quotationData = {
+                deviceInfo: {
+                    brandName: data.brandName.trim(),
+                    modelName: data.modelName.trim(),
+                    repairService: data.repairService.trim()
+                },
                 description: data.description.trim(),
                 partsQuality: data.partsQuality,
                 serviceCharge: parseFloat(data.serviceCharge),
                 partsPrice: parseFloat(data.partsPrice) || 0,
                 estimatedDuration: data.estimatedDuration.trim(),
                 serviceType: data.serviceType,
-                validUntil: validUntil.toISOString(),
+                validityDuration: parseInt(data.validityDuration),
                 ...(data.warranty && { warranty: data.warranty.trim() }),
                 ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() })
             };
@@ -141,7 +155,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     };
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-hidden">
                 {/* Header */}
                 <div className="bg-blue-600 text-white px-6 py-4 flex items-center justify-between">
@@ -157,6 +171,80 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                 {/* Form */}
                 <form onSubmit={handleSubmit(onSubmit)} className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                     <div className="space-y-4">
+                        {/* Device Information Section */}
+                        <div className="bg-blue-50 p-4 rounded-md space-y-3">
+                            <h3 className="text-sm font-semibold text-blue-900 mb-2">Device Information</h3>
+
+                            {/* Brand Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Brand Name *
+                                </label>
+                                <Controller
+                                    name="brandName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            {...field}
+                                            type="text"
+                                            placeholder="e.g., Apple, Samsung, Huawei"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.brandName ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                        />
+                                    )}
+                                />
+                                {errors.brandName && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.brandName.message}</p>
+                                )}
+                            </div>
+
+                            {/* Model Name */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Model Name *
+                                </label>
+                                <Controller
+                                    name="modelName"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            {...field}
+                                            type="text"
+                                            placeholder="e.g., iPhone 14 Pro, Galaxy S23"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.modelName ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                        />
+                                    )}
+                                />
+                                {errors.modelName && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.modelName.message}</p>
+                                )}
+                            </div>
+
+                            {/* Repair Service */}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Repair Service *
+                                </label>
+                                <Controller
+                                    name="repairService"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <input
+                                            {...field}
+                                            type="text"
+                                            placeholder="e.g., Screen Replacement, Battery Change"
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.repairService ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                        />
+                                    )}
+                                />
+                                {errors.repairService && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.repairService.message}</p>
+                                )}
+                            </div>
+                        </div>
+
                         {/* Service Description */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -187,7 +275,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                         {/* Service Charge */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Service Charge (TRY) *
+                                Service Charge (PKR) *
                             </label>
                             <Controller
                                 name="serviceCharge"
@@ -209,9 +297,10 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             )}
                         </div>
 
+                        {/* Parts Price */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Parts Price
+                                Parts Price (PKR)
                             </label>
                             <Controller
                                 name="partsPrice"
@@ -232,6 +321,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 <p className="text-red-500 text-xs mt-1">{errors.partsPrice.message}</p>
                             )}
                         </div>
+
+                        {/* Parts Quality */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Parts Quality
@@ -259,7 +350,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             )}
                         </div>
 
-
+                        {/* Total Amount */}
                         <div className="bg-gray-50 p-3 rounded-md">
                             <div className="flex justify-between items-center">
                                 <span className="font-medium text-gray-700">Total Amount:</span>
