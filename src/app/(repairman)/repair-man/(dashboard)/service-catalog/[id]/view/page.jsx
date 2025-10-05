@@ -383,9 +383,9 @@ function ViewService() {
               </div>
             </div>
 
-            {/* Actions */}
             <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border border-primary-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Actions</h3>
+              
               
               <div className="flex items-center flex-col gap-3 w-full">
                 <Link href={`/repair-man/services/${serviceId}/edit`} className='w-full'>
