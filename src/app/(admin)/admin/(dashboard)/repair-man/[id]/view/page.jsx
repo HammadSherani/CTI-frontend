@@ -61,7 +61,7 @@ function page() {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
             </div>
         );
     }
@@ -135,8 +135,8 @@ function page() {
 
                             {/* Quick Stats */}
                             <div className="mt-6 grid grid-cols-2 gap-4">
-                                <div className="text-center p-3 bg-blue-50 rounded-lg">
-                                    <Icon icon="mdi:briefcase" className="w-6 h-6 text-blue-600 mx-auto mb-1" />
+                                <div className="text-center p-3 bg-primary-50 rounded-lg">
+                                    <Icon icon="mdi:briefcase" className="w-6 h-6 text-primary-600 mx-auto mb-1" />
                                     <p className="text-sm text-gray-600">Total Jobs</p>
                                     <p className="font-semibold text-gray-900">{profile.totalJobs}</p>
                                 </div>
@@ -185,7 +185,7 @@ function page() {
                         {/* Personal Information */}
                         <div className="bg-white rounded-xl shadow-md p-6">
                             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-                                <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-blue-600" />
+                                <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-primary-600" />
                                 Personal Information
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -315,7 +315,7 @@ function page() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
                                     <div className="flex flex-wrap gap-2">
                                         {profile.workingDays.map((day, index) => (
-                                            <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                            <span key={index} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm">
                                                 {day}
                                             </span>
                                         ))}
@@ -377,7 +377,7 @@ function page() {
                                         <img 
                                             src={profile.nationalIdOrPassportScan}
                                             alt="National ID"
-                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-500 transition-colors"
+                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
                                             onClick={() => window.open(profile.nationalIdOrPassportScan, '_blank')}
                                         />
                                     )}
@@ -392,7 +392,7 @@ function page() {
                                         <img 
                                             src={profile.shopPhoto}
                                             alt="Shop"
-                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-500 transition-colors"
+                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
                                             onClick={() => window.open(profile.shopPhoto, '_blank')}
                                         />
                                     )}
@@ -407,7 +407,7 @@ function page() {
                                         <img 
                                             src={profile.utilityBillOrShopProof}
                                             alt="Utility Bill"
-                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-500 transition-colors"
+                                            className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
                                             onClick={() => window.open(profile.utilityBillOrShopProof, '_blank')}
                                         />
                                     )}
@@ -425,7 +425,7 @@ function page() {
                                                     key={index}
                                                     src={cert}
                                                     alt={`Certificate ${index + 1}`}
-                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-blue-500 transition-colors"
+                                                    className="w-full h-32 object-cover rounded-lg border-2 border-gray-200 cursor-pointer hover:border-primary-500 transition-colors"
                                                     onClick={() => window.open(cert, '_blank')}
                                                 />
                                             ))}

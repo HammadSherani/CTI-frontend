@@ -145,7 +145,7 @@ function JobStatisticsPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <Icon icon="mdi:briefcase" className="w-10 h-10 text-blue-600" />
+                                <Icon icon="mdi:briefcase" className="w-10 h-10 text-primary-600" />
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Jobs</p>
@@ -214,7 +214,7 @@ function JobStatisticsPage() {
                                             status === 'completed' ? 'bg-green-500' :
                                             status === 'in_progress' ? 'bg-yellow-500' :
                                             status === 'cancelled' ? 'bg-red-500' :
-                                            status === 'open' ? 'bg-blue-500' :
+                                            status === 'open' ? 'bg-primary-500' :
                                             'bg-gray-500'
                                         }`}></span>
                                         <span className="font-medium text-gray-900 capitalize">
@@ -271,7 +271,7 @@ function JobStatisticsPage() {
                                         activity.action === 'job_completed' ? 'bg-green-100 text-green-600' :
                                         activity.action === 'job_cancelled' ? 'bg-red-100 text-red-600' :
                                         activity.action === 'job_assigned_manually' ? 'bg-orange-100 text-orange-600' :
-                                        'bg-blue-100 text-blue-600'
+                                        'bg-primary-100 text-primary-600'
                                     }`}>
                                         <Icon icon={getActionIcon(activity.action)} className="w-5 h-5" />
                                     </div>

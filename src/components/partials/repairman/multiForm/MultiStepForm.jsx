@@ -520,7 +520,7 @@ export default function RepairmanMultiStepForm() {
   }, [step, informationData, documentData]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-orange-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-orange-50 p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-4xl p-8">
 
         {/* Progress Stepper */}
@@ -598,7 +598,7 @@ export default function RepairmanMultiStepForm() {
             {step === 4 ? (
               <button
                 type="submit"
-                className="px-6 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors shadow-lg"
+                className="px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors shadow-lg"
               >
                 Save Information & Continue
               </button>

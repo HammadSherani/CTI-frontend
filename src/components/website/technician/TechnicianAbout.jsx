@@ -66,12 +66,12 @@ const TechnicianAbout = ({ technician }) => {
                 <h3 className="text-xl font-bold text-gray-800">My Services</h3>
                 <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
                     {services.map(service => (
-                        <a key={service} href="#" className="text-blue-600 hover:underline">{service}</a>
+                        <a key={service} href="#" className="text-primary-600 hover:underline">{service}</a>
                     ))}
                 </div>
                 <div className="mt-6 flex items-center gap-4 text-gray-500">
                     {socialLinks.map(link => (
-                        <a key={link.icon} href={link.href} className="hover:text-blue-600 transition-colors">
+                        <a key={link.icon} href={link.href} className="hover:text-primary-600 transition-colors">
                             <Icon icon={link.icon} className="w-5 h-5" />
                         </a>
                     ))}

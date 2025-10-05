@@ -47,7 +47,7 @@ const TechnicianCard = ({ technician }) => {
            </div>
         </div>
         
-        <a href="#" className="text-blue-600 font-semibold text-sm mt-4 hover:underline self-start">
+        <a href="#" className="text-primary-600 font-semibold text-sm mt-4 hover:underline self-start">
           Select
         </a>
       </div>

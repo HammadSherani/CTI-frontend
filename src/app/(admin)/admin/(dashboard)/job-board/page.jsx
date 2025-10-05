@@ -175,7 +175,7 @@ function JobBoardPage() {
     const getStatusColor = (status) => {
         const colors = {
             'draft': 'bg-gray-100 text-gray-800',
-            'open': 'bg-blue-100 text-blue-800',
+            'open': 'bg-primary-100 text-primary-800',
             'offers_received': 'bg-cyan-100 text-cyan-800',
             'booked': 'bg-purple-100 text-purple-800',
             'in_progress': 'bg-yellow-100 text-yellow-800',
@@ -300,7 +300,7 @@ function JobBoardPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <Icon icon="mdi:briefcase" className="w-8 h-8 text-blue-600" />
+                                <Icon icon="mdi:briefcase" className="w-8 h-8 text-primary-600" />
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Jobs</p>
@@ -504,7 +504,7 @@ function JobBoardPage() {
                                                     <div className="flex items-center gap-2">
                                                         <Link
                                                             href={`/admin/jobboard/${job._id}`}
-                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
                                                             title="View Details"
                                                         >
                                                             <Icon icon="mdi:eye" className="w-5 h-5" />

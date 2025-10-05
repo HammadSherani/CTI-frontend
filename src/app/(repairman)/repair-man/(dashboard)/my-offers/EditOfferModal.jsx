@@ -207,7 +207,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="basePrice"
                                         value={formData.basePrice}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.basePrice ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Enter base price"
@@ -225,7 +225,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="partsEstimate"
                                         value={formData.partsEstimate}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         placeholder="Enter parts estimate"
                                         disabled={loading}
                                     />
@@ -239,7 +239,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="partsQuality"
                                         value={formData.partsQuality}
                                         onChange={handleInputChange}
-                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         disabled={loading}
                                     >
                                         {partsQualityOptions.map(option => (
@@ -273,7 +273,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="estimatedTime"
                                         value={formData.estimatedTime}
                                         onChange={handleInputChange}
-                                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.estimatedTime ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Time"
@@ -283,7 +283,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="timeUnit"
                                         value={formData.timeUnit}
                                         onChange={handleInputChange}
-                                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         disabled={loading}
                                     >
                                         {timeUnits.map(unit => (
@@ -305,7 +305,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                     name="availability.canStartBy"
                                     value={formData.availability.canStartBy}
                                     onChange={handleInputChange}
-                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                         errors['availability.canStartBy'] ? 'border-red-500' : 'border-gray-300'
                                     }`}
                                     disabled={loading}
@@ -324,7 +324,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                 value={formData.description}
                                 onChange={handleInputChange}
                                 rows="4"
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                     errors.description ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 placeholder="Describe your repair offer..."
@@ -346,7 +346,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                         name="warranty.duration"
                                         value={formData.warranty.duration}
                                         onChange={handleInputChange}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors['warranty.duration'] ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Warranty days"
@@ -364,7 +364,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                     value={formData.warranty.description}
                                     onChange={handleInputChange}
                                     rows="2"
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     placeholder="Describe warranty terms..."
                                     disabled={loading}
                                 />
@@ -445,7 +445,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                                 value={formData.modificationReason}
                                 onChange={handleInputChange}
                                 rows="3"
-                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                     errors.modificationReason ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 placeholder="Why are you updating this offer?"
@@ -469,7 +469,7 @@ const EditOfferModal = ({ isOpen, onClose, offer, onUpdate, loading = false }) =
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                        className="px-4 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                     >
                         {loading && (
                             <Icon icon="eos-icons:loading" className="w-4 h-4 mr-2" />

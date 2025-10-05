@@ -166,7 +166,7 @@ function ResetPasswordForm() {
       case 1: return "bg-red-500";
       case 2: return "bg-orange-500";
       case 3: return "bg-yellow-500";
-      case 4: return "bg-blue-500";
+      case 4: return "bg-primary-500";
       case 5: return "bg-green-500";
       default: return "bg-gray-300";
     }
@@ -428,7 +428,7 @@ function ResetPasswordForm() {
                         <span className={`text-xs font-medium ${
                           passwordStrength <= 2 ? 'text-red-500' : 
                           passwordStrength === 3 ? 'text-yellow-500' :
-                          passwordStrength === 4 ? 'text-blue-500' : 'text-green-500'
+                          passwordStrength === 4 ? 'text-primary-500' : 'text-green-500'
                         }`}>
                           {getStrengthText(passwordStrength)}
                         </span>
@@ -500,12 +500,12 @@ function ResetPasswordForm() {
                 </div>
 
                 {/* Password Requirements */}
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
-                    <Icon icon="mdi:information" className="text-blue-500 text-xl mt-0.5" />
+                    <Icon icon="mdi:information" className="text-primary-500 text-xl mt-0.5" />
                     <div>
-                      <h3 className="font-semibold text-blue-900 mb-2">Password Requirements</h3>
-                      <ul className="text-sm text-blue-800 space-y-1">
+                      <h3 className="font-semibold text-primary-900 mb-2">Password Requirements</h3>
+                      <ul className="text-sm text-primary-800 space-y-1">
                         <li className="flex items-center gap-2">
                           <Icon 
                             icon={newPasswordValue?.length >= 8 ? "mdi:check" : "mdi:circle-outline"} 

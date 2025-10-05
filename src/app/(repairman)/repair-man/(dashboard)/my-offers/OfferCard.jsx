@@ -23,7 +23,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'pending': return 'bg-blue-100 text-blue-800';
+            case 'pending': return 'bg-primary-100 text-primary-800';
             case 'under_review': return 'bg-yellow-100 text-yellow-800';
             case 'accepted': return 'bg-green-100 text-green-800';
             case 'rejected': return 'bg-red-100 text-red-800';
@@ -71,8 +71,8 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
             {/* Header */}
             <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-semibold text-blue-700">{clientInitials}</span>
+                    <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
+                        <span className="text-sm font-semibold text-primary-700">{clientInitials}</span>
                     </div>
                     <div>
                         <h3 className="font-semibold text-lg text-gray-900 leading-tight">{jobTitle}</h3>
@@ -136,7 +136,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                         <Link href={`/repair-man/my-offers/${offer._id}/edit`}>
                             <button
                                 // onClick={handleEditOffer}
-                                className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium"
+                                className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
                             >
 
                                 Edit Offer
@@ -152,7 +152,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                 )}
                 {offer.status === 'under_review' && (
                     <>
-                        <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
                             Message Client
                         </button>
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
@@ -188,7 +188,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
                             View Details
                         </button>
-                        <button className="flex-1 bg-blue-600 text-white py-2 px-3 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium">
+                        <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
                             Find Similar Jobs
                         </button>
                     </>

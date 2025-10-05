@@ -120,7 +120,7 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
           {unreadCount > 0 && (
             <button
               onClick={markAllAsRead}
-              className="text-sm text-blue-600 hover:text-blue-800"
+              className="text-sm text-primary-600 hover:text-primary-800"
             >
               Mark all read
             </button>
@@ -152,7 +152,7 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
               key={notification.id}
               onClick={() => handleNotificationClick(notification)}
               className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                !notification.read ? 'bg-blue-50 border-l-4 border-l-blue-500' : ''
+                !notification.read ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
               }`}
             >
               <div className="flex items-start space-x-3">

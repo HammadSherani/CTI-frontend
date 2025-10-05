@@ -134,12 +134,12 @@ function ForgotPassword() {
                 <p className="text-orange-500 font-semibold text-lg mb-6">
                   {sentEmail}
                 </p>
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-6">
+                <div className="bg-primary-50 border border-primary-200 rounded-xl p-4 mb-6">
                   <div className="flex items-start gap-3">
-                    <Icon icon="mdi:information" className="text-blue-500 text-xl mt-0.5" />
+                    <Icon icon="mdi:information" className="text-primary-500 text-xl mt-0.5" />
                     <div className="text-left">
-                      <h3 className="font-semibold text-blue-900 mb-1">What's next?</h3>
-                      <ul className="text-sm text-blue-800 space-y-1">
+                      <h3 className="font-semibold text-primary-900 mb-1">What's next?</h3>
+                      <ul className="text-sm text-primary-800 space-y-1">
                         <li>• Check your email inbox and spam folder</li>
                         <li>• Click the reset link in the email</li>
                         <li>• Create a new secure password</li>
@@ -302,12 +302,12 @@ function ForgotPassword() {
                 </div>
 
                 {/* Info Box */}
-                {/* <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                {/* <div className="bg-primary-50 border border-primary-200 rounded-xl p-4">
                   <div className="flex items-start gap-3">
-                    <Icon icon="mdi:information" className="text-blue-500 text-xl mt-0.5" />
+                    <Icon icon="mdi:information" className="text-primary-500 text-xl mt-0.5" />
                     <div>
-                      <h3 className="font-semibold text-blue-900 mb-1">How it works</h3>
-                      <p className="text-sm text-blue-800">
+                      <h3 className="font-semibold text-primary-900 mb-1">How it works</h3>
+                      <p className="text-sm text-primary-800">
                         We'll send a secure link to your email address. Click the link to create a new password for your account.
                       </p>
                     </div>

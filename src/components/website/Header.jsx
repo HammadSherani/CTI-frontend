@@ -30,7 +30,7 @@ export function TopHeader() {
           />
           <Icon
             icon="mdi:twitter"
-            className="hover:text-blue-400 hover:scale-110 cursor-pointer text-xl transition-all duration-200"
+            className="hover:text-primary-400 hover:scale-110 cursor-pointer text-xl transition-all duration-200"
             aria-label="Twitter"
           />
           <Icon
@@ -40,7 +40,7 @@ export function TopHeader() {
           />
           <Icon
             icon="mdi:linkedin"
-            className="hover:text-blue-600 hover:scale-110 cursor-pointer text-xl transition-all duration-200"
+            className="hover:text-primary-600 hover:scale-110 cursor-pointer text-xl transition-all duration-200"
             aria-label="LinkedIn"
           />
           <Icon
@@ -218,9 +218,9 @@ export function MidHeader() {
           <div className="relative group cursor-pointer" aria-label="Notifications">
             <Icon
               icon="mdi:bell-outline"
-              className="text-gray-600 hover:text-blue-500 transition-colors duration-200"
+              className="text-gray-600 hover:text-primary-500 transition-colors duration-200"
             />
-            <span className="absolute -top-1 -right-1 bg-blue-500 w-2 h-2 rounded-full"></span>
+            <span className="absolute -top-1 -right-1 bg-primary-500 w-2 h-2 rounded-full"></span>
             <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
               Notifications
             </div>
@@ -384,7 +384,7 @@ function LowerHeader() {
               <span>24/7 Service</span>
             </div>
             <div className="flex items-center gap-2 text-sm text-gray-600">
-              <Icon icon="mdi:shield-check" className="text-blue-500" />
+              <Icon icon="mdi:shield-check" className="text-primary-500" />
               <span>Warranty</span>
             </div>
           </div> */}

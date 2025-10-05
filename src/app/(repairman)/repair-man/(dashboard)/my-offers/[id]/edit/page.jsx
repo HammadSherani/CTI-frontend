@@ -222,7 +222,7 @@ function EditOfferPage() {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="flex items-center space-x-2">
-                    <Icon icon="eos-icons:loading" className="w-8 h-8 text-blue-600" />
+                    <Icon icon="eos-icons:loading" className="w-8 h-8 text-primary-600" />
                     <span className="text-lg text-gray-600">Loading offer details...</span>
                 </div>
             </div>
@@ -238,7 +238,7 @@ function EditOfferPage() {
                     <p className="text-gray-600 mb-4">The offer you're looking for could not be found.</p>
                     <button 
                         onClick={() => router.back()}
-                        className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                        className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
                     >
                         Go Back
                     </button>
@@ -290,7 +290,7 @@ function EditOfferPage() {
                                         name="basePrice"
                                         value={formData.basePrice}
                                         onChange={handleInputChange}
-                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.basePrice ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Enter base price"
@@ -308,7 +308,7 @@ function EditOfferPage() {
                                         name="partsEstimate"
                                         value={formData.partsEstimate}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         placeholder="Enter parts estimate"
                                         disabled={updating}
                                     />
@@ -322,7 +322,7 @@ function EditOfferPage() {
                                         name="partsQuality"
                                         value={formData.partsQuality}
                                         onChange={handleInputChange}
-                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         disabled={updating}
                                     >
                                         {partsQualityOptions.map(option => (
@@ -337,7 +337,7 @@ function EditOfferPage() {
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
                                         Total Price
                                     </label>
-                                    <div className="px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-xl font-bold text-blue-900">
+                                    <div className="px-4 py-3 bg-primary-50 border border-primary-200 rounded-lg text-xl font-bold text-primary-900">
                                         {totalPrice.toLocaleString()} TRY
                                     </div>
                                 </div>
@@ -356,7 +356,7 @@ function EditOfferPage() {
                                         name="estimatedTime"
                                         value={formData.estimatedTime}
                                         onChange={handleInputChange}
-                                        className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`flex-1 px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors.estimatedTime ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Time"
@@ -366,7 +366,7 @@ function EditOfferPage() {
                                         name="timeUnit"
                                         value={formData.timeUnit}
                                         onChange={handleInputChange}
-                                        className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        className="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         disabled={updating}
                                     >
                                         {timeUnits.map(unit => (
@@ -388,7 +388,7 @@ function EditOfferPage() {
                                     name="availability.canStartBy"
                                     value={formData.availability.canStartBy}
                                     onChange={handleInputChange}
-                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                    className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                         errors['availability.canStartBy'] ? 'border-red-500' : 'border-gray-300'
                                     }`}
                                     disabled={updating}
@@ -407,7 +407,7 @@ function EditOfferPage() {
                                 value={formData.description}
                                 onChange={handleInputChange}
                                 rows="5"
-                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                     errors.description ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 placeholder="Describe your repair offer..."
@@ -429,7 +429,7 @@ function EditOfferPage() {
                                         name="warranty.duration"
                                         value={formData.warranty.duration}
                                         onChange={handleInputChange}
-                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                        className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                             errors['warranty.duration'] ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                         placeholder="Warranty days"
@@ -447,7 +447,7 @@ function EditOfferPage() {
                                     value={formData.warranty.description}
                                     onChange={handleInputChange}
                                     rows="3"
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                                     placeholder="Describe warranty terms..."
                                     disabled={updating}
                                 />
@@ -465,7 +465,7 @@ function EditOfferPage() {
                                             name="serviceOptions.pickupAvailable"
                                             checked={formData.serviceOptions.pickupAvailable}
                                             onChange={handleInputChange}
-                                            className="mr-3 h-5 w-5 text-blue-600"
+                                            className="mr-3 h-5 w-5 text-primary-600"
                                             disabled={updating}
                                         />
                                         <span className="font-medium">Pickup Available</span>
@@ -494,7 +494,7 @@ function EditOfferPage() {
                                             name="serviceOptions.homeService"
                                             checked={formData.serviceOptions.homeService}
                                             onChange={handleInputChange}
-                                            className="mr-3 h-5 w-5 text-blue-600"
+                                            className="mr-3 h-5 w-5 text-primary-600"
                                             disabled={updating}
                                         />
                                         <span className="font-medium">Home Service</span>
@@ -528,7 +528,7 @@ function EditOfferPage() {
                                 value={formData.modificationReason}
                                 onChange={handleInputChange}
                                 rows="4"
-                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                className={`w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                     errors.modificationReason ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 placeholder="Why are you updating this offer?"
@@ -551,7 +551,7 @@ function EditOfferPage() {
                         <button
                             type="submit"
                             disabled={updating}
-                            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
                         >
                             {updating && (
                                 <Icon icon="eos-icons:loading" className="w-5 h-5 mr-2" />

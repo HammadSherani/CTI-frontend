@@ -619,7 +619,7 @@ function RepairmanDetail() {
 
                                     {/* <button 
                                     onClick={handleHire}
-                                    className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
+                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
                                 >
                                     <Icon icon="mdi:account-plus" className="w-5 h-5 mr-2" />
                                     Hire Now

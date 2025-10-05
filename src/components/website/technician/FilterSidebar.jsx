@@ -13,7 +13,7 @@ const FilterSidebar = () => {
           {/* Product Type */}
           <div>
             <label className="text-sm font-semibold text-gray-700">Product Type</label>
-            <input type="text" defaultValue="All" className="w-full mt-2 p-2.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"/>
+            <input type="text" defaultValue="All" className="w-full mt-2 p-2.5 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"/>
           </div>
           
           {/* Price Range */}
@@ -31,13 +31,13 @@ const FilterSidebar = () => {
           {/* Categories */}
           <div>
             <label className="text-sm font-semibold text-gray-700">Categories</label>
-            <select className="w-full mt-2 p-2.5 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
+            <select className="w-full mt-2 p-2.5 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
               <option>Sell Phone</option>
               <option>Buy Phone</option>
             </select>
             <div className="mt-3 space-y-2">
               {categories.map(category => (
-                <a href="#" key={category} className="block text-gray-600 hover:text-blue-600 text-sm">{category}</a>
+                <a href="#" key={category} className="block text-gray-600 hover:text-primary-600 text-sm">{category}</a>
               ))}
             </div>
           </div>
@@ -46,7 +46,7 @@ const FilterSidebar = () => {
           <div>
             <label className="text-sm font-semibold text-gray-700">Brands</label>
             <div className="relative mt-2">
-              <input type="text" placeholder="Search by brands" className="w-full p-2.5 pl-4 pr-10 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"/>
+              <input type="text" placeholder="Search by brands" className="w-full p-2.5 pl-4 pr-10 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"/>
               <Icon icon="mdi:magnify" className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"/>
             </div>
           </div>

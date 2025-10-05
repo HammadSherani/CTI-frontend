@@ -40,7 +40,7 @@
 
 // const LoadingSpinner = () => (
 //     <div className="flex items-center justify-center py-8">
-//         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+//         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
 //     </div>
 // );
 
@@ -258,7 +258,7 @@
 
 //             <div className="flex justify-between items-center px-4 py-2 text-sm font-semibold">
 //                 <span>Chats ({filteredChats.length})</span>
-//                 {/* <span className="text-blue-500 cursor-pointer">Requests</span> */}
+//                 {/* <span className="text-primary-500 cursor-pointer">Requests</span> */}
 //             </div>
 
 //             <div className="overflow-y-auto max-h-[400px]">
@@ -271,7 +271,7 @@
 //                         {searchTerm && (
 //                             <button
 //                                 onClick={() => setSearchTerm('')}
-//                                 className="text-blue-500 text-sm mt-2 hover:underline"
+//                                 className="text-primary-500 text-sm mt-2 hover:underline"
 //                             >
 //                                 Clear search
 //                             </button>
@@ -307,7 +307,7 @@
 //                                             @{chat?.otherUser?.username || chat?.otherUser?.name?.toLowerCase()}
 //                                         </span>
 //                                         {chat?.verified && (
-//                                             <Icon icon="mdi:check-decagram" className="text-blue-500" width={16} />
+//                                             <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
 //                                         )}
 //                                     </div>
 //                                     <span className="text-xs text-gray-400">
@@ -508,7 +508,7 @@
 //                         <div className="flex items-center gap-1">
 //                             <span className="font-semibold text-sm">{chat.name || 'Unknown User'}</span>
 //                             {chat.verified && (
-//                                 <Icon icon="mdi:check-decagram" className="text-blue-500" width={16} />
+//                                 <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
 //                             )}
 //                             <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
 //                                 title={connected ? 'Connected' : 'Disconnected'} />
@@ -546,7 +546,7 @@
 //                         >
 //                             <div
 //                                 className={`max-w-[70%] p-2 rounded-lg ${user.role === message.senderType
-//                                     ? "bg-blue-500 text-white"
+//                                     ? "bg-primary-500 text-white"
 //                                     : "bg-gray-200 text-gray-800"
 //                                     }`}
 //                             >
@@ -570,7 +570,7 @@
 //                                             <a
 //                                                 href={message.media.url}
 //                                                 download={message.media.name}
-//                                                 className="text-blue-500 underline block mb-1"
+//                                                 className="text-primary-500 underline block mb-1"
 //                                             >
 //                                                 📎 {message.media.name}
 //                                             </a>
@@ -599,7 +599,7 @@
 //                     <div className="flex items-center justify-between bg-white p-2 rounded-lg border">
 //                         <div className="flex items-center gap-2">
 //                             {selectedFile.type.startsWith('image/') ? (
-//                                 <Icon icon="mdi:image" width={20} className="text-blue-500" />
+//                                 <Icon icon="mdi:image" width={20} className="text-primary-500" />
 //                             ) : selectedFile.type.startsWith('video/') ? (
 //                                 <Icon icon="mdi:video" width={20} className="text-purple-500" />
 //                             ) : (
@@ -643,12 +643,12 @@
 //                         className="flex-1 bg-transparent outline-none disabled:opacity-50"
 //                     />
 //                     {sending ? (
-//                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></div>
+//                         <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
 //                     ) : (
 //                         <Icon
 //                             icon="mdi:send"
 //                             width={20}
-//                             className={`cursor-pointer transition-colors ${(inputText.trim() || selectedFile) ? "text-blue-500 hover:text-blue-600" : "text-gray-400"
+//                             className={`cursor-pointer transition-colors ${(inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
 //                                 }`}
 //                             onClick={handleSendMessage}
 //                         />
@@ -713,7 +713,7 @@
 //     return (
 //         <button
 //             onClick={openChat}
-//             className={`relative p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors ${className}`}
+//             className={`relative p-3 bg-primary-500 text-white rounded-full shadow-lg hover:bg-primary-600 transition-colors ${className}`}
 //         >
 //             <Icon icon="mdi:message" width={24} />
 //             {totalUnreadCount > 0 && (

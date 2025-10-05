@@ -47,7 +47,7 @@ const ReviewsSection = () => {
             <div className="container">
                 <div className="flex justify-between items-center mb-8">
                     <h2 className="text-3xl font-bold text-gray-800">All Reviews</h2>
-                    <a href="#" className="flex items-center gap-2 font-semibold text-blue-600 hover:underline text-sm">
+                    <a href="#" className="flex items-center gap-2 font-semibold text-primary-600 hover:underline text-sm">
                         <Icon icon="mdi:plus-circle-outline" className="w-5 h-5" />
                         <span>Add Review</span>
                     </a>

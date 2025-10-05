@@ -121,7 +121,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
                 {value.map((brand, index) => (
                     <span
                         key={brand.id}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-blue-100 text-blue-800 border border-blue-200"
+                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 border border-primary-200"
                     >
                         {brand.icon && (
                             <img
@@ -137,7 +137,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
                         <button
                             type="button"
                             onClick={() => removeBrand(index)}
-                            className="ml-2 text-blue-600 hover:text-blue-800 font-bold"
+                            className="ml-2 text-primary-600 hover:text-primary-800 font-bold"
                         >
                             ×
                         </button>
@@ -163,7 +163,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search brands..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                             autoFocus
                         />
                     </div>

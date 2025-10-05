@@ -9,7 +9,7 @@ export default function RootNotFound() {
           <p className="text-xl mb-6">The page you are looking for doesn&apos;t exist.</p>
           <Link 
             href="/" 
-            className="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600"
+            className="bg-primary-500 text-white px-6 py-2 rounded hover:bg-primary-600"
           >
             Back to Home
           </Link>

@@ -102,7 +102,7 @@ export default function NotificationSetup() {
     <div style={{ position: 'fixed', top: '10px', right: '10px', zIndex: 9999 }}>
       {/* <button 
         onClick={() => initializeNotifications()}
-        style={{ padding: '10px', background: 'blue', color: 'white', border: 'none', cursor: 'pointer' }}
+        style={{ padding: '10px', background: 'primary', color: 'white', border: 'none', cursor: 'pointer' }}
       >
         Test Notifications
       </button> */}

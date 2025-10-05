@@ -55,8 +55,8 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
         const fetchQuotationData = async () => {
             try {
                 setLoading(true);
-                const response = await axiosInstance.get('/chat/get-quotations', {
-                    params: { quotationId, jobId },
+                const response = await axiosInstance.get('/customer/payments', {
+                    params: { quotationId },
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
@@ -64,8 +64,11 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                     router.push(`/my-account/${jobId}/order-confirmation`);
                     return;
                 }
+
+
                 
-                setOrderData(response.data.data);
+
+                setOrderData(response.data.data.quotation);
             } catch (error) {
                 handleError(error);
             } finally {
@@ -74,30 +77,47 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
         };
 
         fetchQuotationData();
-    }, [quotationId, jobId, token, router]);
+    }, [quotationId, token, router, jobId]);
 
     const onSubmit = async (formData) => {
         setIsProcessing(true);
-        try {
-            const paymentResponse = await axiosInstance.post(
-                '/customer/payments/process/quotation',
-                {},
-                {
-                    params: { quotationId, jobId },
-                    headers: { Authorization: `Bearer ${token}` },
-                }
-            );
 
-            if (paymentResponse?.status === 200) {
-                toast.success(paymentResponse.data.message || "Payment successful!");
-                router.push(`/my-account/${jobId}/order-confirmation`);
+        try {
+            const config = {
+                headers: { Authorization: `Bearer ${token}` },
+                params: { quotationId, jobId },
+            };
+
+            // Step 1: Process payment
+            const { status, data } = await axiosInstance.post('/customer/payments/process', {}, config);
+
+            if (status !== 200) {
+                throw new Error(data?.message || "Payment failed!");
             }
+
+            toast.success(data?.message || "Payment successful!");
+
+            // Step 2: Update chat quotation response
+            try {
+                await axiosInstance.post(
+                    `/chat/quotation/${quotationId}/respond`,
+                    { action: "accepted" },
+                    { headers: { Authorization: `Bearer ${token}` } }
+                );
+            } catch (err) {
+                console.warn("Chat update failed:", err);
+                handleError(err);
+            }
+
+            // Optionally redirect user after successful operations
+            // router.push(`/my-account/${jobId}/order-confirmation`);
         } catch (error) {
             handleError(error);
         } finally {
             setIsProcessing(false);
         }
     };
+
 
     const handleCardInput = (e) => {
         const { name, value } = e.target;
@@ -143,20 +163,23 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
         );
     }
 
-    const { job, offer, repairmanProfile } = orderData;
-    const laborPrice = offer?.serviceCharge || 0;
-    const partsEstimate = offer?.partsPrice || 0;
-    const deliveryFee = offer?.deliveryFee || 0;
+    const quotation = orderData;
+    const repairmanProfile = quotation.repairmanId?.repairmanProfile || {};
+
+    // Pricing from quotation.pricing
+    const laborPrice = quotation.pricing?.serviceCharge || 0;
+    const partsEstimate = quotation.pricing?.partsPrice || 0;
+    const deliveryFee = quotation.serviceDetails?.serviceType === 'pickup' ? 0 : 0; // Delivery fee if needed
     const tax = Math.round((laborPrice + partsEstimate + deliveryFee - discount) * 0.00);
-    const totalPrice = laborPrice + partsEstimate + deliveryFee + tax - discount;
+    const totalPrice = quotation.pricing?.totalAmount || (laborPrice + partsEstimate + deliveryFee + tax - discount);
 
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="mb-6 bg-primary-50 border border-primary-200 rounded-lg p-4">
                     <div className="flex items-center gap-2">
-                        <Icon icon="lucide:info" className="w-5 h-5 text-blue-600" />
-                        <span className="font-medium text-blue-800">Quotation Payment</span>
+                        <Icon icon="lucide:info" className="w-5 h-5 text-primary-600" />
+                        <span className="font-medium text-primary-800">Quotation Payment</span>
                     </div>
                 </div>
 
@@ -174,13 +197,19 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                         <Icon icon="lucide:smartphone" className="w-8 h-8 text-primary-600" />
                                     </div>
                                     <div className="flex-1">
-                                        <h3 className="font-semibold text-gray-900 text-lg">{job?.deviceInfo?.brand} {job?.deviceInfo?.model} Repair</h3>
-                                        <p className="text-sm text-gray-600 mb-3">{offer?.description}</p>
+                                        <h3 className="font-semibold text-gray-900 text-lg">
+                                            {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName} Repair
+                                        </h3>
+                                        <p className="text-sm text-gray-600 mb-3">{quotation.serviceDetails?.description}</p>
                                         <div className="flex items-center gap-4 text-sm flex-wrap">
-                                            <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">{job?.services?.join(', ')}</span>
-                                            <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
-                                                Warranty: {offer?.warranty?.duration} days
+                                            <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">
+                                                {quotation.deviceInfo?.repairServices?.join(', ')}
                                             </span>
+                                            {/* {quotation.serviceDetails?.warranty?.duration && (
+                                                <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
+                                                    Warranty: {quotation.serviceDetails.warranty.duration} days
+                                                </span>
+                                            )} */}
                                         </div>
                                     </div>
                                 </div>
@@ -190,8 +219,8 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                             <div className="bg-gray-100 border border-gray-200 rounded-xl p-6 flex items-center gap-4">
                                 {repairmanProfile?.profilePhoto ? (
                                     <img
-                                        src={repairmanProfile?.profilePhoto}
-                                        alt={repairmanProfile?.name}
+                                        src={repairmanProfile.profilePhoto}
+                                        alt={quotation.repairmanId?.name}
                                         className="w-14 h-14 rounded-full object-cover"
                                     />
                                 ) : (
@@ -200,7 +229,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     </div>
                                 )}
                                 <div className="flex-1">
-                                    <p className="font-semibold text-gray-800 text-lg">{repairmanProfile?.name}</p>
+                                    <p className="font-semibold text-gray-800 text-lg">{quotation.repairmanId?.name}</p>
                                     <p className="text-sm text-gray-600 mb-1">{repairmanProfile?.shopName}</p>
                                 </div>
                             </div>
@@ -227,9 +256,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                                 onChange={handleCardInput}
                                                 placeholder="1234 5678 9012 3456"
                                                 maxLength="19"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cardNumber ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardNumber ? 'border-red-500' : 'border-gray-200'}`}
                                             />
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                                 <Icon icon="lucide:credit-card" className="w-6 h-6 text-gray-400" />
@@ -254,9 +281,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                                 onChange={handleCardInput}
                                                 placeholder="MM/YY"
                                                 maxLength="5"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.expiryDate ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.expiryDate ? 'border-red-500' : 'border-gray-200'}`}
                                             />
                                             {errors.expiryDate && <p className="text-red-500 text-xs mt-2">{errors.expiryDate.message}</p>}
                                         </div>
@@ -270,9 +295,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                                 {...register('cvv')}
                                                 placeholder="123"
                                                 maxLength="4"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cvv ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cvv ? 'border-red-500' : 'border-gray-200'}`}
                                             />
                                             {errors.cvv && <p className="text-red-500 text-xs mt-2">{errors.cvv.message}</p>}
                                         </div>
@@ -285,9 +308,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                                 id="cardHolder"
                                                 {...register('cardHolder')}
                                                 placeholder="John Doe"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cardHolder ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardHolder ? 'border-red-500' : 'border-gray-200'}`}
                                             />
                                             {errors.cardHolder && <p className="text-red-500 text-xs mt-2">{errors.cardHolder.message}</p>}
                                         </div>
@@ -308,27 +329,31 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                             <div className="bg-gray-50 rounded-xl p-6 mb-6 shadow-inner">
                                 <div className="flex items-center gap-3 mb-3">
                                     <Icon icon="lucide:smartphone" className="w-6 h-6 text-primary-600" />
-                                    <span className="font-medium text-gray-900 text-lg">{job?.deviceInfo?.brand} {job?.deviceInfo?.model}</span>
+                                    <span className="font-medium text-gray-900 text-lg">
+                                        {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName}
+                                    </span>
                                 </div>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Service:</span>
-                                        <span className="font-medium">{job?.services?.join(', ')}</span>
+                                        <span className="font-medium">{quotation.deviceInfo?.repairServices?.join(', ')}</span>
                                     </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Estimated time:</span>
-                                        <span className="font-medium">
-                                            {offer?.estimatedTime?.value} {offer?.estimatedTime?.unit}
-                                        </span>
-                                    </div>
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Warranty:</span>
-                                        <span className="font-medium">{offer?.warranty?.duration} days</span>
-                                    </div>
-                                    {offer?.pricing?.partsQuality && (
+                                    {quotation.serviceDetails?.estimatedDuration && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Estimated time:</span>
+                                            <span className="font-medium">{quotation.serviceDetails.estimatedDuration} days</span>
+                                        </div>
+                                    )}
+                                    {quotation.serviceDetails?.warranty?.duration && (
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Warranty:</span>
+                                            <span className="font-medium">{quotation.serviceDetails.warranty.duration} days</span>
+                                        </div>
+                                    )}
+                                    {quotation.partsQuality && (
                                         <div className="flex justify-between">
                                             <span className="text-gray-600">Parts Quality:</span>
-                                            <span className="font-medium capitalize">{offer.pricing.partsQuality.replace('-', ' ')}</span>
+                                            <span className="font-medium capitalize">{quotation.partsQuality.replace('-', ' ')}</span>
                                         </div>
                                     )}
                                 </div>
@@ -336,48 +361,50 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
                             <div className="space-y-4 text-sm border-t pt-4">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Labor Cost</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {laborPrice.toLocaleString()}</span>
+                                    <span className="text-gray-600">Service Charge</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {laborPrice.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Parts Estimate</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {partsEstimate.toLocaleString()}</span>
+                                    <span className="text-gray-600">Parts Price</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {partsEstimate.toLocaleString()}</span>
                                 </div>
-                                {!offer?.serviceOptions?.pickupAvailable && deliveryFee > 0 && (
+                                {deliveryFee > 0 && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Service Fee</span>
-                                        <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {deliveryFee}</span>
+                                        <span className="text-gray-600">Delivery Fee</span>
+                                        <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {deliveryFee}</span>
                                     </div>
                                 )}
                                 {discount > 0 && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount</span>
-                                        <span>-{offer?.pricing?.currency || 'PKR'} {discount.toLocaleString()}</span>
+                                        <span>-{quotation.pricing?.currency || 'PKR'} {discount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Tax</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {tax.toLocaleString()}</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {tax.toLocaleString()}</span>
                                 </div>
                                 <div className="border-t pt-4 flex justify-between text-lg font-bold">
                                     <span className="text-gray-900">Total</span>
-                                    <span className="text-primary-600">{offer?.pricing?.currency || 'PKR'} {totalPrice.toLocaleString()}</span>
+                                    <span className="text-primary-600">{quotation.pricing?.currency || 'PKR'} {totalPrice.toLocaleString()}</span>
                                 </div>
                             </div>
 
-                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="lucide:info" className="w-5 h-5 text-blue-600" />
-                                    <span className="font-medium text-blue-800">Service Details</span>
+                                    <Icon icon="lucide:info" className="w-5 h-5 text-primary-600" />
+                                    <span className="font-medium text-primary-800">Service Details</span>
                                 </div>
-                                <div className="text-sm text-blue-700 space-y-1">
-                                    {offer?.serviceOptions?.pickupAvailable ? (
+                                <div className="text-sm text-primary-700 space-y-1">
+                                    {quotation.serviceDetails?.serviceType === 'pickup' ? (
                                         <p>✓ Pickup service available</p>
+                                    ) : quotation.serviceDetails?.serviceType === 'home-service' ? (
+                                        <p>✓ Home service available</p>
                                     ) : (
                                         <p>• Drop-off required at service center</p>
                                     )}
-                                    {offer?.serviceOptions?.homeService && (
-                                        <p>✓ Home service available</p>
+                                    {quotation.repairmanNotes && (
+                                        <p className="text-xs mt-2 italic">Note: {quotation.repairmanNotes}</p>
                                     )}
                                 </div>
                             </div>
@@ -449,7 +476,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                     router.push(`/my-account/${jobId}/order-confirmation`);
                     return;
                 }
-                
+
                 setOrderData(response.data.data);
             } catch (error) {
                 handleError(error);
@@ -469,14 +496,25 @@ function OfferPayment({ offerId, jobId, token, router }) {
                 {},
                 {
                     params: { offerId, jobId },
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
-            if (paymentResponse?.status === 200) {
-                toast.success(paymentResponse.data.message || "Payment successful!");
-                router.push(`/my-account/${jobId}/order-confirmation`);
-            }
+            await axiosInstance.post(
+                `/repair-jobs/${jobId}/select-offer`,
+                {
+                    offerId,
+                    scheduledDate: offer?.availability?.canStartBy
+                    // serviceType: offer?.serviceType
+                },
+                {
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
+
+            toast.success(paymentResponse.data.message || "Payment successful!");
+            router.push(`/my-account/${jobId}/order-confirmation`);
+
         } catch (error) {
             handleError(error);
         } finally {
@@ -538,12 +576,12 @@ function OfferPayment({ offerId, jobId, token, router }) {
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
-                <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                {/* <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
                     <div className="flex items-center gap-2">
                         <Icon icon="lucide:check-circle" className="w-5 h-5 text-green-600" />
                         <span className="font-medium text-green-800">Offer Payment</span>
                     </div>
-                </div>
+                </div> */}
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     <div className="lg:col-span-2 space-y-6">
@@ -621,9 +659,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 onChange={handleCardInput}
                                                 placeholder="1234 5678 9012 3456"
                                                 maxLength="19"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cardNumber ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardNumber ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
                                             />
                                             <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                                 <Icon icon="lucide:credit-card" className="w-6 h-6 text-gray-400" />
@@ -648,9 +685,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 onChange={handleCardInput}
                                                 placeholder="MM/YY"
                                                 maxLength="5"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.expiryDate ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.expiryDate ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
                                             />
                                             {errors.expiryDate && <p className="text-red-500 text-xs mt-2">{errors.expiryDate.message}</p>}
                                         </div>
@@ -664,9 +700,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 {...register('cvv')}
                                                 placeholder="123"
                                                 maxLength="4"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cvv ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cvv ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
                                             />
                                             {errors.cvv && <p className="text-red-500 text-xs mt-2">{errors.cvv.message}</p>}
                                         </div>
@@ -679,9 +714,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 id="cardHolder"
                                                 {...register('cardHolder')}
                                                 placeholder="John Doe"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-                                                    errors.cardHolder ? 'border-red-500' : 'border-gray-200'
-                                                }`}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardHolder ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
                                             />
                                             {errors.cardHolder && <p className="text-red-500 text-xs mt-2">{errors.cardHolder.message}</p>}
                                         </div>
@@ -759,12 +793,12 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                 </div>
                             </div>
 
-                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="lucide:info" className="w-5 h-5 text-blue-600" />
-                                    <span className="font-medium text-blue-800">Service Details</span>
+                                    <Icon icon="lucide:info" className="w-5 h-5 text-primary-600" />
+                                    <span className="font-medium text-primary-800">Service Details</span>
                                 </div>
-                                <div className="text-sm text-blue-700 space-y-1">
+                                <div className="text-sm text-primary-700 space-y-1">
                                     {offer?.serviceOptions?.pickupAvailable ? (
                                         <p>✓ Pickup service available</p>
                                     ) : (
@@ -816,12 +850,12 @@ function PaymentPage() {
     const token = useSelector(state => state.auth.token);
     const router = useRouter();
     const searchParams = useSearchParams();
-    
+
     const offerId = searchParams.get('offerId');
     const jobId = searchParams.get('jobId');
     const quotationId = searchParams.get('quotationId');
 
-    if (quotationId && jobId) {
+    if (quotationId) {
         return <QuotationPayment quotationId={quotationId} jobId={jobId} token={token} router={router} />;
     } else if (offerId && jobId) {
         return <OfferPayment offerId={offerId} jobId={jobId} token={token} router={router} />;

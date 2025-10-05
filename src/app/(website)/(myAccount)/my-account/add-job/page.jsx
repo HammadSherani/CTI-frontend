@@ -664,17 +664,17 @@ export default function CreateRepairJobForm() {
               </div>
 
               {/* Current Location Section */}
-              <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="bg-primary-50 p-4 rounded-lg">
                 <div className="flex items-center justify-between mb-2">
-                  <h3 className="text-sm font-medium text-blue-900 flex items-center gap-2">
-                    <Icon icon="mdi:crosshairs-gps" className="text-blue-600" />
+                  <h3 className="text-sm font-medium text-primary-900 flex items-center gap-2">
+                    <Icon icon="mdi:crosshairs-gps" className="text-primary-600" />
                     Auto-detect Location
                   </h3>
                   <button
                     type="button"
                     onClick={getCurrentLocation}
                     disabled={isGettingLocation}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                    className="flex items-center gap-2 px-3 py-1.5 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
                   >
                     {isGettingLocation ? (
                       <>

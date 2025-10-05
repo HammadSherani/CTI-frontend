@@ -336,7 +336,6 @@ export default function BidForm({
                         )}
                     </div>
 
-                    {/* Estimated Time */}
                     <div className="space-y-2">
                         <label htmlFor="estimatedTime" className="block text-sm font-medium text-gray-700">
                             Estimated Time <span className="text-red-500">*</span>
@@ -633,7 +632,7 @@ export default function BidForm({
                             <hr className="border-gray-200" />
                             <div className="flex justify-between font-semibold">
                                 <span className="text-gray-900">Total for customer:</span>
-                                <span className="text-blue-600">₺{totalPrice.toFixed(2)}</span>
+                                <span className="text-primary-600">₺{totalPrice.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between font-semibold">
                                 <span className="text-gray-900">You'll receive:</span>

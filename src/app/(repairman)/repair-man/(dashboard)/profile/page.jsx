@@ -99,7 +99,7 @@ function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
         <div
-          className="h-80 bg-gradient-to-r from-blue-600 via-blue-700 to-blue-900 relative overflow-hidden"
+          className="h-80 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden"
           style={{
             backgroundImage: coverImage ? `url(${coverImage})` : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             backgroundSize: 'cover',
@@ -144,8 +144,8 @@ function ProfilePage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-3xl font-bold text-blue-600">
+                      <div className="w-full h-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-3xl font-bold text-primary-600">
                           {profileData.name.split(' ').map(n => n[0]).join('')}
                         </span>
                       </div>
@@ -306,7 +306,7 @@ function ProfilePage() {
               <Icon icon="heroicons:envelope" className="w-5 h-5" />
               <span className="text-sm">Email Verified</span>
             </div>
-            <div className={`flex items-center space-x-2 ${profileData.verifications.facebook ? 'text-blue-600' : 'text-gray-400'}`}>
+            <div className={`flex items-center space-x-2 ${profileData.verifications.facebook ? 'text-primary-600' : 'text-gray-400'}`}>
               <Icon icon="heroicons:globe-alt" className="w-5 h-5" />
               <span className="text-sm">Facebook</span>
             </div>
@@ -332,7 +332,7 @@ function ProfilePage() {
                       <p className="text-sm text-gray-600">{skill.years} years experience</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-sm font-medium ${skill.level === 'Expert' ? 'bg-green-100 text-green-800' :
-                      skill.level === 'Advanced' ? 'bg-blue-100 text-blue-800' :
+                      skill.level === 'Advanced' ? 'bg-primary-100 text-primary-800' :
                         'bg-gray-100 text-gray-800'
                       }`}>
                       {skill.level}
@@ -394,7 +394,7 @@ function ProfilePage() {
               <div className="space-y-4">
                 {profileData.certifications.map((cert, index) => (
                   <div key={index} className="flex items-center space-x-3">
-                    <Icon icon="heroicons:academic-cap" className="w-6 h-6 text-blue-600" />
+                    <Icon icon="heroicons:academic-cap" className="w-6 h-6 text-primary-600" />
                     <div>
                       <p className="font-medium text-gray-900 text-sm">{cert.name}</p>
                       <p className="text-xs text-gray-600">{cert.issuer} • {cert.year}</p>

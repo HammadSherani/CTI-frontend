@@ -487,7 +487,7 @@ function AdminModelPage() {
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
-                                <Icon icon="mdi:domain" className="w-8 h-8 text-blue-600" />
+                                <Icon icon="mdi:domain" className="w-8 h-8 text-primary-600" />
                             </div>
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Brands</p>

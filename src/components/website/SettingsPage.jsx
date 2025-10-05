@@ -33,7 +33,7 @@ const JobDescription = ({ job }) => {
       </h3>
       {description.split(' ').length > wordLimit && (
         <button
-          className="text-sm text-blue-500 mt-2 hover:underline focus:outline-none"
+          className="text-sm text-primary-500 mt-2 hover:underline focus:outline-none"
           onClick={() => setIsExpanded(!isExpanded)}
         >
           {isExpanded ? 'See Less' : 'See More'}
@@ -50,7 +50,7 @@ const RepairJobCard = ({ job }) => {
   const getStatusColor = (status) => {
     const statusColors = {
       'completed': 'bg-green-100 text-green-800 border-green-200',
-      'in_progress': 'bg-blue-100 text-blue-800 border-blue-200',
+      'in_progress': 'bg-primary-100 text-primary-800 border-primary-200',
       'pending': 'bg-yellow-100 text-yellow-800 border-yellow-200',
       'open': 'bg-orange-100 text-orange-800 border-orange-200',
       'cancelled': 'bg-red-100 text-red-800 border-red-200',
@@ -165,7 +165,7 @@ const RepairJobCard = ({ job }) => {
             {job.services.map((service, index) => (
               <span
                 key={index}
-                className="px-4 py-2 text-sm font-medium text-blue-800  rounded-lg border "
+                className="px-4 py-2 text-sm font-medium text-primary-800  rounded-lg border "
               >
                 {service}
               </span>
@@ -178,7 +178,7 @@ const RepairJobCard = ({ job }) => {
        <div className="flex items-center gap-4 text-xs text-gray-500">
   {/* Status badge */}
   {job?.status && (
-    <span className="inline-block bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full capitalize">
+    <span className="inline-block bg-primary-100 text-primary-800 font-medium px-3 py-1 rounded-full capitalize">
       {job.status}
     </span>
   )}
@@ -548,8 +548,8 @@ const AddAccountTabContent = () => (
       {/* Microsoft Account */}
       <div className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-all duration-200">
         <div className="flex items-center mb-4">
-          <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-            <Icon icon="mdi:microsoft" className="w-6 h-6 text-blue-600" />
+          <div className="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center">
+            <Icon icon="mdi:microsoft" className="w-6 h-6 text-primary-600" />
           </div>
           <div className="ml-4">
             <h3 className="font-semibold text-lg text-gray-900">Microsoft Account</h3>
@@ -557,7 +557,7 @@ const AddAccountTabContent = () => (
           </div>
         </div>
         <p className="text-gray-600 text-sm mb-4">Sync your Outlook, OneDrive, and Office 365 data.</p>
-        <Button className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg">
+        <Button className="w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg">
           Connect Microsoft
         </Button>
       </div>

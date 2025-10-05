@@ -188,7 +188,7 @@ function CreateCategory() {
                                 <input
                                     type="text"
                                     {...register('name')}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.name ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                     placeholder="Enter category name"
                                 />
@@ -205,7 +205,7 @@ function CreateCategory() {
                                 <input
                                     type="text"
                                     {...register('nameTurkish')}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.nameTurkish ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.nameTurkish ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                     placeholder="Kategori adını girin"
                                 />
@@ -224,7 +224,7 @@ function CreateCategory() {
                                 <textarea
                                     {...register('description')}
                                     rows={4}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                     placeholder="Enter category description"
                                 />
@@ -241,7 +241,7 @@ function CreateCategory() {
                                 <textarea
                                     {...register('descriptionTurkish')}
                                     rows={4}
-                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.descriptionTurkish ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.descriptionTurkish ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                     placeholder="Kategori açıklamasını girin"
                                 />
@@ -260,7 +260,7 @@ function CreateCategory() {
                                 <input
                                     type="text"
                                     {...register('icon')}
-                                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'
+                                    className={`flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.icon ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                     placeholder="Enter Iconify icon name (e.g., mdi:cellphone)"
                                 />
@@ -280,8 +280,8 @@ function CreateCategory() {
                                             key={iconName}
                                             type="button"
                                             onClick={() => selectIcon(iconName)}
-                                            className={`p-3 border rounded-lg hover:bg-blue-50 hover:border-blue-300 transition-colors ${watchedIcon === iconName
-                                                    ? 'bg-blue-50 border-blue-300 ring-2 ring-blue-200'
+                                            className={`p-3 border rounded-lg hover:bg-primary-50 hover:border-primary-300 transition-colors ${watchedIcon === iconName
+                                                    ? 'bg-primary-50 border-primary-300 ring-2 ring-primary-200'
                                                     : 'border-gray-200'
                                                 }`}
                                             title={iconName}
@@ -304,7 +304,7 @@ function CreateCategory() {
                                     <input
                                         type="checkbox"
                                         {...register('requiresImages')}
-                                        className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                                        className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
                                     />
                                 </div>
                                 <div className="ml-3">
@@ -377,7 +377,7 @@ function CreateCategory() {
                                 type="button"
                                 onClick={handleSubmit(onSubmit)}
                                 disabled={isSubmitting}
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
                                 {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
                                 Create Category
@@ -387,12 +387,12 @@ function CreateCategory() {
                 </div>
 
                 {/* Help Section */}
-                {/* <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
+                {/* <div className="mt-6 bg-primary-50 border border-primary-200 rounded-lg p-6">
                     <div className="flex items-start">
-                        <Icon icon="mdi:information" className="w-5 h-5 text-blue-600 mt-0.5 mr-3 flex-shrink-0" />
+                        <Icon icon="mdi:information" className="w-5 h-5 text-primary-600 mt-0.5 mr-3 flex-shrink-0" />
                         <div>
-                            <h3 className="text-sm font-medium text-blue-900 mb-2">Tips for creating categories:</h3>
-                            <ul className="text-sm text-blue-800 space-y-1">
+                            <h3 className="text-sm font-medium text-primary-900 mb-2">Tips for creating categories:</h3>
+                            <ul className="text-sm text-primary-800 space-y-1">
                                 <li>• Use clear, descriptive names that customers will easily understand</li>
                                 <li>• Include both English and Turkish translations for better accessibility</li>
                                 <li>• Choose icons that visually represent the repair service type</li>

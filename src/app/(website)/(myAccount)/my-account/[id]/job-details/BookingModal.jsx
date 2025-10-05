@@ -123,7 +123,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                             <select
                                 value={formData.serviceType}
                                 onChange={(e) => handleInputChange('serviceType', e.target.value)}
-                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                                     errors.serviceType ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 disabled={isSubmitting}
@@ -159,7 +159,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                                 placeholder="Any special instructions or requirements..."
                                 rows={3}
                                 maxLength={500}
-                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                                className={`w-full p-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 ${
                                     errors.specialInstructions ? 'border-red-500' : 'border-gray-300'
                                 }`}
                                 disabled={isSubmitting}
@@ -169,7 +169,7 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                             )}
                         </div>
 
-                        <div className="bg-blue-50 p-3 rounded-lg">
+                        <div className="bg-primary-50 p-3 rounded-lg">
                             <div className="flex justify-between items-center text-sm">
                                 <span>Base Price:</span>
                                 <span>₨{offer.pricing?.totalPrice || 0}</span>
@@ -208,8 +208,8 @@ const BookingModal = ({ isOpen, onClose, offer, onSubmit, isSubmitting, job }) =
                                 disabled={isSubmitting || Object.keys(errors).length > 0}
                                 className={`flex-1 px-4 py-2 text-white rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${
                                     isSubmitting || Object.keys(errors).length > 0
-                                        ? 'bg-blue-400 cursor-not-allowed' 
-                                        : 'bg-blue-600 hover:bg-blue-700'
+                                        ? 'bg-primary-400 cursor-not-allowed' 
+                                        : 'bg-primary-600 hover:bg-primary-700'
                                 }`}
                             >
                                 {isSubmitting ? (

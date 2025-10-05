@@ -403,12 +403,12 @@ function CheckoutPage() {
                                 </div>
                             </div>
 
-                            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
+                            <div className="mt-6 p-4 bg-primary-50 rounded-lg">
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="lucide:info" className="w-5 h-5 text-blue-600" />
-                                    <span className="font-medium text-blue-800">Service Details</span>
+                                    <Icon icon="lucide:info" className="w-5 h-5 text-primary-600" />
+                                    <span className="font-medium text-primary-800">Service Details</span>
                                 </div>
-                                <div className="text-sm text-blue-700 space-y-1">
+                                <div className="text-sm text-primary-700 space-y-1">
                                     {offer?.serviceOptions?.pickupAvailable ? (
                                         <p>✓ Pickup service available</p>
                                     ) : (

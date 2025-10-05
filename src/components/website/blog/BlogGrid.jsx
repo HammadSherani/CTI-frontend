@@ -40,7 +40,7 @@ const BlogCard = ({ post }) => {
                 {/* Content */}
                 <div className="p-5">
                     <p className="text-xs text-gray-500 mb-2">{post.date}</p>
-                    <h3 className="text-lg font-bold text-gray-800 leading-tight group-hover:text-blue-600 transition-colors duration-300">
+                    <h3 className="text-lg font-bold text-gray-800 leading-tight group-hover:text-primary-600 transition-colors duration-300">
                         {post.title}
                     </h3>
                     <p className="text-sm text-gray-600 mt-2">

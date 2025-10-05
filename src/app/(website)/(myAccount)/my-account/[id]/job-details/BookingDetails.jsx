@@ -7,8 +7,8 @@ const BookingDetails = ({ booking, job }) => {
     const currencySymbol = booking?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : '$';
 
     return (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-            <h3 className="text-lg font-semibold text-blue-900 mb-4">Booking Details</h3>
+        <div className="bg-primary-50 border border-primary-200 rounded-lg p-6 mb-6">
+            <h3 className="text-lg font-semibold text-primary-900 mb-4">Booking Details</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Booking Info */}
@@ -83,7 +83,7 @@ const BookingDetails = ({ booking, job }) => {
 
                         <div className="border-t pt-2">
                             <span className="text-sm font-medium text-gray-600">Total Amount:</span>
-                            <p className="text-lg font-bold text-blue-600">
+                            <p className="text-lg font-bold text-primary-600">
                                 {currencySymbol}{booking.bookingDetails?.pricing?.totalAmount}
                             </p>
                         </div>
@@ -100,7 +100,7 @@ const BookingDetails = ({ booking, job }) => {
 
             {/* Warranty Info */}
             {booking.bookingDetails?.warranty && (
-                <div className="mt-4 pt-4 border-t border-blue-200">
+                <div className="mt-4 pt-4 border-t border-primary-200">
                     <span className="text-sm font-medium text-gray-600">Warranty:</span>
                     <p className="text-gray-800">
                         {booking.bookingDetails.warranty.duration} days - {booking.bookingDetails.warranty.description}
@@ -110,7 +110,7 @@ const BookingDetails = ({ booking, job }) => {
 
             {/* Timeline */}
             {booking.timeline && (
-                <div className="mt-4 pt-4 border-t border-blue-200">
+                <div className="mt-4 pt-4 border-t border-primary-200">
                     <span className="text-sm font-medium text-gray-600">Timeline:</span>
                     <div className="mt-2 space-y-1">
                         {booking.timeline.confirmedAt && (

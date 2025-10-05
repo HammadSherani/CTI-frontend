@@ -20,7 +20,7 @@ export const ChatButton = ({ className = "" }) => {
     return (
         <button
             onClick={openChat}
-            className={`relative p-3 bg-blue-500 text-white rounded-full shadow-lg hover:bg-blue-600 transition-colors ${className}`}
+            className={`relative p-3 bg-primary-500 text-white rounded-full shadow-lg hover:bg-primary-600 transition-colors ${className}`}
         >
             <Icon icon="mdi:message" width={24} />
             {totalUnreadCount > 0 && (

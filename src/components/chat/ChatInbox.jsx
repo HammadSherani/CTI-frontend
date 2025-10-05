@@ -15,7 +15,7 @@ import { useSocket } from '@/contexts/SocketProvider';
 
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
     </div>
 );
 
@@ -245,7 +245,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                         {searchTerm && (
                             <button
                                 onClick={() => setSearchTerm('')}
-                                className="text-blue-500 text-sm mt-2 hover:underline"
+                                className="text-primary-500 text-sm mt-2 hover:underline"
                             >
                                 Clear search
                             </button>
@@ -281,7 +281,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                                             @{chat?.otherUser?.username || chat?.otherUser?.name?.toLowerCase()}
                                         </span>
                                         {chat?.verified && (
-                                            <Icon icon="mdi:check-decagram" className="text-blue-500" width={16} />
+                                            <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
                                         )}
                                     </div>
                                     <span className="text-xs text-gray-400">

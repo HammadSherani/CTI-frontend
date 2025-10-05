@@ -230,8 +230,8 @@ function ServiceCatalogPage() {
     }`}>
       {!isListView && (
         <div className="relative">
-          <div className="w-full h-48 bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-            <Icon icon="heroicons:wrench-screwdriver" className="w-16 h-16 text-blue-600" />
+          <div className="w-full h-48 bg-gradient-to-br from-primary-100 to-purple-100 flex items-center justify-center">
+            <Icon icon="heroicons:wrench-screwdriver" className="w-16 h-16 text-primary-600" />
           </div>
           {service.popular && (
             <span className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
@@ -244,8 +244,8 @@ function ServiceCatalogPage() {
       <div className={isListView ? '' : 'p-6'}>
         <div className={`flex ${isListView ? 'items-start space-x-6' : 'flex-col'}`}>
           {isListView && (
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-              <Icon icon="heroicons:wrench-screwdriver" className="w-8 h-8 text-blue-600" />
+            <div className="w-24 h-24 bg-gradient-to-br from-primary-100 to-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+              <Icon icon="heroicons:wrench-screwdriver" className="w-8 h-8 text-primary-600" />
             </div>
           )}
 
@@ -295,7 +295,7 @@ function ServiceCatalogPage() {
               <p className="text-sm font-medium text-gray-900 mb-2">Key Features:</p>
               <div className="flex flex-wrap gap-1">
                 {service.features.slice(0, 3).map((feature, index) => (
-                  <span key={index} className="text-xs bg-blue-50 text-blue-700 px-2 py-1 rounded">
+                  <span key={index} className="text-xs bg-primary-50 text-primary-700 px-2 py-1 rounded">
                     {feature}
                   </span>
                 ))}
@@ -316,7 +316,7 @@ function ServiceCatalogPage() {
 
             {/* Action Buttons */}
             <div className="flex space-x-2">
-              <button className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+              <button className="flex-1 bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors text-sm">
                 View Details
               </button>
               <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-colors text-sm">
@@ -333,8 +333,8 @@ function ServiceCatalogPage() {
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       <div className="bg-white rounded-lg border border-gray-200 p-6">
         <div className="flex items-center">
-          <div className="p-3 bg-blue-100 rounded-lg">
-            <Icon icon="heroicons:squares-2x2" className="w-6 h-6 text-blue-600" />
+          <div className="p-3 bg-primary-100 rounded-lg">
+            <Icon icon="heroicons:squares-2x2" className="w-6 h-6 text-primary-600" />
           </div>
           <div className="ml-4">
             <p className="text-2xl font-bold text-gray-900">{servicesData.services.length}</p>
@@ -429,13 +429,13 @@ function ServiceCatalogPage() {
               <div className="flex items-center space-x-2">
                 <button
                   onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-primary-100 text-primary-600' : 'text-gray-400'}`}
                 >
                   <Icon icon="heroicons:squares-2x2" className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-primary-100 text-primary-600' : 'text-gray-400'}`}
                 >
                   <Icon icon="heroicons:list-bullet" className="w-4 h-4" />
                 </button>

@@ -17,7 +17,7 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
       name={name}
       value={value}
       onChange={onChange}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
       required={required}
       {...props}
     />
@@ -33,7 +33,7 @@ const SelectField = ({ label, name, value, onChange, options }) => (
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
     >
       {options.map(option => (
         <option key={option.value || option} value={option.value || option}>
@@ -53,7 +53,7 @@ const CheckboxField = ({ label, name, checked, onChange, id }) => (
       id={id}
       checked={checked}
       onChange={onChange}
-      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
     />
     <label htmlFor={id} className="text-sm font-medium text-gray-700">{label}</label>
   </div>
@@ -83,7 +83,7 @@ const FileInput = ({ label, name, onChange, accept, currentUrl }) => (
     <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
     {currentUrl && (
       <div className="mb-2">
-        <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+        <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
           View Current {label}
         </a>
       </div>
@@ -93,7 +93,7 @@ const FileInput = ({ label, name, onChange, accept, currentUrl }) => (
       name={name}
       onChange={onChange}
       accept={accept}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
     />
   </div>
 );
@@ -329,7 +329,7 @@ function RepairmanEditPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -365,9 +365,9 @@ function RepairmanEditPage() {
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Status Management - Separate Section */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-500">
+          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary-500">
             <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:shield-check" className="w-6 h-6 mr-2 text-blue-600" />
+              <Icon icon="mdi:shield-check" className="w-6 h-6 mr-2 text-primary-600" />
               Status Management
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -462,7 +462,7 @@ function RepairmanEditPage() {
                   value={formData.repairmanProfile.fullAddress}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
               <InputField label="City" name="repairmanProfile.city" value={formData.repairmanProfile.city} onChange={handleInputChange} />
@@ -491,7 +491,7 @@ function RepairmanEditPage() {
                         type="checkbox"
                         checked={formData.repairmanProfile.workingDays.includes(day)}
                         onChange={() => handleWorkingDaysChange(day)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                       />
                       <span className="text-sm text-gray-700">{day}</span>
                     </label>
@@ -544,7 +544,7 @@ function RepairmanEditPage() {
                   value={formData.repairmanProfile.description}
                   onChange={handleInputChange}
                   rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   placeholder="Brief description about services and expertise..."
                 />
               </div>
@@ -597,7 +597,7 @@ function RepairmanEditPage() {
                         href={url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline block"
+                        className="text-primary-600 hover:underline block"
                       >
                         Certification {index + 1}
                       </a>
@@ -610,7 +610,7 @@ function RepairmanEditPage() {
                   onChange={handleFileChange}
                   accept="image/*"
                   multiple
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 />
               </div>
             </div>
@@ -627,7 +627,7 @@ function RepairmanEditPage() {
             <button
               type="submit"
               disabled={saving}
-              className={`px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed flex items-center space-x-2 ${saving ? 'opacity-50' : ''}`}
+              className={`px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center space-x-2 ${saving ? 'opacity-50' : ''}`}
             >
               {saving && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
               <span>{saving ? 'Saving...' : 'Save Changes'}</span>

@@ -16,6 +16,7 @@ const QuotationMessage = ({ message, isOwner }) => {
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
     const {
+        deviceInfo = {},
         partsQuality = '',
         serviceCharge = 0,
         partsPrice = 0,
@@ -28,6 +29,9 @@ const QuotationMessage = ({ message, isOwner }) => {
         validUntil = quotationData.validUntil,
         status = quotationData.status || 'sent'
     } = quotationData;
+
+    // Extract device info
+    const { brandName = '', modelName = '', repairServices = [] } = deviceInfo;
 
     const handleQuotationResponse = async (action, customerResponse = '') => {
         // Set appropriate loading state based on action
@@ -64,7 +68,7 @@ const QuotationMessage = ({ message, isOwner }) => {
 
     const getStatusColor = (status) => {
         switch (status) {
-            case 'sent': return 'text-blue-600 bg-blue-50';
+            case 'sent': return 'text-primary-600 bg-primary-50';
             case 'viewed': return 'text-yellow-600 bg-yellow-50';
             case 'accepted': return 'text-green-600 bg-green-50';
             case 'rejected': return 'text-red-600 bg-red-50';
@@ -88,10 +92,10 @@ const QuotationMessage = ({ message, isOwner }) => {
 
     return (
         <div className={`max-w-[85%] ${isOwner ? 'ml-auto' : 'mr-auto'} mb-4`}>
-            <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${isOwner ? 'border-blue-200' : 'border-green-200'
+            <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${isOwner ? 'border-primary-200' : 'border-green-200'
                 }`}>
                 {/* Header */}
-                <div className={`px-4 py-3 ${isOwner ? 'bg-blue-50' : 'bg-green-50'} border-b`}>
+                <div className={`px-4 py-3 ${isOwner ? 'bg-primary-50' : 'bg-green-50'} border-b`}>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <Icon icon="mdi:receipt" width={20} className="text-gray-600" />
@@ -118,10 +122,45 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                 {/* Content */}
                 <div className="p-4">
+                    {/* Device Information */}
+                    {(brandName || modelName) && (
+                        <div className="bg-primary-50 rounded-lg p-3 mb-3">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Icon icon="mdi:cellphone" width={18} className="text-primary-600" />
+                                <span className="font-semibold text-primary-900">Device Information</span>
+                            </div>
+                            <div className="text-sm">
+                                <p className="font-medium text-gray-800">
+                                    {brandName} {modelName}
+                                </p>
+                                {repairServices && repairServices.length > 0 && (
+                                    <div className="mt-2">
+                                        <span className="text-gray-600 text-xs">Services Required:</span>
+                                        <div className="flex flex-wrap gap-1 mt-1">
+                                            {repairServices.map((service, index) => (
+                                                <span
+                                                    key={index}
+                                                    className="px-2 py-1 bg-white text-primary-700 text-xs font-medium rounded-full border border-primary-200"
+                                                >
+                                                    {service}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
                     {/* Service Description */}
-                    <p className="text-gray-700 text-sm mb-3 leading-relaxed">
-                        {description}
-                    </p>
+                    {description && (
+                        <div className="mb-3">
+                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Description</span>
+                            <p className="text-gray-700 text-sm mt-1 leading-relaxed">
+                                {description}
+                            </p>
+                        </div>
+                    )}
 
                     {/* Pricing Summary */}
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
@@ -139,7 +178,9 @@ const QuotationMessage = ({ message, isOwner }) => {
                         {partsQuality && (
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-gray-600">Parts Quality:</span>
-                                <span className="font-medium">{partsQuality}</span>
+                                <span className="font-medium capitalize">
+                                    {partsQuality.replace(/-/g, ' ')}
+                                </span>
                             </div>
                         )}
                         <div className="border-t pt-2 mt-2">
@@ -154,35 +195,39 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                     {/* Quick Info */}
                     <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                        <div>
-                            <span className="text-gray-500">Duration:</span>
-                            <p className="font-medium">{estimatedDuration}</p>
-                        </div>
-                        <div>
-                            <span className="text-gray-500">Service Type:</span>
-                            <p className="font-medium">{getServiceTypeLabel(serviceType)}</p>
-                        </div>
+                        {estimatedDuration && (
+                            <div>
+                                <span className="text-gray-500 text-xs">Duration:</span>
+                                <p className="font-medium">{estimatedDuration}</p>
+                            </div>
+                        )}
+                        {serviceType && (
+                            <div>
+                                <span className="text-gray-500 text-xs">Service Type:</span>
+                                <p className="font-medium">{getServiceTypeLabel(serviceType)}</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Validity Status */}
                     {validUntil && (
                         <div className={`p-3 rounded-lg mb-3 ${new Date() > new Date(validUntil)
                                 ? 'bg-red-50 border border-red-200'
-                                : 'bg-blue-50 border border-blue-200'
+                                : 'bg-primary-50 border border-primary-200'
                             }`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
                                     <Icon
                                         icon={new Date() > new Date(validUntil) ? "mdi:clock-alert" : "mdi:clock-outline"}
                                         width={16}
-                                        className={new Date() > new Date(validUntil) ? "text-red-600" : "text-blue-600"}
+                                        className={new Date() > new Date(validUntil) ? "text-red-600" : "text-primary-600"}
                                     />
-                                    <span className={`text-sm font-medium ${new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
+                                    <span className={`text-sm font-medium ${new Date() > new Date(validUntil) ? "text-red-700" : "text-primary-700"
                                         }`}>
                                         {new Date() > new Date(validUntil) ? "Expired" : "Valid Until"}
                                     </span>
                                 </div>
-                                <span className={`text-sm font-semibold ${new Date() > new Date(validUntil) ? "text-red-700" : "text-blue-700"
+                                <span className={`text-sm font-semibold ${new Date() > new Date(validUntil) ? "text-red-700" : "text-primary-700"
                                     }`}>
                                     {new Date(validUntil).toLocaleDateString()} at{' '}
                                     {new Date(validUntil).toLocaleTimeString([], {
@@ -196,11 +241,11 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                     {/* Expandable Details */}
                     {showDetails && (
-                        <div className="mt-4 pt-4 border-t">
+                        <div className="mt-4 pt-4 border-t space-y-3">
                             {warranty && (
-                                <div className="mb-3">
-                                    <span className="text-gray-500 text-sm">Warranty:</span>
-                                    <p className="font-medium">
+                                <div>
+                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Warranty</span>
+                                    <p className="font-medium text-sm mt-1">
                                         {typeof warranty === 'object'
                                             ? `${warranty.duration} - ${warranty.description}`
                                             : warranty
@@ -210,16 +255,16 @@ const QuotationMessage = ({ message, isOwner }) => {
                             )}
 
                             {repairmanNotes && (
-                                <div className="mb-3">
-                                    <span className="text-gray-500 text-sm">Additional Notes:</span>
-                                    <p className="text-gray-700 text-sm">{repairmanNotes}</p>
+                                <div>
+                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Additional Notes</span>
+                                    <p className="text-gray-700 text-sm mt-1">{repairmanNotes}</p>
                                 </div>
                             )}
 
                             {validUntil && (
-                                <div className="mb-3">
-                                    <span className="text-gray-500 text-sm">Quote Validity:</span>
-                                    <p className="font-medium text-gray-700">
+                                <div>
+                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Quote Validity</span>
+                                    <p className="font-medium text-gray-700 text-sm mt-1">
                                         Until {new Date(validUntil).toLocaleDateString()} at{' '}
                                         {new Date(validUntil).toLocaleTimeString([], {
                                             hour: '2-digit',
@@ -236,17 +281,19 @@ const QuotationMessage = ({ message, isOwner }) => {
                         <div className="mt-4 pt-4 border-t">
                             <div className="flex gap-3">
                                 <button
-                                    // onClick={() => handleQuotationResponse('accept')}
-                                    // disabled={isAnyButtonLoading}
+                                    disabled={isAnyButtonLoading}
                                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
                                 >
-                                    <Link href={`/payment?quotationId=${message?.quotationData?.quotationId}`} className='flex items-center gap-1'>
+                                    <Link 
+                                        href={`/payment?quotationId=${message?.quotationData?.quotationId}`} 
+                                        className='flex items-center gap-1'
+                                    >
                                         {acceptLoading ? (
                                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
                                         ) : (
                                             <>
                                                 <Icon icon="mdi:check" width={16} />
-                                                Accept
+                                                Accept & Pay
                                             </>
                                         )}
                                     </Link>
@@ -271,10 +318,10 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                     {/* Response Status */}
                     {(status === 'accepted' || status === 'rejected') && (
-                        <div className="mt-3 p-2 rounded text-center">
+                        <div className="mt-3 p-3 rounded-lg bg-gray-50 text-center">
                             <span className={`text-sm font-medium ${status === 'accepted' ? 'text-green-600' : 'text-red-600'
                                 }`}>
-                                Quotation {status} by customer
+                                {status === 'accepted' ? '✓' : '✗'} Quotation {status} by customer
                             </span>
                         </div>
                     )}

@@ -149,7 +149,7 @@ function JobDetailsPage() {
     const getStatusColor = (status) => {
         const colors = {
             'draft': 'bg-gray-100 text-gray-800 border-gray-300',
-            'open': 'bg-blue-100 text-blue-800 border-blue-300',
+            'open': 'bg-primary-100 text-primary-800 border-primary-300',
             'offers_received': 'bg-cyan-100 text-cyan-800 border-cyan-300',
             'booked': 'bg-purple-100 text-purple-800 border-purple-300',
             'in_progress': 'bg-yellow-100 text-yellow-800 border-yellow-300',
@@ -203,7 +203,7 @@ function JobDetailsPage() {
 
     const getActionColor = (action) => {
         const colors = {
-            'job_created': 'text-blue-600 bg-blue-100',
+            'job_created': 'text-primary-600 bg-primary-100',
             'job_published': 'text-green-600 bg-green-100',
             'offer_received': 'text-purple-600 bg-purple-100',
             'offer_accepted': 'text-green-600 bg-green-100',
@@ -212,7 +212,7 @@ function JobDetailsPage() {
             'job_completed': 'text-green-600 bg-green-100',
             'job_cancelled': 'text-red-600 bg-red-100',
             'job_expired': 'text-orange-600 bg-orange-100',
-            'status_changed': 'text-blue-600 bg-blue-100'
+            'status_changed': 'text-primary-600 bg-primary-100'
         };
         return colors[action] || 'text-gray-600 bg-gray-100';
     };

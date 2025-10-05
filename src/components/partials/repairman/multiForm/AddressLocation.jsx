@@ -285,7 +285,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           </p>
         )}
         {currentAddress && currentAddress.coordinates && (
-          <p className="text-sm text-blue-600 mt-1">
+          <p className="text-sm text-primary-600 mt-1">
             <span className='font-bold'>Coordinates</span>: [{currentAddress.coordinates[0].toFixed(6)}, {currentAddress.coordinates[1].toFixed(6)}]
           </p>
         )}

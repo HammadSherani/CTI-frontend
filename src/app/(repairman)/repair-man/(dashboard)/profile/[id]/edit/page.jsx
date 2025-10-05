@@ -14,7 +14,7 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
       value={value}
       onChange={onChange}
       placeholder={placeholder}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
       required={required}
       {...props}
     />
@@ -31,7 +31,7 @@ const SelectField = ({ label, name, value, onChange, options, required = false, 
       name={name}
       value={value}
       onChange={onChange}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
       required={required}
     >
       {options.map(option => (
@@ -55,7 +55,7 @@ const TextareaField = ({ label, name, value, onChange, required = false, error, 
       onChange={onChange}
       placeholder={placeholder}
       rows={rows}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
       required={required}
     />
     {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
@@ -95,7 +95,7 @@ const SkillInput = ({ skills, onSkillsChange }) => {
               <span className="font-medium">{skill.name}</span>
               <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                 skill.level === 'Expert' ? 'bg-green-100 text-green-800' :
-                skill.level === 'Advanced' ? 'bg-blue-100 text-blue-800' :
+                skill.level === 'Advanced' ? 'bg-primary-100 text-primary-800' :
                 skill.level === 'Intermediate' ? 'bg-yellow-100 text-yellow-800' :
                 'bg-gray-100 text-gray-800'
               }`}>
@@ -121,12 +121,12 @@ const SkillInput = ({ skills, onSkillsChange }) => {
           placeholder="Skill name"
           value={newSkill.name}
           onChange={(e) => setNewSkill({...newSkill, name: e.target.value})}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         />
         <select
           value={newSkill.level}
           onChange={(e) => setNewSkill({...newSkill, level: e.target.value})}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
           {skillLevels.map(level => (
             <option key={level.value} value={level.value}>{level.label}</option>
@@ -137,14 +137,14 @@ const SkillInput = ({ skills, onSkillsChange }) => {
           placeholder="Years"
           value={newSkill.years}
           onChange={(e) => setNewSkill({...newSkill, years: e.target.value})}
-          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
           min="0"
           max="50"
         />
         <button
           type="button"
           onClick={addSkill}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center justify-center"
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 flex items-center justify-center"
         >
           <Icon icon="heroicons:plus" className="w-4 h-4" />
         </button>
@@ -363,14 +363,14 @@ function ProfileEditPage() {
                     {profileImage ? (
                       <img src={profileImage} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-lg font-bold text-blue-600">
+                      <div className="w-full h-full bg-primary-100 flex items-center justify-center">
+                        <span className="text-lg font-bold text-primary-600">
                           {formData.firstName?.[0]}{formData.lastName?.[0]}
                         </span>
                       </div>
                     )}
                   </div>
-                  <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                  <label className="cursor-pointer bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors">
                     Upload New
                     <input
                       type="file"
@@ -390,7 +390,7 @@ function ProfileEditPage() {
                     {coverImage ? (
                       <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-r from-blue-600 to-blue-800"></div>
+                      <div className="w-full h-full bg-gradient-to-r from-primary-600 to-primary-800"></div>
                     )}
                   </div>
                   <label className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer rounded-lg">
@@ -553,7 +553,7 @@ function ProfileEditPage() {
               <button
                 type="button"
                 onClick={addLanguage}
-                className="px-4 py-2 text-blue-600 hover:text-blue-800 border border-blue-300 rounded-lg hover:bg-blue-50"
+                className="px-4 py-2 text-primary-600 hover:text-primary-800 border border-primary-300 rounded-lg hover:bg-primary-50"
               >
                 + Add Language
               </button>

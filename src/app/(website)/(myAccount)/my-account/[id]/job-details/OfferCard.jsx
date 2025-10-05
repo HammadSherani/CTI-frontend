@@ -1,4 +1,5 @@
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react'
 
 const RatingStars = ({ rating = 0, size = "text-lg" }) => {
@@ -37,7 +38,7 @@ const ExpandableDescription = ({ description, maxLength = 150 }) => {
             {shouldTruncate && (
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm mt-1 transition-colors duration-200"
+                    className="text-primary-600 hover:text-primary-800 hover:underline text-sm mt-1 transition-colors duration-200"
                 >
                     {isExpanded ? 'Read Less' : 'Read More'}
                 </button>
@@ -55,8 +56,8 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
     const baseClasses = "px-4 py-2 rounded text-sm transition-colors duration-200 flex items-center gap-2";
     const disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
-    const submittingClasses = "bg-blue-400 text-white cursor-not-allowed";
-    const activeClasses = "bg-blue-600 text-white hover:bg-blue-700";
+    const submittingClasses = "bg-primary-400 text-white cursor-not-allowed";
+    const activeClasses = "bg-primary-600 text-white hover:bg-primary-700";
 
     const getButtonClasses = () => {
         if (isBooked || isSubmitting) return `${baseClasses} ${disabledClasses}`;
@@ -65,6 +66,11 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
     };
 
     const label = offer.repairmanId?.name || `Professional ${index + 1}`;
+    const router = useRouter();
+
+    const handleAcceptOffer = () => {
+        router.push(`/payment?jobId=${job._id}&offerId=${offer._id}`);
+    };
 
     return (
         <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -79,7 +85,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             <span className="text-gray-500 text-sm">
                                 @{offer.repairmanId?.repairmanProfile?.shopName || `shop${index + 1}`}
                             </span>
-                            <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center" aria-label="Verified Professional">
+                            <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center" aria-label="Verified Professional">
                                 <span className="text-white text-xs">✓</span>
                             </div>
                             {offer.status === 'in_progress' && (
@@ -111,7 +117,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             ✅ {offer.experience?.successRate || 0}% success
                         </span>
 
-                        <span className="bg-blue-100 text-blue-600 text-xs px-2 py-1 rounded">
+                        <span className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded">
                             📍 {offer.locationContext?.distance?.toFixed(1) || 'N/A'} km
                         </span>
 
@@ -130,7 +136,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
                         <div className="flex flex-wrap gap-2">
                             {offer.serviceOptions?.pickupAvailable && (
-                                <span className="bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded">
+                                <span className="bg-primary-50 text-primary-700 text-xs px-2 py-1 rounded">
                                     🚗 Pickup Available ({currencySymbol}{offer.serviceOptions.pickupCharge})
                                 </span>
                             )}
@@ -177,7 +183,8 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         <div className="flex gap-3">
                             {offer.status !== 'in_progress' && onAcceptOffer && (
                                 <button
-                                    onClick={() => onAcceptOffer(offer)}
+                                    onClick={() => handleAcceptOffer()}
+
                                     disabled={isDisabled}
                                     className={getButtonClasses()}
                                     aria-label={`Accept offer from ${label}`}

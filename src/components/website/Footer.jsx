@@ -62,7 +62,7 @@ const popularBrands = [
   ['Watsons', 'Stradivarius', 'Queenna', 'Puma', 'Apple', 'Birkenstock', 'Nivea', 'Madame Coco', 'Defacto', 'TeknoSA', 'Bosch'],
   ['English Home', 'The North Face', 'Samsung', 'New Balance', 'Oppo', 'Arçelik', 'Skechers', 'Penti & Bear', 'Mavi', 'Farmasi', 'Cat'],
   ['Bershka', 'Baymen', 'Lumberjack', 'Denimood', 'Huawei', 'Dyson', 'Popüler Sayfalar', 'Koton', 'Helly Hansen', 'Karaca', 'Trendyol Japan'],
-  ['Bluetooth Kulaklık', 'MacBook', 'iPhone 15', 'iPhone 16 Pro Max', 'iPhone 16', 'MacBook', 'Trendyol Greek', 'Trendyol English', 'Trendyol Deutsch', 'Trendyol Turkish'],
+  ['primarytooth Kulaklık', 'MacBook', 'iPhone 15', 'iPhone 16 Pro Max', 'iPhone 16', 'MacBook', 'Trendyol Greek', 'Trendyol English', 'Trendyol Deutsch', 'Trendyol Turkish'],
   ['iPhone', 'Nike Air Max', 'iPhone 15 Pro', 'Bulak Mağazası', 'Kahve Dünyası', 'Dyson Airwrap', 'Trendyol Romania', 'Trendyol Hungary', 'Trendyol Poland', 'Trendyol Arabic'],
   ['Samsung Cep Telefonu', 'Rolex Süper', 'Rolex İkonik', 'iPhone 15 Pro Max', 'Apple Watch Series 9', 'Lacoste', 'Apple AirPods', 'Trendyol Czech', 'Trendyol Ukraine', 'Network']
 ];

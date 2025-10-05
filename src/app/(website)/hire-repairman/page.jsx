@@ -80,7 +80,7 @@ function HireRepairman() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading repairmen...</p>
         </div>
       </div>
@@ -112,7 +112,7 @@ function HireRepairman() {
                 id="state-filter"
                 value={selectedState}
                 onChange={handleStateChange}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
               >
                 <option value="">All States/Provinces</option>
                 {pakistanStates.map((state) => (
@@ -133,7 +133,7 @@ function HireRepairman() {
                 id="city-filter"
                 value={selectedCity}
                 onChange={handleCityChange}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600"
+                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
                 disabled={cities.length === 0}
               >
                 <option value="">All Cities</option>
@@ -167,7 +167,7 @@ function HireRepairman() {
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="text-sm text-gray-600">Active filters:</span>
               {selectedState && (
-                <span className="px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full flex items-center gap-1">
+                <span className="px-3 py-1 bg-primary-100 text-primary-800 text-sm rounded-full flex items-center gap-1">
                   State: {selectedState}
                   <button onClick={() => setSelectedState('')} className="ml-1">
                     <Icon icon="mdi:close" className="w-4 h-4" />
@@ -228,7 +228,7 @@ function HireRepairman() {
                     </div>
 
                     <div className="flex items-center mb-3">
-                      <Icon icon="mdi:store" className="w-5 h-5 text-blue-600 mr-2 flex-shrink-0" />
+                      <Icon icon="mdi:store" className="w-5 h-5 text-primary-600 mr-2 flex-shrink-0" />
                       <h4 className="font-semibold text-gray-900 truncate">
                         {repair.repairmanProfile.shopName}
                       </h4>

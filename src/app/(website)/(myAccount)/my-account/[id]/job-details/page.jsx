@@ -14,7 +14,7 @@ import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
 const LoadingSpinner = () => (
     <div className="max-w-6xl mx-auto p-6 bg-white my-10">
         <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
         </div>
     </div>
 );
@@ -55,7 +55,7 @@ const ExpandableDescription = ({ description, maxLength = 150 }) => {
             {shouldTruncate && (
                 <button
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-blue-600 hover:text-blue-800 hover:underline text-sm mt-1 transition-colors duration-200"
+                    className="text-primary-600 hover:text-primary-800 hover:underline text-sm mt-1 transition-colors duration-200"
                 >
                     {isExpanded ? 'Read Less' : 'Read More'}
                 </button>
@@ -320,7 +320,7 @@ function JobDetails() {
                     <button
                         onClick={() => setActiveTab('details')}
                         className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'details'
-                                ? 'border-blue-500 text-blue-600'
+                                ? 'border-primary-500 text-primary-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
                             }`}
                     >
@@ -330,7 +330,7 @@ function JobDetails() {
                         <button
                             onClick={() => setActiveTab('proposals')}
                             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'proposals'
-                                    ? 'border-blue-500 text-blue-600'
+                                    ? 'border-primary-500 text-primary-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -341,7 +341,7 @@ function JobDetails() {
                         <button
                             onClick={() => setActiveTab('booking')}
                             className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors duration-200 ${activeTab === 'booking'
-                                    ? 'border-blue-500 text-blue-600'
+                                    ? 'border-primary-500 text-primary-600'
                                     : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
                         >
@@ -378,7 +378,7 @@ function JobDetails() {
                                 {job.services.map((service, index) => (
                                     <span
                                         key={index}
-                                        className="px-4 py-2 bg-blue-50 text-blue-700 rounded-full border border-blue-200 text-sm"
+                                        className="px-4 py-2 bg-primary-50 text-primary-700 rounded-full border border-primary-200 text-sm"
                                     >
                                         {service}
                                     </span>
