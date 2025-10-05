@@ -61,7 +61,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                 });
 
                 if (response.data.data.paymentCompleted) {
-                    router.push(`/my-account/${jobId}/order-confirmation`);
+                    router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
                     return;
                 }
 
@@ -110,7 +110,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
             }
 
             // Optionally redirect user after successful operations
-            // router.push(`/my-account/${jobId}/order-confirmation`);
+            router.push(`/payment/order-confirmation?jobId=${jobId}`);
         } catch (error) {
             handleError(error);
         } finally {
@@ -473,7 +473,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                 });
 
                 if (response.data.data.paymentCompleted) {
-                    router.push(`/my-account/${jobId}/order-confirmation`);
+                    router.push(`/payment/order-confirmation?jobId=${jobId}`);
                     return;
                 }
 
