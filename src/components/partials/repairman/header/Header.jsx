@@ -49,7 +49,7 @@ function Header() {
     { name: "My Offer", path: "/repair-man/my-offers", icon: "mdi:handshake-outline" },
     { name: "My Jobs", path: "/repair-man/my-jobs", icon: "mdi:briefcase-outline" },
     // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
-    { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },
+    { name: "Earning & Reviews", path: "/repair-man/earning-reviews", icon: "mdi:star-outline" },
   ];
 
   const dropdownLinks = [

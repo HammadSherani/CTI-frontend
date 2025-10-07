@@ -473,7 +473,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                 });
 
                 if (response.data.data.paymentCompleted) {
-                    router.push(`/payment/order-confirmation?jobId=${jobId}`);
+                    // router.push(`/payment/order-confirmation?jobId=${jobId}&offerId=${offerId}`);
                     return;
                 }
 
@@ -600,7 +600,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                         <h3 className="font-semibold text-gray-900 text-lg">{job?.deviceInfo?.brand} {job?.deviceInfo?.model} Repair</h3>
                                         <p className="text-sm text-gray-600 mb-3">{job?.description || offer?.description}</p>
                                         <div className="flex items-center gap-4 text-sm flex-wrap">
-                                            <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">{job?.services?.join(', ')}</span>
+                                            {/* <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">{job?.services?.join(', ')}</span> */}
                                             {job?.urgency && <span className="text-gray-500">Urgency: {job?.urgency}</span>}
                                             <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
                                                 Warranty: {offer?.warranty?.duration} days
@@ -610,7 +610,6 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                 </div>
                             </div>
 
-                            {/* Technician Info */}
                             <div className="bg-gray-100 border border-gray-200 rounded-xl p-6 flex items-center gap-4">
                                 {repairmanProfile?.profilePhoto ? (
                                     <img

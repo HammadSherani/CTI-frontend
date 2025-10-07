@@ -467,10 +467,10 @@ function EarningsReviewsPage() {
                     </div>
                   </div>
                   <p className="text-gray-700 leading-relaxed mb-3">"{review.review}"</p>
-                  <div className="flex items-center text-sm text-gray-500">
+                  {/* <div className="flex items-center text-sm text-gray-500">
                     <Icon icon="heroicons:hand-thumb-up" className="w-4 h-4 mr-1" />
                     <span>{review.helpful} people found this helpful</span>
-                  </div>
+                  </div> */}
                 </div>
               </div>
             </div>
@@ -503,7 +503,7 @@ function EarningsReviewsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`py-4 px-2 text-sm font-medium border-b-2 transition-colors flex items-center space-x-2 ${
                     activeTab === tab.id
-                      ? 'border-green-500 text-green-600'
+                      ? 'border-primary-500 text-primary-600'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                   }`}
                 >

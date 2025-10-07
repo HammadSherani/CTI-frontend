@@ -159,6 +159,7 @@ function OrderConfirmation() {
 
   const quotationId = searchParams.get('quotationId');
   const jobId = searchParams.get('jobId');
+  const offerId = searchParams.get('offerId');
 
   // Fetch quotation data
   const fetchQuotationOrder = useCallback(async () => {
@@ -191,7 +192,7 @@ function OrderConfirmation() {
     });
 
     const job = jobResponse.data.data;
-    const offerId = job.selectedOffer?._id;
+    // const offerId = job.selectedOffer?._id;
 
     const { data } = await axiosInstance.get('/customer/payments', {
       params: { offerId, jobId },
