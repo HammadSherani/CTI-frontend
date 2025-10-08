@@ -88,9 +88,10 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center" aria-label="Verified Professional">
                                 <span className="text-white text-xs">✓</span>
                             </div>
-                            {offer.status === 'in_progress' && (
-                                <StatusBadge status={offer.status} />
-                            )}
+                            {/* {offer.status === 'in_progress' && ( */}
+                                <StatusBadge status={offer.status}  />
+                                
+                            {/* )} */}
                         </div>
 
                         <div className="text-right">

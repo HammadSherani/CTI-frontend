@@ -513,7 +513,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
             );
 
             toast.success(paymentResponse.data.message || "Payment successful!");
-            router.push(`/my-account/${jobId}/order-confirmation`);
+            router.push(`/payment/order-confirmation?jobId=${jobId}&offerId=${offerId}`);
 
         } catch (error) {
             handleError(error);

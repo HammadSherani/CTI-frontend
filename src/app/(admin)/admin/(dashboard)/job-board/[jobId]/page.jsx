@@ -34,7 +34,7 @@ function JobDetailsPage() {
     const fetchJobDetails = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get(`/admin/jobboard/${params.jobId}`, {
+            const { data } = await axiosInstance.get(`/admin/job-board/${params.jobId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -72,7 +72,7 @@ function JobDetailsPage() {
         }
 
         try {
-            const { data } = await axiosInstance.post('/admin/jobboard/assign', {
+            const { data } = await axiosInstance.post('/admin/job-board/assign', {
                 jobId: job._id,
                 repairmanId: selectedRepairman,
                 reason: assignmentReason
@@ -102,7 +102,7 @@ function JobDetailsPage() {
         }
 
         try {
-            const { data } = await axiosInstance.post(`/admin/jobboard/${job._id}/cancel`, {
+            const { data } = await axiosInstance.post(`/admin/job-board/${job._id}/cancel`, {
                 reason: cancelReason,
                 cancellationType
             }, {
@@ -127,7 +127,7 @@ function JobDetailsPage() {
         const reason = prompt('Enter reason for status change (optional):');
 
         try {
-            const { data } = await axiosInstance.patch(`/admin/jobboard/${job._id}/status`, {
+            const { data } = await axiosInstance.patch(`/admin/job-board/${job._id}/status`, {
                 status: newStatus,
                 reason: reason || `Status updated to ${newStatus}`
             }, {
@@ -234,7 +234,7 @@ function JobDetailsPage() {
                 <div className="text-center">
                     <Icon icon="mdi:alert-circle" className="w-12 h-12 text-red-600 mx-auto mb-4" />
                     <p className="text-gray-600">Job not found</p>
-                    <Link href="/admin/jobboard" className="text-primary-600 hover:underline mt-2 inline-block">
+                    <Link href="/admin/job-board" className="text-primary-600 hover:underline mt-2 inline-block">
                         Back to Job Board
                     </Link>
                 </div>
@@ -249,7 +249,7 @@ function JobDetailsPage() {
                 <div className="mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/admin/jobboard"
+                            href="/admin/job-board"
                             className="text-gray-600 hover:text-gray-900"
                         >
                             <Icon icon="mdi:arrow-left" className="w-6 h-6" />

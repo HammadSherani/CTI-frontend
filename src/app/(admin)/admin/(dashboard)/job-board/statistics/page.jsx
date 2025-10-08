@@ -30,7 +30,7 @@ function JobStatisticsPage() {
             if (dateRange.startDate) params.append('startDate', dateRange.startDate);
             if (dateRange.endDate) params.append('endDate', dateRange.endDate);
 
-            const { data } = await axiosInstance.get(`/admin/jobboard/statistics?${params.toString()}`, {
+            const { data } = await axiosInstance.get(`/admin/job-board/statistics?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -92,7 +92,7 @@ function JobStatisticsPage() {
                 <div className="mb-6 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link
-                            href="/admin/jobboard"
+                            href="/admin/job-board"
                             className="text-gray-600 hover:text-gray-900"
                         >
                             <Icon icon="mdi:arrow-left" className="w-6 h-6" />
@@ -282,7 +282,7 @@ function JobStatisticsPage() {
                                                     {activity.action?.replace(/_/g, ' ').toUpperCase()}
                                                 </p>
                                                 <p className="text-sm text-gray-600 mt-1">
-                                                    Job: <Link href={`/admin/jobboard/${activity.jobId}`} className="text-primary-600 hover:underline">
+                                                    Job: <Link href={`/admin/job-board/${activity.jobId}`} className="text-primary-600 hover:underline">
                                                         {activity.jobTitle || 'View Job'}
                                                     </Link>
                                                 </p>

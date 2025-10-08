@@ -49,44 +49,44 @@ function UpdateStatus() {
   }, [id]);
 
   const handleStatusUpdate = async () => {
-  if (!selectedStatus) {
-    toast.error('Please select a status');
-    return;
-  }
+    if (!selectedStatus) {
+      toast.error('Please select a status');
+      return;
+    }
 
-  try {
-    setUpdating(true);
-    const { data } = await axiosInstance.patch(`/repairman/my-booking/${id}/status`, {
-      status: selectedStatus,
-      notes: notes
-    }, {
-      headers: {
-        'Authorization': 'Bearer ' + token,
-      }
-    });
-    
-    // Success case
-    toast.success(data.message || 'Status updated successfully!');
-    setStatusUpdateResult(data.data);
-    setShowSuccessMessage(true);
-    fetchJobDetails(); // Refresh job details
-    setSelectedStatus('');
-    setNotes('');
-    
-    // Hide success message after 5 seconds
-    setTimeout(() => {
-      setShowSuccessMessage(false);
-      setStatusUpdateResult(null);
-    }, 5000);
-    
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || 'Failed to update status. Please try again.';
-    toast.error(errorMessage);
-    handleError(error);
-  } finally {
-    setUpdating(false);
-  }
-};
+    try {
+      setUpdating(true);
+      const { data } = await axiosInstance.patch(`/repairman/my-booking/${id}/status`, {
+        status: selectedStatus,
+        notes: notes
+      }, {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        }
+      });
+
+      // Success case
+      toast.success(data.message || 'Status updated successfully!');
+      setStatusUpdateResult(data.data);
+      setShowSuccessMessage(true);
+      fetchJobDetails(); // Refresh job details
+      setSelectedStatus('');
+      setNotes('');
+
+      // Hide success message after 5 seconds
+      setTimeout(() => {
+        setShowSuccessMessage(false);
+        setStatusUpdateResult(null);
+      }, 5000);
+
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to update status. Please try again.';
+      toast.error(errorMessage);
+      handleError(error);
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   const formatCurrency = (amount, currency = 'PKR') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
@@ -115,7 +115,7 @@ function UpdateStatus() {
       'delivered': [],
       'cancelled': []
     };
-    
+
     return transitions[currentStatus] || [];
   };
 
@@ -225,7 +225,7 @@ function UpdateStatus() {
             {/* Job Overview */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Job Overview</h2>
-              
+
               <div className="flex items-start space-x-4 mb-6">
                 <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center">
                   <span className="text-lg font-semibold text-primary-700">
@@ -284,11 +284,10 @@ function UpdateStatus() {
                     )}
                     <div className="flex justify-between">
                       <span className="text-gray-500">Warranty:</span>
-                      <span className={`px-2 py-1 rounded text-xs ${
-                        deviceInfo.warrantyStatus === 'active' 
-                          ? 'bg-green-100 text-green-800' 
+                      <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
+                          ? 'bg-green-100 text-green-800'
                           : 'bg-gray-100 text-gray-800'
-                      }`}>
+                        }`}>
                         {deviceInfo.warrantyStatus}
                       </span>
                     </div>
@@ -335,199 +334,211 @@ function UpdateStatus() {
 
             {/* Status Update Section */}
             {/* {actions.canUpdateStatus && ( */}
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Update Status</h2>
-                
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Select New Status
-                    </label>
-                    <select
-                      value={selectedStatus}
-                      onChange={(e) => setSelectedStatus(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    >
-                      <option value="">Choose a status...</option>
-                      {statusOptions
-                        .filter(option => {
-                          const validTransitions = getValidStatusTransitions(tracking.currentLocation);
-                          return validTransitions.length === 0 || validTransitions.includes(option.value);
-                        })
-                        .map((option) => (
-                          <option key={option.value} value={option.value}>
-                            {option.label} - {option.description}
-                          </option>
-                        ))}
-                    </select>
+
+            {tracking.currentLocation === 'delivered' ? (
+  <div className="bg-green-50 border border-green-200 rounded-xl shadow-sm p-8 text-center">
+    <Icon icon="heroicons:check-circle" className="w-16 h-16 text-green-600 mx-auto mb-4" />
+    <h3 className="text-xl font-bold text-gray-900 mb-2">Job Completed & Delivered</h3>
+    <p className="text-gray-600">This job has been successfully completed and delivered to the customer.</p>
+  </div>
+) : (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+    <h2 className="text-xl font-semibold text-gray-900 mb-4">Update Status</h2>
+    
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Select New Status
+        </label>
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        >
+          <option value="">Choose a status...</option>
+          {statusOptions
+            .filter(option => {
+              const validTransitions = getValidStatusTransitions(tracking.currentLocation);
+              return validTransitions.length === 0 || validTransitions.includes(option.value);
+            })
+            .map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label} - {option.description}
+              </option>
+            ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Notes (Optional)
+        </label>
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Add any notes about the status update..."
+          rows={3}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+
+      <button
+        onClick={handleStatusUpdate}
+        disabled={!selectedStatus || updating}
+        className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+      >
+        {updating ? (
+          <>
+            <Icon icon="heroicons:arrow-path" className="w-5 h-5 mr-2 animate-spin" />
+            Updating...
+          </>
+        ) : (
+          <>
+            <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
+            Update Status
+          </>
+        )}
+      </button>
+    </div>
+  </div>
+)}
+
+
+
+        {/* )} */}
+
+        {/* Timeline */}
+        {timeline.length > 0 && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Timeline</h2>
+
+            <div className="space-y-4">
+              {timeline.map((event, index) => (
+                <div key={index} className="flex items-start space-x-3">
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                    <Icon icon="heroicons:clock" className="w-4 h-4 text-primary-600" />
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Notes (Optional)
-                    </label>
-                    <textarea
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Add any notes about the status update..."
-                      rows={3}
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                    />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-gray-900">{event.title}</h4>
+                    <p className="text-sm text-gray-600">{event.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(event.timestamp).toLocaleString()}
+                    </p>
                   </div>
-
-                  <button
-                    onClick={handleStatusUpdate}
-                    disabled={!selectedStatus || updating}
-                    className="w-full bg-primary-600 text-white py-3 px-6 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-                  >
-                    {updating ? (
-                      <>
-                        <Icon icon="heroicons:arrow-path" className="w-5 h-5 mr-2 animate-spin" />
-                        Updating...
-                      </>
-                    ) : (
-                      <>
-                        <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
-                        Update Status
-                      </>
-                    )}
-                  </button>
                 </div>
-              </div>
-            {/* )} */}
-
-            {/* Timeline */}
-            {timeline.length > 0 && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Timeline</h2>
-                
-                <div className="space-y-4">
-                  {timeline.map((event, index) => (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Icon icon="heroicons:clock" className="w-4 h-4 text-primary-600" />
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
-                        <p className="text-sm text-gray-600">{event.description}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(event.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              ))}
+            </div>
           </div>
+        )}
+      </div>
 
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Customer Information */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3">
-                  <Icon icon="heroicons:user" className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="font-medium text-gray-900">{customer.name}</p>
-                    <p className="text-sm text-gray-500">Customer</p>
-                  </div>
-                </div>
-                
-                {customer.phone && (
-                  <div className="flex items-center space-x-3">
-                    <Icon icon="heroicons:phone" className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.phone}</p>
-                      <p className="text-sm text-gray-500">Phone</p>
-                    </div>
-                  </div>
-                )}
-                
-                {customer.email && (
-                  <div className="flex items-center space-x-3">
-                    <Icon icon="heroicons:envelope" className="w-5 h-5 text-gray-400" />
-                    <div>
-                      <p className="font-medium text-gray-900">{customer.email}</p>
-                      <p className="text-sm text-gray-500">Email</p>
-                    </div>
-                  </div>
-                )}
+      {/* Sidebar */}
+      <div className="space-y-6">
+        {/* Customer Information */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
+
+          <div className="space-y-3">
+            <div className="flex items-center space-x-3">
+              <Icon icon="heroicons:user" className="w-5 h-5 text-gray-400" />
+              <div>
+                <p className="font-medium text-gray-900">{customer.name}</p>
+                <p className="text-sm text-gray-500">Customer</p>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
-              
-              <div className="space-y-3">
-                {actions.canChat && (
-                  <button className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                    <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
-                    Chat with Customer
-                    {communication.unreadCount > 0 && (
-                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                        {communication.unreadCount}
-                      </span>
-                    )}
-                  </button>
-                )}
-               
-
-                {/* {actions.canMarkCompleted && (
-                  <button className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                    <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
-                    Mark as Completed
-                  </button>
-                )} */}
-              </div>
-            </div>
-
-            {/* Warranty Information */}
-            {bookingDetails.warranty && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Warranty</h3>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Duration:</span>
-                    <span className="font-medium">{bookingDetails.warranty.duration} months</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Description:</span>
-                    <span className="font-medium">{bookingDetails.warranty.description}</span>
-                  </div>
+            {customer.phone && (
+              <div className="flex items-center space-x-3">
+                <Icon icon="heroicons:phone" className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="font-medium text-gray-900">{customer.phone}</p>
+                  <p className="text-sm text-gray-500">Phone</p>
                 </div>
               </div>
             )}
 
-            {/* Tracking Info */}
-            {tracking.estimatedCompletion && (
-              <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Tracking</h3>
-                
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Current Status:</span>
-                    <span className="font-medium capitalize">
-                      {tracking.currentLocation?.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-500">Est. Completion:</span>
-                    <span className="font-medium">
-                      {new Date(tracking.estimatedCompletion).toLocaleString()}
-                    </span>
-                  </div>
+            {customer.email && (
+              <div className="flex items-center space-x-3">
+                <Icon icon="heroicons:envelope" className="w-5 h-5 text-gray-400" />
+                <div>
+                  <p className="font-medium text-gray-900">{customer.email}</p>
+                  <p className="text-sm text-gray-500">Email</p>
                 </div>
               </div>
             )}
           </div>
         </div>
+
+        {/* Actions */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
+
+          <div className="space-y-3">
+            {actions.canChat && (
+              <button className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
+                Chat with Customer
+                {communication.unreadCount > 0 && (
+                  <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                    {communication.unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+
+            {/* {actions.canMarkCompleted && (
+                  <button className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
+                    <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
+                    Mark as Completed
+                  </button>
+                )} */}
+          </div>
+        </div>
+
+        {/* Warranty Information */}
+        {bookingDetails.warranty && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Warranty</h3>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Duration:</span>
+                <span className="font-medium">{bookingDetails.warranty.duration} months</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Description:</span>
+                <span className="font-medium">{bookingDetails.warranty.description}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tracking Info */}
+        {tracking.estimatedCompletion && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tracking</h3>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Current Status:</span>
+                <span className="font-medium capitalize">
+                  {tracking.currentLocation?.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Est. Completion:</span>
+                <span className="font-medium">
+                  {new Date(tracking.estimatedCompletion).toLocaleString()}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
+      </div >
+    </div >
   );
 }
 

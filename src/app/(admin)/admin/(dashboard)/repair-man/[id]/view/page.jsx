@@ -92,7 +92,7 @@ function page() {
                         </div>
                         <div className="flex items-center space-x-4">
                             <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(data.status)}`}>
-                                {data.status.toUpperCase()}
+                                {data?.status?.toUpperCase()}
                             </span>
                             <div className="flex items-center space-x-2">
                                 {data.isActive ? (

@@ -6,6 +6,7 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('active');
@@ -162,6 +163,8 @@ const MyJobsPage = () => {
     const urgency = getUrgencyLevel(jobDetails.urgency);
     const customerInitials = customer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
+    const router = useRouter();
+
     return (
       <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6  transition-all duration-300 ease-in-out">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
@@ -275,11 +278,13 @@ const MyJobsPage = () => {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
           {job.canUpdateStatus && activeTab === 'active' && (
-            <Link href={`/repair-man/my-jobs/${job._id}/update-status`}>
-              <button className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+            // <Link href={`/repair-man/my-jobs/${job._id}/update-status`} >
+              <button 
+              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/update-status`)}
+              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                 View And Update Status
               </button>
-            </Link>
+            // </Link>
           )}
           {job.canChat && (
             <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">

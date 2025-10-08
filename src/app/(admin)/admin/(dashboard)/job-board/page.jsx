@@ -48,7 +48,7 @@ function JobBoardPage() {
             if (filterStatus) params.append('status', filterStatus);
             if (filterUrgency) params.append('urgency', filterUrgency);
 
-            const { data } = await axiosInstance.get(`/admin/jobboard?${params.toString()}`, {
+            const { data } = await axiosInstance.get(`/admin/job-board?${params.toString()}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -89,7 +89,7 @@ function JobBoardPage() {
         }
 
         try {
-            const { data } = await axiosInstance.post('/admin/jobboard/assign', {
+            const { data } = await axiosInstance.post('/admin/job-board/assign', {
                 jobId: selectedJob._id,
                 repairmanId: selectedRepairman,
                 reason: assignmentReason
@@ -120,7 +120,7 @@ function JobBoardPage() {
         const cancellationType = prompt('Cancellation type (fraud/duplicate/other):') || 'other';
 
         try {
-            const { data } = await axiosInstance.post(`/admin/jobboard/${jobId}/cancel`, {
+            const { data } = await axiosInstance.post(`/admin/job-board/${jobId}/cancel`, {
                 reason,
                 cancellationType
             }, {
@@ -143,7 +143,7 @@ function JobBoardPage() {
         const reason = prompt('Enter reason for status change (optional):');
         
         try {
-            const { data } = await axiosInstance.patch(`/admin/jobboard/${jobId}/status`, {
+            const { data } = await axiosInstance.patch(`/admin/job-board/${jobId}/status`, {
                 status: newStatus,
                 reason: reason || `Status updated to ${newStatus}`
             }, {
@@ -286,7 +286,7 @@ function JobBoardPage() {
                             <p className="text-gray-600 mt-1">Monitor and manage all repair jobs</p>
                         </div>
                         <Link
-                            href="/admin/jobboard/statistics"
+                            href="/admin/job-board/statistics"
                             className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
                         >
                             <Icon icon="mdi:chart-line" className="w-5 h-5" />
@@ -503,7 +503,7 @@ function JobBoardPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
                                                         <Link
-                                                            href={`/admin/jobboard/${job._id}`}
+                                                            href={`/admin/job-board/${job._id}`}
                                                             className="text-primary-600 hover:text-primary-900 transition-colors"
                                                             title="View Details"
                                                         >

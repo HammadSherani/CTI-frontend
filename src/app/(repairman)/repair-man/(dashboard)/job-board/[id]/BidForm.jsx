@@ -185,7 +185,7 @@ export default function BidForm({
             });
 
             toast.success(res.data.message);
-            router.push('/repair-man/dashboard');
+            router.push('/repair-man/job-board');
 
             console.log("Response from server:", res.data);
             // Here you would make the API call
