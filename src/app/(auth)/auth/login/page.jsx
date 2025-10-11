@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/store/chat";
+import { updateFCMToken } from "@/utils/fcm"; // Import FCM utility
 
 // Validation schema
 const schema = yup.object().shape({
@@ -55,9 +56,27 @@ function Login() {
         rememberMe: data.rememberMe,
       });
 
-
       const resData = response.data.data;
 
+      // Dispatch auth data to Redux
+      dispatch(setAuth({
+        user: resData.user,
+        token: resData.token,
+        userType: resData.user.role
+      }));
+
+      dispatch(setCurrentUser(resData.user));
+
+      // Update FCM token after successful login
+      try {
+        await updateFCMToken(resData.token);
+        console.log('✅ FCM token updated successfully');
+      } catch (fcmError) {
+        console.error('⚠️ FCM token update failed:', fcmError);
+        // Don't block login if FCM fails
+      }
+
+      // Route based on user role
       if (resData?.user?.role === "admin") {
         router.push("/admin/dashboard");
       } else if (resData?.user?.role === "repairman") {
@@ -70,21 +89,6 @@ function Login() {
         router.push("/");
       }
 
-
-      dispatch(setAuth({
-        user: resData.user,
-        token: resData.token,
-        userType: resData.user.role
-      }))
-
-      dispatch(setCurrentUser(resData.user));
-
-
-      // if(response.data.)
-
-      // Handle successful login
-      // Store token, redirect, etc.
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
     } catch (error) {
       handleError(error);
     }
@@ -133,15 +137,6 @@ function Login() {
         {/* Right Form Section */}
         <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">
-
-            {/* Language Switch */}
-            {/* <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
-              <span className="flex items-center justify-end gap-2">
-                <Icon icon="mdi:web" className="text-base" />
-                English (UK) 
-                <Icon icon="mdi:chevron-down" className="text-xs" />
-              </span>
-            </div> */}
 
             {/* Main Content */}
             <div className="bg-white rounded-3xl shadow-md mt-6 p-8 md:p-10">
