@@ -18,32 +18,63 @@ import DocumentUploads from "./DocumentUploads";
 const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2, "Name must be at least 2 characters"),
   fatherName: yup.string().required("Father's name is required").min(2, "Name must be at least 2 characters"),
-  nationalIdOrCitizenNumber: yup.string().required("CNIC is required").matches(/^\d{5}-\d{7}-\d{1}$/, "CNIC format: 12345-1234567-1"),
-  dob: yup.date().required("Date of birth is required").max(new Date(), "Date cannot be in the future"),
-  gender: yup.string().required("Gender is required").oneOf(["Male", "Female", "Other"], "Invalid gender"),
+  nationalIdOrCitizenNumber: yup
+    .string()
+    .required("T.C. Kimlik No is required")
+    .matches(/^\d{11}$/, "T.C. Kimlik No must be 11 digits"),
+  dob: yup
+    .date()
+    .required("Date of birth is required")
+    .max(new Date(), "Date cannot be in the future"),
+  gender: yup
+    .string()
+    .required("Gender is required")
+    .oneOf(["Male", "Female", "Other"], "Invalid gender"),
 });
 
+
 const step2Schema = yup.object({
-  mobileNumber: yup.string().required("Mobile number is required").matches(/^03\d{9}$/, "Enter valid mobile number (03XXXXXXXXX)"),
-  whatsappNumber: yup.string().required("WhatsApp number is required").matches(/^03\d{9}$/, "Enter valid WhatsApp number"),
+  mobileNumber: yup
+    .string()
+    .required("Mobile number is required")
+    .matches(/^05\d{9}$/, "Enter valid Turkish mobile number (05XXXXXXXXX)"),
+  whatsappNumber: yup
+    .string()
+    .required("WhatsApp number is required")
+    .matches(/^05\d{9}$/, "Enter valid WhatsApp number"),
   emailAddress: yup.string().required("Email is required").email("Invalid email format"),
   emergencyContactPerson: yup.string().required("Emergency contact person is required"),
-  emergencyContactNumber: yup.string().required("Emergency contact number is required").matches(/^03\d{9}$/, "Enter valid contact number"),
+  emergencyContactNumber: yup
+    .string()
+    .required("Emergency contact number is required")
+    .matches(/^05\d{9}$/, "Enter valid contact number"),
 });
+
 
 const step3Schema = yup.object({
   shopName: yup.string().required("Shop name is required").min(2, "Shop name must be at least 2 characters"),
   fullAddress: yup.string().required("Full address is required").min(10, "Address must be at least 10 characters"),
   city: yup.string().required("City is required"),
   district: yup.string().required("District is required"),
-  zipCode: yup.string().optional("ZIP code is required").matches(/^\d{5}$/, "ZIP code must be 5 digits"),
+  zipCode: yup
+    .string()
+    .required("ZIP code is required")
+    .matches(/^\d{5}$/, "ZIP code must be 5 digits"),
 });
 
+
 const step4Schema = yup.object({
-  yearsOfExperience: yup.number().required("Years of experience is required").min(0, "Cannot be negative").max(50, "Maximum 50 years"),
+  yearsOfExperience: yup
+    .number()
+    .required("Years of experience is required")
+    .min(0, "Cannot be negative")
+    .max(50, "Maximum 50 years"),
   specializations: yup.array().min(1, "Add at least one specialization"),
   brandsWorkedWith: yup.array().min(1, "Add at least one brand"),
-  description: yup.string().required("Description is required").min(50, "Description must be at least 50 characters"),
+  description: yup
+    .string()
+    .required("Description is required")
+    .min(50, "Description must be at least 50 characters"),
   workingDays: yup.array().min(1, "Select at least one working day"),
   workingHours: yup.object({
     start: yup.string().required("Start time is required"),
@@ -54,11 +85,12 @@ const step4Schema = yup.object({
 
 const step5Schema = yup.object({
   profilePhoto: yup.mixed().required("Profile photo is required"),
-  nationalIdOrPassportScan: yup.mixed().required("CNIC scan is required"),
+  nationalIdOrPassportScan: yup.mixed().required("T.C. ID or passport scan is required"),
   shopPhoto: yup.mixed().required("Shop photo is required"),
   utilityBillOrShopProof: yup.mixed().required("Shop proof is required"),
-  certifications: yup.mixed(),
+  certifications: yup.mixed(), // optional
 });
+
 
 const schemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema];
 

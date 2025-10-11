@@ -7,6 +7,7 @@ const PersonalInformation = ({ control, errors }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Personal Information</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Full Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
           <Controller
@@ -26,6 +27,7 @@ const PersonalInformation = ({ control, errors }) => {
           {errors.fullName && <p className="text-red-500 text-sm mt-1">{errors.fullName.message}</p>}
         </div>
 
+        {/* Father's Name */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Father's Name</label>
           <Controller
@@ -45,8 +47,9 @@ const PersonalInformation = ({ control, errors }) => {
           {errors.fatherName && <p className="text-red-500 text-sm mt-1">{errors.fatherName.message}</p>}
         </div>
 
+        {/* T.C. Identity Number */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">CNIC Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">T.C. Identity Number</label>
           <Controller
             name="nationalIdOrCitizenNumber"
             control={control}
@@ -54,7 +57,7 @@ const PersonalInformation = ({ control, errors }) => {
               <input
                 {...field}
                 type="text"
-                placeholder="12345-1234567-1"
+                placeholder="Enter 11-digit ID number"
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.nationalIdOrCitizenNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -66,6 +69,7 @@ const PersonalInformation = ({ control, errors }) => {
           )}
         </div>
 
+        {/* Date of Birth */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
           <Controller
@@ -84,6 +88,7 @@ const PersonalInformation = ({ control, errors }) => {
           {errors.dob && <p className="text-red-500 text-sm mt-1">{errors.dob.message}</p>}
         </div>
 
+        {/* Gender */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
           <Controller

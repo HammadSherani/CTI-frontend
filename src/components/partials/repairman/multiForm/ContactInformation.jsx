@@ -7,6 +7,8 @@ const ContactInformation = ({ control, errors, user }) => {
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Contact Information</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+        {/* Mobile Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
           <Controller
@@ -16,7 +18,7 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
-                placeholder="03XXXXXXXXX"
+                placeholder="05XXXXXXXXX"
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -26,6 +28,7 @@ const ContactInformation = ({ control, errors, user }) => {
           {errors.mobileNumber && <p className="text-red-500 text-sm mt-1">{errors.mobileNumber.message}</p>}
         </div>
 
+        {/* WhatsApp Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number</label>
           <Controller
@@ -35,7 +38,7 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
-                placeholder="03XXXXXXXXX"
+                placeholder="05XXXXXXXXX"
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.whatsappNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -45,6 +48,7 @@ const ContactInformation = ({ control, errors, user }) => {
           {errors.whatsappNumber && <p className="text-red-500 text-sm mt-1">{errors.whatsappNumber.message}</p>}
         </div>
 
+        {/* Email Address (Disabled) */}
         <div className="md:col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
           <Controller
@@ -66,6 +70,7 @@ const ContactInformation = ({ control, errors, user }) => {
           {errors.emailAddress && <p className="text-red-500 text-sm mt-1">{errors.emailAddress.message}</p>}
         </div>
 
+        {/* Emergency Contact Person */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Person</label>
           <Controller
@@ -87,6 +92,7 @@ const ContactInformation = ({ control, errors, user }) => {
           )}
         </div>
 
+        {/* Emergency Contact Number */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Number</label>
           <Controller
@@ -96,7 +102,7 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
-                placeholder="03XXXXXXXXX"
+                placeholder="05XXXXXXXXX"
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.emergencyContactNumber ? 'border-red-500' : 'border-gray-300'
                 }`}

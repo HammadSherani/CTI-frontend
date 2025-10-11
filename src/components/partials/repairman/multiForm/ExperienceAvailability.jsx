@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 
 // Custom Chip Input Component - included in this file
-const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error }) => {
+const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error, touched }) => {
     const [inputValue, setInputValue] = useState("");
     const [showSuggestions, setShowSuggestions] = useState(false);
 
@@ -38,7 +38,7 @@ const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error 
 
     return (
         <div className="relative">
-            <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all ${error ? 'border-red-500' : 'border-gray-300'
+            <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center focus-within:ring-2 focus-within:ring-orange-500 focus-within:border-transparent transition-all ${error && touched ? 'border-red-500' : 'border-gray-300'
                 }`}>
                 {value.map((chip, index) => (
                     <span
@@ -90,7 +90,7 @@ const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error 
 };
 
 // Brand Dropdown Component
-const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
+const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -117,7 +117,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
     return (
         <div className="relative">
             {/* Selected Brands Display */}
-            <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center transition-all ${error ? 'border-red-500' : 'border-gray-300'}`}>
+            <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center transition-all ${error && touched ? 'border-red-500' : 'border-gray-300'}`}>
                 {value.map((brand, index) => (
                     <span
                         key={brand.id}
@@ -221,7 +221,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error }) => {
 };
 
 
-const ExperienceAvailability = ({ control, errors }) => {
+const ExperienceAvailability = ({ control, errors, touchedFields }) => {
     // Local state to store the brands that will be worked with
     const [brands, setBrands] = useState([]);
 
@@ -271,11 +271,6 @@ const ExperienceAvailability = ({ control, errors }) => {
         fetchBrands();
     }, []);
 
-    // Function to transform brands data before submitting
-    const transformBrandsForSubmit = (brandsArray) => {
-        return brandsArray.map(brand => brand.id || brand._id);
-    };
-
     // Render the form
     return (
         <div className="space-y-6">
@@ -295,12 +290,14 @@ const ExperienceAvailability = ({ control, errors }) => {
                                     min="0"
                                     max="50"
                                     placeholder="0"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.yearsOfExperience && touchedFields?.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                 />
                             )}
                         />
-                        {errors.yearsOfExperience && <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience.message}</p>}
+                        {errors.yearsOfExperience && touchedFields?.yearsOfExperience && (
+                            <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience.message}</p>
+                        )}
                     </div>
 
                     <div>
@@ -352,10 +349,13 @@ const ExperienceAvailability = ({ control, errors }) => {
                                 placeholder="Add your specializations..."
                                 suggestions={specializationSuggestions}
                                 error={errors.specializations}
+                                touched={touchedFields?.specializations}
                             />
                         )}
                     />
-                    {errors.specializations && <p className="text-red-500 text-sm mt-1">{errors.specializations.message}</p>}
+                    {errors.specializations && touchedFields?.specializations && (
+                        <p className="text-red-500 text-sm mt-1">{errors.specializations.message}</p>
+                    )}
                 </div>
 
                 {/* Brand Dropdown - Modified to handle ObjectId transformation */}
@@ -383,12 +383,15 @@ const ExperienceAvailability = ({ control, errors }) => {
                                         }}
                                         brands={brands}
                                         error={errors.brandsWorkedWith}
+                                        touched={touchedFields?.brandsWorkedWith}
                                     />
                                 )}
                             </>
                         )}
                     />
-                    {errors.brandsWorkedWith && <p className="text-red-500 text-sm mt-1">{errors.brandsWorkedWith.message}</p>}
+                    {errors.brandsWorkedWith && touchedFields?.brandsWorkedWith && (
+                        <p className="text-red-500 text-sm mt-1">{errors.brandsWorkedWith.message}</p>
+                    )}
                 </div>
 
                 <div>
@@ -419,7 +422,9 @@ const ExperienceAvailability = ({ control, errors }) => {
                             </div>
                         )}
                     />
-                    {errors.workingDays && <p className="text-red-500 text-sm mt-1">{errors.workingDays.message}</p>}
+                    {errors.workingDays && touchedFields?.workingDays && (
+                        <p className="text-red-500 text-sm mt-1">{errors.workingDays.message}</p>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -432,12 +437,14 @@ const ExperienceAvailability = ({ control, errors }) => {
                                 <input
                                     {...field}
                                     type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.start && touchedFields?.workingHours?.start ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                 />
                             )}
                         />
-                        {errors.workingHours?.start && <p className="text-red-500 text-sm mt-1">{errors.workingHours.start.message}</p>}
+                        {errors.workingHours?.start && touchedFields?.workingHours?.start && (
+                            <p className="text-red-500 text-sm mt-1">{errors.workingHours.start.message}</p>
+                        )}
                     </div>
 
                     <div>
@@ -449,12 +456,14 @@ const ExperienceAvailability = ({ control, errors }) => {
                                 <input
                                     {...field}
                                     type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.end && touchedFields?.workingHours?.end ? 'border-red-500' : 'border-gray-300'
                                         }`}
                                 />
                             )}
                         />
-                        {errors.workingHours?.end && <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>}
+                        {errors.workingHours?.end && touchedFields?.workingHours?.end && (
+                            <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>
+                        )}
                     </div>
                 </div>
 
@@ -468,12 +477,14 @@ const ExperienceAvailability = ({ control, errors }) => {
                                 {...field}
                                 rows="4"
                                 placeholder="Describe your repair services, expertise, and what makes you unique..."
-                                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.description ? 'border-red-500' : 'border-gray-300'
+                                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.description && touchedFields?.description ? 'border-red-500' : 'border-gray-300'
                                     }`}
                             />
                         )}
                     />
-                    {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
+                    {errors.description && touchedFields?.description && (
+                        <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
+                    )}
                 </div>
             </div>
         </div>

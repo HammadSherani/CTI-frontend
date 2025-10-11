@@ -103,7 +103,7 @@ function HireRepairman() {
         <div className="mb-6 bg-white p-4 rounded-lg shadow-md">
           <div className="flex flex-wrap gap-4 items-end">
             {/* State Filter */}
-            <div className="flex-1 min-w-[200px]">
+            {/* <div className="flex-1 min-w-[200px]">
               <label htmlFor="state-filter" className="block text-sm font-medium text-gray-700 mb-2">
                 <Icon icon="mdi:map" className="inline w-4 h-4 mr-1" />
                 Filter by State/Province:
@@ -121,7 +121,7 @@ function HireRepairman() {
                   </option>
                 ))}
               </select>
-            </div>
+            </div> */}
 
             {/* City Filter */}
             <div className="flex-1 min-w-[200px]">

@@ -483,7 +483,7 @@ function EarningsReviewsPage() {
                                 setRespondingTo(null);
                                 setResponseText('');
                               }}
-                              disabled={responseText.trim().length < 10}
+                              disabled={responseText.trim().length < 3}
                               className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 disabled:opacity-50"
                             >
                               Submit

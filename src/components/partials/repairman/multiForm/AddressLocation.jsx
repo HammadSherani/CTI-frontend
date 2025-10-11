@@ -336,7 +336,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               <input
                 {...field}
                 type="text"
-                disabled
+                // disabled
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed"
                 placeholder="Auto-filled from map selection"
               />

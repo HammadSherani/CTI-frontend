@@ -7,17 +7,18 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { produce } from 'immer';
+import { toast } from 'react-toastify';
 
 // Input component for reusability
 const InputField = ({ label, name, value, onChange, type = 'text', required = false, error, ...props }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
     <input
       type={type}
       name={name}
       value={value}
       onChange={onChange}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
       required={required}
       {...props}
     />
@@ -28,12 +29,12 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
 // Select component for reusability
 const SelectField = ({ label, name, value, onChange, options }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
     <select
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
     >
       {options.map(option => (
         <option key={option.value || option} value={option.value || option}>
@@ -46,55 +47,48 @@ const SelectField = ({ label, name, value, onChange, options }) => (
 
 // Checkbox component for reusability
 const CheckboxField = ({ label, name, checked, onChange, id }) => (
-  <div className="flex items-center space-x-3">
+  <div className="flex items-center">
     <input
       type="checkbox"
       name={name}
       id={id}
       checked={checked}
       onChange={onChange}
-      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
     />
-    <label htmlFor={id} className="text-sm font-medium text-gray-700">{label}</label>
+    <label htmlFor={id} className="ml-2 text-sm text-gray-700">{label}</label>
   </div>
 );
 
-// Status Badge Component
-const StatusBadge = ({ status }) => {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800 border-green-200';
-      case 'pending': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'rejected': return 'bg-red-100 text-red-800 border-red-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
+// Image Preview Component
+const ImagePreview = ({ url, alt }) => {
+  if (!url) return null;
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${getStatusColor(status)}`}>
-      {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    <div className="mt-2">
+      <img
+        src={url}
+        alt={alt}
+        className="w-32 h-32 object-cover rounded border border-gray-300"
+        onError={(e) => {
+          e.target.style.display = 'none';
+        }}
+      />
+    </div>
   );
 };
 
-// File Input component for document uploads
+// File Input component with image preview
 const FileInput = ({ label, name, onChange, accept, currentUrl }) => (
   <div>
-    <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-    {currentUrl && (
-      <div className="mb-2">
-        <a href={currentUrl} target="_blank" rel="noopener noreferrer" className="text-primary-600 hover:underline">
-          View Current {label}
-        </a>
-      </div>
-    )}
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
     <input
       type="file"
       name={name}
       onChange={onChange}
       accept={accept}
-      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
     />
+    <ImagePreview url={currentUrl} alt={label} />
   </div>
 );
 
@@ -102,7 +96,9 @@ function RepairmanEditPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
   const [errors, setErrors] = useState({});
+  const [currentStatus, setCurrentStatus] = useState('');
   const [files, setFiles] = useState({
     profilePhoto: null,
     nationalIdOrPassportScan: null,
@@ -118,7 +114,6 @@ function RepairmanEditPage() {
     name: '',
     email: '',
     phone: '',
-    status: '',
     isActive: false,
     repairmanProfile: {
       workingHours: { start: '', end: '' },
@@ -160,11 +155,12 @@ function RepairmanEditPage() {
     { value: 'Female', label: 'Female' },
     { value: 'Other', label: 'Other' }
   ], []);
+
   const statusOptions = useMemo(() => [
-    { value: '', label: 'Select Status' },
     { value: 'pending', label: 'Pending' },
     { value: 'approved', label: 'Approved' },
-    { value: 'rejected', label: 'Rejected' }
+    { value: 'blocked', label: 'Blocked' },
+    { value: 'suspended', label: 'Suspended' }
   ], []);
 
   const validateForm = useCallback(() => {
@@ -184,12 +180,12 @@ function RepairmanEditPage() {
       });
       const repairman = response.data.data.repairman;
       setData(repairman);
+      setCurrentStatus(repairman.status || 'pending');
       setFormData(produce(initialFormData, draft => {
         Object.assign(draft, {
           name: repairman.name || '',
           email: repairman.email || '',
           phone: repairman.phone || '',
-          status: repairman.status || '',
           isActive: repairman.isActive || false,
           repairmanProfile: {
             ...draft.repairmanProfile,
@@ -279,6 +275,29 @@ function RepairmanEditPage() {
     }));
   }, []);
 
+  const handleStatusChange = useCallback((e) => {
+    setCurrentStatus(e.target.value);
+  }, []);
+
+  const handleStatusUpdate = useCallback(async () => {
+    try {
+      setUpdatingStatus(true);
+      await axiosInstance.put(`/admin/repairman/${id}/status`, {
+        status: currentStatus
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      // alert('Status updated successfully!');
+      toast.success('Status updated successfully!');
+      await fetchRepairMan();
+    } catch (error) {
+      handleError(error);
+      alert('Failed to update status');
+    } finally {
+      setUpdatingStatus(false);
+    }
+  }, [currentStatus, id, token, fetchRepairMan]);
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -286,22 +305,17 @@ function RepairmanEditPage() {
     try {
       setSaving(true);
       const formDataToSend = new FormData();
-      
-      // Append form data
+
       formDataToSend.append('name', formData.name);
       formDataToSend.append('email', formData.email);
       formDataToSend.append('phone', formData.phone);
-      formDataToSend.append('status', formData.status);
-      formDataToSend.append('isActive', formData.isActive);
-      
-      // Append repairmanProfile data
+
       const profileData = {
         ...formData.repairmanProfile,
         dob: formData.repairmanProfile.dob ? new Date(formData.repairmanProfile.dob).toISOString() : null
       };
       formDataToSend.append('repairmanProfile', JSON.stringify(profileData));
 
-      // Append files
       if (files.profilePhoto) formDataToSend.append('profilePhoto', files.profilePhoto);
       if (files.nationalIdOrPassportScan) formDataToSend.append('nationalIdOrPassportScan', files.nationalIdOrPassportScan);
       if (files.shopPhoto) formDataToSend.append('shopPhoto', files.shopPhoto);
@@ -329,7 +343,7 @@ function RepairmanEditPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
@@ -340,7 +354,6 @@ function RepairmanEditPage() {
         <div className="text-center">
           <Icon icon="mdi:alert-circle" className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-800">No Data Found</h2>
-          <p className="text-gray-600">Unable to load repairman profile</p>
         </div>
       </div>
     );
@@ -348,69 +361,62 @@ function RepairmanEditPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8 flex items-center justify-between">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-6 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Edit Repairman Profile</h1>
-            <p className="text-gray-600 mt-1">Update repairman information and settings</p>
+            <h1 className="text-2xl font-bold text-gray-900">Edit Repairman</h1>
+            <p className="text-sm text-gray-600 mt-1">Update repairman information</p>
           </div>
           <button
             onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+            className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 flex items-center gap-2"
           >
             <Icon icon="mdi:arrow-left" className="w-4 h-4" />
-            <span>Back</span>
+            Back
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Status Management - Separate Section */}
-          <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-primary-500">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:shield-check" className="w-6 h-6 mr-2 text-primary-600" />
-              Status Management
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Current Status</label>
-                <div className="flex items-center space-x-3 mb-4">
-                  <StatusBadge status={formData.status} />
-                  <span className="text-sm text-gray-500">
-                    ({formData.isActive ? 'Active' : 'Inactive'})
-                  </span>
-                </div>
-                <SelectField 
-                  label="Change Status" 
-                  name="status" 
-                  value={formData.status} 
-                  onChange={handleInputChange} 
-                  options={statusOptions} 
-                />
-              </div>
-              <div className="flex flex-col justify-center">
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <CheckboxField 
-                    label="Account Active Status" 
-                    name="isActive" 
-                    id="isActive" 
-                    checked={formData.isActive} 
-                    onChange={handleInputChange} 
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Toggle to activate/deactivate the repairman account
-                  </p>
-                </div>
-              </div>
+        {/* Status Update Section */}
+        <div className="bg-white rounded-lg shadow p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Status</h3>
+          <div className="flex items-end gap-4">
+            <div className="flex-1">
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Select Status
+              </label>
+              <select
+                id="status"
+                name="status"
+                value={currentStatus}
+                onChange={handleStatusChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                {statusOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
+            <button
+              type="button"
+              onClick={handleStatusUpdate}
+              disabled={updatingStatus}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2"
+            >
+              {updatingStatus && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
+              {updatingStatus ? 'Updating...' : 'Update Status'}
+            </button>
           </div>
+        </div>
 
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:account-settings" className="w-6 h-6 mr-2 text-green-600" />
-              Basic Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Basic Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <InputField label="Name" name="name" value={formData.name} onChange={handleInputChange} required error={errors.name} />
               <InputField label="Email" name="email" type="email" value={formData.email} onChange={handleInputChange} required error={errors.email} />
               <InputField label="Phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required error={errors.phone} />
@@ -418,51 +424,42 @@ function RepairmanEditPage() {
           </div>
 
           {/* Personal Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-purple-600" />
-              Personal Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField label="Full Name" name="repairmanProfile.fullName" value={formData.repairmanProfile.fullName} onChange={handleInputChange} />
               <InputField label="Father's Name" name="repairmanProfile.fatherName" value={formData.repairmanProfile.fatherName} onChange={handleInputChange} />
-              <InputField label="National ID/CNIC" name="repairmanProfile.nationalIdOrCitizenNumber" value={formData.repairmanProfile.nationalIdOrCitizenNumber} onChange={handleInputChange} />
+              <InputField label="CNIC" name="repairmanProfile.nationalIdOrCitizenNumber" value={formData.repairmanProfile.nationalIdOrCitizenNumber} onChange={handleInputChange} />
               <InputField label="Date of Birth" name="repairmanProfile.dob" type="date" value={formData.repairmanProfile.dob} onChange={handleInputChange} />
               <SelectField label="Gender" name="repairmanProfile.gender" value={formData.repairmanProfile.gender} onChange={handleInputChange} options={genderOptions} />
-              <InputField label="Email Address" name="repairmanProfile.emailAddress" type="email" value={formData.repairmanProfile.emailAddress} onChange={handleInputChange} />
+              <InputField label="Email" name="repairmanProfile.emailAddress" type="email" value={formData.repairmanProfile.emailAddress} onChange={handleInputChange} />
             </div>
           </div>
 
           {/* Contact Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:phone" className="w-6 h-6 mr-2 text-indigo-600" />
-              Contact Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <InputField label="Mobile Number" name="repairmanProfile.mobileNumber" type="tel" value={formData.repairmanProfile.mobileNumber} onChange={handleInputChange} />
-              <InputField label="WhatsApp Number" name="repairmanProfile.whatsappNumber" type="tel" value={formData.repairmanProfile.whatsappNumber} onChange={handleInputChange} />
-              <InputField label="Emergency Contact Person" name="repairmanProfile.emergencyContactPerson" value={formData.repairmanProfile.emergencyContactPerson} onChange={handleInputChange} />
-              <InputField label="Emergency Contact Number" name="repairmanProfile.emergencyContactNumber" type="tel" value={formData.repairmanProfile.emergencyContactNumber} onChange={handleInputChange} />
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField label="Mobile" name="repairmanProfile.mobileNumber" type="tel" value={formData.repairmanProfile.mobileNumber} onChange={handleInputChange} />
+              <InputField label="WhatsApp" name="repairmanProfile.whatsappNumber" type="tel" value={formData.repairmanProfile.whatsappNumber} onChange={handleInputChange} />
+              <InputField label="Emergency Contact" name="repairmanProfile.emergencyContactPerson" value={formData.repairmanProfile.emergencyContactPerson} onChange={handleInputChange} />
+              <InputField label="Emergency Number" name="repairmanProfile.emergencyContactNumber" type="tel" value={formData.repairmanProfile.emergencyContactNumber} onChange={handleInputChange} />
             </div>
           </div>
 
           {/* Shop Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:store" className="w-6 h-6 mr-2 text-orange-600" />
-              Shop Information
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Shop Information</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <InputField label="Shop Name" name="repairmanProfile.shopName" value={formData.repairmanProfile.shopName} onChange={handleInputChange} />
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
                 <textarea
                   name="repairmanProfile.fullAddress"
                   value={formData.repairmanProfile.fullAddress}
                   onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  rows={2}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500"
                 />
               </div>
               <InputField label="City" name="repairmanProfile.city" value={formData.repairmanProfile.city} onChange={handleInputChange} />
@@ -472,34 +469,31 @@ function RepairmanEditPage() {
           </div>
 
           {/* Working Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:clock" className="w-6 h-6 mr-2 text-teal-600" />
-              Working Information
-            </h3>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Working Schedule</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InputField label="Start Time" name="repairmanProfile.workingHours.start" type="time" value={formData.repairmanProfile.workingHours.start} onChange={handleInputChange} />
                 <InputField label="End Time" name="repairmanProfile.workingHours.end" type="time" value={formData.repairmanProfile.workingHours.end} onChange={handleInputChange} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">Working Days</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
                 <div className="flex flex-wrap gap-3">
                   {weekDays.map(day => (
-                    <label key={day} className="flex items-center space-x-2 cursor-pointer">
+                    <label key={day} className="flex items-center cursor-pointer">
                       <input
                         type="checkbox"
                         checked={formData.repairmanProfile.workingDays.includes(day)}
                         onChange={() => handleWorkingDaysChange(day)}
-                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                       />
-                      <span className="text-sm text-gray-700">{day}</span>
+                      <span className="ml-2 text-sm text-gray-700">{day}</span>
                     </label>
                   ))}
                 </div>
               </div>
               <CheckboxField
-                label="Pickup Service Available"
+                label="Pickup Service"
                 name="repairmanProfile.pickupService"
                 id="pickupService"
                 checked={formData.repairmanProfile.pickupService}
@@ -509,15 +503,12 @@ function RepairmanEditPage() {
           </div>
 
           {/* Professional Information */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:trophy" className="w-6 h-6 mr-2 text-yellow-600" />
-              Professional Information
-            </h3>
-            <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Professional Details</h3>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <InputField
-                  label="Years of Experience"
+                  label="Experience (Years)"
                   name="repairmanProfile.yearsOfExperience"
                   type="number"
                   value={formData.repairmanProfile.yearsOfExperience}
@@ -525,39 +516,35 @@ function RepairmanEditPage() {
                   min="0"
                 />
                 <InputField
-                  label="Specializations"
+                  label="Specializations (comma separated)"
                   value={formData.repairmanProfile.specializations.join(', ')}
                   onChange={(e) => handleSpecializationChange(e.target.value)}
-                  placeholder="e.g., iPhone, Samsung, Android"
+                  placeholder="iPhone, Samsung, Android"
                 />
               </div>
               <InputField
-                label="Brands Worked With"
+                label="Brands (comma separated)"
                 value={formData.repairmanProfile.brandsWorkedWith.join(', ')}
                 onChange={(e) => handleBrandsChange(e.target.value)}
-                placeholder="e.g., Apple, Samsung, Huawei"
+                placeholder="Apple, Samsung, Huawei"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
                   name="repairmanProfile.description"
                   value={formData.repairmanProfile.description}
                   onChange={handleInputChange}
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                  placeholder="Brief description about services and expertise..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500"
                 />
               </div>
             </div>
           </div>
 
           {/* Documents */}
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <h3 className="text-xl font-semibold text-gray-900 mb-6 flex items-center">
-              <Icon icon="mdi:folder" className="w-6 h-6 mr-2 text-red-600" />
-              Documents
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Documents</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FileInput
                 label="Profile Photo"
                 name="repairmanProfile.profilePhoto"
@@ -566,7 +553,7 @@ function RepairmanEditPage() {
                 currentUrl={formData.repairmanProfile.profilePhoto}
               />
               <FileInput
-                label="National ID/Passport Scan"
+                label="CNIC/Passport"
                 name="repairmanProfile.nationalIdOrPassportScan"
                 onChange={handleFileChange}
                 accept="image/*"
@@ -580,27 +567,23 @@ function RepairmanEditPage() {
                 currentUrl={formData.repairmanProfile.shopPhoto}
               />
               <FileInput
-                label="Utility Bill/Shop Proof"
+                label="Utility Bill"
                 name="repairmanProfile.utilityBillOrShopProof"
                 onChange={handleFileChange}
                 accept="image/*"
                 currentUrl={formData.repairmanProfile.utilityBillOrShopProof}
               />
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-2">Certifications</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Certifications</label>
                 {formData.repairmanProfile.certifications.length > 0 && (
-                  <div className="mb-2">
-                    <p className="text-sm text-gray-600">Current Certifications:</p>
+                  <div className="mb-2 flex flex-wrap gap-2">
                     {formData.repairmanProfile.certifications.map((url, index) => (
-                      <a
+                      <img
                         key={index}
-                        href={url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-primary-600 hover:underline block"
-                      >
-                        Certification {index + 1}
-                      </a>
+                        src={url}
+                        alt={`Certification ${index + 1}`}
+                        className="w-24 h-24 object-cover rounded border border-gray-300"
+                      />
                     ))}
                   </div>
                 )}
@@ -610,27 +593,28 @@ function RepairmanEditPage() {
                   onChange={handleFileChange}
                   accept="image/*"
                   multiple
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
                 />
               </div>
             </div>
           </div>
 
-          <div className="flex justify-end space-x-4">
+          {/* Submit Buttons */}
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className={`px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-primary-400 disabled:cursor-not-allowed flex items-center space-x-2 ${saving ? 'opacity-50' : ''}`}
+              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2"
             >
               {saving && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
-              <span>{saving ? 'Saving...' : 'Save Changes'}</span>
+              {saving ? 'Saving...' : 'Save Changes'}
             </button>
           </div>
         </form>
