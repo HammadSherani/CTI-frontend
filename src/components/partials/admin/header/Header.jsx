@@ -26,6 +26,7 @@ function Header() {
     { name: "Models", path: "/admin/models", icon: "mdi:clipboard-list-outline" },
     { name: "Repair Man", path: "/admin/repair-man", icon: "mdi:clipboard-list-outline" },
     { name: "Job Board", path: "/admin/job-board", icon: "mdi:clipboard-list-outline" },
+    { name: "KYC Management", path: "/admin/kyc-management", icon: "mdi:clipboard-list-outline" },
 
     // { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
     // { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },

@@ -161,7 +161,7 @@ function ForgotPassword() {
                   </div>
                 </button>
                 
-                <Link href="/login">
+                <Link href="/auth/login">
                   <button className="w-full py-4 font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-[1.02] transition-all duration-200">
                     <div className="flex items-center justify-center">
                       <Icon icon="mdi:arrow-left" className="mr-2 text-xl" />
