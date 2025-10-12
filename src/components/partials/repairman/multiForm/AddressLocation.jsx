@@ -37,7 +37,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
   useEffect(() => {
     if (isLoaded && mapRef.current && !map) {
       const initialMap = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 24.8607, lng: 67.0011 }, 
+        center: { lat: 24.8607, lng: 67.0011 },
         zoom: 12,
         styles: [
           {
@@ -78,7 +78,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           }
 
           const place = places[0];
-          
+
           // Create new marker
           const newMarker = new window.google.maps.Marker({
             position: place.geometry.location,
@@ -105,7 +105,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
       initialMap.addListener("click", (event) => {
         const lat = event.latLng.lat();
         const lng = event.latLng.lng();
-        
+
         // Clear existing marker
         if (marker) {
           marker.setMap(null);
@@ -139,7 +139,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
     let city = '';
     let district = '';
     let zipCode = '';
-    
+
     addressComponents.forEach(component => {
       const types = component.types;
       if (types.includes('locality')) {
@@ -179,7 +179,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
     let city = '';
     let district = '';
     let zipCode = '';
-    
+
     addressComponents.forEach(component => {
       const types = component.types;
       if (types.includes('locality')) {
@@ -227,9 +227,8 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
                 {...field}
                 type="text"
                 placeholder="Your shop name"
-                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                  errors.shopName ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.shopName ? 'border-red-500' : 'border-gray-300'
+                  }`}
               />
             )}
           />
@@ -265,7 +264,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
         <label className="block text-sm font-medium text-gray-700">
           Select Location on Map
         </label>
-        <div 
+        <div
           ref={mapRef}
           className="w-full h-96 border border-gray-300 rounded-lg"
           style={{ minHeight: '400px' }}
@@ -285,7 +284,7 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
           </p>
         )}
         {currentAddress && currentAddress.coordinates && (
-          <p className="text-sm text-primary-600 mt-1">
+          <p className="text-sm hidden text-primary-600 mt-1">
             <span className='font-bold'>Coordinates</span>: [{currentAddress.coordinates[0].toFixed(6)}, {currentAddress.coordinates[1].toFixed(6)}]
           </p>
         )}
@@ -308,6 +307,10 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               />
             )}
           />
+          {errors?.city?.message && (
+            <p className="text-red-500 text-sm">{errors.city.message}</p>
+          )}
+
         </div>
 
         <div>
@@ -325,9 +328,13 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               />
             )}
           />
+
+          {errors?.district?.message && (
+            <p className="text-red-500 text-sm">{errors.district.message}</p>
+          )}
         </div>
 
-        <div>
+        <div className='sm:col-span-2'>
           <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
           <Controller
             name="zipCode"
@@ -337,14 +344,18 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
                 {...field}
                 type="text"
                 // disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed"
-                placeholder="Auto-filled from map selection"
+                className="w-full border border-gray-300 rounded-lg px-4 py-3  "
+                placeholder="Entter Zip Code"
               />
             )}
           />
+
+          {errors?.zipCode?.message && (
+            <p className="text-red-500 text-sm">{errors.zipCode.message}</p>
+          )}
         </div>
 
-        <div>
+        <div className='hidden'>
           <label className="block text-sm font-medium text-gray-700 mb-2">Coordinates</label>
           <input
             type="text"
@@ -364,16 +375,20 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               <textarea
                 {...field}
                 rows="3"
-                disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed"
+                // disabled
+                className="w-full border border-gray-300 rounded-lg px-4 py-3  "
                 placeholder="Complete address will be auto-filled from map selection"
               />
             )}
           />
+
+           {errors?.fullAddress?.message && (
+            <p className="text-red-500 text-sm">{errors.fullAddress.message}</p>
+          )}
         </div>
       </div>
 
-      
+
     </div>
   );
 };

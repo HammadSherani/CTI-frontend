@@ -46,7 +46,6 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
         console.log('Chats data:', chats);
     }, [chats, unreadCounts]);
 
-    // Auto-join all available chats for inbox notifications
     useEffect(() => {
         if (socket && connected && chats && chats.length > 0) {
             console.log('Auto-joining all chats for inbox notifications');
@@ -72,7 +71,6 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
         }
     }, [socket, connected, chats, joinChat, leaveChat]);
 
-    // Real-time socket events for chat list updates
     useEffect(() => {
         if (socket && connected) {
             console.log('Setting up ChatInbox socket listeners');

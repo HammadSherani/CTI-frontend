@@ -42,7 +42,6 @@ const ChatView = ({ chat, onBack }) => {
 
     const chatMessages = messages[chat.id] || [];
 
-    // Auto-join chat when selected
     useEffect(() => {
         if (chat.id && connected) {
             console.log('Auto-joining chat:', chat.id);
@@ -102,20 +101,42 @@ const ChatView = ({ chat, onBack }) => {
         setSending(true);
 
         try {
-            console.log('=== Send Message Debug ===');
-            console.log('Connected:', connected);
-            console.log('Socket exists:', !!socket);
-            console.log('Chat ID:', chat.id);
-            console.log('Will use socket:', !!(connected && socket));
+            // console.log('=== Send Message Debug ===');
+            // console.log('Connected:', connected);
+            // console.log('Socket exists:', !!socket);
+            // console.log('Chat ID:', chat.id);
+            // console.log('Will use socket:', !!(connected && socket));
 
             if (connected && socket) {
                 console.log('Using socket to send message');
 
                 if (selectedFile) {
                     const formData = new FormData();
-                    formData.append('content', inputText.trim());
+                    const trimmedText = inputText.trim();
+
+                    formData.append('content', trimmedText);
                     formData.append('media', selectedFile);
-                    formData.append('messageType', selectedFile.type.startsWith('image/') ? 'image' : 'file');
+
+                    let messageType;
+                    if (trimmedText && selectedFile) {
+                        messageType = 'mixed';
+                    } else if (selectedFile.type.startsWith('image/')) {
+                        messageType = 'image';
+                    } else {
+                        messageType = 'file';
+                    }
+
+                    formData.append('messageType', messageType);
+
+                    // Debug logs
+                    console.log("this is content:", formData.get('content'));
+                    console.log("this is type:", formData.get('messageType'));
+                    console.log("this is media:", formData.get('media'));
+
+                    // Or log all
+                    for (let [key, value] of formData.entries()) {
+                        console.log(`${key}:`, value);
+                    }
 
                     await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
                         headers: {
@@ -123,13 +144,12 @@ const ChatView = ({ chat, onBack }) => {
                             'Content-Type': 'multipart/form-data'
                         },
                     });
+
+                    socketSendMessage(chat.id, formData, formData.get('messageType'));
                 } else {
-                    socketSendMessage(
-                        chat.id,
-                        inputText.trim(),
-                        'text'
-                    );
+                    socketSendMessage(chat.id, inputText.trim(), 'text');
                 }
+
             } else {
                 console.log('Using HTTP API fallback');
                 const messageData = {
@@ -206,7 +226,7 @@ const ChatView = ({ chat, onBack }) => {
                             </span>
                         </div>
                     </div>
-                    
+
                     <div className="flex items-center gap-2">
                         {/* Quotation button - only show for repairman */}
                         {user?.role === 'repairman' && (
@@ -265,23 +285,23 @@ const ChatView = ({ chat, onBack }) => {
                                             }`}
                                     >
                                         {/* Media rendering */}
-                                        {message.media && (
+                                        {message?.mediaUrl && (
                                             <>
-                                                {message.media.type === 'image' && (
+                                                {message?.messageType === 'image' && (
                                                     <img
-                                                        src={message.media.url}
-                                                        alt={message.media.name}
+                                                        src={message.mediaUrl}
+                                                        alt={message.mediaUrl}
                                                         className="max-w-full h-auto rounded-md mb-1"
                                                     />
                                                 )}
-                                                {message.media.type === 'video' && (
-                                                    <video
-                                                        src={message.media.url}
-                                                        controls
+                                                {message?.messageType === 'mixed' && (
+                                                    <img
+                                                        src={message.mediaUrl}
+                                                        alt={message.mediaUrl}
                                                         className="max-w-full h-auto rounded-md mb-1"
                                                     />
                                                 )}
-                                                {message.media.type === 'file' && (
+                                                {/* {message.media.type === 'file' && (
                                                     <a
                                                         href={message.media.url}
                                                         download={message.media.name}
@@ -289,7 +309,7 @@ const ChatView = ({ chat, onBack }) => {
                                                     >
                                                         📎 {message.media.name}
                                                     </a>
-                                                )}
+                                                )} */}
                                             </>
                                         )}
 

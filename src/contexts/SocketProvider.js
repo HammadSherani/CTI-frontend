@@ -25,7 +25,6 @@ export const SocketProvider = ({ children }) => {
         reconnectionDelay: 1000,
       });
 
-      // Connection events
       newSocket.on('connect', () => {
         console.log('Socket connected:', newSocket.id);
         setConnected(true);
@@ -41,7 +40,6 @@ export const SocketProvider = ({ children }) => {
         console.log('Server confirmation:', data);
       });
 
-      // Listen for new messages
       newSocket.on('new_message', (messageData) => {
         console.log('=== Socket Message Debug ===');
         console.log('Raw messageData:', messageData);
@@ -71,7 +69,6 @@ export const SocketProvider = ({ children }) => {
         }));
       });
 
-      // Listen for chat join confirmations
       newSocket.on('chat_joined', (data) => {
         console.log('Successfully joined chat:', data.chatId);
         console.log('Chat info:', data.chatInfo);
