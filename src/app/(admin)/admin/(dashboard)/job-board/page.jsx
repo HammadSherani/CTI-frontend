@@ -70,12 +70,12 @@ function JobBoardPage() {
 
     const fetchRepairmen = async () => {
         try {
-            const { data } = await axiosInstance.get('/admin/users?role=repairman&status=approved', {
+            const { data } = await axiosInstance.get('/admin/repairman', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            setRepairmen(data.data || []);
+            setRepairmen(data.data.repairmans || []);
         } catch (error) {
             console.error('Error fetching repairmen:', error);
             toast.error('Failed to load repairmen');
