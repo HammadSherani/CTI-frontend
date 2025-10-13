@@ -16,7 +16,7 @@ export const SocketProvider = ({ children }) => {
   useEffect(() => {
     if (token && user) {
       console.log('Connecting socket for user:', user.name);
-      
+
       const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
         auth: { token },
         autoConnect: true,
@@ -43,9 +43,9 @@ export const SocketProvider = ({ children }) => {
       newSocket.on('new_message', (messageData) => {
         console.log('=== Socket Message Debug ===');
         console.log('Raw messageData:', messageData);
-        console.log('messageData.chatId:', messageData.chatId);
-        console.log('messageData keys:', Object.keys(messageData));
-        
+        console.log('messageType:', messageData.messageType);
+        console.log('quotationData:', messageData.quotationData); // ✅ Add this
+
         dispatch(addMessage({
           chatId: messageData.chatId,
           message: {
@@ -58,6 +58,8 @@ export const SocketProvider = ({ children }) => {
             timestamp: messageData.timestamp,
             mediaUrl: messageData.mediaUrl,
             fileName: messageData.fileName,
+            quotationId: messageData.quotationId,        // ✅ Add
+            quotationData: messageData.quotationData,    // ✅ Add
             status: 'delivered',
             user: {
               _id: messageData.senderId,
