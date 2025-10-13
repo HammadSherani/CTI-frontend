@@ -9,25 +9,23 @@ import axiosInstance from '@/config/axiosInstance';
 import {
     setMessages,
     clearSelectedFile,
-    setSelectedFile
+    setSelectedFile,
+    prependMessages
 } from '@/store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
 import QuotationForm from './QuotationForm';
 import QuotationMessage from './QuotationMessage';
 
-const LoadingSpinner = () => (
-    <div className="flex items-center justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-    </div>
-);
-
 const ChatView = ({ chat, onBack }) => {
     const dispatch = useDispatch();
     const messagesEndRef = useRef(null);
+    const messagesContainerRef = useRef(null);
     const fileInputRef = useRef(null);
-    const [loading, setLoading] = useState(false);
     const [sending, setSending] = useState(false);
     const [showQuotationForm, setShowQuotationForm] = useState(false);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [oldestMessageId, setOldestMessageId] = useState(null);
 
     const { token, user } = useSelector((state) => state.auth);
     const { messages, inputText, selectedFile, setInputText: updateInputText } = useChat();
@@ -54,32 +52,91 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [chat.id, connected, joinChat, leaveChat]);
 
-    const fetchMessages = useCallback(async () => {
+    const fetchMessages = useCallback(async (before = null) => {
         if (!token || !chat.id) return;
+        if (before) setLoadingMore(true);
 
-        setLoading(true);
         try {
-            const { data } = await axiosInstance.get(`/chat/${chat.id}/messages`, {
+            const url = before
+                ? `/chat/${chat.id}/messages?limit=20&before=${before}`
+                : `/chat/${chat.id}/messages?limit=20`;
+
+            const { data } = await axiosInstance.get(url, {
                 headers: { Authorization: `Bearer ${token}` },
             });
-            dispatch(setMessages({ chatId: chat.id, messages: data.messages || [] }));
+
+            console.log('📦 API Response:', data); // ⭐ Add this
+            console.log('hasMore:', data.hasMore);
+            console.log('oldestMessageId:', data.oldestMessageId);
+
+            if (before) {
+                dispatch(prependMessages({ // ✅ New action
+                    chatId: chat.id,
+                    messages: data.messages
+                }));
+            } else {
+                dispatch(setMessages({
+                    chatId: chat.id,
+                    messages: data.messages || []
+                }));
+            }
+
+            setHasMore(data.hasMore);
+            setOldestMessageId(data.oldestMessageId);
         } catch (error) {
             console.error("Failed to fetch messages:", error);
             handleError(error);
         } finally {
-            setLoading(false);
+            setLoadingMore(false);
         }
-    }, [token, chat.id, dispatch]);
+    }, [token, chat.id, dispatch]); // ✅ chatMessages removed
 
+    // Initial fetch
     useEffect(() => {
         fetchMessages();
-    }, [fetchMessages]);
+    }, [chat.id]);
 
+    // Scroll to bottom on initial load and new messages
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (messagesEndRef.current && !loadingMore) {
+            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
         }
-    }, [chatMessages]);
+    }, [chatMessages.length]);
+
+    // Handle scroll to load more
+    const handleScroll = useCallback(() => {
+        console.log('🔍 Scroll event fired');
+        console.log('Container ref exists:', !!messagesContainerRef.current);
+        console.log('loadingMore:', loadingMore);
+        console.log('hasMore:', hasMore);
+
+        if (!messagesContainerRef.current || loadingMore || !hasMore) {
+            console.log('❌ Early return - conditions not met');
+            return;
+        }
+
+        const { scrollTop } = messagesContainerRef.current;
+        console.log('📊 scrollTop:', scrollTop);
+        console.log('oldestMessageId:', oldestMessageId);
+
+        if (scrollTop < 50 && oldestMessageId) {
+            console.log('✅ Triggering load more!');
+
+            // ⭐ Yeh missing hai - add karo:
+            const previousScrollHeight = messagesContainerRef.current.scrollHeight;
+
+            fetchMessages(oldestMessageId).then(() => {
+                requestAnimationFrame(() => {
+                    if (messagesContainerRef.current) {
+                        const newScrollHeight = messagesContainerRef.current.scrollHeight;
+                        messagesContainerRef.current.scrollTop = newScrollHeight - previousScrollHeight;
+                    }
+                });
+            });
+        } else {
+            console.log('❌ Not loading - scrollTop:', scrollTop, 'or no oldestMessageId');
+        }
+    }, [loadingMore, hasMore, oldestMessageId, fetchMessages]);
 
     const handleFileSelect = useCallback((e) => {
         const file = e.target.files[0];
@@ -90,7 +147,6 @@ const ChatView = ({ chat, onBack }) => {
 
     const handleQuotationSuccess = useCallback((quotation) => {
         console.log('Quotation sent successfully:', quotation);
-        // Optionally refresh messages to show the quotation
         fetchMessages();
     }, [fetchMessages]);
 
@@ -101,12 +157,6 @@ const ChatView = ({ chat, onBack }) => {
         setSending(true);
 
         try {
-            // console.log('=== Send Message Debug ===');
-            // console.log('Connected:', connected);
-            // console.log('Socket exists:', !!socket);
-            // console.log('Chat ID:', chat.id);
-            // console.log('Will use socket:', !!(connected && socket));
-
             if (connected && socket) {
                 console.log('Using socket to send message');
 
@@ -128,24 +178,12 @@ const ChatView = ({ chat, onBack }) => {
 
                     formData.append('messageType', messageType);
 
-                    // Debug logs
-                    console.log("this is content:", formData.get('content'));
-                    console.log("this is type:", formData.get('messageType'));
-                    console.log("this is media:", formData.get('media'));
-
-                    // Or log all
-                    for (let [key, value] of formData.entries()) {
-                        console.log(`${key}:`, value);
-                    }
-
                     await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
                         headers: {
                             Authorization: `Bearer ${token}`,
                             'Content-Type': 'multipart/form-data'
                         },
                     });
-
-                    socketSendMessage(chat.id, formData, formData.get('messageType'));
                 } else {
                     socketSendMessage(chat.id, inputText.trim(), 'text');
                 }
@@ -228,7 +266,6 @@ const ChatView = ({ chat, onBack }) => {
                     </div>
 
                     <div className="flex items-center gap-2">
-                        {/* Quotation button - only show for repairman */}
                         {user?.role === 'repairman' && (
                             <Icon
                                 icon="mdi:receipt"
@@ -238,30 +275,36 @@ const ChatView = ({ chat, onBack }) => {
                                 title="Create Quotation"
                             />
                         )}
-                        <Icon
-                            icon="mdi:refresh"
-                            width={20}
-                            className="cursor-pointer hover:opacity-70"
-                            onClick={fetchMessages}
-                        />
                     </div>
                 </div>
 
                 {/* Messages */}
                 <div
+                    ref={messagesContainerRef}
+                    onScroll={handleScroll}
                     className="flex-1 overflow-y-auto p-4 bg-gray-50"
                     style={{ overscrollBehavior: 'contain' }}
                 >
-                    {loading ? (
-                        <LoadingSpinner />
-                    ) : chatMessages.length === 0 ? (
+                    {/* Load more indicator */}
+                    {loadingMore && (
+                        <div className="flex justify-center py-2">
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
+                        </div>
+                    )}
+
+                    {!loadingMore && hasMore && chatMessages.length > 0 && (
+                        <div className="text-center py-2 text-xs text-gray-400">
+                            Scroll up to load more
+                        </div>
+                    )}
+
+                    {chatMessages.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             <Icon icon="mdi:chat-outline" width={48} className="mx-auto mb-2 opacity-50" />
                             <p>Start your conversation with {chat.name || 'this user'}</p>
                         </div>
                     ) : (
                         chatMessages.map((message) => {
-                            // Check if message is a quotation
                             if (message.messageType === 'quotation' || message.quotationData) {
                                 return (
                                     <QuotationMessage
@@ -272,7 +315,6 @@ const ChatView = ({ chat, onBack }) => {
                                 );
                             }
 
-                            // Regular message rendering
                             return (
                                 <div
                                     key={message.id || message._id}
@@ -284,7 +326,6 @@ const ChatView = ({ chat, onBack }) => {
                                             : "bg-gray-200 text-gray-800"
                                             }`}
                                     >
-                                        {/* Media rendering */}
                                         {message?.mediaUrl && (
                                             <>
                                                 {message?.messageType === 'image' && (
@@ -301,24 +342,13 @@ const ChatView = ({ chat, onBack }) => {
                                                         className="max-w-full h-auto rounded-md mb-1"
                                                     />
                                                 )}
-                                                {/* {message.media.type === 'file' && (
-                                                    <a
-                                                        href={message.media.url}
-                                                        download={message.media.name}
-                                                        className="text-primary-500 underline block mb-1"
-                                                    >
-                                                        📎 {message.media.name}
-                                                    </a>
-                                                )} */}
                                             </>
                                         )}
 
-                                        {/* Message content */}
                                         {message.content || message.text ? (
                                             <p className="text-sm">{message.content || message.text}</p>
                                         ) : null}
 
-                                        {/* Timestamp */}
                                         <span className="text-xs text-gray-400 mt-1 block">
                                             {new Date(message.timestamp || message.createdAt).toLocaleTimeString([], {
                                                 hour: "2-digit",
@@ -397,7 +427,6 @@ const ChatView = ({ chat, onBack }) => {
                 </div>
             </div>
 
-            {/* Quotation Form Modal */}
             {showQuotationForm && (
                 <QuotationForm
                     chatId={chat.id}

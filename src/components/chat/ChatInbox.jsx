@@ -7,8 +7,6 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import {
     loadUserChats,
-    updateChatLastMessage,
-    incrementUnreadCount,
     resetUnreadCount
 } from '../../store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
@@ -20,7 +18,6 @@ const LoadingSpinner = () => (
 );
 
 const ChatInbox = ({ onSelectChat, onClose }) => {
-    // Direct Redux selectors instead of useChat hook for better debugging
     const chats = useSelector((state) => state.chat.chats);
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
     const selectedChat = useSelector((state) => state.chat.selectedChat);
@@ -37,7 +34,6 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
         leaveChat
     } = useSocket();
 
-    // Debug re-renders
     useEffect(() => {
         console.log('=== ChatInbox Re-render Check ===');
         console.log('Chats length:', chats?.length);
@@ -58,7 +54,6 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 }
             });
 
-            // Cleanup function to leave all chats when component unmounts
             return () => {
                 console.log('Leaving all chats - ChatInbox cleanup');
                 chats.forEach(chat => {
@@ -75,43 +70,6 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
         if (socket && connected) {
             console.log('Setting up ChatInbox socket listeners');
 
-            // Listen for new messages to update chat list
-            const handleNewMessage = (messageData) => {
-                console.log('=== Socket Message Received ===');
-                console.log('Message received for chatId:', messageData.chatId);
-                console.log('Currently selected chat:', selectedChat?.id);
-                console.log('Before dispatch - chats length:', chats?.length);
-                console.log('Before dispatch - unreadCounts:', unreadCounts);
-
-                // Only update if user is NOT currently in this specific chat
-                if (!selectedChat || selectedChat.id !== messageData.chatId) {
-                    console.log('✅ Updating chat list - user not in this chat');
-
-                    // Dispatch updateChatLastMessage
-                    dispatch(updateChatLastMessage({
-                        chatId: messageData.chatId,
-                        lastMessage: {
-                            content: messageData.content,
-                            senderType: messageData.senderType,
-                            timestamp: messageData.timestamp,
-                            messageType: messageData.messageType
-                        }
-                    }));
-
-                    // Update unread count if message is not from current user
-                    if (messageData.senderType !== user?.role) {
-                        console.log('Incrementing unread count for chatId:', messageData.chatId);
-                        dispatch(incrementUnreadCount({
-                            chatId: messageData.chatId
-                        }));
-                    }
-
-                    console.log('Actions dispatched successfully');
-                } else {
-                    console.log('❌ NOT updating chat list - user is currently in this chat');
-                }
-            };
-
             // Listen for messages marked as read
             const handleMessagesRead = (data) => {
                 console.log('ChatInbox: Messages marked as read:', data);
@@ -120,16 +78,14 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 }));
             };
 
-            socket.on('new_message', handleNewMessage);
             socket.on('messages_read', handleMessagesRead);
 
             return () => {
                 console.log('Cleaning up ChatInbox socket listeners');
-                socket.off('new_message', handleNewMessage);
                 socket.off('messages_read', handleMessagesRead);
             };
         }
-    }, [socket, connected, dispatch, user?.role, selectedChat]);
+    }, [socket, connected, dispatch]);
 
     const fetchChatList = useCallback(async () => {
         if (!token) return;
@@ -142,16 +98,14 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
 
             console.log('Raw chat data from API:', data.chats);
 
-            // Fix: Ensure each chat has proper id field
             const processedChats = (data.chats || []).map(chat => {
                 console.log('Processing individual chat:', chat);
                 return {
                     ...chat,
-                    id: chat.chatId // Map chatId to id for Redux compatibility
+                    id: chat.chatId
                 };
             });
 
-            // Extract unread counts from API response
             const unreadCountsFromAPI = {};
             data.chats.forEach(chat => {
                 if (chat.unreadCount > 0) {
@@ -165,7 +119,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
             dispatch(loadUserChats({
                 chats: processedChats,
                 messages: {},
-                unreadCounts: unreadCountsFromAPI // Preserve actual unread counts from backend
+                unreadCounts: unreadCountsFromAPI
             }));
         } catch (error) {
             handleError(error);
@@ -202,15 +156,8 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
             <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <div className="flex gap-4 items-center">
-                    {/* Socket connection indicator */}
                     <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
                         title={connected ? 'Connected' : 'Disconnected'} />
-                    <Icon
-                        icon="mdi:refresh"
-                        width={20}
-                        className="cursor-pointer hover:opacity-70"
-                        onClick={fetchChatList}
-                    />
                     <Icon icon="mdi:chevron-down" width={20} onClick={onClose} className="cursor-pointer" />
                 </div>
             </div>
@@ -294,7 +241,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                                 <div className="flex justify-between items-center">
                                     <p className="text-sm text-gray-700 truncate max-w-[200px]">
                                         {typeof chat?.lastMessage === 'object'
-                                            ? chat.lastMessage.content || 'Media message'
+                                            ? chat.lastMessage?.content || 'Media message'
                                             : chat?.lastMessage || 'Start a conversation...'
                                         }
                                     </p>

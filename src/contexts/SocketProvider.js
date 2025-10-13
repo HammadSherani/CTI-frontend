@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
-import { addMessage, setUserOnline, setUserOffline, markChatAsRead } from '../store/chat';
+import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList } from '../store/chat';
 
 const SocketContext = createContext();
 
@@ -69,12 +69,17 @@ export const SocketProvider = ({ children }) => {
         }));
       });
 
+      // ⭐ NEW EVENT LISTENER - Handle chat list updates
+      newSocket.on('chat_list_updated', (data) => {
+        console.log('🔥 Chat list updated:', data);
+        dispatch(updateChatList(data));
+      });
+
       newSocket.on('chat_joined', (data) => {
         console.log('Successfully joined chat:', data.chatId);
         console.log('Chat info:', data.chatInfo);
       });
 
-      // Listen for chat errors
       newSocket.on('chat_error', (error) => {
         console.error('Chat error received:', error);
       });
@@ -88,7 +93,6 @@ export const SocketProvider = ({ children }) => {
         dispatch(markChatAsRead(data.chatId));
       });
 
-      // User status events
       newSocket.on('user_online', (data) => {
         console.log('User came online:', data);
         dispatch(setUserOnline(data.userId));
@@ -99,12 +103,10 @@ export const SocketProvider = ({ children }) => {
         dispatch(setUserOffline(data.userId));
       });
 
-      // Error handling
       newSocket.on('error', (error) => {
         console.error('Socket error:', error);
       });
 
-      // Debug all socket events
       newSocket.onAny((eventName, ...args) => {
         console.log('🔥 Socket Event Received:', eventName, args);
       });
@@ -127,7 +129,6 @@ export const SocketProvider = ({ children }) => {
   const value = {
     socket,
     connected,
-    // Helper functions
     joinChat: (chatId) => {
       if (socket && connected) {
         console.log('🔥 Emitting join_chat for chatId:', chatId);

@@ -24,7 +24,7 @@ const initialState = {
     selectedChat: null,
     inputText: '',
     selectedFile: null,
-    onlineUsers: [], // Changed from Set to Array
+    onlineUsers: [],
     unreadCounts: authUser?.unreadCounts || {},
     totalUnreadCount: 0,
 };
@@ -49,7 +49,7 @@ const chatSlice = createSlice({
                 state.selectedChat = null;
                 state.inputText = '';
                 state.selectedFile = null;
-                state.onlineUsers = []; // Reset to empty array
+                state.onlineUsers = [];
             }
         },
 
@@ -98,18 +98,7 @@ const chatSlice = createSlice({
 
         addMessage: (state, action) => {
             const { chatId, message } = action.payload;
-            // console.log('=== AddMessage Reducer Debug ===');
-            // console.log('Payload chatId:', chatId);
-            // console.log('Payload chatId type:', typeof chatId);
-            // console.log('Payload message:', message);
-            // console.log('Available chats:', state.chats.map(c => ({
-            //     id: c.id,
-            //     chatId: c.chatId,
-            //     idType: typeof c.id,
-            //     chatIdType: typeof c.chatId
-            // })));
 
-            // Try both id and chatId matching
             const chatIndexById = state.chats.findIndex(c => c.id === chatId);
             const chatIndexByChatId = state.chats.findIndex(c => c.chatId === chatId);
 
@@ -122,7 +111,6 @@ const chatSlice = createSlice({
             if (chatIndex !== -1) {
                 console.log('✅ Chat found! Adding message...');
 
-                // Add message
                 if (!state.messages[chatId]) state.messages[chatId] = [];
                 state.messages[chatId].push({
                     ...message,
@@ -132,15 +120,12 @@ const chatSlice = createSlice({
 
                 console.log('Message added. Total messages now:', state.messages[chatId].length);
 
-                // Update lastMessage
                 state.chats[chatIndex].lastMessage = message.text || message.content || "Media";
                 state.chats[chatIndex].timestamp = new Date().toISOString();
 
-                // Reorder chat to top
                 const [updatedChat] = state.chats.splice(chatIndex, 1);
                 state.chats.unshift(updatedChat);
 
-                // Update unread count if chat is not selected
                 if (message.sender !== 'user' && state.selectedChat?.id !== chatId) {
                     console.log('Incrementing unread count for chatId:', chatId);
                     state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
@@ -158,7 +143,6 @@ const chatSlice = createSlice({
             const { content, chatId } = action.payload;
             const chatIndex = state.chats.findIndex(c => c.id === chatId);
 
-            // Add user message
             const userMessage = {
                 ...content,
                 sender: 'user',
@@ -175,17 +159,14 @@ const chatSlice = createSlice({
                 timestamp: new Date().toISOString(),
             });
 
-            // Update last message in chat
             if (chatIndex !== -1) {
                 state.chats[chatIndex].lastMessage = content.text || content.content || 'Media';
                 state.chats[chatIndex].timestamp = new Date().toISOString();
 
-                // Move chat to top
                 const [updatedChat] = state.chats.splice(chatIndex, 1);
                 state.chats.unshift(updatedChat);
             }
 
-            // Clear input and file
             state.inputText = '';
             state.selectedFile = null;
         },
@@ -217,12 +198,10 @@ const chatSlice = createSlice({
         setUserOnline: (state, action) => {
             const userId = action.payload;
 
-            // Add to online users array if not already present
             if (!state.onlineUsers.includes(userId)) {
                 state.onlineUsers.push(userId);
             }
 
-            // Update online status in chats
             state.chats.forEach(chat => {
                 if (chat.userId === userId) {
                     chat.online = true;
@@ -233,10 +212,8 @@ const chatSlice = createSlice({
         setUserOffline: (state, action) => {
             const userId = action.payload;
 
-            // Remove from online users array
             state.onlineUsers = state.onlineUsers.filter(id => id !== userId);
 
-            // Update online status in chats
             state.chats.forEach(chat => {
                 if (chat.userId === userId) {
                     chat.online = false;
@@ -261,7 +238,6 @@ const chatSlice = createSlice({
             const chatIndex = state.chats.findIndex(c => c.id === chatId || c.chatId === chatId);
 
             if (chatIndex !== -1) {
-                // Fix: Handle object or string
                 if (typeof lastMessage === 'object') {
                     state.chats[chatIndex].lastMessage = {
                         content: lastMessage.content,
@@ -273,7 +249,6 @@ const chatSlice = createSlice({
                     state.chats[chatIndex].lastMessage = lastMessage;
                 }
 
-                // Move chat to top
                 const [updatedChat] = state.chats.splice(chatIndex, 1);
                 state.chats.unshift(updatedChat);
             }
@@ -281,7 +256,7 @@ const chatSlice = createSlice({
 
         incrementUnreadCount: (state, action) => {
             const { chatId } = action.payload;
-            state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0);
+            state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
         },
 
         resetUnreadCount: (state, action) => {
@@ -293,6 +268,43 @@ const chatSlice = createSlice({
             const total = Object.values(state.unreadCounts).reduce((sum, count) => sum + count, 0);
             state.totalUnreadCount = total;
         },
+
+        // ⭐ NEW ACTION - Handle chat_list_updated event
+        updateChatList: (state, action) => {
+            const { chatId, lastMessage, unreadCountIncreased } = action.payload;
+            const chatIndex = state.chats.findIndex(c => c.id === chatId || c.chatId === chatId);
+
+            if (chatIndex !== -1) {
+                // Update last message
+                if (typeof lastMessage === 'object') {
+                    state.chats[chatIndex].lastMessage = {
+                        content: lastMessage.content,
+                        timestamp: lastMessage.timestamp,
+                        senderType: lastMessage.senderType,
+                        messageType: lastMessage.messageType
+                    };
+                } else {
+                    state.chats[chatIndex].lastMessage = lastMessage;
+                }
+
+                // Increment unread count if needed
+                if (unreadCountIncreased && state.selectedChat?.id !== chatId) {
+                    state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
+                }
+
+                // Move chat to top
+                const [updatedChat] = state.chats.splice(chatIndex, 1);
+                state.chats.unshift(updatedChat);
+            }
+        },
+
+        prependMessages: (state, action) => {
+            const { chatId, messages: newMessages } = action.payload;
+            if (!state.messages[chatId]) {
+                state.messages[chatId] = [];
+            }
+            state.messages[chatId] = [...newMessages, ...state.messages[chatId]];
+        }
     },
 });
 
@@ -309,6 +321,7 @@ export const {
     setMessages,
     addMessage,
     sendMessage,
+    prependMessages,
     addChat,
     removeChat,
     setUserOnline,
@@ -318,6 +331,7 @@ export const {
     updateChatLastMessage,
     incrementUnreadCount,
     resetUnreadCount,
+    updateChatList, // ⭐ Export new action
 } = chatSlice.actions;
 
 export default chatSlice.reducer;
