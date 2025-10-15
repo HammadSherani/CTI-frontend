@@ -44,7 +44,7 @@ export const SocketProvider = ({ children }) => {
         console.log('=== Socket Message Debug ===');
         console.log('Raw messageData:', messageData);
         console.log('messageType:', messageData.messageType);
-        console.log('quotationData:', messageData.quotationData); // ✅ Add this
+        console.log('quotationData:', messageData.quotationData); 
 
         dispatch(addMessage({
           chatId: messageData.chatId,
@@ -58,8 +58,8 @@ export const SocketProvider = ({ children }) => {
             timestamp: messageData.timestamp,
             mediaUrl: messageData.mediaUrl,
             fileName: messageData.fileName,
-            quotationId: messageData.quotationId,        // ✅ Add
-            quotationData: messageData.quotationData,    // ✅ Add
+            quotationId: messageData.quotationId,        
+            quotationData: messageData.quotationData,   
             status: 'delivered',
             user: {
               _id: messageData.senderId,

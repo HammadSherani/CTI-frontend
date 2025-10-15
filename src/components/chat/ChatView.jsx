@@ -16,6 +16,54 @@ import { useSocket } from '@/contexts/SocketProvider';
 import QuotationForm from './QuotationForm';
 import QuotationMessage from './QuotationMessage';
 
+// Helper function to get file icon based on file type
+const getFileIcon = (fileName, messageType) => {
+    if (!fileName) return { icon: 'mdi:file', color: 'text-gray-500' };
+    
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    
+    // Document files
+    if (['pdf'].includes(ext)) return { icon: 'mdi:file-pdf-box', color: 'text-red-500' };
+    if (['doc', 'docx'].includes(ext)) return { icon: 'mdi:file-word', color: 'text-blue-600' };
+    if (['xls', 'xlsx'].includes(ext)) return { icon: 'mdi:file-excel', color: 'text-green-600' };
+    if (['ppt', 'pptx'].includes(ext)) return { icon: 'mdi:file-powerpoint', color: 'text-orange-600' };
+    if (['txt'].includes(ext)) return { icon: 'mdi:file-document', color: 'text-gray-600' };
+    
+    // Archive files
+    if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'mdi:folder-zip', color: 'text-yellow-600' };
+    
+    // Video files
+    if (['mp4', 'avi', 'mkv', 'mov', 'wmv'].includes(ext)) return { icon: 'mdi:video', color: 'text-purple-500' };
+    
+    // Audio files
+    if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return { icon: 'mdi:music', color: 'text-pink-500' };
+    
+    // Code files
+    if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'html', 'css'].includes(ext)) {
+        return { icon: 'mdi:code-braces', color: 'text-indigo-500' };
+    }
+    
+    return { icon: 'mdi:file', color: 'text-gray-500' };
+};
+
+// Helper function to format file size
+const formatFileSize = (url) => {
+    // Agar actual size nahi hai to placeholder return karo
+    return 'File';
+};
+
+// Helper function to get file name from URL
+const getFileNameFromUrl = (url) => {
+    if (!url) return 'Unknown File';
+    try {
+        const urlParts = url.split('/');
+        const fileName = urlParts[urlParts.length - 1];
+        return decodeURIComponent(fileName);
+    } catch {
+        return 'File';
+    }
+};
+
 const ChatView = ({ chat, onBack }) => {
     const dispatch = useDispatch();
     const messagesEndRef = useRef(null);
@@ -65,12 +113,8 @@ const ChatView = ({ chat, onBack }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            console.log('📦 API Response:', data); // ⭐ Add this
-            console.log('hasMore:', data.hasMore);
-            console.log('oldestMessageId:', data.oldestMessageId);
-
             if (before) {
-                dispatch(prependMessages({ // ✅ New action
+                dispatch(prependMessages({
                     chatId: chat.id,
                     messages: data.messages
                 }));
@@ -89,40 +133,26 @@ const ChatView = ({ chat, onBack }) => {
         } finally {
             setLoadingMore(false);
         }
-    }, [token, chat.id, dispatch]); // ✅ chatMessages removed
+    }, [token, chat.id, dispatch]);
 
-    // Initial fetch
     useEffect(() => {
         fetchMessages();
     }, [chat.id]);
 
-    // Scroll to bottom on initial load and new messages
     useEffect(() => {
         if (messagesEndRef.current && !loadingMore) {
             messagesEndRef.current.scrollIntoView({ behavior: "auto" });
         }
     }, [chatMessages.length]);
 
-    // Handle scroll to load more
     const handleScroll = useCallback(() => {
-        console.log('🔍 Scroll event fired');
-        console.log('Container ref exists:', !!messagesContainerRef.current);
-        console.log('loadingMore:', loadingMore);
-        console.log('hasMore:', hasMore);
-
         if (!messagesContainerRef.current || loadingMore || !hasMore) {
-            console.log('❌ Early return - conditions not met');
             return;
         }
 
         const { scrollTop } = messagesContainerRef.current;
-        console.log('📊 scrollTop:', scrollTop);
-        console.log('oldestMessageId:', oldestMessageId);
 
         if (scrollTop < 50 && oldestMessageId) {
-            console.log('✅ Triggering load more!');
-
-            // ⭐ Yeh missing hai - add karo:
             const previousScrollHeight = messagesContainerRef.current.scrollHeight;
 
             fetchMessages(oldestMessageId).then(() => {
@@ -133,8 +163,6 @@ const ChatView = ({ chat, onBack }) => {
                     }
                 });
             });
-        } else {
-            console.log('❌ Not loading - scrollTop:', scrollTop, 'or no oldestMessageId');
         }
     }, [loadingMore, hasMore, oldestMessageId, fetchMessages]);
 
@@ -235,6 +263,13 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [handleSendMessage]);
 
+    // File download/open handler
+    const handleFileClick = useCallback((mediaUrl) => {
+        if (mediaUrl) {
+            window.open(mediaUrl, '_blank');
+        }
+    }, []);
+
     return (
         <>
             <div className="flex flex-col w-96 h-[500px] bg-white rounded-lg shadow-xl border border-gray-200">
@@ -285,7 +320,6 @@ const ChatView = ({ chat, onBack }) => {
                     className="flex-1 overflow-y-auto p-4 bg-gray-50"
                     style={{ overscrollBehavior: 'contain' }}
                 >
-                    {/* Load more indicator */}
                     {loadingMore && (
                         <div className="flex justify-center py-2">
                             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-500"></div>
@@ -305,6 +339,7 @@ const ChatView = ({ chat, onBack }) => {
                         </div>
                     ) : (
                         chatMessages.map((message) => {
+                            // Quotation messages
                             if (message.messageType === 'quotation' || message.quotationData) {
                                 return (
                                     <QuotationMessage
@@ -315,41 +350,86 @@ const ChatView = ({ chat, onBack }) => {
                                 );
                             }
 
+                            const isOwner = user.role === message.senderType;
+
                             return (
                                 <div
                                     key={message.id || message._id}
-                                    className={`flex ${user.role === message.senderType ? "justify-end" : "justify-start"} mb-2`}
+                                    className={`flex ${isOwner ? "justify-end" : "justify-start"} mb-2`}
                                 >
                                     <div
-                                        className={`max-w-[70%] p-2 rounded-lg ${user.role === message.senderType
-                                            ? "bg-primary-500 text-white"
-                                            : "bg-gray-200 text-gray-800"
-                                            }`}
+                                        className={`max-w-[70%] p-2 rounded-lg ${
+                                            isOwner
+                                                ? "bg-primary-500 text-white"
+                                                : "bg-gray-200 text-gray-800"
+                                        }`}
                                     >
-                                        {message?.mediaUrl && (
-                                            <>
-                                                {message?.messageType === 'image' && (
-                                                    <img
-                                                        src={message.mediaUrl}
-                                                        alt={message.mediaUrl}
-                                                        className="max-w-full h-auto rounded-md mb-1"
-                                                    />
-                                                )}
-                                                {message?.messageType === 'mixed' && (
-                                                    <img
-                                                        src={message.mediaUrl}
-                                                        alt={message.mediaUrl}
-                                                        className="max-w-full h-auto rounded-md mb-1"
-                                                    />
-                                                )}
-                                            </>
+                                        {/* Image Messages */}
+                                        {message?.messageType === 'image' && message?.mediaUrl && (
+                                            <img
+                                                src={message.mediaUrl}
+                                                alt="Image"
+                                                className="max-w-full h-auto rounded-md mb-1 cursor-pointer hover:opacity-90"
+                                                onClick={() => handleFileClick(message.mediaUrl)}
+                                            />
                                         )}
 
-                                        {message.content || message.text ? (
-                                            <p className="text-sm">{message.content || message.text}</p>
-                                        ) : null}
+                                        {/* Mixed Messages (Image + Text) */}
+                                        {message?.messageType === 'mixed' && message?.mediaUrl && (
+                                            <img
+                                                src={message.mediaUrl}
+                                                alt="Image"
+                                                className="max-w-full h-auto rounded-md mb-1 cursor-pointer hover:opacity-90"
+                                                onClick={() => handleFileClick(message.mediaUrl)}
+                                            />
+                                        )}
 
-                                        <span className="text-xs text-gray-400 mt-1 block">
+                                        {/* File Messages */}
+                                        {message?.messageType === 'file' && message?.mediaUrl && (
+                                            <div 
+                                                className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:opacity-90 ${
+                                                    isOwner ? 'bg-primary-600' : 'bg-white'
+                                                }`}
+                                                onClick={() => handleFileClick(message.mediaUrl)}
+                                            >
+                                                <div className="flex-shrink-0">
+                                                    <Icon 
+                                                        icon={getFileIcon(getFileNameFromUrl(message.mediaUrl), message.messageType).icon}
+                                                        width={32}
+                                                        className={getFileIcon(getFileNameFromUrl(message.mediaUrl), message.messageType).color}
+                                                    />
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className={`text-xs font-medium truncate ${
+                                                        isOwner ? 'text-white' : 'text-gray-800'
+                                                    }`}>
+                                                        {getFileNameFromUrl(message.mediaUrl)}
+                                                    </p>
+                                                    <p className={`text-xs ${
+                                                        isOwner ? 'text-gray-200' : 'text-gray-500'
+                                                    }`}>
+                                                        {formatFileSize(message.mediaUrl)}
+                                                    </p>
+                                                </div>
+                                                <Icon 
+                                                    icon="mdi:download" 
+                                                    width={20}
+                                                    className={isOwner ? 'text-white' : 'text-gray-600'}
+                                                />
+                                            </div>
+                                        )}
+
+                                        {/* Text Content */}
+                                        {(message.content || message.text) && (
+                                            <p className="text-sm whitespace-pre-wrap break-words">
+                                                {message.content || message.text}
+                                            </p>
+                                        )}
+
+                                        {/* Timestamp */}
+                                        <span className={`text-xs mt-1 block ${
+                                            isOwner ? 'text-gray-200' : 'text-gray-500'
+                                        }`}>
                                             {new Date(message.timestamp || message.createdAt).toLocaleTimeString([], {
                                                 hour: "2-digit",
                                                 minute: "2-digit"
@@ -373,7 +453,7 @@ const ChatView = ({ chat, onBack }) => {
                                 ) : selectedFile.type.startsWith('video/') ? (
                                     <Icon icon="mdi:video" width={20} className="text-purple-500" />
                                 ) : (
-                                    <Icon icon="mdi:file" width={20} className="text-gray-500" />
+                                    <Icon icon={getFileIcon(selectedFile.name).icon} width={20} className={getFileIcon(selectedFile.name).color} />
                                 )}
                                 <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
                             </div>
@@ -418,8 +498,9 @@ const ChatView = ({ chat, onBack }) => {
                             <Icon
                                 icon="mdi:send"
                                 width={20}
-                                className={`cursor-pointer transition-colors ${(inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
-                                    }`}
+                                className={`cursor-pointer transition-colors ${
+                                    (inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
+                                }`}
                                 onClick={handleSendMessage}
                             />
                         )}
