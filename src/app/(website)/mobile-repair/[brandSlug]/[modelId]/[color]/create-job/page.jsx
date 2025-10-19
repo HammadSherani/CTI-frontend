@@ -17,6 +17,7 @@ import { LocationPreferences } from './LocationPreferences';
 import { BudgetRange } from './BudgetRange';
 import Loader from '@/components/Loader';
 import { toast } from 'react-toastify';
+import handleError from '@/helper/handleError';
 
 // Yup schema (unchanged)
 const schema = yup.object().shape({
@@ -212,20 +213,13 @@ const CreateRepairJobForm = () => {
       });
 
       if (response.data.success) {
-        // alert('Repair job created successfully!');
         toast.success(response.data.message);
         router.push('/my-account');
-        // reset();
         setIsTermsAgreed(false);
       }
 
     } catch (error) {
-      console.error('Error submitting form:', error);
-      if (error.response?.data?.message) {
-        alert(`Error: ${error.response.data.message}`);
-      } else {
-        alert('Failed to create repair job. Please try again.');
-      }
+      handleError(error);
     }
   };
 

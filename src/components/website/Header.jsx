@@ -5,18 +5,15 @@ import { useState, useEffect, useRef } from "react";
 import logo from "../../../public/assets/logo.png";
 import Image from "next/image";
 import Link from "next/link";
-import { useNotifications } from "@/hooks/useNotifications";
+// import { useNotifications } from "@/hooks/useNotifications";
 import { useSelector } from "react-redux";
 import socketService from "@/utils/socketService";
+import ButtonSection from "./ButtonSection";
 
 export function TopHeader() {
-  const [language, setLanguage] = useState("English");
   const [showSearch, setShowSearch] = useState(false);
-  const languages = [
-    { name: "English", flag: "twemoji:flag-for-flag-united-states" },
-    { name: "Türkçe", flag: "twemoji:flag-for-flag-turkey" },
-  ];
 
+  const { user } = useSelector((state) => state.auth);
 
   return (
     <div className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -130,8 +127,8 @@ export function TopHeader() {
 
 export function MidHeader() {
   const [searchFocused, setSearchFocused] = useState(false);
-  const [cartItems, setCartItems] = useState(3);
-  const [wishlistItems, setWishlistItems] = useState(5);
+  
+  const {user} = useSelector((state) => state.auth);
 
   return (
     <div className="bg-white shadow-sm">
@@ -184,63 +181,9 @@ export function MidHeader() {
         </div>
 
         <div className="flex gap-3 md:gap-5 text-xl items-center">
-          {/* Wishlist */}
-          <div className="relative group cursor-pointer" aria-label="Wishlist">
-            <Icon
-              icon="mdi:heart-outline"
-              className="text-gray-600 hover:text-red-500 transition-colors duration-200"
-            />
-            {wishlistItems > 0 && (
-              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center animate-pulse">
-                {wishlistItems}
-              </span>
-            )}
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-              Wishlist ({wishlistItems})
-            </div>
 
-            {/* <LanguageSwitcher /> */}
-          </div>
-
-          <Link href="/my-account" className="relative group cursor-pointer" aria-label="Account">
-            <Icon
-              icon="mdi:account-circle"
-              className="text-gray-600 hover:text-orange-500 transition-colors duration-200"
-            />
-          </Link>
-          <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-
-            My Account
-
-          </div>
-
-          {/* Notifications */}
-          <div className="relative group cursor-pointer" aria-label="Notifications">
-            <Icon
-              icon="mdi:bell-outline"
-              className="text-gray-600 hover:text-primary-500 transition-colors duration-200"
-            />
-            <span className="absolute -top-1 -right-1 bg-primary-500 w-2 h-2 rounded-full"></span>
-            <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
-              Notifications
-            </div>
-          </div>
-
-          {/* Enhanced Cart */}
-          <div className="flex items-center gap-2 relative group cursor-pointer bg-orange-50 hover:bg-orange-100 px-3 py-2 rounded-lg transition-all duration-200" aria-label="Cart">
-            <div className="relative">
-              <Icon icon="mdi:cart-outline" className="text-orange-600" />
-              {cartItems > 0 && (
-                <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
-                  {cartItems}
-                </span>
-              )}
-            </div>
-            <div className="hidden md:block">
-              <span className="text-gray-700 text-sm block">My cart</span>
-              <span className="text-orange-600 font-bold text-sm">$247.50</span>
-            </div>
-          </div>
+          {/* Navigation Section  */}
+         <ButtonSection />
         </div>
       </div>
     </div>
@@ -254,14 +197,14 @@ function LowerHeader() {
   const dropdownRef = useRef(null);
 
 
- const navItems = [
-  { label: "Home", icon: "mdi:home", path: "/" },
-  { label: "Hire Repairman", icon: "mdi:map-marker", path: "/hire-repairman" },
-  { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New" },
-  { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" },
-  { label: "Deals", icon: "mdi:tag", path: "/deals" },
-  { label: "Contact", icon: "mdi:phone", path: "/contact" },
-];
+  const navItems = [
+    { label: "Home", icon: "mdi:home", path: "/" },
+    { label: "Hire Repairman", icon: "mdi:map-marker", path: "/hire-repairman" },
+    { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New" },
+    { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" },
+    { label: "Deals", icon: "mdi:tag", path: "/deals" },
+    { label: "Contact", icon: "mdi:phone", path: "/contact" },
+  ];
 
   const categories = [
     {
@@ -355,28 +298,27 @@ function LowerHeader() {
           </div>
 
           {/* Navigation Links */}
-        <ul
-      className={`${
-        isNavOpen ? "flex" : "hidden"
-      } md:flex flex-col md:flex-row gap-4 md:gap-8 text-sm w-full md:w-auto transition-all duration-300`}
-    >
-      {navItems.map((item, index) => (
-        <li key={index}>
-          <Link
-            href={item.path}
-            className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium"
+          <ul
+            className={`${isNavOpen ? "flex" : "hidden"
+              } md:flex flex-col md:flex-row gap-4 md:gap-8 text-sm w-full md:w-auto transition-all duration-300`}
           >
-            <Icon icon={item.icon} />
-            <span>{item.label}</span>
-            {item.badge && (
-              <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-                {item.badge}
-              </span>
-            )}
-          </Link>
-        </li>
-      ))}
-    </ul>
+            {navItems.map((item, index) => (
+              <li key={index}>
+                <Link
+                  href={item.path}
+                  className="cursor-pointer hover:text-orange-500 transition-colors duration-200 flex items-center gap-1 font-medium"
+                >
+                  <Icon icon={item.icon} />
+                  <span>{item.label}</span>
+                  {item.badge && (
+                    <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
+                      {item.badge}
+                    </span>
+                  )}
+                </Link>
+              </li>
+            ))}
+          </ul>
           {/* Quick Actions */}
           {/* <div className="hidden lg:flex items-center gap-4 ml-auto">
             <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -398,7 +340,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   const { user, token } = useSelector((state) => state.auth);
-  const { unreadCount, notifications } = useNotifications(token);
+  // const { unreadCount, notifications } = useNotifications(token);
 
   // console.log('Socket connected:', socketService.isConnected);
   // useEffect(() => {

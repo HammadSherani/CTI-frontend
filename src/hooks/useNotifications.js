@@ -1,238 +1,122 @@
-// hooks/useNotifications.js
-import { useState, useEffect, useCallback } from 'react';
-import socketService from '@/utils/socketService';
+import { useSelector, useDispatch } from 'react-redux';
+import { 
+  setNotifications, 
+  addNotification, 
+  markAsRead, 
+  markAllAsRead, 
+  setLoading 
+} from '@/store/notifications';
+import axiosInstance from '@/config/axiosInstance';
 
-export const useNotifications = (userToken) => {
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+const useNotifications = () => {
+  const dispatch = useDispatch();
+  
+  const { list, unreadCount, isLoading } = useSelector(
+    (state) => state.notifications
+  );
 
-  // API base URL
-  const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  // Get auth token
+  const token = useSelector((state) => state.auth.token);
 
-  // Fetch notifications from API
-  const fetchNotifications = useCallback(async (page = 1) => {
-    if (!userToken) return;
-
+  // Fetch notifications from backend
+  const fetchNotifications = async (page = 1, limit = 20, type = null) => {
     try {
-      setLoading(true);
-      setError(null);
+      dispatch(setLoading(true));
+      
+      const params = { page, limit };
+      if (type) params.type = type;
 
-      const response = await fetch(`${API_BASE}/notifications?page=${page}&limit=20`, {
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(`/notifications`, { 
+        params,
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-
-      if (data.success) {
-        setNotifications(data.data.notifications);
-        setUnreadCount(data.data.unreadCount);
-        console.log('Notifications fetched from API:', data.data.notifications.length);
+      if (response.data.success) {
+        dispatch(setNotifications(response.data.data.notifications));
+        return response.data.data;
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
-      setError(error.message);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch notifications:', error);
+      dispatch(setLoading(false));
     }
-  }, [userToken, API_BASE]);
+  };
 
-  // Fetch unread count only
-  const fetchUnreadCount = useCallback(async () => {
-    if (!userToken) return;
-
+  const fetchUnreadCount = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/notifications/unread-count`, {
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json'
-        }
+      const response = await axiosInstance.get(`/notifications/unread-count`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
 
-      const data = await response.json();
-      if (data.success) {
-        setUnreadCount(data.data.unreadCount);
+      if (response.data.success) {
+        return response.data.data.unreadCount;
       }
     } catch (error) {
-      console.error('Error fetching unread count:', error);
+      console.error('Failed to fetch unread count:', error);
     }
-  }, [userToken, API_BASE]);
+  };
 
-  // Mark notification as read
-  const markAsRead = useCallback(async (notificationId) => {
-    if (!userToken || !notificationId) return;
-
+  const markNotificationAsRead = async (notificationId) => {
     try {
-      const response = await fetch(`${API_BASE}/api/notifications/${notificationId}/read`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await axiosInstance.patch(
+        `/notifications/${notificationId}/read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const data = await response.json();
-      if (data.success) {
-        // Update local state
-        setNotifications(prev =>
-          prev.map(notification =>
-            notification._id === notificationId
-              ? { ...notification, isRead: true }
-              : notification
-          )
-        );
-        setUnreadCount(prev => Math.max(0, prev - 1));
-        console.log('Notification marked as read:', notificationId);
+      if (response.data.success) {
+        dispatch(markAsRead(notificationId));
       }
     } catch (error) {
-      console.error('Error marking notification as read:', error);
+      console.error('Failed to mark notification as read:', error);
     }
-  }, [userToken, API_BASE]);
+  };
 
   // Mark all notifications as read
-  const markAllAsRead = useCallback(async () => {
-    if (!userToken) return;
-
+  const markAllNotificationsAsRead = async () => {
     try {
-      const response = await fetch(`${API_BASE}/api/notifications/mark-all-read`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await axiosInstance.patch(
+        `/notifications/mark-all-read`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const data = await response.json();
-      if (data.success) {
-        // Update local state
-        setNotifications(prev =>
-          prev.map(notification => ({ ...notification, isRead: true }))
-        );
-        setUnreadCount(0);
-        console.log('All notifications marked as read');
+      if (response.data.success) {
+        dispatch(markAllAsRead());
       }
     } catch (error) {
-      console.error('Error marking all notifications as read:', error);
+      console.error('Failed to mark all as read:', error);
     }
-  }, [userToken, API_BASE]);
+  };
 
   // Delete notification
-  const deleteNotification = useCallback(async (notificationId) => {
-    if (!userToken || !notificationId) return;
-
+  const deleteNotification = async (notificationId) => {
     try {
-      const response = await fetch(`${API_BASE}/api/notifications/${notificationId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${userToken}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await axiosInstance.delete(
+        `/notifications/${notificationId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      const data = await response.json();
-      if (data.success) {
-        // Update local state
-        setNotifications(prev => prev.filter(n => n._id !== notificationId));
-        // Decrease unread count if notification was unread
-        const deletedNotification = notifications.find(n => n._id === notificationId);
-        if (deletedNotification && !deletedNotification.isRead) {
-          setUnreadCount(prev => Math.max(0, prev - 1));
-        }
-        console.log('Notification deleted:', notificationId);
+      if (response.data.success) {
+        // Remove from Redux store
+        dispatch(setNotifications(
+          list.filter(n => n._id !== notificationId)
+        ));
       }
     } catch (error) {
-      console.error('Error deleting notification:', error);
+      console.error('Failed to delete notification:', error);
     }
-  }, [userToken, API_BASE, notifications]);
-
-
-  
-  // Clear all notifications (local only)
-  const clearNotifications = useCallback(() => {
-    setNotifications([]);
-    setUnreadCount(0);
-    socketService.clearNotifications();
-    console.log('Local notifications cleared');
-  }, []);
-
-  // Setup socket listener and fetch initial notifications
-  useEffect(() => {
-    if (!userToken) return;
-
-    // Fetch notifications from API on mount
-    fetchNotifications();
-
-    // Setup socket listener for real-time notifications
-   const unsubscribe = socketService.addListener((event, data) => {
-    console.log('Socket notification event received:', event, data);
-
-    if (event === 'notification') {
-      setNotifications(prev => [data, ...prev]);
-      if (!data.read && !data.isRead) {
-        setUnreadCount(prev => prev + 1);
-      }
-    }
-
-    // if (event === 'booking_status_update') {
-    //   // 👇 yahan booking updates handle kar sakte ho
-    //   const newNotification = {
-    //     _id: Date.now().toString(), // temp ID
-    //     type: 'booking_status_update',
-    //     bookingId: data.bookingId,
-    //     status: data.status,
-    //     isRead: false,
-    //     createdAt: new Date().toISOString(),
-    //     ...data
-    //   };
-
-    //   setNotifications(prev => [newNotification, ...prev]);
-    //   setUnreadCount(prev => prev + 1);
-
-    //   console.log(`📩 Booking ${data.bookingId} updated to ${data.status}`);
-    // }
-
-    if (event === 'notification_read') {
-      markAsRead(data.id);
-    }
-
-    if (event === 'all_notifications_read') {
-      markAllAsRead();
-    }
-
-    if (event === 'notifications_cleared') {
-      clearNotifications();
-    }
-  });
-
-
-    return () => {
-      unsubscribe();
-    };
-  }, [userToken, fetchNotifications, markAsRead, markAllAsRead, clearNotifications]);
-
-  // Refresh notifications
-  const refreshNotifications = useCallback(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  };
 
   return {
-    notifications,
+    notifications: list,
     unreadCount,
-    loading,
-    error,
-    markAsRead,
-    markAllAsRead,
+    isLoading,
+    fetchNotifications,
+    fetchUnreadCount,
+    markAsRead: markNotificationAsRead,
+    markAllAsRead: markAllNotificationsAsRead,
     deleteNotification,
-    clearNotifications,
-    refreshNotifications,
-    fetchUnreadCount
   };
 };
+
+export default useNotifications;

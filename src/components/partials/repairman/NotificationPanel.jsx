@@ -1,19 +1,29 @@
-import React, { useState } from 'react';
-import { formatDistanceToNow } from 'date-fns';
-import { useNotifications } from '@/hooks/useNotifications';
+'use client';
 
-const NotificationPanel = ({ userToken, isOpen, onClose }) => {
+import React, { useEffect } from 'react';
+import { formatDistanceToNow } from 'date-fns';
+import useNotifications from '@/hooks/useNotifications';
+
+const NotificationPanel = ({ isOpen, onClose }) => {
   const { 
     notifications, 
     unreadCount, 
+    isLoading,
+    fetchNotifications,
     markAsRead, 
     markAllAsRead, 
-    clearNotifications 
-  } = useNotifications(userToken);
+    deleteNotification 
+  } = useNotifications();
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchNotifications();
+    }
+  }, [isOpen]);
 
   const handleNotificationClick = (notification) => {
-    if (!notification.read) {
-      markAsRead(notification.id);
+    if (!notification.isRead) {
+      markAsRead(notification._id);
     }
     
     // Navigate based on notification type
@@ -24,6 +34,12 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
     }
     
     onClose();
+  };
+
+  const handleClearAll = async () => {
+    for (const notification of notifications) {
+      await deleteNotification(notification._id);
+    }
   };
 
   const getNotificationIcon = (type) => {
@@ -42,18 +58,7 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
   };
 
   const getNotificationTitle = (notification) => {
-    switch (notification.type) {
-      case 'new_job':
-        return 'New Job Available';
-      case 'offer_accepted':
-        return 'Offer Accepted!';
-      case 'offer_rejected':
-        return 'Offer Update';
-      case 'job_cancelled':
-        return 'Job Cancelled';
-      default:
-        return 'Notification';
-    }
+    return notification.title || 'Notification';
   };
 
   const getNotificationContent = (notification) => {
@@ -61,47 +66,49 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
       case 'new_job':
         return (
           <div>
-            <div className="font-medium">{notification.data.title}</div>
-            <div className="text-sm text-gray-600">
-              Budget: {notification.data.budget.min}-{notification.data.budget.max} PKR
-            </div>
-            <div className="text-sm text-gray-500">
-              {notification.data.location.city} • {notification.data.urgency} priority
-            </div>
+            <div className="text-[13px] text-gray-700">{notification.message}</div>
+            {notification.data?.budget && (
+              <div className="text-[13px] text-gray-600 mt-[3px]">
+                Budget: {notification.data.budget.min}-{notification.data.budget.max} {notification.data.budget.currency}
+              </div>
+            )}
+            {notification.data?.city && (
+              <div className="text-sm text-gray-500">
+                 {notification.data.city}
+              </div>
+            )}
           </div>
         );
       case 'offer_accepted':
         return (
           <div>
-            <div className="font-medium">{notification.data.jobTitle}</div>
-            <div className="text-sm text-green-600">
-              Amount: {notification.data.totalAmount} PKR
-            </div>
-            <div className="text-sm text-gray-500">
-              Service: {notification.data.serviceType}
-            </div>
+            <div className="text-sm text-gray-700">{notification.message}</div>
+            {notification.data?.totalAmount && (
+              <div className="text-sm text-green-600 mt-1">
+                Amount: {notification.data.totalAmount} PKR
+              </div>
+            )}
+            {notification.data?.serviceType && (
+              <div className="text-sm text-gray-500">
+                Service: {notification.data.serviceType}
+              </div>
+            )}
           </div>
         );
       case 'offer_rejected':
-        return (
-          <div>
-            <div className="font-medium">{notification.data.jobTitle}</div>
-            <div className="text-sm text-gray-600">
-              Job assigned to another repairman
-            </div>
-          </div>
-        );
       case 'job_cancelled':
         return (
           <div>
-            <div className="font-medium">{notification.data.jobTitle}</div>
-            <div className="text-sm text-gray-600">
-              Reason: {notification.data.cancellationReason}
-            </div>
+            <div className="text-sm text-gray-700">{notification.message}</div>
+            {notification.data?.cancellationReason && (
+              <div className="text-sm text-gray-600 mt-1">
+                Reason: {notification.data.cancellationReason}
+              </div>
+            )}
           </div>
         );
       default:
-        return <div className="text-sm">{notification.message}</div>;
+        return <div className="text-sm text-gray-700">{notification.message}</div>;
     }
   };
 
@@ -109,8 +116,6 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
 
   return (
     <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-{/* 
-      Lorem ipsum dolor sit amet, consectetur adipisicing elit. Odio tempora error repudiandae suscipit reiciendis voluptatum ea id minus sed commodi labore adipisci perspiciatis beatae reprehenderit maiores nemo similique quia quis, obcaecati voluptatem? Nobis sapiente maxime optio, debitis placeat aliquam quae ipsum distinctio cum repellendus sunt sequi fugit corporis quod officia saepe id eaque, in ad quos quam impedit, tempora numquam eligendi. Possimus soluta quo a voluptates libero. Veniam debitis at corrupti hic aperiam harum tempora dolorum. Labore aspernatur quis a. Debitis beatae, blanditiis soluta excepturi, perferendis nisi eius sequi non aperiam cupiditate aspernatur ut vitae in nesciunt praesentium quo. Repudiandae? */}
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h3 className="font-semibold text-gray-900">
@@ -125,12 +130,14 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
               Mark all read
             </button>
           )}
-          <button
-            onClick={clearNotifications}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Clear all
-          </button>
+          {notifications.length > 0 && (
+            <button
+              onClick={handleClearAll}
+              className="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Clear all
+            </button>
+          )}
           <button
             onClick={onClose}
             className="text-gray-400 hover:text-gray-600"
@@ -140,32 +147,35 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
         </div>
       </div>
 
-      {/* Notifications list */}
       <div className="max-h-96 overflow-y-auto">
-        {notifications.length === 0 ? (
+        {isLoading ? (
+          <div className="px-4 py-8 text-center text-gray-500">
+            Loading...
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500">
             No notifications yet
           </div>
         ) : (
           notifications.map((notification) => (
             <div
-              key={notification.id}
+              key={notification._id}
               onClick={() => handleNotificationClick(notification)}
               className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                !notification.read ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
+                !notification.isRead ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
               }`}
             >
               <div className="flex items-start space-x-3">
-                <div className="text-2xl">
+                {/* <div className="text-2xl">
                   {getNotificationIcon(notification.type)}
-                </div>
+                </div> */}
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
-                    <div className="font-medium text-gray-900">
+                    <div className="text-[13px] text-gray-900">
                       {getNotificationTitle(notification)}
                     </div>
                     <div className="text-xs text-gray-500 ml-2">
-                      {formatDistanceToNow(new Date(notification.timestamp), { addSuffix: true })}
+                      {formatDistanceToNow(new Date(notification.createdAt), { addSuffix: true })}
                     </div>
                   </div>
                   {getNotificationContent(notification)}
@@ -179,5 +189,4 @@ const NotificationPanel = ({ userToken, isOpen, onClose }) => {
   );
 };
 
-
-export default NotificationPanel
+export default NotificationPanel;

@@ -4,6 +4,7 @@ import { ToastContainer } from "react-toastify";
 import ReduxProvider from "@/components/website/provider/ReduxProvider";
 import { SocketProvider } from "@/contexts/SocketProvider";
 import NotificationListener from "@/components/NotificationListener";
+import NotificationInitializer from "@/components/NotificationInitializer";
 
 export default async function RootLayout({ children }) {
   return (
@@ -12,6 +13,7 @@ export default async function RootLayout({ children }) {
         <ReduxProvider>
           <SocketProvider>
             <NotificationListener />
+            <NotificationInitializer />
             {children}
             <ToastContainer />
           </SocketProvider>
