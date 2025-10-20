@@ -37,7 +37,7 @@ function Header() {
 
   const dropdownLinks = [
     { name: "Profile Settings", path: "/profile", icon: "mdi:account-cog-outline" },
-    { name: "Service Catalog", path: "/service-catalog", icon: "mdi:tools" },
+    { name: "Service Catalog", path: "/admin/service-catalog", icon: "mdi:tools" },
     { name: "Disputes", path: "/disputes", icon: "mdi:gavel" },
     { name: "Notifications", path: "/notification-center", icon: "mdi:bell-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },

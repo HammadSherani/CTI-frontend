@@ -9,6 +9,7 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 // Updated Validation Schema to match backend
 const serviceSchema = yup.object().shape({
@@ -26,10 +27,10 @@ const serviceSchema = yup.object().shape({
     brandId: yup.string().required('Please select a brand'),
     modelId: yup.string().required('Please select a model'),
   }),
-  serviceType: yup
-    .string()
-    .required('Please select a service type')
-    .oneOf(['home', 'shop', 'pickup'], 'Invalid service type'),
+  // serviceType: yup
+  //   .string()
+  //   .required('Please select a service type')
+  //   .oneOf(['home', 'shop', 'pickup'], 'Invalid service type'),
   city: yup
     .string()
     .optional(),
@@ -44,11 +45,11 @@ const serviceSchema = yup.object().shape({
       .min(0, 'Parts price cannot be negative')
       .typeError('Parts price must be a number')
       .default(0),
-    serviceCharges: yup
-      .number()
-      .min(0, 'Service charges cannot be negative')
-      .typeError('Service charges must be a number')
-      .default(0),
+    // serviceCharges: yup
+    //   .number()
+    //   .min(0, 'Service charges cannot be negative')
+    //   .typeError('Service charges must be a number')
+    //   .default(0),
     total: yup.number().required('Total is required'),
     currency: yup.string().default('TRY'),
   }),
@@ -80,12 +81,12 @@ function AddService() {
         brandId: '',
         modelId: '',
       },
-      serviceType: '',
+      // serviceType: '',
       city: '',
       pricing: {
         basePrice: '',
         partsPrice: 0,
-        serviceCharges: 0,
+        // serviceCharges: 0,
         total: 0,
         currency: 'TRY',
       },
@@ -95,7 +96,7 @@ function AddService() {
   const watchBrandId = watch('deviceInfo.brandId');
   const watchBasePrice = watch('pricing.basePrice');
   const watchPartsPrice = watch('pricing.partsPrice');
-  const watchServiceCharges = watch('pricing.serviceCharges');
+  // const watchServiceCharges = watch('pricing.serviceCharges');
 
   // Fetch brands on mount
   useEffect(() => {
@@ -117,10 +118,10 @@ function AddService() {
   useEffect(() => {
     const basePrice = parseFloat(watchBasePrice) || 0;
     const partsPrice = parseFloat(watchPartsPrice) || 0;
-    const serviceCharges = parseFloat(watchServiceCharges) || 0;
-    const total = basePrice + partsPrice + serviceCharges;
+    // const serviceCharges = parseFloat(watchServiceCharges) || 0;
+    const total = basePrice + partsPrice;
     setValue('pricing.total', total > 0 ? total : 0);
-  }, [watchBasePrice, watchPartsPrice, watchServiceCharges]);
+  }, [watchBasePrice, watchPartsPrice]);
 
   const fetchBrands = async () => {
     try {
@@ -163,7 +164,7 @@ function AddService() {
       });
 
       if (response.data.success) {
-        alert(response.data.message || 'Service created successfully!');
+        toast(response.data.message || 'Service created successfully!');
         reset();
         router.push('/repair-man/service-catalog');
       }
@@ -174,26 +175,26 @@ function AddService() {
     }
   };
 
-  const serviceTypes = [
-    { 
-      value: 'home', 
-      label: 'Home Service', 
-      icon: 'heroicons:home',
-      description: 'We come to your location'
-    },
-    { 
-      value: 'shop', 
-      label: 'Shop Service', 
-      icon: 'heroicons:building-storefront',
-      description: 'Visit our repair shop'
-    },
-    { 
-      value: 'pickup', 
-      label: 'Pickup Service', 
-      icon: 'heroicons:truck',
-      description: 'We pickup and deliver'
-    },
-  ];
+  // const serviceTypes = [
+  //   { 
+  //     value: 'home', 
+  //     label: 'Home Service', 
+  //     icon: 'heroicons:home',
+  //     description: 'We come to your location'
+  //   },
+  //   { 
+  //     value: 'shop', 
+  //     label: 'Shop Service', 
+  //     icon: 'heroicons:building-storefront',
+  //     description: 'Visit our repair shop'
+  //   },
+  //   { 
+  //     value: 'pickup', 
+  //     label: 'Pickup Service', 
+  //     icon: 'heroicons:truck',
+  //     description: 'We pickup and deliver'
+  //   },
+  // ];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
@@ -378,7 +379,7 @@ function AddService() {
             </div>
 
             {/* Service Type Section */}
-            <div className="pt-6 border-t border-gray-200">
+            {/* <div className="pt-6 border-t border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <Icon icon="heroicons:wrench-screwdriver" className="w-6 h-6 mr-2 text-primary-600" />
                 Service Type
@@ -414,7 +415,7 @@ function AddService() {
                   {errors.serviceType.message}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Pricing Section */}
             <div className="pt-6 border-t border-gray-200">
@@ -480,7 +481,7 @@ function AddService() {
                 </div>
 
                 {/* Service Charges */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Service Charges (TRY)
                   </label>
@@ -505,10 +506,10 @@ function AddService() {
                       {errors.pricing.serviceCharges.message}
                     </p>
                   )}
-                </div>
+                </div> */}
 
                 {/* Total (Read-only) */}
-                <div>
+                <div className='col-span-2'>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Total Amount (TRY)
                   </label>
@@ -528,7 +529,7 @@ function AddService() {
               </div>
 
               <div className="mt-3 text-sm text-gray-600">
-                <p>Total = Base Price + Parts Price + Service Charges</p>
+                <p>Total = Base Price + Parts Price </p>
               </div>
             </div>
 

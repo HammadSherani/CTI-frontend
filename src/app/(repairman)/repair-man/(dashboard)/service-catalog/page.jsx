@@ -307,9 +307,9 @@ const ServiceCatalogPage = () => {
 
   const getTabCounts = () => ({
     all: categorizedServices.all?.length || 0,
-    home: categorizedServices.home?.length || 0,
-    shop: categorizedServices.shop?.length || 0,
-    pickup: categorizedServices.pickup?.length || 0,
+    // home: categorizedServices.home?.length || 0,
+    // shop: categorizedServices.shop?.length || 0,
+    // pickup: categorizedServices.pickup?.length || 0,
   });
 
   const tabCounts = getTabCounts();
@@ -366,7 +366,7 @@ const ServiceCatalogPage = () => {
               </p>
             </div>
             <Link href="/repair-man/service-catalog/add">
-              <button className="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-3 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 flex items-center space-x-2 shadow-lg">
+              <button className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 flex items-center space-x-2 shadow-lg">
                 <Icon icon="heroicons:plus" className="w-5 h-5" />
                 <span>Add New Service</span>
               </button>
@@ -427,9 +427,9 @@ const ServiceCatalogPage = () => {
               <nav className="flex space-x-2 sm:space-x-8 -mb-px overflow-x-auto">
                 {[
                   { id: 'all', label: 'All Services', count: tabCounts.all },
-                  { id: 'home', label: 'Home Service', count: tabCounts.home },
-                  { id: 'shop', label: 'Shop Service', count: tabCounts.shop },
-                  { id: 'pickup', label: 'Pickup & Delivery', count: tabCounts.pickup },
+                  // { id: 'home', label: 'Home Service', count: tabCounts.home },
+                  // { id: 'shop', label: 'Shop Service', count: tabCounts.shop },
+                  // { id: 'pickup', label: 'Pickup & Delivery', count: tabCounts.pickup },
                 ].map((tab) => (
                   <button
                     key={tab.id}

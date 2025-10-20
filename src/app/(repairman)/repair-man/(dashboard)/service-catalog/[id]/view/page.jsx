@@ -114,7 +114,7 @@ function ViewService() {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Service</h2>
           <p className="text-gray-600 mb-4">{error || 'Service not found'}</p>
           <button
-            onClick={() => router.push('/repair-man/services')}
+            onClick={() => router.push('/repair-man/service-catalog')}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
             Back to Services
@@ -145,7 +145,7 @@ function ViewService() {
             
             {/* Action Buttons */}
             <div className="flex gap-3">
-              <Link href={`/repair-man/services/${serviceId}/edit`}>
+              <Link href={`/repair-man/service-catalog/${serviceId}/edit`}>
                 <button 
                   disabled={service.status === 'approved'}
                   className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -388,7 +388,7 @@ function ViewService() {
               
               
               <div className="flex items-center flex-col gap-3 w-full">
-                <Link href={`/repair-man/services/${serviceId}/edit`} className='w-full'>
+                <Link href={`/repair-man/service-catalog-catalog/${serviceId}/edit`} className='w-full'>
                   <button 
                     disabled={service.status === 'approved'}
                     className="w-full bg-primary-600 w-full text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -398,7 +398,7 @@ function ViewService() {
                   </button>
                 </Link>
 
-                <Link href="/repair-man/services" className='w-full'>
+                <Link href="/repair-man/service-catalog" className='w-full'>
                   <button className="w-full bg-white text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors flex items-center justify-center gap-2 border border-gray-300">
                     <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
                     Back to Services

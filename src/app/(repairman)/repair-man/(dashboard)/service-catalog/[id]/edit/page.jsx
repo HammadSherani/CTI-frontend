@@ -27,10 +27,10 @@ const serviceSchema = yup.object().shape({
     brandId: yup.string().required('Please select a brand'),
     modelId: yup.string().required('Please select a model'),
   }),
-  serviceType: yup
-    .string()
-    .required('Please select a service type')
-    .oneOf(['home', 'shop', 'pickup'], 'Invalid service type'),
+  // serviceType: yup
+  //   .string()
+  //   .required('Please select a service type')
+  //   .oneOf(['home', 'shop', 'pickup'], 'Invalid service type'),
   city: yup.string().optional(),
   pricing: yup.object().shape({
     basePrice: yup
@@ -43,11 +43,11 @@ const serviceSchema = yup.object().shape({
       .min(0, 'Parts price cannot be negative')
       .typeError('Parts price must be a number')
       .default(0),
-    serviceCharges: yup
-      .number()
-      .min(0, 'Service charges cannot be negative')
-      .typeError('Service charges must be a number')
-      .default(0),
+    // serviceCharges: yup
+    //   .number()
+    //   .min(0, 'Service charges cannot be negative')
+    //   .typeError('Service charges must be a number')
+    //   .default(0),
     total: yup.number().required('Total is required'),
     currency: yup.string().default('TRY'),
   }),
@@ -83,12 +83,12 @@ function EditServicePage() {
         brandId: '',
         modelId: '',
       },
-      serviceType: '',
+      // serviceType: '',
       city: '',
       pricing: {
         basePrice: '',
         partsPrice: 0,
-        serviceCharges: 0,
+        // serviceCharges: 0,
         total: 0,
         currency: 'TRY',
       },
@@ -98,7 +98,7 @@ function EditServicePage() {
   const watchBrandId = watch('deviceInfo.brandId');
   const watchBasePrice = watch('pricing.basePrice');
   const watchPartsPrice = watch('pricing.partsPrice');
-  const watchServiceCharges = watch('pricing.serviceCharges');
+  // const watchServiceCharges = watch('pricing.serviceCharges');
 
   // Fetch service data
   useEffect(() => {
@@ -125,10 +125,10 @@ function EditServicePage() {
   useEffect(() => {
     const basePrice = parseFloat(watchBasePrice) || 0;
     const partsPrice = parseFloat(watchPartsPrice) || 0;
-    const serviceCharges = parseFloat(watchServiceCharges) || 0;
-    const total = basePrice + partsPrice + serviceCharges;
+    // const serviceCharges = parseFloat(watchServiceCharges) || 0;
+    const total = basePrice + partsPrice ;
     setValue('pricing.total', total > 0 ? total : 0);
-  }, [watchBasePrice, watchPartsPrice, watchServiceCharges]);
+  }, [watchBasePrice, watchPartsPrice]);
 
   const fetchServiceData = async () => {
     try {
@@ -149,12 +149,12 @@ function EditServicePage() {
             brandId: service.deviceInfo?.brandId?._id || service.deviceInfo?.brandId || '',
             modelId: service.deviceInfo?.modelId?._id || service.deviceInfo?.modelId || '',
           },
-          serviceType: service.serviceType || '',
+          // serviceType: service.serviceType || '',
           city: service.city || '',
           pricing: {
             basePrice: service.pricing?.basePrice || 0,
             partsPrice: service.pricing?.partsPrice || 0,
-            serviceCharges: service.pricing?.serviceCharges || 0,
+            // serviceCharges: service.pricing?.serviceCharges || 0,
             total: service.pricing?.total || 0,
             currency: service.pricing?.currency || 'TRY',
           },
@@ -225,26 +225,26 @@ function EditServicePage() {
     }
   };
 
-  const serviceTypes = [
-    { 
-      value: 'home', 
-      label: 'Home Service', 
-      icon: 'heroicons:home',
-      description: 'We come to your location'
-    },
-    { 
-      value: 'shop', 
-      label: 'Shop Service', 
-      icon: 'heroicons:building-storefront',
-      description: 'Visit our repair shop'
-    },
-    { 
-      value: 'pickup', 
-      label: 'Pickup Service', 
-      icon: 'heroicons:truck',
-      description: 'We pickup and deliver'
-    },
-  ];
+  // const serviceTypes = [
+  //   { 
+  //     value: 'home', 
+  //     label: 'Home Service', 
+  //     icon: 'heroicons:home',
+  //     description: 'We come to your location'
+  //   },
+  //   { 
+  //     value: 'shop', 
+  //     label: 'Shop Service', 
+  //     icon: 'heroicons:building-storefront',
+  //     description: 'Visit our repair shop'
+  //   },
+  //   { 
+  //     value: 'pickup', 
+  //     label: 'Pickup Service', 
+  //     icon: 'heroicons:truck',
+  //     description: 'We pickup and deliver'
+  //   },
+  // ];
 
   if (fetchingService) {
     return (
@@ -477,7 +477,7 @@ function EditServicePage() {
             </div>
 
             {/* Service Type Section */}
-            <div className="pt-6 border-t border-gray-200">
+            {/* <div className="pt-6 border-t border-gray-200">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <Icon icon="heroicons:wrench-screwdriver" className="w-6 h-6 mr-2 text-primary-600" />
                 Service Type
@@ -513,7 +513,7 @@ function EditServicePage() {
                   {errors.serviceType.message}
                 </p>
               )}
-            </div>
+            </div> */}
 
             {/* Pricing Section */}
             <div className="pt-6 border-t border-gray-200">
@@ -580,7 +580,7 @@ function EditServicePage() {
                 </div>
 
                 {/* Service Charges */}
-                <div>
+                {/* <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Service Charges (TRY)
                   </label>
@@ -605,10 +605,10 @@ function EditServicePage() {
                       {errors.pricing.serviceCharges.message}
                     </p>
                   )}
-                </div>
+                </div> */}
 
                 {/* Total (Read-only) */}
-                <div>
+                <div className='col-span-2'>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Total Amount (TRY)
                   </label>
@@ -628,7 +628,7 @@ function EditServicePage() {
               </div>
 
               <div className="mt-3 text-sm text-gray-600">
-                <p>Total = Base Price + Parts Price + Service Charges</p>
+                <p>Total = Base Price + Parts Price </p>
               </div>
             </div>
 
