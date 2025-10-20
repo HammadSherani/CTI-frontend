@@ -362,8 +362,8 @@ export default function Header() {
   //   dispatch(clearAuth());
   // }, [dispatch]);
 
-  console.log("Notifications in Header:", notifications);
-  console.log("Notifications unreadCount:", unreadCount);
+  // console.log("Notifications in Header:", notifications);
+  // console.log("Notifications unreadCount:", unreadCount);
 
 
   useEffect(() => {
