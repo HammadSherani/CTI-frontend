@@ -134,7 +134,7 @@ function Header() {
 
         {/* Right Side - Notifications + Profile */}
         <div className="flex items-center gap-2">
-          <Icon icon="fluent:chat-24-regular" width="24" height="24" />
+          {/* <Icon icon="fluent:chat-24-regular" width="24" height="24" /> */}
           {/* Notification Bell - Only show for repairmen */}
           {user?.role === 'repairman' && (
             <div className="relative" ref={notificationRef}>

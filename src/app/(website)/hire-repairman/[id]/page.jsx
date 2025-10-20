@@ -601,13 +601,13 @@ function RepairmanDetail() {
                                     Call Now
                                 </button> */}
 
-                                    <button
+                                    {/* <button
                                         onClick={() => handleWhatsApp(profile.whatsappNumber)}
                                         className="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
                                     >
                                         <Icon icon="mdi:whatsapp" className="w-5 h-5 mr-2" />
                                         WhatsApp
-                                    </button>
+                                    </button> */}
 
                                     <button
                                         onClick={() => handleMessageSend(repairman._id)}
@@ -652,13 +652,13 @@ function RepairmanDetail() {
                                         </div>
                                     </div>
 
-                                    <div className="flex items-start">
+                                    {/* <div className="flex items-start">
                                         <Icon icon="mdi:map-marker" className="w-4 h-4 text-gray-500 mr-2 mt-1 flex-shrink-0" />
                                         <div>
                                             <p className="text-sm text-gray-700">{profile.fullAddress}</p>
                                             <p className="text-xs text-gray-500">{profile.city}, {profile.district} - {profile.zipCode}</p>
                                         </div>
-                                    </div>
+                                    </div> */}
 
                                     <div className="flex items-center">
                                         <Icon icon="mdi:clock" className="w-4 h-4 text-gray-500 mr-2" />
@@ -684,7 +684,7 @@ function RepairmanDetail() {
                             </div>
 
                             {/* Contact Information */}
-                            <div className="bg-white rounded-lg shadow-sm p-6">
+                            {/* <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h3 className="font-semibold text-gray-900 mb-4">Contact Details</h3>
                                 <div className="space-y-3">
                                     <div className="flex items-center">
@@ -700,7 +700,7 @@ function RepairmanDetail() {
                                         <span className="text-sm text-gray-700">{profile.emailAddress}</span>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
 
                             {/* Emergency Contact */}
                             {/* <div className="bg-white rounded-lg shadow-sm p-6">
@@ -758,7 +758,7 @@ function RepairmanDetail() {
                             </div>
 
                             {/* Stats */}
-                            <div className="bg-white rounded-lg shadow-sm p-6">
+                            {/* <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h3 className="font-semibold text-gray-900 mb-4">Statistics</h3>
                                 <div className="space-y-4">
                                     <div className="text-center">
@@ -774,7 +774,7 @@ function RepairmanDetail() {
                                         <div className="text-sm text-gray-600">Years Experience</div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
