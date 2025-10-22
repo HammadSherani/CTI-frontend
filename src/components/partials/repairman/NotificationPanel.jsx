@@ -85,7 +85,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
             <div className="text-sm text-gray-700">{notification.message}</div>
             {notification.data?.totalAmount && (
               <div className="text-sm text-green-600 mt-1">
-                Amount: {notification.data.totalAmount} PKR
+                Amount: {notification.data.totalAmount} TRY
               </div>
             )}
             {notification.data?.serviceType && (

@@ -9,6 +9,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import NotificationPanel from '../NotificationPanel';
+import useNotifications from '@/hooks/useNotifications';
 // import socketService from '@/utils/socketService';
 // import { useNotifications } from '@/hooks/useNotifications';
 
@@ -21,7 +22,7 @@ function Header() {
   const dispatch = useDispatch();
 
   const { user, token } = useSelector((state) => state.auth);
-  // const { unreadCount } = useNotifications(token);
+  const { unreadCount } = useNotifications();
 
   // Socket connection for repairmen only
   // useEffect(() => {
@@ -145,11 +146,11 @@ function Header() {
               >
                 <Icon icon="mdi:bell-outline" className="w-6 h-6" />
                 
-                {/* {unreadCount > 0 && (
+                {unreadCount > 0 && (
                   <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
                     {unreadCount > 99 ? '99+' : unreadCount}
                   </div>
-                )} */}
+                )}
               </button>
 
               

@@ -7,13 +7,14 @@ import { useSelector } from 'react-redux';
 
 export default function NotificationInitializer() {
   const { fetchNotifications } = useNotifications();
-  const user = useSelector((state) => state.auth.user);
+  
+  const { user, token } = useSelector((state) => state.auth);
 
   useEffect(() => {
-    if (user) {
+    if (user && token) {
       fetchNotifications(); 
     }
-  }, [user]);
+  }, [user, token, fetchNotifications]); 
 
   return null;
 }
