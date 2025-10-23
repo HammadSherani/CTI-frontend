@@ -18,7 +18,7 @@ const InputField = ({ label, name, value, onChange, type = 'text', required = fa
       name={name}
       value={value}
       onChange={onChange}
-      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500`}
+      className={`w-full px-3 py-2 border ${error ? 'border-red-500' : 'border-gray-300'} rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500`}
       required={required}
       {...props}
     />
@@ -34,7 +34,7 @@ const SelectField = ({ label, name, value, onChange, options }) => (
       name={name}
       value={value}
       onChange={onChange}
-      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 focus:border-primary-500"
     >
       {options.map(option => (
         <option key={option.value || option} value={option.value || option}>
@@ -54,7 +54,7 @@ const CheckboxField = ({ label, name, checked, onChange, id }) => (
       id={id}
       checked={checked}
       onChange={onChange}
-      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+      className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
     />
     <label htmlFor={id} className="ml-2 text-sm text-gray-700">{label}</label>
   </div>
@@ -292,7 +292,6 @@ function RepairmanEditPage() {
       await fetchRepairMan();
     } catch (error) {
       handleError(error);
-      alert('Failed to update status');
     } finally {
       setUpdatingStatus(false);
     }
@@ -343,7 +342,7 @@ function RepairmanEditPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
       </div>
     );
   }
@@ -390,7 +389,7 @@ function RepairmanEditPage() {
                 name="status"
                 value={currentStatus}
                 onChange={handleStatusChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-primary-500 focus:border-primary-500"
               >
                 {statusOptions.map(option => (
                   <option key={option.value} value={option.value}>
@@ -403,7 +402,7 @@ function RepairmanEditPage() {
               type="button"
               onClick={handleStatusUpdate}
               disabled={updatingStatus}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2"
+              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-primary-400 flex items-center gap-2"
             >
               {updatingStatus && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
               {updatingStatus ? 'Updating...' : 'Update Status'}
@@ -459,7 +458,7 @@ function RepairmanEditPage() {
                   value={formData.repairmanProfile.fullAddress}
                   onChange={handleInputChange}
                   rows={2}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500"
                 />
               </div>
               <InputField label="City" name="repairmanProfile.city" value={formData.repairmanProfile.city} onChange={handleInputChange} />
@@ -485,7 +484,7 @@ function RepairmanEditPage() {
                         type="checkbox"
                         checked={formData.repairmanProfile.workingDays.includes(day)}
                         onChange={() => handleWorkingDaysChange(day)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
                       />
                       <span className="ml-2 text-sm text-gray-700">{day}</span>
                     </label>
@@ -535,7 +534,7 @@ function RepairmanEditPage() {
                   value={formData.repairmanProfile.description}
                   onChange={handleInputChange}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500"
                 />
               </div>
             </div>
@@ -611,7 +610,7 @@ function RepairmanEditPage() {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-blue-400 flex items-center gap-2"
+              className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 disabled:bg-primary-400 flex items-center gap-2"
             >
               {saving && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
               {saving ? 'Saving...' : 'Save Changes'}
