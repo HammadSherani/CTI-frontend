@@ -20,20 +20,16 @@ function Header() {
   };
 
   const primaryNavLinks = [
-    { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
-    // { name: "Category", path: "/admin/category", icon: "mdi:clipboard-list-outline" },
-    { name: "Brand", path: "/admin/brand", icon: "mdi:clipboard-list-outline" },
-    { name: "Models", path: "/admin/models", icon: "mdi:clipboard-list-outline" },
-    { name: "Repair Man", path: "/admin/repair-man", icon: "mdi:clipboard-list-outline" },
-    { name: "Job Board", path: "/admin/job-board", icon: "mdi:clipboard-list-outline" },
-    { name: "KYC Management", path: "/admin/kyc-management", icon: "mdi:clipboard-list-outline" },
-    { name: "Rating & Reviews", path: "/admin/rating-and-reviews", icon: "mdi:clipboard-list-outline" },
+  { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
+  { name: "Banners", path: "/admin/banners", icon: "mdi:image-outline" },
+  { name: "Brand", path: "/admin/brand", icon: "mdi:tag-outline" },
+  { name: "Models", path: "/admin/models", icon: "mdi:cube-outline" },
+  { name: "Repair Man", path: "/admin/repair-man", icon: "mdi:account-wrench-outline" },
+  { name: "Job Board", path: "/admin/job-board", icon: "mdi:briefcase-outline" },
+  { name: "KYC Management", path: "/admin/kyc-management", icon: "mdi:shield-account-outline" },
+  { name: "Rating & Reviews", path: "/admin/rating-and-reviews", icon: "mdi:star-outline" },
+];
 
-    // { name: "My Offer", path: "/my-offer", icon: "mdi:handshake-outline" },
-    // { name: "My Jobs", path: "/my-jobs", icon: "mdi:briefcase-outline" },
-    // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
-    // { name: "Earning & Reviews", path: "/earning-reviews", icon: "mdi:star-outline" },
-  ];
 
   const dropdownLinks = [
     { name: "Profile Settings", path: "/profile", icon: "mdi:account-cog-outline" },
