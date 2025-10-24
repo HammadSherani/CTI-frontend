@@ -1,14 +1,13 @@
 'use client';
 import { Icon } from '@iconify/react';
 import { useState,  useEffect } from 'react';
-import Button from '../ui/button';
 import Link from 'next/link';
-import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
-
+import Button from '@/components/ui/button';
+import axiosInstance from '@/config/axiosInstance';
 
 
 const JobDescription = ({ job }) => {
@@ -502,7 +501,7 @@ const ReviewJobs = () => {
 
 
 
-export default function SettingsPage() {
+export default function MyAccountPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [filterPriority, setFilterPriority] = useState('all');
