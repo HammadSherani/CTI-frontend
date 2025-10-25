@@ -30,7 +30,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     if (notification.type === 'new_job') {
       window.location.href = `/repair-man/job-board/${notification.data.jobId}`;
     } else if (notification.type === 'offer_accepted') {
-      window.location.href = `/repairman/bookings/${notification.data.bookingId}`;
+      window.location.href = `/repair-man/my-jobs/${notification.data.jobId}`;
     }
     
     onClose();

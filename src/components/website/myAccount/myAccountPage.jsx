@@ -537,19 +537,23 @@ export default function MyAccountPage() {
   const tabs = [
     { id: 'all', label: 'All Jobs', icon: 'mdi:view-list' },
     { id: 'open', label: 'Open', icon: 'mdi:clock-outline' },
+    { id: 'offers_received', label: 'Offer Received', icon: 'mdi:clock-outline' },
     { id: 'booked', label: 'Booked', icon: 'mdi:clock-outline' },
     { id: 'in_progress', label: 'In Progress', icon: 'mdi:cog' },
     { id: 'completed', label: 'Completed', icon: 'mdi:check-circle' },
+    { id: 'disputed', label: 'Disputed', icon: 'mdi:check-circle' },
     { id: 'review', label: "Reviews", icon: 'mdi:check-circle' }
   ];
 
   const getJobCounts = () => {
     return {
       all: jobs.length,
-      open: jobs.filter(job => job.status === 'open').length,
+      open: jobs.filter(job => job.status === 'open' ).length,
+      offers_received: jobs.filter(job => job.status === "offers_received").length,
       booked: jobs.filter(job => job.status === 'booked').length,
       in_progress: jobs.filter(job => job.status === 'in_progress').length,
       completed: jobs.filter(job => job.status === 'completed').length,
+      disputed: jobs.filter(job => job.status === 'disputed').length,
       review: jobs.filter(job => job.status === 'completed').length
     };
   };
@@ -690,7 +694,7 @@ export default function MyAccountPage() {
               </div>
 
               {/* Results Info */}
-              {filteredJobs.length > 0 && (
+              {filteredJobs.length > 0 && activeTab !== 'review' && (
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
                   <p className="text-sm text-gray-600">
                     Showing {startIndex + 1} to {Math.min(endIndex, filteredJobs.length)} of {filteredJobs.length} jobs
@@ -716,7 +720,9 @@ export default function MyAccountPage() {
 
               {/* Jobs List */}
               <div className="space-y-4 mb-8">
-                {loading ? (
+                {activeTab === 'review' ? (
+                  <ReviewJobs />
+                ) : loading ? (
                   <div className="text-center py-12 bg-gray-50 rounded-xl">
                     <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
                     <p className="text-gray-500">Loading your repair jobs...</p>
@@ -748,7 +754,7 @@ export default function MyAccountPage() {
               </div>
 
               {/* Pagination */}
-              {filteredJobs.length > 0 && totalPages > 1 && (
+              {filteredJobs.length > 0 && totalPages > 1 && activeTab !== 'review' && (
                 <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-6 py-4">
                   <div className="flex items-center gap-2 mb-4 sm:mb-0">
                     <button
