@@ -42,9 +42,6 @@ function RepairmanLayout({ children }) {
         <div className='relative'>
             <Header />
             {children}
-
-
-
             <Chat />
         </div>
     )
