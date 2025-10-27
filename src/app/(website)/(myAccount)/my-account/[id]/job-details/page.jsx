@@ -9,276 +9,18 @@ import BookingModal from './BookingModal';
 import BookingDetails from './BookingDetails';
 import OfferCard from './OfferCard';
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
-import * as yup from 'yup';
-import { useForm } from 'react-hook-form';
-import { yupResolver } from '@hookform/resolvers/yup';
-import { toast } from 'react-toastify';
+import { LoadingSpinner } from '@/components/partials/customer/LoadingSpinner';
+import { UrgencyBadge } from '@/components/partials/customer/Offer/UrgencyBadge';
+import { ExpandableDescription } from '@/components/partials/customer/Offer/ExpandableDescription';
+import Disputes from './Disputes';
 
-const LoadingSpinner = () => (
-    <div className="max-w-6xl mx-auto p-6 bg-white my-10">
-        <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-        </div>
-    </div>
-);
-
-
-
-const UrgencyBadge = ({ urgency, className = "" }) => {
-    const getUrgencyColor = (urgency) => {
-        switch (urgency) {
-            case 'high': return 'text-red-600 bg-red-50';
-            case 'medium': return 'text-yellow-600 bg-yellow-50';
-            case 'low': return 'text-green-600 bg-green-50';
-            default: return 'text-gray-600 bg-gray-50';
-        }
-    };
-
-    return (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${getUrgencyColor(urgency)} ${className}`}>
-            {urgency?.toUpperCase()} PRIORITY
-        </span>
-    );
-};
-
-const ExpandableDescription = ({ description, maxLength = 150 }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    if (!description) return <p className="text-gray-500 text-sm">No description provided.</p>;
-
-    const shouldTruncate = description.length > maxLength;
-    const displayText = isExpanded ? description : description.slice(0, maxLength);
-
-    return (
-        <div className="text-gray-700 text-sm">
-            <p className="leading-relaxed">
-                {displayText}
-                {!isExpanded && shouldTruncate && '...'}
-            </p>
-            {shouldTruncate && (
-                <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-primary-600 hover:text-primary-800 hover:underline text-sm mt-1 transition-colors duration-200"
-                >
-                    {isExpanded ? 'Read Less' : 'Read More'}
-                </button>
-            )}
-        </div>
-    );
-};
-
-
-const DISPUTE_CATEGORIES = [
-    { value: 'payment_issue', label: 'Payment Issue' },
-    { value: 'quality_of_work', label: 'Quality of Work' },
-    { value: 'service_not_provided', label: 'Service Not Provided' },
-    { value: 'damaged_property', label: 'Damaged Property' },
-    { value: 'unprofessional_behavior', label: 'Unprofessional Behavior' },
-    { value: 'cancellation_issue', label: 'Cancellation Issue' },
-    { value: 'other', label: 'Other' }
-];
-
-const DISPUTE_SCHEMA = yup.object({
-    category: yup
-        .string()
-        .required('Please select a dispute category'),
-    description: yup
-        .string()
-        .required('Description is required')
-        .min(5, 'Description must be at least 20 characters')
-        .max(1000, 'Description cannot exceed 1000 characters')
-});
-
-const Disputes = ({ bookingId }) => {
-    const [isSubmitting, setIsSubmitting] = useState(false);
-
-    const {
-        register,
-        handleSubmit,
-        formState: { errors },
-        reset,
-        watch
-    } = useForm({
-        resolver: yupResolver(DISPUTE_SCHEMA),
-        defaultValues: {
-            category: '',
-            description: ''
-        }
-    });
-
-            const {token }= useSelector((state) => state.auth)
-
-
-    const watchDescription = watch('description', '');
-
-    const onSubmit = async (formData) => {
-        setIsSubmitting(true);
-
-        try {
-            console.log('bookingId', bookingId);
-            // return;
-
-            const { data } = await axiosInstance.post('/disputes/create', {
-                bookingId,
-                category: formData.category,
-                description: formData.description.trim()
-            }, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (data.success) {
-                toast.success('Dispute created successfully');
-                reset();
-            }
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to create dispute';
-            toast.error(errorMessage);
-            console.error('Error creating dispute:', error);
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const commonInputClasses = `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors`;
-    const errorClasses = 'border-red-500';
-
-    return (
-        <div className="bg-gray-50 py-3 px-4">
-            <div className="bg-white rounded-lg shadow-sm p-6">
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
-                            Dispute Category <span className="text-red-500">*</span>
-                        </label>
-                        <select
-                            id="category"
-                            {...register('category')}
-                            className={`${commonInputClasses} ${errors.category ? errorClasses : 'border-gray-300'}`}
-                            disabled={isSubmitting}
-                        >
-                            <option value="">Select a category</option>
-                            {DISPUTE_CATEGORIES.map((cat) => (
-                                <option key={cat.value} value={cat.value}>
-                                    {cat.label}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.category && (
-                            <p className="mt-1 text-sm text-red-600">{errors.category.message}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                            Description <span className="text-red-500">*</span>
-                        </label>
-                        <textarea
-                            id="description"
-                            {...register('description')}
-                            rows={6}
-                            placeholder="Please describe your issue in detail..."
-                            className={`${commonInputClasses} resize-none ${errors.description ? errorClasses : 'border-gray-300'}`}
-                            disabled={isSubmitting}
-                        />
-                        <div className="flex justify-between items-center mt-1">
-                            <div>
-                                {errors.description && (
-                                    <p className="text-sm text-red-600">{errors.description.message}</p>
-                                )}
-                            </div>
-                            <p className={`text-sm ${watchDescription.length > 1000 ? 'text-red-600' : 'text-gray-500'}`}>
-                                {watchDescription.length}/1000
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                        <div className="flex">
-                            <div className="flex-shrink-0">
-                                <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                                    <path
-                                        fillRule="evenodd"
-                                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                                        clipRule="evenodd"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="ml-3">
-                                <h3 className="text-sm font-medium text-yellow-800">Important Notice</h3>
-                                <div className="mt-2 text-sm text-yellow-700">
-                                    <ul className="list-disc list-inside space-y-1">
-                                        <li>Payment for this booking will be held until the dispute is resolved</li>
-                                        <li>Our team will review your case within 24-48 hours</li>
-                                        <li>Both parties will be notified of the dispute status</li>
-                                        <li>False disputes may result in account penalties</li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="flex gap-4">
-                        <button
-                            type="submit"
-                            disabled={isSubmitting}
-                            className={`flex-1 py-3 px-4 rounded-lg text-white font-medium ${isSubmitting
-                                ? 'bg-gray-400 cursor-not-allowed'
-                                : 'bg-primary-600 hover:bg-primary-700'
-                            }`}
-                        >
-                            {isSubmitting ? (
-                                <span className="flex items-center justify-center">
-                                    <svg
-                                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        />
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        />
-                                    </svg>
-                                    Creating Dispute...
-                                </span>
-                            ) : (
-                                'Submit Dispute'
-                            )}
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() => reset()}
-                            disabled={isSubmitting}
-                            className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            Reset
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    );
-};
 
 function JobDetails() {
     const [job, setJob] = useState(null);
     const [offers, setOffers] = useState([]);
     const [booking, setBooking] = useState(null);
+    const [dispute, setDispute] = useState(null);
     const [statistics, setStatistics] = useState(null);
-
     const [activeTab, setActiveTab] = useState('details');
     const [isDeleting, setIsDeleting] = useState(false);
     const [showBookingModal, setShowBookingModal] = useState(false);
@@ -286,7 +28,6 @@ function JobDetails() {
     const [isSubmittingOffer, setIsSubmittingOffer] = useState(false);
     const [submittingOfferId, setSubmittingOfferId] = useState(null);
     const [loading, setLoading] = useState(true);
-
     const { id } = useParams();
     const { token } = useSelector(state => state.auth);
     const router = useRouter();
@@ -318,11 +59,12 @@ function JobDetails() {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
-            const { job, booking, statistics } = res.data.data;
+            const { job, booking, statistics, dispute } = res.data.data;
 
             setJob(job);
             setBooking(booking || null);
             setStatistics(statistics || null);
+            setDispute(dispute || null)
 
             if (job?.selectedOffer) {
                 setOffers([job.selectedOffer]);
@@ -379,7 +121,7 @@ function JobDetails() {
         // router.push(`/my-account/${id}/offer/${selectedOffer._id}/check-out`);
 
 
-        return;
+        // return;
 
         try {
             const response = await axiosInstance.post(
@@ -705,7 +447,7 @@ function JobDetails() {
                     </div>
                 </div>
             ) : activeTab === 'disputes' && booking ? (
-                <Disputes bookingId={booking._id} />
+                <Disputes bookingId={booking._id} status={booking.status} dispute={dispute} fetchJob={fetchJob} />
             ) : (
                 <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
                     <div className="text-gray-500">

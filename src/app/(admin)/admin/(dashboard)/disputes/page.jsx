@@ -1,6 +1,7 @@
 "use client"
 
 import axiosInstance from '@/config/axiosInstance';
+import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -39,7 +40,7 @@ const AdminDisputes = () => {
         setLoading(true);
         try {
             const params = new URLSearchParams();
-            
+
             if (filters.status) params.append('status', filters.status);
             if (filters.priority) params.append('priority', filters.priority);
             if (filters.category) params.append('category', filters.category);
@@ -345,15 +346,14 @@ const AdminDisputes = () => {
                                                 })}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button
-                                                    // onClick={() => {
-                                                    //     setSelectedDispute(dispute);
-                                                    //     setShowDetailModal(true);
-                                                    // }}
-                                                    className="text-primary-600 hover:text-primary-900"
-                                                >
-                                                    View Details
-                                                </button>
+                                                <Link href={`/admin/disputes/${dispute._id}`}>
+                                                    <button
+
+                                                        className="text-primary-600 hover:text-primary-900"
+                                                    >
+                                                        View Details
+                                                    </button>
+                                                </Link>
                                             </td>
                                         </tr>
                                     ))
@@ -401,11 +401,10 @@ const AdminDisputes = () => {
                                             <button
                                                 key={index + 1}
                                                 onClick={() => handlePageChange(index + 1)}
-                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                                                    pagination.currentPage === index + 1
+                                                className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${pagination.currentPage === index + 1
                                                         ? 'z-10 bg-primary-50 border-primary-500 text-primary-600'
                                                         : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 {index + 1}
                                             </button>

@@ -351,7 +351,7 @@ function page() {
                                         <div className="flex flex-wrap gap-2">
                                             {profile.brandsWorkedWith.map((brand, index) => (
                                                 <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm">
-                                                    {brand}
+                                                    <div>{brand.name}</div>
                                                 </span>
                                             ))}
                                         </div>

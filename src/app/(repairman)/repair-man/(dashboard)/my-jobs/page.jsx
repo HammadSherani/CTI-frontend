@@ -13,13 +13,12 @@ const MyJobsPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
 
-  const [allJobs, setAllJobs] = useState([]); // Store all jobs
+  const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState({});
   const { token } = useSelector((state) => state.auth);
 
-  // Fetch all jobs only once
   const fetchAllJobs = async () => {
     try {
       setLoading(true);
@@ -49,28 +48,23 @@ const MyJobsPage = () => {
     fetchAllJobs();
   }, []);
 
-  // Helper function to get booking status
   const getBookingStatus = (job) => {
     return job.bookingDetails?.status || 'unknown';
   };
 
-  // Helper function to get urgency level from job details
   const getUrgencyLevel = (urgency) => {
     if (typeof urgency === 'string') {
       return urgency.toLowerCase();
     }
-    // If urgency is a score, convert it
     if (urgency >= 3) return 'high';
     if (urgency >= 2) return 'medium';
     return 'low';
   };
 
-  // Helper function to format currency
   const formatCurrency = (amount, currency = 'PKR') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
   };
 
-  // Helper function to get time remaining
   const getTimeRemaining = (expiresAt) => {
     if (!expiresAt) return null;
     const now = new Date();
@@ -107,7 +101,6 @@ const MyJobsPage = () => {
     }
   };
 
-  // Categorize jobs based on their booking status - using memoization
   const categorizedJobs = useMemo(() => {
     const active = allJobs.filter(job => [
       'confirmed', 'repairman_notified', 'scheduled', 'in_progress', 'parts_needed', 'quality_check'
@@ -128,7 +121,6 @@ const MyJobsPage = () => {
     return { active, completed, cancelled, disputed };
   }, [allJobs]);
 
-  // Filter and search jobs based on active tab
   const filteredJobs = useMemo(() => {
     const jobsToFilter = categorizedJobs[activeTab] || [];
     return jobsToFilter.filter((job) => {
@@ -213,7 +205,6 @@ const MyJobsPage = () => {
           </div>
         </div>
 
-        {/* Device Info */}
         {deviceInfo && (deviceInfo.brand || deviceInfo.model) && (
           <div className="mb-4">
             <div className="flex items-center space-x-4 text-sm text-gray-600">
@@ -236,7 +227,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* Scheduled Date */}
         {bookingDetails.scheduledDate && (
           <div className="mb-4">
             <div className="flex items-center text-sm text-gray-600">
@@ -246,7 +236,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* Description */}
         {jobDetails.description && (
           <div className="mb-4">
             <p className="text-sm text-gray-600">
@@ -255,7 +244,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* Images */}
         {jobDetails.images && jobDetails.images.length > 0 && (
           <div className="mb-4">
             <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
@@ -275,15 +263,14 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
           {job.canUpdateStatus && activeTab === 'active' && (
             // <Link href={`/repair-man/my-jobs/${job._id}/update-status`} >
-              <button 
+            <button
               onClick={() => router.push(`/repair-man/my-jobs/${job._id}/update-status`)}
               className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-                View And Update Status
-              </button>
+              View And Update Status
+            </button>
             // </Link>
           )}
           {job.canChat && (
@@ -302,6 +289,14 @@ const MyJobsPage = () => {
             <button className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
               <Icon icon="heroicons:truck" className="w-4 h-4 mr-2 inline" />
               Arrange Delivery
+            </button>
+          )}
+          {jobDetails.hasActiveDispute && (
+            <button
+              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/dispute`)}
+              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
+              <Icon icon="mdi:scale-balance" className="w-4 h-4 mr-2 inline" />
+              See Dispute
             </button>
           )}
         </div>
