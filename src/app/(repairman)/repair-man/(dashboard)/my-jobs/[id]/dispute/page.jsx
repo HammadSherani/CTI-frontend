@@ -124,7 +124,7 @@ function RepairmanDispute() {
                         {tracking.currentLocation && (
                             <div className={`px-4 py-2 rounded-full border ${getStatusColor(tracking.currentLocation)}`}>
                                 <span className="font-semibold">
-                                    {tracking.currentLocation?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                    {tracking.currentLocation?.replace('_', ' ')?.replace(/\b\w/g, l => l.toUpperCase())}
                                 </span>
                             </div>
                         )}

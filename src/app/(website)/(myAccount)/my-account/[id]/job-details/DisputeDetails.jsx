@@ -300,7 +300,7 @@ const DisputeDetails = ({ dispute }) => {
 
                         <div>
                             <span className="text-sm font-medium text-gray-600">Payment Status:</span>
-                            <p className="text-gray-800 capitalize">{dispute.paymentStatus.replace('_', ' ')}</p>
+                            <p className="text-gray-800 capitalize">{dispute.paymentStatus?.replace('_', ' ')}</p>
                         </div>
 
                         <div>

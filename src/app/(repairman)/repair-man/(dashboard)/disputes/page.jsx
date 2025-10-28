@@ -362,7 +362,7 @@ function RepairmanDisptes() {
               <div className={`w-2 h-2 rounded-full mr-2 ${jobStatus === 'open' ? 'bg-green-400' :
                 jobStatus === 'in-progress' ? 'bg-yellow-400' : 'bg-gray-400'
                 }`}></div>
-              {jobStatus.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+              {jobStatus?.replace('-', ' ')?.replace(/\b\w/g, l => l.toUpperCase())}
             </span>
 
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getUrgencyColor(urgency)}`}>

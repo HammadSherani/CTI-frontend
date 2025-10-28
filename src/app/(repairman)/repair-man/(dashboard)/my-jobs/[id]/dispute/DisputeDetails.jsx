@@ -210,7 +210,7 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                             <div>
                                 <span className="text-sm font-medium text-gray-500">Payment Status</span>
                                 <span className="inline-block mt-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold border border-orange-200">
-                                    {dispute.paymentStatus.replace('_', ' ').toUpperCase()}
+                                    {dispute.paymentStatus?.replace('_', ' ').toUpperCase()}
                                 </span>
                             </div>
 
