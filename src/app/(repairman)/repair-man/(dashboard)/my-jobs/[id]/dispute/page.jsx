@@ -13,8 +13,6 @@ function RepairmanDispute() {
     const [job, setJob] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
-    const [showSuccessMessage, setShowSuccessMessage] = useState(false);
-    const [statusUpdateResult, setStatusUpdateResult] = useState(null);
     const [dispute, setDispute] = useState(null)
     const params = useParams();
     const router = useRouter();
@@ -98,10 +96,6 @@ function RepairmanDispute() {
         );
     }
 
-    const jobInfo = job.jobInfo || {};
-    const customer = job.customer || {};
-    const bookingDetails = job.bookingDetails || {};
-    const deviceInfo = jobInfo.deviceInfo || {};
     const tracking = job.tracking || {};
 
     return (
@@ -130,40 +124,12 @@ function RepairmanDispute() {
                         )}
                     </div>
 
-                    {/* Success Message */}
-                    {showSuccessMessage && statusUpdateResult && (
-                        <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                            <div className="flex items-start">
-                                <Icon icon="heroicons:check-circle" className="w-6 h-6 text-green-500 mt-0.5 mr-3 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <h3 className="text-green-800 font-semibold">Status Updated Successfully!</h3>
-                                    <p className="text-green-700 text-sm mt-1">
-                                        Status changed from <span className="font-medium">{statusUpdateResult.oldStatus}</span> to{' '}
-                                        <span className="font-medium">{statusUpdateResult.newStatus}</span>
-                                    </p>
-                                    <div className="mt-2 flex items-center text-sm text-green-600">
-                                        <span>Progress: {statusUpdateResult.progress || 'N/A'}%</span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        setShowSuccessMessage(false);
-                                        setStatusUpdateResult(null);
-                                    }}
-                                    className="text-green-500 hover:text-green-700"
-                                >
-                                    <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* Dispute Details Component */}
                     {dispute ? (
                         <DisputeDetails
                             dispute={dispute}
                             job={job}
-                            onEvidenceUploaded={fetchJobDetails}
+                            fetchJobDetails={fetchJobDetails}
                         />
                     ) : (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">

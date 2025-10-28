@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import * as yup from 'yup';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import DisputeDetails from './DisputeDetails';
-import AddResponseModal from './Addresponsemodal';
+import { Icon } from '@iconify/react';
 
 const DISPUTE_CATEGORIES = [
     { value: 'payment_issue', label: 'Payment Issue' },
@@ -32,8 +32,10 @@ const DISPUTE_SCHEMA = yup.object({
 const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [evidenceFiles, setEvidenceFiles] = useState([]);
-    const [uploadingEvidence, setUploadingEvidence] = useState(false);
-    const [isResponseModalOpen, setIsResponseModalOpen] = useState(false);
+    const [message, setMessage] = useState('');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
+    const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
 
     const {
         register,
@@ -50,9 +52,17 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     });
 
     const { token } = useSelector((state) => state.auth);
-
     const watchDescription = watch('description', '');
-    
+
+    // Auto scroll to bottom when new messages arrive
+    useEffect(() => {
+        scrollToBottom();
+    }, [dispute?.responses, dispute?.evidenceFiles]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
         const validFiles = files.filter(file => {
@@ -76,35 +86,78 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
         setEvidenceFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    const handleUploadEvidence = async () => {
-        if (evidenceFiles.length === 0) {
-            toast.error('Please select at least one file');
+    const handleSendMessage = async () => {
+        if (!message.trim() && evidenceFiles.length === 0) {
+            toast.error('Please enter a message or select files to upload');
             return;
         }
-        setUploadingEvidence(true);
+
+        if (message.trim() && message.trim().length < 10) {
+            toast.error('Message must be at least 10 characters');
+            return;
+        }
+
+        setIsSendingMessage(true);
+
         try {
-            const formData = new FormData();
-            formData.append('bookingId', bookingId);
-            evidenceFiles.forEach(file => {
-                formData.append('evidence', file);
-            });
-            const { data } = await axiosInstance.post(`/disputes/${dispute?._id}/evidence`, formData, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
+            // If there's a message, send response
+            if (message.trim()) {
+                const { data } = await axiosInstance.post(
+                    `/disputes/${dispute?._id}/response`,
+                    { message: message.trim() },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (data.success) {
+                    toast.success('Response sent successfully');
+                    setMessage('');
                 }
-            });
-            if (data.success) {
-                toast.success('Evidence uploaded successfully');
-                fetchJob()
-                setEvidenceFiles([]);
             }
+
+            // If there are files, upload evidence
+            if (evidenceFiles.length > 0) {
+                const formData = new FormData();
+                formData.append('bookingId', bookingId);
+                evidenceFiles.forEach(file => {
+                    formData.append('evidence', file);
+                });
+
+                const { data: evidenceData } = await axiosInstance.post(
+                    `/disputes/${dispute?._id}/evidence`,
+                    formData,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                );
+
+                if (evidenceData.success) {
+                    toast.success('Evidence uploaded successfully');
+                    setEvidenceFiles([]);
+                }
+            }
+
+            fetchJob();
         } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to upload evidence';
+            const errorMessage = error.response?.data?.message || 'Failed to send message';
             toast.error(errorMessage);
-            console.error('Error uploading evidence:', error);
+            console.error('Error sending message:', error);
         } finally {
-            setUploadingEvidence(false);
+            setIsSendingMessage(false);
+        }
+    };
+
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
@@ -112,8 +165,6 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
         setIsSubmitting(true);
 
         try {
-            console.log('bookingId', bookingId);
-
             const { data } = await axiosInstance.post('/disputes/create', {
                 bookingId,
                 category: formData.category,
@@ -127,7 +178,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
 
             if (data.success) {
                 toast.success('Dispute created successfully');
-                fetchJob()
+                fetchJob();
                 reset();
             }
         } catch (error) {
@@ -139,8 +190,27 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
         }
     };
 
-    const handleResponseSuccess = () => {
-        fetchJob(); // Refresh dispute data
+    const formatDate = (dateString) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (days === 0) {
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else if (days === 1) {
+            return 'Yesterday';
+        } else if (days < 7) {
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        } else {
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
     };
 
     const commonInputClasses = `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors`;
@@ -148,180 +218,220 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
 
     if (status === "disputed") {
         return (
-            <>
-                <div className="bg-gray-50 py-3 px-4">
+            <div className="bg-gray-50 py-3 px-4 min-h-screen flex flex-col">
+                {/* Dispute Details Header */}
+                <div className="flex-shrink-0 mb-4">
                     <DisputeDetails dispute={dispute} />
-                    <div className="bg-white rounded-lg shadow-sm p-6">
-                        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
-                            <div className="flex-shrink-0">
-                                <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                    </svg>
-                                </div>
+                </div>
+
+                {/* Chat Messages Area - Scrollable */}
+                <div className="flex-1 bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {/* Initial Dispute Message */}
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
                             </div>
-                            <div>
-                                <h2 className="text-xl font-semibold text-gray-900">Dispute Under Review</h2>
-                                <p className="text-sm text-gray-600 mt-1">Your dispute is being reviewed by our team</p>
+                            <div className="flex-1">
+                                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 capitalize">
+                                                {dispute.raisedBy?.userId?.name}
+                                            </p>
+                                            <p className="text-xs text-gray-500">
+                                                {dispute.raisedBy?.userType} • Dispute Created
+                                            </p>
+                                        </div>
+                                        <span className="text-xs text-gray-500">
+                                            {formatDate(dispute.createdAt)}
+                                        </span>
+                                    </div>
+                                    <div className="mb-2">
+                                        <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded">
+                                            {dispute.category?.replace(/_/g, ' ').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-800">{dispute.description}</p>
+                                </div>
                             </div>
                         </div>
 
-                        <div className="bg-primary-50 border border-primary-200 rounded-lg p-4 mb-6">
-                            <div className="flex">
-                                <div className="flex-shrink-0">
-                                    <svg className="h-5 w-5 text-primary-400" viewBox="0 0 20 20" fill="currentColor">
-                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                    </svg>
-                                </div>
-                                <div className="ml-3">
-                                    <p className="text-sm text-primary-700">
-                                        You can provide additional information by clicking "Add Response" button below.
-                                        Upload evidence to support your case.
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
+                        {/* Responses and Evidence Files - Chronologically Merged */}
+                        {[
+                            ...(dispute.responses || []).map(r => ({ ...r, type: 'response' })),
+                            ...(dispute.evidenceFiles || []).map(e => ({ ...e, type: 'evidence' }))
+                        ]
+                            .sort((a, b) => {
+                                const dateA = new Date(a.respondedAt || a.createdAt || a.uploadedAt);
+                                const dateB = new Date(b.respondedAt || b.createdAt || b.uploadedAt);
+                                return dateA - dateB;
+                            })
+                            .map((item, index) => {
+                                if (item.type === 'response') {
+                                    return (
+                                        <div key={`response-${index}`} className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <Icon icon="heroicons:user" className="w-5 h-5 text-primary-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900 capitalize">
+                                                                {item.respondedBy?.userId?.name || 'Unknown User'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {item.respondedBy?.userType || 'User'}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(item.respondedAt || item.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-800">{item.message}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                } else {
+                                    // Evidence file
+                                    return (
+                                        <div key={`evidence-${index}`} className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <Icon icon="heroicons:paper-clip" className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900">
+                                                                Evidence Uploaded
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 capitalize">
+                                                                By {item.uploaderType}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(item.uploadedAt)}
+                                                        </span>
+                                                    </div>
+                                                    <a
+                                                        href={item.fileUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                                    >
+                                                        <Icon icon="heroicons:document" className="w-4 h-4" />
+                                                        View {item.fileType} file
+                                                        <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4" />
+                                                    </a>
+                                                    {item.fileType === 'image' && (
+                                                        <img
+                                                            src={item.fileUrl}
+                                                            alt="Evidence"
+                                                            className="mt-3 rounded-lg max-w-xs"
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                            })}
 
-                        {/* Add Response Button */}
-                        <div className="mb-6">
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Chat Input Area - Fixed at Bottom */}
+                    <div className="border-t border-gray-200 bg-white p-4">
+                        {/* Selected Files Preview */}
+                        {evidenceFiles.length > 0 && (
+                            <div className="mb-3 flex flex-wrap gap-2">
+                                {evidenceFiles.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <Icon icon="heroicons:document" className="w-4 h-4 text-gray-600" />
+                                        <span className="text-gray-700 max-w-[150px] truncate">
+                                            {file.name}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <Icon icon="heroicons:x-mark" className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Input Box with Buttons */}
+                        <div className="flex items-end gap-2">
+                            {/* File Upload Button */}
                             <button
                                 type="button"
-                                onClick={() => setIsResponseModalOpen(true)}
-                                disabled={dispute?.status === 'resolved' || dispute?.status === 'closed'}
-                                className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isSendingMessage || evidenceFiles.length >= 5}
+                                className="flex-shrink-0 p-3 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Attach files"
                             >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Add Response
+                                <Icon icon="heroicons:paper-clip" className="w-5 h-5" />
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                onChange={handleFileChange}
+                                className="hidden"
+                                disabled={isSendingMessage || evidenceFiles.length >= 5}
+                            />
+
+                            {/* Message Input */}
+                            <div className="flex-1">
+                                <textarea
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Type your message..."
+                                    disabled={isSendingMessage}
+                                    rows={1}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:bg-gray-100 resize-none"
+                                    style={{ minHeight: '44px', maxHeight: '120px' }}
+                                    onInput={(e) => {
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    }}
+                                />
+                            </div>
+
+                            {/* Send Button */}
+                            <button
+                                type="button"
+                                onClick={handleSendMessage}
+                                disabled={isSendingMessage || (!message.trim() && evidenceFiles.length === 0)}
+                                className="flex-shrink-0 p-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Send message"
+                            >
+                                {isSendingMessage ? (
+                                    <Icon icon="heroicons:arrow-path" className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Icon icon="heroicons:paper-airplane" className="w-5 h-5" />
+                                )}
                             </button>
                         </div>
 
-                        {/* Evidence Upload Section */}
-                        <div className="border-t border-gray-200 pt-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
-                                </svg>
-                                Upload Evidence
-                            </h3>
-
-                            <div className="space-y-4">
-                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
-                                    <input
-                                        type="file"
-                                        id="evidence"
-                                        multiple
-                                        accept="image/jpeg,image/jpg,image/png,application/pdf"
-                                        onChange={handleFileChange}
-                                        className="hidden"
-                                        disabled={uploadingEvidence || evidenceFiles.length >= 5}
-                                    />
-                                    <label
-                                        htmlFor="evidence"
-                                        className="cursor-pointer"
-                                    >
-                                        <svg
-                                            className="mx-auto h-12 w-12 text-gray-400"
-                                            stroke="currentColor"
-                                            fill="none"
-                                            viewBox="0 0 48 48"
-                                        >
-                                            <path
-                                                d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02"
-                                                strokeWidth={2}
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                            />
-                                        </svg>
-                                        <p className="mt-2 text-sm text-gray-600">
-                                            <span className="font-medium text-primary-600">Click to upload</span> or drag and drop
-                                        </p>
-                                        <p className="mt-1 text-xs text-gray-500">
-                                            JPG, PNG or PDF (Max 5MB, up to 5 files)
-                                        </p>
-                                    </label>
-                                </div>
-
-                                {evidenceFiles.length > 0 && (
-                                    <div className="space-y-2">
-                                        {evidenceFiles.map((file, index) => (
-                                            <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                    <svg className="w-8 h-8 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                                    </svg>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
-                                                        <p className="text-xs text-gray-500">{(file.size / 1024).toFixed(2)} KB</p>
-                                                    </div>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => removeFile(index)}
-                                                    className="ml-4 text-red-600 hover:text-red-800 transition-colors"
-                                                >
-                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                                    </svg>
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {evidenceFiles.length > 0 && (
-                                <button
-                                    type="button"
-                                    onClick={handleUploadEvidence}
-                                    disabled={uploadingEvidence}
-                                    className={`w-full mt-4 py-3 px-4 rounded-lg text-white font-medium ${uploadingEvidence
-                                        ? 'bg-gray-400 cursor-not-allowed'
-                                        : 'bg-primary-600 hover:bg-primary-700'
-                                        }`}
-                                >
-                                    {uploadingEvidence ? (
-                                        <span className="flex items-center justify-center">
-                                            <svg
-                                                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                                                xmlns="http://www.w3.org/2000/svg"
-                                                fill="none"
-                                                viewBox="0 0 24 24"
-                                            >
-                                                <circle
-                                                    className="opacity-25"
-                                                    cx="12"
-                                                    cy="12"
-                                                    r="10"
-                                                    stroke="currentColor"
-                                                    strokeWidth="4"
-                                                />
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                />
-                                            </svg>
-                                            Uploading...
-                                        </span>
-                                    ) : (
-                                        'Upload Evidence'
-                                    )}
-                                </button>
-                            )}
-                        </div>
+                        {/* Helper Text */}
+                        <p className="text-xs text-gray-500 mt-2">
+                            Press Enter to send • Shift+Enter for new line • Max 5 files (5MB each)
+                        </p>
                     </div>
                 </div>
-
-                {/* Add Response Modal */}
-                <AddResponseModal
-                    isOpen={isResponseModalOpen}
-                    onClose={() => setIsResponseModalOpen(false)}
-                    disputeId={dispute?._id}
-                    onSuccess={handleResponseSuccess}
-                />
-            </>
+            </div>
         );
     }
 
@@ -453,4 +563,4 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     );
 };
 
-export default Disputes
+export default Disputes;

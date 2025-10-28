@@ -1,34 +1,52 @@
 'use client'
 
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
-import handleError from '@/helper/handleError';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 
-const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
-    const [selectedFiles, setSelectedFiles] = useState([]);
-    const [previews, setPreviews] = useState([]);
-    const [uploading, setUploading] = useState(false);
-    const [showUploadModal, setShowUploadModal] = useState(false);
-    const [showResponseModal, setShowResponseModal] = useState(false);
-    const [responseMessage, setResponseMessage] = useState('');
-    const [submittingResponse, setSubmittingResponse] = useState(false);
+const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
+    const [evidenceFiles, setEvidenceFiles] = useState([]);
+    const [message, setMessage] = useState('');
+    const [isSendingMessage, setIsSendingMessage] = useState(false);
+    const messagesEndRef = useRef(null);
+    const fileInputRef = useRef(null);
     const { token } = useSelector((state) => state.auth);
 
     if (!dispute) return null;
 
+    // Auto scroll to bottom when new messages arrive
+    useEffect(() => {
+        scrollToBottom();
+    }, [dispute?.responses, dispute?.evidenceFiles]);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
     const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (days === 0) {
+            return date.toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } else if (days === 1) {
+            return 'Yesterday';
+        } else if (days < 7) {
+            return date.toLocaleDateString('en-US', { weekday: 'short' });
+        } else {
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric'
+            });
+        }
     };
 
     const formatCategory = (category) => {
@@ -52,136 +70,104 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
     // Handle file selection
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
-        
-        const maxSize = 5 * 1024 * 1024;
         const validFiles = files.filter(file => {
-            if (file.size > maxSize) {
+            const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+            const isValidType = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(file.type);
+
+            if (!isValidSize) {
                 toast.error(`${file.name} is too large. Max size is 5MB`);
-                return false;
             }
-            return true;
+            if (!isValidType) {
+                toast.error(`${file.name} has invalid format. Only JPG, PNG, PDF allowed`);
+            }
+
+            return isValidSize && isValidType;
         });
 
-        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'application/pdf'];
-        const validTypedFiles = validFiles.filter(file => {
-            if (!allowedTypes.includes(file.type)) {
-                toast.error(`${file.name} is not a supported file type`);
-                return false;
-            }
-            return true;
-        });
-
-        setSelectedFiles(prev => [...prev, ...validTypedFiles]);
-
-        validTypedFiles.forEach(file => {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setPreviews(prev => [...prev, { name: file.name, url: reader.result, type: 'image' }]);
-                };
-                reader.readAsDataURL(file);
-            } else {
-                setPreviews(prev => [...prev, { name: file.name, url: null, type: 'pdf' }]);
-            }
-        });
+        setEvidenceFiles(prev => [...prev, ...validFiles].slice(0, 5));
     };
 
-    // Remove selected file
     const removeFile = (index) => {
-        setSelectedFiles(prev => prev.filter((_, i) => i !== index));
-        setPreviews(prev => prev.filter((_, i) => i !== index));
+        setEvidenceFiles(prev => prev.filter((_, i) => i !== index));
     };
 
-    // Upload evidence
-    const handleUploadEvidence = async () => {
-        if (selectedFiles.length === 0) {
-            toast.error('Please select at least one file to upload');
+    const handleSendMessage = async () => {
+        if (!message.trim() && evidenceFiles.length === 0) {
+            toast.error('Please enter a message or select files to upload');
             return;
         }
 
-        setUploading(true);
+        if (message.trim() && message.trim().length < 10) {
+            toast.error('Message must be at least 10 characters');
+            return;
+        }
+
+        setIsSendingMessage(true);
 
         try {
-            const formData = new FormData();
-            selectedFiles.forEach(file => {
-                formData.append('evidence', file);
-            });
-
-            const { data } = await axiosInstance.post(
-                `/disputes/${dispute._id}/evidence`,
-                formData,
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
+            // If there's a message, send response
+            if (message.trim()) {
+                const { data } = await axiosInstance.post(
+                    `/disputes/${dispute._id}/response`,
+                    { message: message.trim() },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
                     }
-                }
-            );
+                );
 
-            if (data.success) {
-                toast.success('Evidence uploaded successfully');
-                setSelectedFiles([]);
-                setPreviews([]);
-                setShowUploadModal(false);
-                
-                if (onEvidenceUploaded) {
-                    onEvidenceUploaded();
+                if (data.success) {
+                    toast.success('Response sent successfully');
+                    setMessage('');
                 }
             }
+
+            // If there are files, upload evidence
+            if (evidenceFiles.length > 0) {
+                const formData = new FormData();
+                evidenceFiles.forEach(file => {
+                    formData.append('evidence', file);
+                });
+
+                const { data: evidenceData } = await axiosInstance.post(
+                    `/disputes/${dispute._id}/evidence`,
+                    formData,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'multipart/form-data'
+                        }
+                    }
+                );
+
+                if (evidenceData.success) {
+                    toast.success('Evidence uploaded successfully');
+                    setEvidenceFiles([]);
+                }
+            }
+
+            fetchJobDetails();
         } catch (error) {
-            handleError(error);
+            const errorMessage = error.response?.data?.message || 'Failed to send message';
+            toast.error(errorMessage);
+            console.error('Error sending message:', error);
         } finally {
-            setUploading(false);
+            setIsSendingMessage(false);
         }
     };
 
-    // Submit response
-    const handleSubmitResponse = async () => {
-        if (!responseMessage.trim()) {
-            toast.error('Please enter a response message');
-            return;
-        }
-
-        if (responseMessage.trim().length < 10) {
-            toast.error('Response message must be at least 10 characters');
-            return;
-        }
-
-        setSubmittingResponse(true);
-
-        try {
-            const { data } = await axiosInstance.post(
-                `/disputes/${dispute._id}/response`,
-                {
-                    message: responseMessage.trim()
-                },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-
-            if (data.success) {
-                toast.success('Response submitted successfully');
-                setResponseMessage('');
-                setShowResponseModal(false);
-                
-                if (onEvidenceUploaded) {
-                    onEvidenceUploaded();
-                }
-            }
-        } catch (error) {
-            handleError(error);
-        } finally {
-            setSubmittingResponse(false);
+    const handleKeyPress = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSendMessage();
         }
     };
 
     return (
         <div className="space-y-6">
-            {/* Main Dispute Card */}
+            {/* Dispute Header Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                 <div className="bg-primary-50 border-b border-primary-200 px-6 py-4">
                     <div className="flex items-center justify-between">
@@ -213,22 +199,6 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                     {dispute.paymentStatus?.replace('_', ' ').toUpperCase()}
                                 </span>
                             </div>
-
-                            <div>
-                                <span className="text-sm font-medium text-gray-500">Escalated</span>
-                                <div className="flex items-center mt-1">
-                                    <div className={`w-3 h-3 rounded-full mr-2 ${dispute.isEscalated ? 'bg-red-500' : 'bg-gray-300'}`}></div>
-                                    <span className="text-gray-800">{dispute.isEscalated ? 'Yes' : 'No'}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <span className="text-sm font-medium text-gray-500">Chat</span>
-                                <div className="flex items-center mt-1">
-                                    <div className={`w-3 h-3 rounded-full mr-2 ${dispute.chatEnabled ? 'bg-green-500' : 'bg-gray-300'}`}></div>
-                                    <span className="text-gray-800">{dispute.chatEnabled ? 'Enabled' : 'Disabled'}</span>
-                                </div>
-                            </div>
                         </div>
 
                         {/* Parties Info */}
@@ -240,12 +210,6 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                 </span>
                                 <p className="text-base text-blue-900 font-semibold">
                                     {dispute.raisedBy.userId.name}
-                                </p>
-                                <p className="text-xs text-blue-700 mt-1">
-                                    {dispute.raisedBy.userId.email}
-                                </p>
-                                <p className="text-xs text-blue-700">
-                                    {dispute.raisedBy.userId.phone}
                                 </p>
                                 <span className="inline-block mt-2 px-2 py-1 bg-blue-200 text-blue-800 rounded text-xs font-medium">
                                     {dispute.raisedBy.userType}
@@ -260,25 +224,10 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                 <p className="text-base text-red-900 font-semibold">
                                     {dispute.againstUser.userId.name}
                                 </p>
-                                <p className="text-xs text-red-700 mt-1">
-                                    {dispute.againstUser.userId.email}
-                                </p>
-                                <p className="text-xs text-red-700">
-                                    {dispute.againstUser.userId.phone}
-                                </p>
                                 <span className="inline-block mt-2 px-2 py-1 bg-red-200 text-red-800 rounded text-xs font-medium">
                                     {dispute.againstUser.userType}
                                 </span>
                             </div>
-
-                            {dispute.resolution?.refundAmount > 0 && (
-                                <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
-                                    <span className="text-sm font-medium text-primary-900">Refund Amount</span>
-                                    <p className="text-2xl font-bold text-primary-600 mt-1">
-                                        {currencySymbol} {dispute.resolution.refundAmount}
-                                    </p>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -304,7 +253,12 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                             <div>
                                                 <p className="text-xs font-semibold text-yellow-900">Response Deadline</p>
                                                 <p className="text-sm text-yellow-800 mt-1">
-                                                    {formatDate(dispute.deadlines.responseDeadline)}
+                                                    {new Date(dispute.deadlines.responseDeadline).toLocaleString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
                                                 </p>
                                             </div>
                                         </div>
@@ -317,7 +271,12 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                             <div>
                                                 <p className="text-xs font-semibold text-red-900">Resolution Deadline</p>
                                                 <p className="text-sm text-red-800 mt-1">
-                                                    {formatDate(dispute.deadlines.resolutionDeadline)}
+                                                    {new Date(dispute.deadlines.resolutionDeadline).toLocaleString('en-US', {
+                                                        month: 'short',
+                                                        day: 'numeric',
+                                                        hour: '2-digit',
+                                                        minute: '2-digit'
+                                                    })}
                                                 </p>
                                             </div>
                                         </div>
@@ -326,132 +285,223 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                             </div>
                         </div>
                     )}
+                </div>
+            </div>
 
-                    {/* Action Buttons */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                        <div className="flex flex-wrap gap-3">
-                            <button
-                                onClick={() => setShowResponseModal(true)}
-                                className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
-                            >
-                                <Icon icon="heroicons:chat-bubble-left-right" className="w-4 h-4 mr-2" />
-                                Add Response
-                            </button>
-                            <button
-                                onClick={() => setShowUploadModal(true)}
-                                className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
-                            >
-                                <Icon icon="heroicons:arrow-up-tray" className="w-4 h-4 mr-2" />
-                                Upload Evidence
-                            </button>
-                        </div>
-                    </div>
+            {/* Chat Interface */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                <div className="bg-gradient-to-r from-primary-50 to-primary-100 border-b border-primary-200 px-6 py-4">
+                    <h3 className="text-lg font-bold text-primary-900 flex items-center">
+                        <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 mr-2" />
+                        Dispute Conversation
+                    </h3>
+                </div>
 
-                    {/* Responses */}
-                    {dispute.responses && dispute.responses.length > 0 && (
-                        <div className="mt-6 pt-6 border-t border-gray-200">
-                            <div className="flex items-center justify-between mb-4">
-                                <span className="text-sm font-medium text-gray-500">Responses</span>
-                                <span className="px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-semibold">
-                                    {dispute.responses.length} {dispute.responses.length === 1 ? 'Response' : 'Responses'}
-                                </span>
+                {/* Messages Area */}
+                <div className="h-[500px] flex flex-col">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                        {/* Initial Dispute Message */}
+                        <div className="flex items-start gap-3">
+                            <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
                             </div>
-                            <div className="space-y-3">
-                                {dispute.responses.map((response, index) => (
-                                    <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                        <div className="flex items-start justify-between mb-2">
-                                            <div className="flex items-center">
-                                                <div className="w-8 h-8 bg-primary-200 rounded-full flex items-center justify-center mr-3">
-                                                    <Icon icon="heroicons:user" className="w-4 h-4 text-primary-700" />
-                                                </div>
-                                                <div>
-                                                    <p className="text-sm capitalize font-semibold text-gray-900">
-                                                        {response.respondedBy?.userId?.name|| 'Unknown User'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {response.respondedBy?.userType || 'User'}
-                                                    </p>
-                                                </div>
-                                            </div>
+                            <div className="flex-1">
+                                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div>
+                                            <p className="text-sm font-semibold text-gray-900 capitalize">
+                                                {dispute.raisedBy?.userId?.name}
+                                            </p>
                                             <p className="text-xs text-gray-500">
-                                                {new Date(response.respondedAt || response.createdAt).toLocaleString('en-US', {
-                                                    month: 'short',
-                                                    day: 'numeric',
-                                                    hour: '2-digit',
-                                                    minute: '2-digit'
-                                                })}
+                                                {dispute.raisedBy?.userType} • Dispute Created
                                             </p>
                                         </div>
-                                        <p className="text-sm text-gray-800 ml-11">{response.message}</p>
+                                        <span className="text-xs text-gray-500">
+                                            {formatDate(dispute.createdAt)}
+                                        </span>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Evidence Files */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                        <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center">
-                                <span className="text-sm font-medium text-gray-500">Evidence Files</span>
-                                {dispute.evidenceFiles && dispute.evidenceFiles.length > 0 && (
-                                    <span className="ml-2 px-2 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-semibold">
-                                        {dispute.evidenceFiles.length} {dispute.evidenceFiles.length === 1 ? 'File' : 'Files'}
-                                    </span>
-                                )}
+                                    <div className="mb-2">
+                                        <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded">
+                                            {dispute.category?.replace(/_/g, ' ').toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <p className="text-sm text-gray-800">{dispute.description}</p>
+                                </div>
                             </div>
                         </div>
 
-                        {dispute.evidenceFiles && dispute.evidenceFiles.length > 0 ? (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {dispute.evidenceFiles.map((file, index) => (
-                                    <div key={file._id || index} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-primary-300 transition-colors">
-                                        <div className="flex items-start justify-between">
+                        {/* Responses and Evidence Files - Chronologically Merged */}
+                        {[
+                            ...(dispute.responses || []).map(r => ({ ...r, type: 'response' })),
+                            ...(dispute.evidenceFiles || []).map(e => ({ ...e, type: 'evidence' }))
+                        ]
+                            .sort((a, b) => {
+                                const dateA = new Date(a.respondedAt || a.createdAt || a.uploadedAt);
+                                const dateB = new Date(b.respondedAt || b.createdAt || b.uploadedAt);
+                                return dateA - dateB;
+                            })
+                            .map((item, index) => {
+                                if (item.type === 'response') {
+                                    return (
+                                        <div key={`response-${index}`} className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <Icon icon="heroicons:user" className="w-5 h-5 text-primary-600" />
+                                            </div>
                                             <div className="flex-1">
-                                                <a 
-                                                    href={file.fileUrl} 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer" 
-                                                    className="text-sm font-medium text-primary-600 hover:text-primary-700 underline flex items-center"
-                                                >
-                                                    <Icon icon="heroicons:document" className="w-4 h-4 mr-1" />
-                                                    Evidence {index + 1} ({file.fileType})
-                                                </a>
-                                                <div className="mt-2 space-y-1">
-                                                    <p className="text-xs text-gray-600">
-                                                        <span className="font-medium">Uploaded by:</span> {file.uploadedBy?.name || 'Unknown'}
-                                                    </p>
-                                                    <p className="text-xs text-gray-600">
-                                                        <span className="font-medium">Type:</span> <span className="capitalize">{file.uploaderType}</span>
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {new Date(file.uploadedAt).toLocaleString('en-US', {
-                                                            month: 'short',
-                                                            day: 'numeric',
-                                                            year: 'numeric',
-                                                            hour: '2-digit',
-                                                            minute: '2-digit'
-                                                        })}
-                                                    </p>
+                                                <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900 capitalize">
+                                                                {item.respondedBy?.userId?.name || 'Unknown User'}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">
+                                                                {item.respondedBy?.userType || 'User'}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(item.respondedAt || item.createdAt)}
+                                                        </span>
+                                                    </div>
+                                                    <p className="text-sm text-gray-800">{item.message}</p>
                                                 </div>
                                             </div>
-                                            {file.fileType === 'image' && (
-                                                <img 
-                                                    src={file.fileUrl} 
-                                                    alt={`Evidence ${index + 1}`}
-                                                    className="w-20 h-20 object-cover rounded-lg ml-3 border border-gray-300"
-                                                />
-                                            )}
                                         </div>
+                                    );
+                                } else {
+                                    // Evidence file
+                                    return (
+                                        <div key={`evidence-${index}`} className="flex items-start gap-3">
+                                            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                                                <Icon icon="heroicons:paper-clip" className="w-5 h-5 text-blue-600" />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                    <div className="flex items-center justify-between mb-2">
+                                                        <div>
+                                                            <p className="text-sm font-semibold text-gray-900">
+                                                                Evidence Uploaded
+                                                            </p>
+                                                            <p className="text-xs text-gray-500 capitalize">
+                                                                By {item.uploaderType}
+                                                            </p>
+                                                        </div>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(item.uploadedAt)}
+                                                        </span>
+                                                    </div>
+                                                    <a
+                                                        href={item.fileUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
+                                                    >
+                                                        <Icon icon="heroicons:document" className="w-4 h-4" />
+                                                        View {item.fileType} file
+                                                        <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4" />
+                                                    </a>
+                                                    {item.fileType === 'image' && (
+                                                        <img
+                                                            src={item.fileUrl}
+                                                            alt="Evidence"
+                                                            className="mt-3 rounded-lg max-w-xs"
+                                                        />
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                            })}
+
+                        <div ref={messagesEndRef} />
+                    </div>
+
+                    {/* Chat Input Area - Fixed at Bottom */}
+                    <div className="border-t border-gray-200 bg-white p-4">
+                        {/* Selected Files Preview */}
+                        {evidenceFiles.length > 0 && (
+                            <div className="mb-3 flex flex-wrap gap-2">
+                                {evidenceFiles.map((file, index) => (
+                                    <div
+                                        key={index}
+                                        className="flex items-center gap-2 bg-gray-100 rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        <Icon icon="heroicons:document" className="w-4 h-4 text-gray-600" />
+                                        <span className="text-gray-700 max-w-[150px] truncate">
+                                            {file.name}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            onClick={() => removeFile(index)}
+                                            className="text-red-500 hover:text-red-700"
+                                        >
+                                            <Icon icon="heroicons:x-mark" className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 ))}
                             </div>
-                        ) : (
-                            <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
-                                <Icon icon="heroicons:folder-open" className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-                                <p className="text-gray-500 text-sm">No evidence files uploaded yet</p>
-                            </div>
                         )}
+
+                        {/* Input Box with Buttons */}
+                        <div className="flex items-end gap-2">
+                            {/* File Upload Button */}
+                            <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={isSendingMessage || evidenceFiles.length >= 5}
+                                className="flex-shrink-0 p-3 text-gray-500 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Attach files"
+                            >
+                                <Icon icon="heroicons:paper-clip" className="w-5 h-5" />
+                            </button>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                multiple
+                                accept="image/jpeg,image/jpg,image/png,application/pdf"
+                                onChange={handleFileChange}
+                                className="hidden"
+                                disabled={isSendingMessage || evidenceFiles.length >= 5}
+                            />
+
+                            {/* Message Input */}
+                            <div className="flex-1">
+                                <textarea
+                                    value={message}
+                                    onChange={(e) => setMessage(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Type your message..."
+                                    disabled={isSendingMessage}
+                                    rows={1}
+                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:bg-gray-100 resize-none"
+                                    style={{ minHeight: '44px', maxHeight: '120px' }}
+                                    onInput={(e) => {
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                                    }}
+                                />
+                            </div>
+
+                            {/* Send Button */}
+                            <button
+                                type="button"
+                                onClick={handleSendMessage}
+                                disabled={isSendingMessage || (!message.trim() && evidenceFiles.length === 0)}
+                                className="flex-shrink-0 p-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                title="Send message"
+                            >
+                                {isSendingMessage ? (
+                                    <Icon icon="heroicons:arrow-path" className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Icon icon="heroicons:paper-airplane" className="w-5 h-5" />
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Helper Text */}
+                        <p className="text-xs text-gray-500 mt-2">
+                            Press Enter to send • Shift+Enter for new line • Max 5 files (5MB each)
+                        </p>
                     </div>
                 </div>
             </div>
@@ -590,270 +640,6 @@ const DisputeDetails = ({ dispute, job, onEvidenceUploaded }) => {
                                 )}
                             </div>
                         )}
-                    </div>
-                </div>
-            )}
-
-            {/* Response Modal */}
-            {showResponseModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget && !submittingResponse) {
-                            setShowResponseModal(false);
-                            setResponseMessage('');
-                        }
-                    }}
-                >
-                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
-                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                            <h2 className="text-xl font-semibold text-gray-900">Add Response</h2>
-                            <button
-                                onClick={() => {
-                                    if (!submittingResponse) {
-                                        setShowResponseModal(false);
-                                        setResponseMessage('');
-                                    }
-                                }}
-                                disabled={submittingResponse}
-                                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                            >
-                                <Icon icon="heroicons:x-mark" className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6">
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Your Response <span className="text-red-500">*</span>
-                                </label>
-                                <textarea
-                                    value={responseMessage}
-                                    onChange={(e) => setResponseMessage(e.target.value)}
-                                    rows={6}
-                                    disabled={submittingResponse}
-                                    placeholder="Enter your response to the dispute..."
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none disabled:opacity-50 disabled:cursor-not-allowed"
-                                />
-                                <div className="flex justify-between items-center mt-2">
-                                    <p className="text-xs text-gray-500">Minimum 10 characters required</p>
-                                    <p className={`text-sm ${responseMessage.length < 10 ? 'text-red-600' : 'text-gray-500'}`}>
-                                        {responseMessage.length} characters
-                                    </p>
-                                </div>
-                            </div>
-
-                            {/* Info Box */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                <div className="flex items-start">
-                                    <Icon icon="heroicons:information-circle" className="w-5 h-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                                    <div className="text-sm text-blue-800">
-                                        <p className="font-medium mb-1">Response Guidelines:</p>
-                                        <ul className="list-disc list-inside space-y-1 text-xs">
-                                            <li>Be clear and professional in your response</li>
-                                            <li>Provide factual information to support your case</li>
-                                            <li>Avoid using offensive or inappropriate language</li>
-                                            <li>Your response will be visible to both parties and admin</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={handleSubmitResponse}
-                                    disabled={submittingResponse || responseMessage.trim().length < 10}
-                                    className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
-                                >
-                                    {submittingResponse ? (
-                                        <>
-                                            <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Submitting...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="heroicons:paper-airplane" className="w-5 h-5 mr-2" />
-                                            Submit Response
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (!submittingResponse) {
-                                            setShowResponseModal(false);
-                                            setResponseMessage('');
-                                        }
-                                    }}
-                                    disabled={submittingResponse}
-                                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Upload Evidence Modal */}
-            {showUploadModal && (
-                <div
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4"
-                    onClick={(e) => {
-                        if (e.target === e.currentTarget && !uploading) {
-                            setShowUploadModal(false);
-                            setSelectedFiles([]);
-                            setPreviews([]);
-                        }
-                    }}
-                >
-                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-                        {/* Modal Header */}
-                        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-                            <h2 className="text-xl font-semibold text-gray-900">Upload Evidence</h2>
-                            <button
-                                onClick={() => {
-                                    if (!uploading) {
-                                        setShowUploadModal(false);
-                                        setSelectedFiles([]);
-                                        setPreviews([]);
-                                    }
-                                }}
-                                disabled={uploading}
-                                className="text-gray-400 hover:text-gray-600 disabled:opacity-50"
-                            >
-                                <Icon icon="heroicons:x-mark" className="w-6 h-6" />
-                            </button>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-6">
-                            {/* File Input */}
-                            <div className="mb-6">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Select Files (Images or PDF)
-                                </label>
-                                <div className="relative">
-                                    <input
-                                        type="file"
-                                        multiple
-                                        accept="image/jpeg,image/jpg,image/png,image/gif,application/pdf"
-                                        onChange={handleFileChange}
-                                        disabled={uploading}
-                                        className="hidden"
-                                        id="evidence-upload"
-                                    />
-                                    <label
-                                        htmlFor="evidence-upload"
-                                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 transition-colors"
-                                    >
-                                        <Icon icon="heroicons:cloud-arrow-up" className="w-10 h-10 text-gray-400 mb-2" />
-                                        <p className="text-sm text-gray-600">Click to upload or drag and drop</p>
-                                        <p className="text-xs text-gray-500 mt-1">JPEG, PNG, GIF, PDF (Max 5MB per file)</p>
-                                    </label>
-                                </div>
-                            </div>
-
-                            {/* File Previews */}
-                            {previews.length > 0 && (
-                                <div className="mb-6">
-                                    <h3 className="text-sm font-medium text-gray-700 mb-3">
-                                        Selected Files ({previews.length})
-                                    </h3>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {previews.map((preview, index) => (
-                                            <div key={index} className="relative group">
-                                                {preview.type === 'image' ? (
-                                                    <div className="relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200">
-                                                        <img
-                                                            src={preview.url}
-                                                            alt={preview.name}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                ) : (
-                                                    <div className="aspect-square rounded-lg overflow-hidden border-2 border-gray-200 bg-gray-50 flex flex-col items-center justify-center">
-                                                        <Icon icon="heroicons:document" className="w-12 h-12 text-gray-400 mb-2" />
-                                                        <p className="text-xs text-gray-600 px-2 text-center truncate w-full">
-                                                            {preview.name}
-                                                        </p>
-                                                    </div>
-                                                )}
-                                                <button
-                                                    onClick={() => removeFile(index)}
-                                                    disabled={uploading}
-                                                    className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors disabled:opacity-50"
-                                                >
-                                                    <Icon icon="heroicons:x-mark" className="w-4 h-4" />
-                                                </button>
-                                                <p className="mt-2 text-xs text-gray-600 truncate">
-                                                    {preview.name}
-                                                </p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Info Box */}
-                            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                <div className="flex items-start">
-                                    <Icon icon="heroicons:information-circle" className="w-5 h-5 text-blue-500 mt-0.5 mr-2 flex-shrink-0" />
-                                    <div className="text-sm text-blue-800">
-                                        <p className="font-medium mb-1">Upload Guidelines:</p>
-                                        <ul className="list-disc list-inside space-y-1 text-xs">
-                                            <li>You can upload multiple files at once</li>
-                                            <li>Supported formats: JPEG, PNG, GIF, PDF</li>
-                                            <li>Maximum file size: 5MB per file</li>
-                                            <li>Clear images help resolve disputes faster</li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Action Buttons */}
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={handleUploadEvidence}
-                                    disabled={uploading || selectedFiles.length === 0}
-                                    className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
-                                >
-                                    {uploading ? (
-                                        <>
-                                            <svg className="animate-spin h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Uploading...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="heroicons:arrow-up-tray" className="w-5 h-5 mr-2" />
-                                            Upload Files
-                                        </>
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (!uploading) {
-                                            setShowUploadModal(false);
-                                            setSelectedFiles([]);
-                                            setPreviews([]);
-                                        }
-                                    }}
-                                    disabled={uploading}
-                                    className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </div>
             )}
