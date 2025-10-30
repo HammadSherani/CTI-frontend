@@ -16,19 +16,16 @@ function HireRepairman() {
   const [totalPages, setTotalPages] = useState(1)
   const limit = 30
 
-  // Get Pakistan's states
   const pakistanStates = State.getStatesOfCountry('PK')
   
-  // Get cities based on selected state or all Pakistan cities
   const getCities = () => {
     if (selectedState) {
       const stateObj = pakistanStates.find(s => s.name === selectedState)
       if (stateObj) {
-        return City.getCitiesOfState('PK', stateObj.isoCode)
+        return City.getCitiesOfState('TR', stateObj.isoCode)
       }
     }
-    // Get all cities of Pakistan
-    return City.getCitiesOfCountry('PK')
+    return City.getCitiesOfCountry('TR')
   }
 
   const cities = getCities()

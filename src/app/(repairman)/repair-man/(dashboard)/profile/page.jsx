@@ -11,13 +11,13 @@ function ProfilePage() {
   const [coverImage, setCoverImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false)
   const [data, setData] = useState(null)
-  
-  const {token} = useSelector(state => state.auth)
+
+  const { token } = useSelector(state => state.auth)
 
   const fetchData = async () => {
     try {
       setIsLoading(true)
-      const {data} = await axiosInstance.get(`/repairman/profile`, {
+      const { data } = await axiosInstance.get(`/repairman/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -57,10 +57,10 @@ function ProfilePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="relative">
         <div
-          className="h-80 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden"
+          className="h-96 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden"
           style={{
-            backgroundImage: profile?.shopPhoto 
-              ? `url(${profile.shopPhoto})` 
+            backgroundImage: profile?.shopPhoto
+              ? `url(${profile.shopPhoto})`
               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             backgroundSize: 'cover',
             backgroundPosition: 'center'
@@ -68,17 +68,17 @@ function ProfilePage() {
         >
           {/* Overlay for better text visibility */}
           {profile?.shopPhoto && (
-            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
+            <div className="absolute inset-0 bg-black/10"></div>
           )}
         </div>
 
         {/* Profile Section */}
-        <div className="relative -mt-[185px] mx-auto px-6">
+        <div className="relative -mt-[200px] mx-auto px-6">
           <div className="flex items-end justify-between">
-            <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-4">
+            <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-4 min-w-[500px]">
 
               {/* Profile Image */}
-              <div className="flex items-center gap-3 bg-white/90 p-6 rounded-md">
+              <div className="flex items-center gap-3 bg-white/90 p-6 rounded-md w-full">
                 <div className='relative'>
                   <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200">
                     {profile?.profilePhoto ? (
@@ -134,7 +134,7 @@ function ProfilePage() {
                   </div>
 
                   <h2 className="text-xl text-gray-700 mb-2 font-medium">{profile?.shopName}</h2>
-                  
+
                   <div className="flex items-center space-x-2 text-sm text-gray-600">
                     <Icon icon="heroicons:map-pin" className="w-4 h-4" />
                     <span>{profile?.city}, {profile?.district}</span>
@@ -165,7 +165,7 @@ function ProfilePage() {
       </div>
 
       {/* Verifications Section */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      {/* <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Verifications & Status</h3>
           <div className="flex items-center space-x-6">
@@ -187,10 +187,22 @@ function ProfilePage() {
             </div>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 pb-8">
+      <div className="max-w-7xl mx-auto px-6 pb-8 pt-10">
+
+        {!profile.isPaymentInformationCompleted && (
+          <div className="flex items-start mb-4 gap-3 border-l-4 border-red-600 bg-red-50 text-red-800 rounded-md p-4 shadow-sm">
+            <Icon icon="mdi:alert-circle-outline" className="w-6 h-6 mt-0.5 text-red-600" />
+            <div>
+              <p className="font-semibold">Incomplete Bank Details</p>
+              <p className="text-sm">Your bank information is missing some details. Please complete it to continue.</p>
+            </div>
+          </div>
+        )}
+
+
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
           {/* Main Column */}
@@ -210,8 +222,8 @@ function ProfilePage() {
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Specializations</h3>
                 <div className="flex flex-wrap gap-3">
                   {profile.specializations.map((spec, index) => (
-                    <span 
-                      key={index} 
+                    <span
+                      key={index}
                       className="px-4 py-2 bg-primary-100 text-primary-800 rounded-lg font-medium"
                     >
                       {spec}
@@ -237,13 +249,13 @@ function ProfilePage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   {profile?.workingDays && profile.workingDays.length > 0 && (
                     <div className="p-4 bg-gray-50 rounded-lg">
                       <p className="font-medium text-gray-900 mb-2">Working Days</p>
                       <div className="flex flex-wrap gap-2">
                         {profile.workingDays.map((day, index) => (
-                          <span 
+                          <span
                             key={index}
                             className="px-3 py-1 bg-white border border-gray-200 rounded-md text-sm"
                           >
@@ -262,9 +274,9 @@ function ProfilePage() {
               <div className="bg-white rounded-lg shadow-sm p-6">
                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Additional Shop Photos</h3>
                 <div className="rounded-lg overflow-hidden">
-                  <img 
-                    src={profile.shopPhoto} 
-                    alt="Shop" 
+                  <img
+                    src={profile.shopPhoto}
+                    alt="Shop"
                     className="w-full h-64 object-cover"
                   />
                 </div>
@@ -278,8 +290,8 @@ function ProfilePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {profile.certifications.map((cert, index) => (
                     <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
-                      <img 
-                        src={cert} 
+                      <img
+                        src={cert}
                         alt={`Certificate ${index + 1}`}
                         className="w-full h-48 object-cover"
                       />
@@ -356,9 +368,8 @@ function ProfilePage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Pickup Service</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                    profile?.pickupService ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile?.pickupService ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
                     {profile?.pickupService ? 'Available' : 'Not Available'}
                   </span>
                 </div>

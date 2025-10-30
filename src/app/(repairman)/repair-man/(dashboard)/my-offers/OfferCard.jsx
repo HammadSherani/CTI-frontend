@@ -162,7 +162,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                 )}
                 {offer.status === 'accepted' && (
                     <>
-                        <button
+                        {/* <button
                             onClick={() => handleStartJob(offer?.jobId?._id)}
                             disabled={isChangeStatus}
                             className={`flex items-center justify-center gap-2 flex-1 bg-green-600 text-white py-2 px-3 rounded-md transition-colors text-sm font-medium 
@@ -176,7 +176,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                             ) : (
                                 "Start Job"
                             )}
-                        </button>
+                        </button> */}
 
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
                             Message Client
