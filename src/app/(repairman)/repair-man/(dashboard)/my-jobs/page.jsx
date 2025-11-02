@@ -147,7 +147,7 @@ const MyJobsPage = () => {
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
       case 'disputed': return 'bg-red-100 text-red-800';
-      case 'closed': return 'bg-gray-600 text-white'; // 🔥 Added closed status color
+      case 'closed': return 'bg-gray-600 text-white';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -182,19 +182,6 @@ const MyJobsPage = () => {
       job.bookingDetails?.status === 'closed'
     );
 
-    // 🔥 Debug logs - Check if closed jobs are being filtered correctly
-    console.log('📊 Job Categorization:');
-    console.log('Total Jobs:', allJobs.length);
-    console.log('Active Jobs:', active.length);
-    console.log('Completed Jobs:', completed.length);
-    console.log('Cancelled Jobs:', cancelled.length);
-    console.log('Disputed Jobs:', disputed.length);
-    console.log('🔒 Closed Jobs:', closed.length);
-    console.log('All Job Statuses:', allJobs.map(j => ({
-      id: j._id,
-      status: j.bookingDetails?.status
-    })));
-
     return { active, completed, cancelled, disputed, closed };
   }, [allJobs]);
 
@@ -217,7 +204,6 @@ const MyJobsPage = () => {
           service.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-      // 🔥 For quotation-based jobs, urgency might not exist
       const jobUrgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
       const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
 
@@ -231,8 +217,9 @@ const MyJobsPage = () => {
     const customer = job.customer || {};
     const deviceInfo = jobDetails.deviceInfo || {};
 
-    // 🔥 Check booking source
     const isQuotationBased = job.bookingSource === 'direct_message';
+    const isPickupService = jobDetails.isPickUp || false;
+    const pickupAddress = jobDetails.pickUpAddress || '';
 
     const status = getBookingStatus(job);
     const urgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
@@ -253,7 +240,7 @@ const MyJobsPage = () => {
               </h3>
               <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
 
-              {/* 🔥 Booking Source Badge */}
+              {/* Booking Source Badge */}
               <div className="flex items-center gap-2 mb-2">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
                     ? 'bg-purple-100 text-purple-700'
@@ -261,10 +248,17 @@ const MyJobsPage = () => {
                   }`}>
                   {isQuotationBased ? 'Direct Message' : 'Job Posting'}
                 </span>
+
+                {/* Pickup Badge - for job postings only */}
+                {!isQuotationBased && isPickupService && (
+                  <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    <Icon icon="heroicons:truck" className="w-3 h-3 inline mr-1" />
+                    Pickup Required
+                  </span>
+                )}
               </div>
 
               <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
-                {/* 🔥 Location - only for job postings */}
                 {!isQuotationBased && jobDetails.location?.city && (
                   <span className="flex items-center">
                     <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
@@ -272,7 +266,6 @@ const MyJobsPage = () => {
                   </span>
                 )}
 
-                {/* 🔥 Urgency - only for job postings */}
                 {!isQuotationBased && (
                   <span className={`font-medium ${getUrgencyColor(urgency)}`}>
                     {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
@@ -282,11 +275,10 @@ const MyJobsPage = () => {
                 {bookingDetails.serviceType && (
                   <span className="flex items-center">
                     <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {bookingDetails.serviceType}
+                    {bookingDetails.serviceType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 )}
 
-                {/* 🔥 Parts Quality - for quotations */}
                 {isQuotationBased && jobDetails.partsQuality && (
                   <span className="flex items-center">
                     <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" aria-hidden="true" />
@@ -308,14 +300,12 @@ const MyJobsPage = () => {
               {status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </span>
 
-            {/* 🔥 Expiry time - only for job postings */}
             {!isQuotationBased && jobDetails.expiresAt && (
               <p className="text-sm text-gray-500 mt-1">
                 {getTimeRemaining(jobDetails.expiresAt)}
               </p>
             )}
 
-            {/* 🔥 Warranty - for quotations */}
             {isQuotationBased && jobDetails.warranty?.duration && (
               <p className="text-sm text-gray-500 mt-1">
                 Warranty: {jobDetails.warranty.duration} days
@@ -346,6 +336,85 @@ const MyJobsPage = () => {
           </div>
         )}
 
+        {/* ✅ UNIFIED Location Display Section */}
+        {(() => {
+          // FOR QUOTATION-BASED JOBS
+          if (isQuotationBased) {
+            const serviceType = bookingDetails.serviceType;
+            const locationAddress = jobDetails.location?.address || '';
+            
+            if (serviceType === 'pickup' && locationAddress) {
+              return (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Icon icon="heroicons:truck" className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-green-800 mb-1">Pickup Address:</p>
+                      <p className="text-sm text-green-700">{locationAddress}</p>
+                      {bookingDetails.pricing?.serviceCharge > 0 && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Pickup Charge: {formatCurrency(bookingDetails.pricing.serviceCharge, bookingDetails.pricing?.currency)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            if (serviceType === 'drop-off' && locationAddress) {
+              return (
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Icon icon="heroicons:map-pin" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-800 mb-1">Drop-off Location:</p>
+                      <p className="text-sm text-blue-700">{locationAddress}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          } 
+          // FOR JOB POSTING JOBS
+          else {
+            if (isPickupService && pickupAddress) {
+              return (
+                <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Icon icon="heroicons:truck" className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-green-800 mb-1">Pickup Address:</p>
+                      <p className="text-sm text-green-700">{pickupAddress}</p>
+                      {bookingDetails.pricing?.serviceCharge > 0 && (
+                        <p className="text-xs text-green-600 mt-1">
+                          Pickup Charge: {formatCurrency(bookingDetails.pricing.serviceCharge, bookingDetails.pricing?.currency)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            
+            if (!isPickupService && jobDetails.location?.address) {
+              return (
+                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <div className="flex items-start space-x-2">
+                    <Icon icon="heroicons:map-pin" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-800 mb-1">Drop-off Location:</p>
+                      <p className="text-sm text-blue-700">{jobDetails.location.address}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+          }
+          
+          return null;
+        })()}
+
         {bookingDetails.scheduledDate && (
           <div className="mb-4">
             <div className="flex items-center text-sm text-gray-600">
@@ -355,7 +424,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* 🔥 Estimated Duration - for quotations */}
         {isQuotationBased && jobDetails.estimatedDuration && (
           <div className="mb-4">
             <div className="flex items-center text-sm text-gray-600">
@@ -373,7 +441,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* 🔥 Images - only for job postings */}
         {!isQuotationBased && jobDetails.images && jobDetails.images.length > 0 && (
           <div className="mb-4">
             <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
@@ -393,7 +460,6 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* 🔥 Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
           {job.canUpdateStatus && activeTab === 'active' && (
             <button
@@ -412,7 +478,6 @@ const MyJobsPage = () => {
             </button>
           )}
 
-          {/* Chat Button - Available for all except closed */}
           {job.canChat && status !== 'closed' && (
             <button
               onClick={() => handleMessageSend(job?.jobDetails?.customerId?._id)}
@@ -422,7 +487,6 @@ const MyJobsPage = () => {
             </button>
           )}
 
-          {/* Dispute Button */}
           {jobDetails.hasActiveDispute && (
             <button
               onClick={() => router.push(`/repair-man/my-jobs/${job._id}/dispute`)}
@@ -433,7 +497,6 @@ const MyJobsPage = () => {
           )}
         </div>
 
-        {/* 🔥 Closed Job Message */}
         {status === 'closed' && (
           <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
             <div className="flex items-center text-gray-600">
@@ -511,7 +574,7 @@ const MyJobsPage = () => {
         </div>
       </div>
     );
-  }
+  };
 
   if (error) {
     return (
@@ -534,12 +597,10 @@ const MyJobsPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair bookings and track progress</p>
 
-          {/* 🔥 Summary Stats */}
           {summary && (
             <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
               <div className="bg-white p-4 rounded-lg border border-gray-200">

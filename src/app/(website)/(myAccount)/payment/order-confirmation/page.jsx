@@ -17,12 +17,15 @@ const ORDER_TYPES = {
 const TAX_RATE = 0.00;
 
 // Utility function to calculate offer pricing
-const calculateOfferPricing = (offer) => {
+const calculateOfferPricing = (offer, job) => {
   const basePrice = offer?.pricing.totalPrice || 0;
+  const pickupCharge = job?.isPickUp && offer?.serviceOptions?.pickupAvailable
+    ? (offer?.serviceOptions?.pickupCharge || 0)
+    : 0;
   const deliveryFee = 0;
   const discount = 0;
-  const tax = Math.round((basePrice + deliveryFee - discount) * TAX_RATE);
-  return basePrice + deliveryFee + tax - discount;
+  const tax = Math.round((basePrice + pickupCharge + deliveryFee - discount) * TAX_RATE);
+  return basePrice + pickupCharge + deliveryFee + tax - discount;
 };
 
 // Separate loading component
@@ -52,40 +55,85 @@ const ErrorState = () => (
 );
 
 // Payment summary component
-const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warranty }) => (
-  <div className="bg-gray-50 rounded-xl p-6 mb-8 space-y-4">
-    {paymentId && (
-      <div className="flex justify-between items-center">
-        <span className="text-sm text-gray-500">Payment ID</span>
-        <span className="font-mono text-sm">{paymentId}</span>
+const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warranty, job, offer, isQuotation, quotation }) => {
+  const showPickupCharge = !isQuotation && job?.isPickUp && offer?.serviceOptions?.pickupCharge;
+
+  // ✅ For quotation pickup charge
+  const showQuotationPickup = isQuotation && quotation?.serviceDetails?.isPickup && quotation?.pricing?.serviceCharges > 0;
+
+  return (
+    <div className="bg-gray-50 rounded-xl p-6 mb-8 space-y-4">
+      {paymentId && (
+        <div className="flex justify-between items-center">
+          <span className="text-sm text-gray-500">Payment ID</span>
+          <span className="font-mono text-sm">{paymentId}</span>
+        </div>
+      )}
+
+      {/* Offer pickup charge breakdown */}
+      {showPickupCharge && (
+        <div className="border-t pt-3 space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Service Cost</span>
+            <span className="font-medium">
+              {currency} {(totalPrice - offer.serviceOptions.pickupCharge).toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Pickup Charge</span>
+            <span className="font-medium text-primary-600">
+              {currency} {offer.serviceOptions.pickupCharge.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* Quotation pickup charge breakdown */}
+      {showQuotationPickup && (
+        <div className="border-t pt-3 space-y-2">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Service Cost</span>
+            <span className="font-medium">
+              {currency} {quotation.pricing.totalAmount.toLocaleString()}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-gray-600">Pickup Charge</span>
+            <span className="font-medium text-primary-600">
+              {currency} {quotation.pricing.serviceCharges.toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center border-t pt-3">
+        <span className="text-sm text-gray-500">Amount Paid</span>
+        <span className="font-semibold text-lg text-green-600">
+          {currency} {totalPrice.toLocaleString()}
+        </span>
       </div>
-    )}
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-500">Amount Paid</span>
-      <span className="font-semibold text-lg text-green-600">
-        {currency} {totalPrice.toLocaleString()}
-      </span>
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-gray-500">Estimated Time</span>
+        <span className="font-semibold">{estimatedTime}</span>
+      </div>
+      <div className="flex justify-between items-center">
+        <span className="text-sm text-gray-500">Warranty</span>
+        <span className="font-semibold">{warranty} days</span>
+      </div>
     </div>
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-500">Estimated Time</span>
-      <span className="font-semibold">{estimatedTime}</span>
-    </div>
-    <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-500">Warranty</span>
-      <span className="font-semibold">{warranty} days</span>
-    </div>
-  </div>
-);
+  );
+};
 
 // Service details component
-const ServiceDetails = ({ 
-  deviceBrand, 
-  deviceModel, 
-  services, 
-  repairmanProfile, 
+const ServiceDetails = ({
+  deviceBrand,
+  deviceModel,
+  services,
+  repairmanProfile,
   orderType,
   quotation,
-  offer 
+  offer,
+  job
 }) => {
   const isQuotation = orderType === ORDER_TYPES.QUOTATION;
 
@@ -100,11 +148,11 @@ const ServiceDetails = ({
         <p><strong>Service:</strong> {services}</p>
         <p><strong>Repairman:</strong> {repairmanProfile?.name} ({repairmanProfile?.shopName})</p>
         <p><strong>Contact:</strong> {repairmanProfile?.mobileNumber || repairmanProfile?.phone}</p>
-        
+
         {isQuotation ? (
           <QuotationServiceInfo quotation={quotation} />
         ) : (
-          <OfferServiceInfo offer={offer} />
+          <OfferServiceInfo offer={offer} job={job} />
         )}
       </div>
     </div>
@@ -113,19 +161,42 @@ const ServiceDetails = ({
 
 // Quotation service info sub-component
 const QuotationServiceInfo = ({ quotation }) => {
-  const serviceType = quotation.serviceDetails?.serviceType;
-  
+  const serviceDetails = quotation.serviceDetails || {};
+  const { serviceType, isPickup = false, isDropoff = false, pickupLocation = {}, dropoffLocation = {} } = serviceDetails;
+
   return (
     <>
-      {serviceType === 'pickup' && (
-        <p className="text-green-600">✓ Pickup service will be arranged</p>
+      {isPickup && (
+        <>
+          <p className="text-green-600 flex items-center gap-1">
+            <Icon icon="lucide:truck" className="w-4 h-4" />
+            Pickup service selected
+          </p>
+          {pickupLocation?.address && (
+            <p className="bg-white rounded-lg p-2 mt-1">
+              <strong className="text-gray-900">Pickup from:</strong>
+              <span className="block text-gray-600 mt-1">{pickupLocation.address}</span>
+            </p>
+          )}
+          {quotation.pricing?.serviceCharges > 0 && (
+            <p className="text-xs text-primary-600 mt-1">
+              Pickup charge: {quotation.pricing?.currency} {quotation.pricing.serviceCharges.toLocaleString()}
+            </p>
+          )}
+        </>
       )}
-      {serviceType === 'home-service' && (
+
+      {isDropoff && dropoffLocation?.address && (
+        <p className="bg-white rounded-lg p-2">
+          <strong className="text-gray-900">Drop-off at:</strong>
+          <span className="block text-gray-600 mt-1">{dropoffLocation.address}</span>
+        </p>
+      )}
+
+      {!isPickup && !isDropoff && serviceType === 'home-service' && (
         <p className="text-green-600">✓ Home service will be provided</p>
       )}
-      {serviceType === 'drop-off' && (
-        <p>Drop-off at service center</p>
-      )}
+
       {quotation.repairmanNotes && (
         <p className="mt-2 italic text-gray-600">
           <strong>Note:</strong> {quotation.repairmanNotes}
@@ -136,16 +207,45 @@ const QuotationServiceInfo = ({ quotation }) => {
 };
 
 // Offer service info sub-component
-const OfferServiceInfo = ({ offer }) => (
-  <>
-    {offer?.serviceOptions?.pickupAvailable ? (
-      <p className="text-green-600">✓ Pickup service will be arranged</p>
-    ) : (
-      <p>Drop-off at: {offer?.serviceOptions?.dropOffLocation}</p>
-    )}
-    <p><strong>Service starts by:</strong> {new Date(offer.availability.canStartBy).toLocaleDateString()}</p>
-  </>
-);
+const OfferServiceInfo = ({ offer, job }) => {
+  const isPickup = job?.isPickUp || false;
+  const pickupAddress = job?.pickUpAddress || '';
+
+  return (
+    <>
+      {isPickup ? (
+        <>
+          <p className="text-green-600 flex items-center gap-1">
+            <Icon icon="lucide:truck" className="w-4 h-4" />
+            Pickup service selected
+          </p>
+          <p className="bg-white rounded-lg p-2 mt-1">
+            <strong className="text-gray-900">Pickup from:</strong>
+            <span className="block text-gray-600 mt-1">{pickupAddress}</span>
+          </p>
+          {offer?.serviceOptions?.pickupCharge > 0 && (
+            <p className="text-xs text-primary-600 mt-1">
+              Pickup charge: {offer?.pricing?.currency} {offer?.serviceOptions?.pickupCharge?.toLocaleString()}
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="bg-white rounded-lg p-2">
+          <strong className="text-gray-900">Drop-off at:</strong>
+          <span className="block text-gray-600 mt-1">{offer?.serviceOptions?.dropOffLocation}</span>
+        </p>
+      )}
+      <p className="mt-2">
+        <strong>Service starts by:</strong>{' '}
+        {new Date(offer?.availability?.canStartBy).toLocaleDateString('en-US', {
+          month: 'short',
+          day: 'numeric',
+          year: 'numeric',
+        })}
+      </p>
+    </>
+  );
+};
 
 // Main component
 function OrderConfirmation() {
@@ -191,8 +291,7 @@ function OrderConfirmation() {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    const job = jobResponse.data.data;
-    // const offerId = job.selectedOffer?._id;
+    const job = jobResponse.data.data.job;
 
     const { data } = await axiosInstance.get('/customer/payments', {
       params: { offerId, jobId },
@@ -200,7 +299,7 @@ function OrderConfirmation() {
     });
 
     if (!data.data.paymentCompleted) {
-      router.push(`/payment?jobId=${jobId}&offerId/${offerId}`);
+      router.push(`/payment?jobId=${jobId}&offerId=${offerId}`);
       return null;
     }
 
@@ -208,7 +307,7 @@ function OrderConfirmation() {
       ...data.data,
       type: ORDER_TYPES.OFFER
     };
-  }, [jobId, token, router]);
+  }, [jobId, offerId, token, router]);
 
   // Main fetch effect
   useEffect(() => {
@@ -217,10 +316,10 @@ function OrderConfirmation() {
 
       try {
         setLoading(true);
-        const result = quotationId 
-          ? await fetchQuotationOrder() 
+        const result = quotationId
+          ? await fetchQuotationOrder()
           : await fetchOfferOrder();
-        
+
         if (result) {
           setOrderData(result);
           setOrderType(result.type);
@@ -235,7 +334,6 @@ function OrderConfirmation() {
     fetchOrderData();
   }, [token, quotationId, jobId, fetchQuotationOrder, fetchOfferOrder]);
 
-  // Memoized order details
   const orderDetails = useMemo(() => {
     if (!orderData || !orderType) return null;
 
@@ -244,6 +342,11 @@ function OrderConfirmation() {
     const job = isQuotation ? null : orderData.job;
     const offer = isQuotation ? null : orderData.offer;
 
+    // ✅ Calculate quotation total with pickup
+    const quotationTotal = isQuotation
+      ? (quotation.pricing.totalAmount + (quotation.pricing.serviceCharges || 0))
+      : 0;
+
     return {
       isQuotation,
       quotation,
@@ -251,25 +354,25 @@ function OrderConfirmation() {
       offer,
       repairmanProfile: orderData.repairmanProfile,
       paymentId: orderData.paymentId,
-      totalPrice: isQuotation 
-        ? quotation.pricing.totalAmount 
-        : calculateOfferPricing(offer),
-      currency: isQuotation 
+      totalPrice: isQuotation
+        ? quotationTotal
+        : calculateOfferPricing(offer, job),
+      currency: isQuotation
         ? (quotation.pricing.currency || 'PKR')
         : (offer?.pricing.currency || 'PKR'),
       estimatedTime: isQuotation
-        ? (quotation.serviceDetails?.estimatedDuration 
-            ? `${quotation.serviceDetails.estimatedDuration} days` 
-            : 'TBD')
+        ? (quotation.serviceDetails?.estimatedDuration
+          ? `${quotation.serviceDetails.estimatedDuration} days`
+          : 'TBD')
         : `${offer.estimatedTime.value} ${offer.estimatedTime.unit}`,
       warranty: isQuotation
         ? (quotation.serviceDetails?.warranty?.duration || 'N/A')
         : offer.warranty.duration,
-      deviceBrand: isQuotation 
-        ? quotation.deviceInfo?.brandName 
+      deviceBrand: isQuotation
+        ? quotation.deviceInfo?.brandName
         : job.deviceInfo.brand,
-      deviceModel: isQuotation 
-        ? quotation.deviceInfo?.modelName 
+      deviceModel: isQuotation
+        ? quotation.deviceInfo?.modelName
         : job.deviceInfo.model,
       services: isQuotation
         ? (quotation.deviceInfo?.repairServices?.join(', ') || 'N/A')
@@ -283,6 +386,7 @@ function OrderConfirmation() {
   const {
     isQuotation,
     quotation,
+    job,
     offer,
     repairmanProfile,
     paymentId,
@@ -307,15 +411,18 @@ function OrderConfirmation() {
           Your {isQuotation ? 'quotation' : 'repair request'} has been confirmed. {repairmanProfile?.name} will contact you within the next hour.
         </p>
 
-        <PaymentSummary 
+        <PaymentSummary
           paymentId={paymentId}
           totalPrice={totalPrice}
           currency={currency}
           estimatedTime={estimatedTime}
           warranty={warranty}
+          job={job}
+          offer={offer}
+          isQuotation={isQuotation}
+          quotation={quotation}
         />
-
-        <ServiceDetails 
+        <ServiceDetails
           deviceBrand={deviceBrand}
           deviceModel={deviceModel}
           services={services}
@@ -323,6 +430,7 @@ function OrderConfirmation() {
           orderType={orderType}
           quotation={quotation}
           offer={offer}
+          job={job}
         />
 
         <div className="space-y-3">

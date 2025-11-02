@@ -72,13 +72,23 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
         router.push(`/payment?jobId=${job._id}&offerId=${offer._id}`);
     };
 
+    // Calculate final price with pickup charge if applicable
+    const basePrice = offer.pricing?.basePrice || 0;
+    const partsPrice = offer.pricing?.partsEstimate || 0;
+    const totalPrice = offer.pricing?.totalPrice || (basePrice + partsPrice);
+    const pickupCharge = offer.serviceOptions?.pickupAvailable && job?.servicePreference === 'pickup' 
+        ? offer.serviceOptions?.pickupCharge || 0 
+        : 0;
+    const finalTotal = totalPrice + pickupCharge;
+
     return (
         <div className="border border-gray-200 rounded-lg p-6 bg-white shadow-sm hover:shadow-md transition-shadow duration-200">
-            <div className="flex flex-col md:flex-row gap-6">
+            <div className="flex flex-col lg:flex-row gap-6">
+                {/* Left Section - Main Info */}
                 <div className="flex-1">
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="text-lg font-semibold text-gray-900">
                                 {offer.repairmanId?.name || `Professional ${index + 1}`}
                             </h3>
@@ -88,40 +98,22 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center" aria-label="Verified Professional">
                                 <span className="text-white text-xs">✓</span>
                             </div>
-                            {/* {offer.status === 'in_progress' && ( */}
-                                <StatusBadge status={offer.status}  />
-                                
-                            {/* )} */}
-                        </div>
-
-                        <div className="text-right">
-                            <div className="text-xl font-bold text-gray-900">
-                                {currencySymbol}{offer.pricing?.totalPrice || offer.pricing?.basePrice || '1,000'}.00
-                            </div>
-                            <div className="text-sm text-gray-500 space-y-1">
-                                {offer.pricing?.partsEstimate && (
-                                    <span className="block">+ {currencySymbol}{offer.pricing.partsEstimate} parts</span>
-                                )}
-                                <span>Estimated: {offer.estimatedTime?.value || 'N/A'} {offer.estimatedTime?.unit || 'hours'}</span>
-                            </div>
+                            <StatusBadge status={offer.status} />
                         </div>
                     </div>
 
+                    {/* Rating and Stats */}
                     <div className="flex flex-wrap gap-3 mb-4">
                         <RatingStars rating={offer.repairmanId?.repairmanProfile?.rating} />
-
                         <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded">
                             🔧 {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
                         </span>
-
                         <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded">
                             ✅ {offer.experience?.successRate || 0}% success
                         </span>
-
                         <span className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded">
                             📍 {offer.locationContext?.distance?.toFixed(1) || 'N/A'} km
                         </span>
-
                         <div className="flex items-center gap-1">
                             <span className="text-xs">🇵🇰</span>
                             <span className="text-sm text-gray-600">
@@ -130,6 +122,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         </div>
                     </div>
 
+                    {/* Service Info */}
                     <div className="mb-4 space-y-3">
                         <div className="text-sm font-medium text-gray-700">
                             {offer.repairmanId?.repairmanProfile?.shopName || 'Repair Service'} - {offer.experience?.similarRepairs || 0} similar repairs
@@ -159,14 +152,17 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         </div>
                     </div>
 
+                    {/* Description */}
                     <div className="mb-4">
                         <ExpandableDescription description={offer.description} />
                     </div>
 
-                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                        <div className="text-sm text-gray-500">
+                    {/* Availability and Drop-off Location */}
+                    <div className="text-sm text-gray-600 space-y-2 mb-4">
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">Can start:</span>
                             <span>
-                                Can start by: {offer.availability?.canStartBy
+                                {offer.availability?.canStartBy
                                     ? new Date(offer.availability.canStartBy).toLocaleDateString('en-US', {
                                         month: 'short',
                                         day: 'numeric',
@@ -174,50 +170,123 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                                     })
                                     : 'Available now'}
                             </span>
-                            {offer.serviceOptions?.dropOffLocation && (
-                                <div className="text-xs mt-1 line-clamp-1">
-                                    📍 {offer.serviceOptions.dropOffLocation}
-                                </div>
-                            )}
                         </div>
-
-                        <div className="flex gap-3">
-                            {offer.status !== 'in_progress' && onAcceptOffer && (
-                                <button
-                                    onClick={() => handleAcceptOffer()}
-
-                                    disabled={isDisabled}
-                                    className={getButtonClasses()}
-                                    aria-label={`Accept offer from ${label}`}
-                                >
-                                    {isThisOfferSubmitting ? (
-                                        <>
-                                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Booking...
-                                        </>
-                                    ) : (
-                                        'Accept Offer'
-                                    )}
-                                </button>
-                            )}
-
-                            {offer.status === 'in_progress' && (
-                                <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-medium">
-                                    Work in Progress
-                                </div>
-                            )}
-
-                            <button
-                                className="text-red-500 text-sm hover:text-red-700 hover:underline transition-colors duration-200"
-                                disabled={isSubmitting}
-                            >
-                                Report Bid
-                            </button>
+                        {offer.serviceOptions?.dropOffLocation && (
+                            <div className="flex items-start gap-2">
+                                <span className="font-medium whitespace-nowrap">Drop-off:</span>
+                                <span className="text-gray-700">📍 {offer.serviceOptions.dropOffLocation}</span>
+                            </div>
+                        )}
+                        <div className="flex items-center gap-2">
+                            <span className="font-medium">Estimated Time:</span>
+                            <span>{offer.estimatedTime?.value || 'N/A'} {offer.estimatedTime?.unit || 'hours'}</span>
                         </div>
                     </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3 items-center">
+                        {offer.status !== 'in_progress' && onAcceptOffer && (
+                            <button
+                                onClick={() => handleAcceptOffer()}
+                                disabled={isDisabled}
+                                className={getButtonClasses()}
+                                aria-label={`Accept offer from ${label}`}
+                            >
+                                {isThisOfferSubmitting ? (
+                                    <>
+                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Booking...
+                                    </>
+                                ) : (
+                                    'Accept Offer'
+                                )}
+                            </button>
+                        )}
+
+                        {offer.status === 'in_progress' && (
+                            <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-medium">
+                                Work in Progress
+                            </div>
+                        )}
+
+                        <button
+                            className="text-red-500 text-sm hover:text-red-700 hover:underline transition-colors duration-200"
+                            disabled={isSubmitting}
+                        >
+                            Report Bid
+                        </button>
+                    </div>
+                </div>
+
+                {/* Right Section - Price Breakdown */}
+                <div className="lg:w-80 bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <h4 className="font-semibold text-gray-900 mb-3 text-sm">Price Breakdown</h4>
+                    
+                    <div className="space-y-2 text-sm">
+                        {/* Base Price */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Labor Cost</span>
+                            <span className="font-medium text-gray-900">
+                                {currencySymbol}{basePrice.toLocaleString()}
+                            </span>
+                        </div>
+
+                        {/* Parts Price */}
+                        {partsPrice > 0 && (
+                            <div className="flex justify-between items-center">
+                                <span className="text-gray-600">Parts Cost</span>
+                                <span className="font-medium text-gray-900">
+                                    {currencySymbol}{partsPrice.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="border-t border-gray-300 my-2"></div>
+
+                        {/* Subtotal */}
+                        <div className="flex justify-between items-center">
+                            <span className="text-gray-700 font-medium">Subtotal</span>
+                            <span className="font-semibold text-gray-900">
+                                {currencySymbol}{totalPrice.toLocaleString()}
+                            </span>
+                        </div>
+
+                        {/* Pickup Charge (if applicable) */}
+                        {pickupCharge > 0 && (
+                            <div className="flex justify-between items-center text-primary-600">
+                                <span className="flex items-center gap-1">
+                                    <span>🚗</span>
+                                    <span>Pickup Charge</span>
+                                </span>
+                                <span className="font-medium">
+                                    +{currencySymbol}{pickupCharge.toLocaleString()}
+                                </span>
+                            </div>
+                        )}
+
+                        <div className="border-t border-gray-300 my-2"></div>
+
+                        {/* Total */}
+                        <div className="flex justify-between items-center pt-1">
+                            <span className="text-gray-900 font-semibold text-base">Total Amount</span>
+                            <span className="text-xl font-bold text-primary-600">
+                                {currencySymbol}{finalTotal.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+
+                    {/* Additional Info */}
+                    {offer.warranty?.duration && (
+                        <div className="mt-4 pt-3 border-t border-gray-300">
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <span>🛡️</span>
+                                <span>{offer.warranty.duration} days warranty included</span>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

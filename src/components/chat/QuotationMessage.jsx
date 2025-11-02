@@ -14,7 +14,7 @@ const QuotationMessage = ({ message, isOwner }) => {
     const [rejectLoading, setRejectLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
 
-    const {closeChat} = useChat()
+    const { closeChat } = useChat()
 
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
@@ -22,17 +22,33 @@ const QuotationMessage = ({ message, isOwner }) => {
         deviceInfo = {},
         partsQuality = '',
         pricing = {},
-        description = quotationData.description,
-        estimatedDuration = quotationData.estimatedDuration,
-        serviceType = quotationData.serviceType,
-        warranty = quotationData.warranty,
+        serviceDetails = {},
         repairmanNotes = quotationData.repairmanNotes,
         validUntil = quotationData.validUntil,
         status = quotationData.status || 'sent'
     } = quotationData;
 
+
+    const {
+        description,
+        estimatedDuration,
+        serviceType,
+        warranty,
+        isPickup = false,
+        isDropoff = false,
+        pickupLocation = {},
+        dropoffLocation = {}
+    } = serviceDetails;
+
     // Extract device info
     const { brandName = '', modelName = '', repairServices = [] } = deviceInfo;
+
+    // ✅ Calculate subtotal and grand total
+    const basePrice = pricing.basePrice || 0;
+    const partsPrice = pricing.partsPrice || 0;
+    const serviceCharges = pricing.serviceCharges || 0;
+    const subtotal = basePrice + partsPrice;
+    const grandTotal = subtotal + serviceCharges;
 
     const handleQuotationResponse = async (action, customerResponse = '') => {
         // Set appropriate loading state based on action
@@ -163,26 +179,23 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Pricing Summary */}
+                    {/* ✅ Pricing Summary - Updated */}
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                        
-                        {/* {pricing.basePrice > 0 && ( */}
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Base Price:</span>
-                                <span className="font-medium">TRY {pricing.basePrice?.toFixed(2)}</span>
-                            </div>
-                        {/* )} */}
-                        {pricing.partsPrice > 0 && (
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Parts Cost:</span>
-                                <span className="font-medium">TRY {pricing.partsPrice?.toFixed(2)}</span>
-                            </div>
-                        )}
+                        {/* Base Price */}
                         <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-gray-600">Service Charge:</span>
-                            <span className="font-medium">TRY {pricing?.serviceCharges?.toFixed(2)}</span>
+                            <span className="text-sm text-gray-600">Base Price:</span>
+                            <span className="font-medium">TRY {basePrice.toFixed(2)}</span>
                         </div>
 
+                        {/* Parts Price */}
+                        {partsPrice > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Parts Cost:</span>
+                                <span className="font-medium">TRY {partsPrice.toFixed(2)}</span>
+                            </div>
+                        )}
+
+                        {/* Parts Quality */}
                         {partsQuality && (
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-gray-600">Parts Quality:</span>
@@ -191,11 +204,36 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 </span>
                             </div>
                         )}
-                        <div className="border-t pt-2 mt-2">
+
+                        {/* Subtotal */}
+                        <div className="border-t pt-2 mt-2 mb-2">
                             <div className="flex justify-between items-center">
-                                <span className="font-semibold text-gray-800">Total Amount:</span>
-                                <span className="text-lg font-bold text-green-600">
-                                    TRY {pricing.totalAmount?.toFixed(2)}
+                                <span className="font-semibold text-gray-700">Subtotal:</span>
+                                <span className="font-semibold text-gray-800">
+                                    TRY {subtotal.toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Service Charges (if applicable) */}
+                        {serviceCharges > 0 && (
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-primary-600 flex items-center gap-1">
+                                    <Icon icon="mdi:truck" width={14} />
+                                    Service Charges:
+                                </span>
+                                <span className="font-medium text-primary-600">
+                                    +TRY {serviceCharges.toFixed(2)}
+                                </span>
+                            </div>
+                        )}
+
+                        {/* Grand Total */}
+                        <div className="border-t pt-2 mt-2 bg-green-50 -mx-3 -mb-3 px-3 py-3">
+                            <div className="flex justify-between items-center">
+                                <span className="font-bold text-gray-800">Grand Total:</span>
+                                <span className="text-xl font-bold text-green-600">
+                                    TRY {grandTotal.toFixed(2)}
                                 </span>
                             </div>
                         </div>
@@ -206,7 +244,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                         {estimatedDuration && (
                             <div>
                                 <span className="text-gray-500 text-xs">Duration:</span>
-                                <p className="font-medium">{estimatedDuration}</p>
+                                <p className="font-medium">{estimatedDuration} days</p>
                             </div>
                         )}
                         {serviceType && (
@@ -216,6 +254,46 @@ const QuotationMessage = ({ message, isOwner }) => {
                             </div>
                         )}
                     </div>
+
+
+                    {/* Service Location Info */}
+                    {(isDropoff && dropoffLocation?.address) && (
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                            <div className="flex items-start gap-2">
+                                <Icon icon="mdi:map-marker" width={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                                <div className="flex-1">
+                                    <span className="text-xs font-medium text-blue-800 uppercase tracking-wide block mb-1">
+                                        Drop-off Location
+                                    </span>
+                                    <p className="text-sm text-blue-900 font-medium">
+                                        {dropoffLocation.address}
+                                    </p>
+                                    <p className="text-xs text-blue-700 mt-1">
+                                        Please drop off your device at this address
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {isPickup && serviceCharges > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
+                            <div className="flex items-center gap-2">
+                                <Icon icon="mdi:truck" width={18} className="text-green-600" />
+                                <div className="flex-1">
+                                    <span className="text-xs font-medium text-green-800 uppercase tracking-wide block mb-1">
+                                        Pickup Service Available
+                                    </span>
+                                    <p className="text-sm text-green-900">
+                                        Device will be picked up from your location
+                                    </p>
+                                    <p className="text-xs text-green-700 mt-1">
+                                        Pickup charges: TRY {serviceCharges.toFixed(2)}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Validity Status */}
                     {validUntil && (
@@ -255,8 +333,8 @@ const QuotationMessage = ({ message, isOwner }) => {
                                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Warranty</span>
                                     <p className="font-medium text-sm mt-1">
                                         {typeof warranty === 'object'
-                                            ? `${warranty.duration} - ${warranty.description}`
-                                            : warranty
+                                            ? `${warranty.duration} days - ${warranty.description}`
+                                            : `${warranty} days`
                                         }
                                     </p>
                                 </div>
@@ -269,6 +347,17 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 </div>
                             )}
 
+                            {isDropoff && dropoffLocation?.address && (
+                                <div>
+                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Drop-off Address</span>
+                                    <div className="flex items-start gap-2 mt-1">
+                                        <Icon icon="mdi:map-marker" width={16} className="text-primary-600 mt-1" />
+                                        <p className="text-gray-700 text-sm">{dropoffLocation.address}</p>
+                                    </div>
+                                </div>
+                            )}
+
+
                             {validUntil && (
                                 <div>
                                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Quote Validity</span>
@@ -279,6 +368,29 @@ const QuotationMessage = ({ message, isOwner }) => {
                                             minute: '2-digit'
                                         })}
                                     </p>
+                                </div>
+                            )}
+
+                            {/* Price Breakdown in Details */}
+                            {serviceCharges > 0 && (
+                                <div className="bg-primary-50 p-3 rounded-lg">
+                                    <span className="text-gray-600 text-xs font-medium uppercase tracking-wide block mb-2">
+                                        Price Breakdown
+                                    </span>
+                                    <div className="space-y-1 text-sm">
+                                        <div className="flex justify-between">
+                                            <span className="text-gray-600">Service Cost:</span>
+                                            <span>TRY {subtotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between text-primary-600">
+                                            <span>Pickup Charges:</span>
+                                            <span>TRY {serviceCharges.toFixed(2)}</span>
+                                        </div>
+                                        <div className="flex justify-between font-semibold border-t pt-1">
+                                            <span>Total:</span>
+                                            <span>TRY {grandTotal.toFixed(2)}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>

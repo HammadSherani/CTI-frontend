@@ -54,12 +54,17 @@ const quotationSchema = yup.object().shape({
     serviceCharges: yup
         .number()
         .when('serviceType', {
-            is: (val) => val === 'pickup' || val === 'home-service',
-            then: (schema) => schema
-                .required('Service charges is required')
-                .positive('Service charges must be positive')
-                .typeError('Service charges must be a valid number'),
+            is: 'pickup',
+            then: (schema) => schema.required('Service charges required').positive(),
             otherwise: (schema) => schema.nullable().default(0)
+        }),
+
+    dropoffAddress: yup
+        .string()
+        .when('serviceType', {
+            is: 'drop-off',
+            then: (schema) => schema.required('Drop-off address is required'),
+            otherwise: (schema) => schema.nullable()
         }),
     partsPrice: yup
         .number()
@@ -79,7 +84,7 @@ const quotationSchema = yup.object().shape({
     serviceType: yup
         .string()
         .required('Service type is required')
-        .oneOf(['drop-off', 'pickup', 'home-service'], 'Invalid service type'),
+        .oneOf(['drop-off', 'pickup'], 'Invalid service type'),
     warranty: yup
         .number()
         .min(0, 'Warranty cannot be negative')
@@ -98,6 +103,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     const [currentService, setCurrentService] = useState('');
     const [customService, setCustomService] = useState('');
     const [showCustomInput, setShowCustomInput] = useState(false);
+    const [dropoffAddress, setDropoffAddress] = useState('');
 
     const {
         control,
@@ -113,6 +119,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
             basePrice: '',
             serviceCharges: 0,
             partsPrice: 0,
+            dropoffAddress: '',
             description: '',
             estimatedDuration: '',
             serviceType: 'drop-off',
@@ -127,20 +134,27 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     const watchedPartsPrice = watch('partsPrice');
     const watchedDescription = watch('description');
     const watchedRepairmanNotes = watch('repairmanNotes');
+    const watchedDropoffAddress = watch('dropoffAddress');
 
     const serviceTypeOptions = [
         { value: 'drop-off', label: 'Drop-off Service' },
         { value: 'pickup', label: 'Pickup Service' },
-        { value: 'home-service', label: 'Home Service' }
     ];
 
-    const calculateTotal = () => {
+    // ✅ Calculate subtotal (without service charges)
+    const calculateSubtotal = () => {
         const basePrice = parseFloat(watchedBasePrice) || 0;
         const partsPrice = parseFloat(watchedPartsPrice) || 0;
-        const serviceCharges = (watchedServiceType === 'pickup' || watchedServiceType === 'home-service') 
-            ? (parseFloat(watchedServiceCharges) || 0) 
+        return basePrice + partsPrice;
+    };
+
+    // ✅ Calculate grand total (with service charges)
+    const calculateGrandTotal = () => {
+        const subtotal = calculateSubtotal();
+        const serviceCharges = (watchedServiceType === 'pickup')
+            ? (parseFloat(watchedServiceCharges) || 0)
             : 0;
-        return basePrice + partsPrice + serviceCharges;
+        return subtotal + serviceCharges;
     };
 
     const handleAddService = () => {
@@ -189,15 +203,38 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                 },
                 partsQuality: data.partsQuality,
                 basePrice: parseFloat(data.basePrice),
-                serviceCharges: (data.serviceType === 'pickup' || data.serviceType === 'home-service') 
-                    ? parseFloat(data.serviceCharges) || 0 
-                    : 0,
                 partsPrice: parseFloat(data.partsPrice) || 0,
                 description: data.description.trim(),
                 estimatedDuration: data.estimatedDuration.toString(),
-                serviceType: data.serviceType,
                 ...(data.warranty && { warranty: data.warranty.toString() }),
-                ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() })
+                ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() }),
+
+                // ✅ Service Type based conditional data
+                ...(data.serviceType === 'pickup' && {
+                    serviceType: 'pickup',
+                    serviceCharges: parseFloat(data.serviceCharges) || 0,
+                    isPickup: true,
+                    isDropoff: false,
+                    pickupLocation: {
+                        address: '' // Customer will provide during payment
+                    },
+                    dropoffLocation: {
+                        address: ''
+                    }
+                }),
+
+                ...(data.serviceType === 'drop-off' && {
+                    serviceType: 'drop-off',
+                    serviceCharges: 0,
+                    isPickup: false,
+                    isDropoff: true,
+                    pickupLocation: {
+                        address: ''
+                    },
+                    dropoffLocation: {
+                        address: data.dropoffAddress.trim()
+                    }
+                })
             };
 
             console.log('Sending quotation data:', quotationData);
@@ -257,9 +294,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 {...field}
                                                 type="text"
                                                 placeholder="e.g., Apple, Samsung, Huawei"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.brandName ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.brandName ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                     />
@@ -281,9 +317,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 {...field}
                                                 type="text"
                                                 placeholder="e.g., iPhone 14 Pro, Galaxy S23"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.modelName ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.modelName ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                     />
@@ -297,7 +332,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                         {/* Repair Services Section */}
                         <div>
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">Repair Services *</h3>
-                            
+
                             <div className="flex gap-2 mb-3">
                                 {!showCustomInput ? (
                                     <select
@@ -307,8 +342,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     >
                                         <option value="">Select a service</option>
                                         {PREDEFINED_SERVICES.map(service => (
-                                            <option 
-                                                key={service} 
+                                            <option
+                                                key={service}
                                                 value={service}
                                                 disabled={selectedServices.includes(service)}
                                             >
@@ -339,7 +374,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         </button>
                                     </div>
                                 )}
-                                
+
                                 <button
                                     type="button"
                                     onClick={handleAddService}
@@ -357,8 +392,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     <p className="text-xs font-medium text-gray-700 mb-2">Selected Services:</p>
                                     <div className="space-y-2">
                                         {selectedServices.map((service, index) => (
-                                            <div 
-                                                key={index} 
+                                            <div
+                                                key={index}
                                                 className="flex items-center justify-between bg-white p-2 rounded border border-gray-200"
                                             >
                                                 <span className="text-sm text-gray-700">{service}</span>
@@ -393,9 +428,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         {...field}
                                         placeholder="Describe the repair work to be done in detail..."
                                         rows={3}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                            errors.description ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                         maxLength={500}
                                     />
                                 )}
@@ -419,9 +453,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 render={({ field }) => (
                                     <select
                                         {...field}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                            errors.serviceType ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.serviceType ? 'border-red-500' : 'border-gray-300'
+                                            }`}
                                     >
                                         {serviceTypeOptions.map(option => (
                                             <option key={option.value} value={option.value}>
@@ -436,10 +469,13 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             )}
                         </div>
 
+
+
+
                         {/* Pricing Section */}
                         <div className="bg-gray-50 p-4 rounded-md space-y-3">
                             <h3 className="text-sm font-semibold text-gray-900 mb-2">Pricing Details</h3>
-                            
+
                             <div className="grid grid-cols-2 gap-3">
                                 {/* Base Price */}
                                 <div>
@@ -456,9 +492,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 placeholder="0.00"
                                                 min="0"
                                                 step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.basePrice ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.basePrice ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                     />
@@ -482,9 +517,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 placeholder="0.00"
                                                 min="0"
                                                 step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.partsPrice ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.partsPrice ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                     />
@@ -494,11 +528,32 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 </div>
                             </div>
 
-                            {/* Service Charges - Only for pickup/home-service */}
-                            {(watchedServiceType === 'pickup' || watchedServiceType === 'home-service') && (
+                            {watchedServiceType === 'drop-off' && (
+                                <div>
+                                    <label>Drop-off Location Address *</label>
+                                    <Controller
+                                        name="dropoffAddress"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <textarea
+                                                {...field}
+                                                placeholder="Enter your shop/service center address..."
+                                                rows={2}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.dropoffAddress ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
+                                            />
+                                        )}
+                                    />
+                                    {errors.dropoffAddress && (
+                                        <p className="text-red-500 text-xs mt-1">{errors.dropoffAddress.message}</p>
+                                    )}
+                                </div>
+                            )}
+
+                            {watchedServiceType === 'pickup' && (
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Service Charges (TRY) *
+                                        Pickup Service Charges (TRY) *
                                     </label>
                                     <Controller
                                         name="serviceCharges"
@@ -510,24 +565,52 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 placeholder="0.00"
                                                 min="0"
                                                 step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.serviceCharges ? 'border-red-500' : 'border-gray-300'
-                                                }`}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.serviceCharges ? 'border-red-500' : 'border-gray-300'
+                                                    }`}
                                             />
                                         )}
                                     />
                                     {errors.serviceCharges && (
                                         <p className="text-red-500 text-xs mt-1">{errors.serviceCharges.message}</p>
                                     )}
+                                    <p className="text-xs text-gray-500 mt-1">
+                                        Additional charge for pickup service
+                                    </p>
                                 </div>
                             )}
 
-                            {/* Total Amount Display */}
+                            {/* ✅ Price Breakdown Display */}
+                            <div className="bg-white border border-gray-200 rounded-md p-3 space-y-2">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Base Price:</span>
+                                    <span className="font-medium">₺{(parseFloat(watchedBasePrice) || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-600">Parts Price:</span>
+                                    <span className="font-medium">₺{(parseFloat(watchedPartsPrice) || 0).toFixed(2)}</span>
+                                </div>
+                                <div className="border-t pt-2 flex justify-between items-center text-sm font-semibold">
+                                    <span className="text-gray-700">Subtotal:</span>
+                                    <span>₺{calculateSubtotal().toFixed(2)}</span>
+                                </div>
+
+                                {watchedServiceType === 'pickup' && parseFloat(watchedServiceCharges) > 0 && (
+                                    <>
+                                        <div className="flex justify-between items-center text-sm text-primary-600">
+                                            <span>Pickup Charges:</span>
+                                            <span className="font-medium">+₺{(parseFloat(watchedServiceCharges) || 0).toFixed(2)}</span>
+                                        </div>
+                                        <div className="border-t pt-2"></div>
+                                    </>
+                                )}
+                            </div>
+
+                            {/* ✅ Grand Total Display */}
                             <div className="bg-primary-600 p-3 rounded-md">
                                 <div className="flex justify-between items-center">
-                                    <span className="text-sm font-medium text-white">Total Amount:</span>
+                                    <span className="text-sm font-medium text-white">Grand Total:</span>
                                     <span className="text-lg font-bold text-white">
-                                        ₺{calculateTotal().toFixed(2)}
+                                        ₺{calculateGrandTotal().toFixed(2)}
                                     </span>
                                 </div>
                             </div>
@@ -545,9 +628,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     render={({ field }) => (
                                         <select
                                             {...field}
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                errors.partsQuality ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.partsQuality ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         >
                                             <option value="original">Original</option>
                                             <option value="a-plus">A-Plus</option>
@@ -575,9 +657,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                             type="number"
                                             placeholder="e.g., 2"
                                             min="0"
-                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                errors.estimatedDuration ? 'border-red-500' : 'border-gray-300'
-                                            }`}
+                                            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.estimatedDuration ? 'border-red-500' : 'border-gray-300'
+                                                }`}
                                         />
                                     )}
                                 />

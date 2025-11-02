@@ -51,10 +51,9 @@ const schema = yup.object({
             .min(new Date(), "Start date cannot be in the past")
     }),
     serviceOptions: yup.object({
+        dropOffAvailable: yup.boolean(),
         pickupAvailable: yup.boolean(),
-        pickupCharge: yup.number().min(0, "Pickup charge cannot be negative"),
-        homeService: yup.boolean(),
-        homeServiceCharge: yup.number().min(0, "Home service charge cannot be negative")
+        pickupCharge: yup.number().min(0, "Pickup charge cannot be negative")
     })
 });
 
@@ -92,19 +91,27 @@ export default function BidForm({
                 canStartBy: ""
             },
             serviceOptions: {
+                dropOffAvailable: false,
                 pickupAvailable: false,
-                pickupCharge: 0,
-                homeService: false,
-                homeServiceCharge: 0
+                pickupCharge: 0
             }
         }
     });
 
     const watchedValues = watch();
-    const platformFeePercentage = 5;
-    const totalPrice = (parseFloat(watchedValues.basePrice) || 0) + (parseFloat(watchedValues.partsEstimate) || 0);
+    const platformFeePercentage = 5; // Commission
+    
+    // Calculate base total
+    const baseTotal = (parseFloat(watchedValues.basePrice) || 0) + (parseFloat(watchedValues.partsEstimate) || 0);
+    
+    // Add pickup charges if applicable
+    const pickupCharges = watchedValues.serviceOptions?.pickupAvailable ? (parseFloat(watchedValues.serviceOptions.pickupCharge) || 0) : 0;
+    
+    const totalPrice = baseTotal;
+    
     const platformFee = (totalPrice * platformFeePercentage) / 100;
-    const netAmount = totalPrice ? Math.max(0, totalPrice - platformFee) : 0;
+    
+    const netAmount = totalPrice - platformFee;
 
     const characterCount = watchedValues.description?.length || 0;
     const minCharacters = 100;
@@ -127,7 +134,7 @@ export default function BidForm({
                 pricing: {
                     basePrice: parseFloat(data.basePrice),
                     partsEstimate: parseFloat(data.partsEstimate) || 0,
-                    totalPrice: (parseFloat(data.basePrice) || 0) + (parseFloat(data.partsEstimate) || 0),
+                    totalPrice: totalPrice,
                     partsQuality: data.partsQuality,
                     currency: 'TRY'
                 },
@@ -147,32 +154,32 @@ export default function BidForm({
 
                 availability: {
                     canStartBy: new Date(data.availability.canStartBy),
-                    preferredSlots: [] // Can be enhanced later
+                    preferredSlots: []
                 },
 
                 serviceOptions: {
+                    dropOffAvailable: data.serviceOptions.dropOffAvailable,
                     pickupAvailable: data.serviceOptions.pickupAvailable,
                     pickupCharge: data.serviceOptions.pickupCharge || 0,
-                    homeService: data.serviceOptions.homeService,
-                    homeServiceCharge: data.serviceOptions.homeServiceCharge || 0,
                     dropOffLocation: ""
                 },
 
-                // Default fields
+                fees: {
+                    platformFee: platformFee,
+                    platformFeePercentage: platformFeePercentage
+                },
+
                 servicesIncluded: [],
-                // experience: defaultExperience,
                 status: 'pending',
-                expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours from now
+                expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
                 viewedByCustomer: false,
 
-                // Location context
                 locationContext: {
                     submissionMethod: 'profile-stored',
                     submittedAt: new Date(),
                     accuracyLevel: 'profile-based'
                 },
 
-                // Communication array
                 messages: []
             };
 
@@ -188,21 +195,6 @@ export default function BidForm({
             router.push('/repair-man/job-board');
 
             console.log("Response from server:", res.data);
-            // Here you would make the API call
-            // Example:
-            // const response = await fetch('/api/repair-offers', {
-            //     method: 'POST',
-            //     headers: { 'Content-Type': 'application/json' },
-            //     body: JSON.stringify(payload)
-            // });
-            // 
-            // if (!response.ok) throw new Error('Failed to submit offer');
-            // const result = await response.json();
-
-            // Call success callback if provided
-            // if (onSubmitSuccess) {
-            //     onSubmitSuccess(payload);
-            // }
 
         } catch (error) {
             handleError(error)
@@ -220,12 +212,13 @@ export default function BidForm({
         return error?.message;
     };
 
-    // Get minimum date for availability (today)
     const getMinDateTime = () => {
         const now = new Date();
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         return now.toISOString().slice(0, 16);
     };
+
+    const totalWithPickup = totalPrice + pickupCharges;
 
     return (
         <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200">
@@ -366,7 +359,6 @@ export default function BidForm({
                                         {...field}
                                         className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500"
                                     >
-                                        {/* <option value="hours">Hours</option> */}
                                         <option value="days">Days</option>
                                     </select>
                                 )}
@@ -437,10 +429,36 @@ export default function BidForm({
                 </div>
 
                 {/* Service Options */}
-                {/* <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-4">
                     <h6 className="text-lg font-medium text-gray-900">Service Options</h6>
                     
-                    <div className="flex items-start space-x-3">
+                    {/* Drop-off Service - Free */}
+                    <div className="flex items-start space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <Controller
+                            name="serviceOptions.dropOffAvailable"
+                            control={control}
+                            render={({ field }) => (
+                                <input
+                                    {...field}
+                                    type="checkbox"
+                                    id="dropOffService"
+                                    checked={field.value}
+                                    onChange={(e) => field.onChange(e.target.checked)}
+                                    className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                                />
+                            )}
+                        />
+                        <div className="flex-1">
+                            <label htmlFor="dropOffService" className="text-sm font-medium text-gray-700 flex items-center gap-2">
+                                Drop-off Service
+                                <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">FREE</span>
+                            </label>
+                            <p className="text-xs text-gray-600 mt-1">Customer will bring the item to your location - No service charges</p>
+                        </div>
+                    </div>
+
+                    {/* Pickup Service - With Charges */}
+                    <div className="flex items-start space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <Controller
                             name="serviceOptions.pickupAvailable"
                             control={control}
@@ -459,67 +477,36 @@ export default function BidForm({
                             <label htmlFor="pickupService" className="text-sm font-medium text-gray-700">
                                 Pickup Service Available
                             </label>
+                            <p className="text-xs text-gray-600 mt-1">You will pick up the item from customer's location</p>
                             {watchedValues.serviceOptions?.pickupAvailable && (
-                                <div className="mt-2">
-                                    <Controller
-                                        name="serviceOptions.pickupCharge"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="number"
-                                                placeholder="Pickup charge (₺)"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                        )}
-                                    />
+                                <div className="mt-3">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Pickup Service Charges <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                            <span className="text-gray-500 text-sm">₺</span>
+                                        </div>
+                                        <Controller
+                                            name="serviceOptions.pickupCharge"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <input
+                                                    {...field}
+                                                    type="number"
+                                                    placeholder="Enter pickup charges"
+                                                    className="w-full pl-7 pr-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                                    min="0"
+                                                    step="0.01"
+                                                />
+                                            )}
+                                        />
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    <div className="flex items-start space-x-3">
-                        <Controller
-                            name="serviceOptions.homeService"
-                            control={control}
-                            render={({ field }) => (
-                                <input
-                                    {...field}
-                                    type="checkbox"
-                                    id="homeService"
-                                    checked={field.value}
-                                    onChange={(e) => field.onChange(e.target.checked)}
-                                    className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                                />
-                            )}
-                        />
-                        <div className="flex-1">
-                            <label htmlFor="homeService" className="text-sm font-medium text-gray-700">
-                                Home Service Available
-                            </label>
-                            {watchedValues.serviceOptions?.homeService && (
-                                <div className="mt-2">
-                                    <Controller
-                                        name="serviceOptions.homeServiceCharge"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="number"
-                                                placeholder="Home service charge (₺)"
-                                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-primary-500"
-                                                min="0"
-                                                step="0.01"
-                                            />
-                                        )}
-                                    />
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div> */}
+                </div>
 
                 {/* Warranty Description */}
                 <div className="mt-6 space-y-2">
@@ -540,27 +527,6 @@ export default function BidForm({
                         )}
                     />
                 </div>
-
-                {/* Warranty Terms
-                <div className="mt-4 space-y-2">
-                    <label htmlFor="warrantyTerms" className="block text-sm font-medium text-gray-700">
-                        Warranty Terms & Conditions
-                    </label>
-                    <Controller
-                        name="warranty.terms"
-                        control={control}
-                        render={({ field }) => (
-                            <textarea
-                                {...field}
-                                id="warrantyTerms"
-                                className="block w-full px-3 py-3 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:border-primary-500"
-                                rows={3}
-                                placeholder="e.g., Warranty covers parts and labor. Does not cover damage from misuse..."
-                                maxLength={200}
-                            />
-                        )}
-                    />
-                </div> */}
 
                 {/* Description */}
                 <div className="mt-6 space-y-2">
@@ -602,42 +568,80 @@ export default function BidForm({
 
                 {/* Price Summary */}
                 {(watchedValues.basePrice || watchedValues.partsEstimate) && (
-                    <div className="mt-6 bg-gray-50 rounded-lg p-4 border border-gray-200">
-                        <h6 className="text-sm font-medium text-gray-900 mb-3">Price Breakdown</h6>
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
+                    <div className="mt-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-5 border-2 border-gray-200">
+                        <h6 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Price Breakdown
+                        </h6>
+                        <div className="space-y-2.5 text-sm">
+                            <div className="flex justify-between py-1">
                                 <span className="text-gray-600">Base service price:</span>
                                 <span className="font-medium">₺{(parseFloat(watchedValues.basePrice) || 0).toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between">
+                            <div className="flex justify-between py-1">
                                 <span className="text-gray-600">Parts estimate:</span>
                                 <span className="font-medium">₺{(parseFloat(watchedValues.partsEstimate) || 0).toFixed(2)}</span>
                             </div>
-                            {watchedValues.serviceOptions?.pickupAvailable && watchedValues.serviceOptions?.pickupCharge > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Pickup service:</span>
-                                    <span className="font-medium">₺{(parseFloat(watchedValues.serviceOptions.pickupCharge) || 0).toFixed(2)}</span>
+                            
+                            <hr className="border-gray-300 my-2" />
+                            
+                            <div className="flex justify-between py-2 bg-white -mx-2 px-2 rounded-lg">
+                                <span className="text-gray-900 font-semibold">Subtotal:</span>
+                                <span className="text-gray-900 font-bold text-lg">₺{(baseTotal).toFixed(2)}</span>
+                            </div>
+
+                            {/* Pickup Service Charges - Only show if pickup is selected */}
+                            {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
+                                <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                                    <div className="flex items-start gap-2 mb-2">
+                                        <span className="text-blue-600 text-lg">ℹ️</span>
+                                        <div className="flex-1">
+                                            <p className="text-xs font-bold text-blue-900 uppercase tracking-wide">
+                                                IF CUSTOMER CHOOSES PICKUP SERVICE
+                                            </p>
+                                            <p className="text-xs text-blue-700 mt-1">
+                                                Additional charges will be added to the total
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
+                                        <span className="text-sm font-semibold text-blue-900">Pickup Charges:</span>
+                                        <span className="text-sm font-bold text-blue-900">₺{pickupCharges.toFixed(2)}</span>
+                                    </div>
                                 </div>
                             )}
-                            {watchedValues.serviceOptions?.homeService && watchedValues.serviceOptions?.homeServiceCharge > 0 && (
-                                <div className="flex justify-between">
-                                    <span className="text-gray-600">Home service:</span>
-                                    <span className="font-medium">₺{(parseFloat(watchedValues.serviceOptions.homeServiceCharge) || 0).toFixed(2)}</span>
+
+                            {/* Total with pickup - only show if pickup selected */}
+                            {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
+                                <div className="mt-3 p-3 bg-primary-100 border-2 border-primary-400 rounded-lg">
+                                    <div className="flex justify-between items-center">
+                                        <span className="font-bold text-primary-900">Total (with Pickup):</span>
+                                        <span className="font-bold text-primary-900 text-xl">₺{totalPrice.toFixed(2)} + {pickupCharges.toFixed(2)} = ₺{totalWithPickup.toFixed(2)}</span>
+                                    </div>
                                 </div>
                             )}
-                            <div className="flex justify-between">
-                                <span className="text-gray-600">Platform fee:</span>
-                                <span className="text-red-600">-₺{platformFee.toFixed(2)}</span>
+
+                            {/* Commission Deduction */}
+                            <div className="mt-4 pt-3 border-t-2 border-gray-300">
+                                <div className="flex justify-between py-1">
+                                    <span className="text-gray-600">Platform commission ({platformFeePercentage}%):</span>
+                                    <span className="text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
+                                </div>
                             </div>
-                            <hr className="border-gray-200" />
-                            <div className="flex justify-between font-semibold">
-                                <span className="text-gray-900">Total for customer:</span>
-                                <span className="text-primary-600">₺{totalPrice.toFixed(2)}</span>
+                            
+                            <hr className="border-gray-300 my-2" />
+                            
+                            <div className="flex justify-between py-2 bg-green-50 -mx-2 px-2 rounded-lg">
+                                <span className="text-gray-900 font-semibold">You'll receive:</span>
+                                <span className="text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
                             </div>
-                            <div className="flex justify-between font-semibold">
-                                <span className="text-gray-900">You'll receive:</span>
-                                <span className="text-green-600">₺{netAmount.toFixed(2)}</span>
-                            </div>
+                        </div>
+                        <div className="mt-3 pt-3 border-t border-gray-200">
+                            <p className="text-xs text-gray-500 italic">
+                                * {platformFeePercentage}% commission will be deducted from your total amount
+                            </p>
                         </div>
                     </div>
                 )}

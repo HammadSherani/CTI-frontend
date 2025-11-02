@@ -39,6 +39,8 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
     const [discount, setDiscount] = useState(0);
+    const [isPickupSelected, setIsPickupSelected] = useState(false);
+    const [pickupAddress, setPickupAddress] = useState('');
 
     const { register, handleSubmit, formState: { errors }, setValue } = useForm({
         resolver: yupResolver(cardSchema),
@@ -77,15 +79,35 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     }, [quotationId, token, router, jobId]);
 
     const onSubmit = async (formData) => {
+        if (isPickupSelected && !pickupAddress.trim()) {
+            toast.error('Please enter pickup address');
+            return;
+        }
+
         setIsProcessing(true);
 
         try {
             const config = {
                 headers: { Authorization: `Bearer ${token}` },
-                params: { quotationId, jobId },
+                params: {
+                    quotationId,
+                    jobId,
+                    ...(isPickupSelected && {
+                        isPickup: true,
+                        pickupAddress: pickupAddress.trim()
+                    })
+                },
             };
 
-            const { status, data } = await axiosInstance.post('/customer/payments/process', {}, config);
+            const { status, data } = await axiosInstance.post('/customer/payments/process',
+                {
+                    cardNumber: formData.cardNumber.replace(/\s/g, ''), // spaces remove
+                    cardHolder: formData.cardHolder,
+                    expireMonth: formData.expiryDate.split('/')[0],
+                    expireYear: formData.expiryDate.split('/')[1],
+                    cvc: formData.cvv
+                },
+                config);
 
             if (status !== 200) {
                 throw new Error(data?.message || "Payment failed!");
@@ -161,10 +183,17 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
     const basePrice = quotation.pricing?.basePrice || 0;
     const partsEstimate = quotation.pricing?.partsPrice || 0;
-    const serviceCharges = quotation.pricing?.serviceCharges || 0; // Add this line
-    const deliveryFee = quotation.serviceDetails?.serviceType === 'pickup' ? 0 : 0;
-    const tax = Math.round((basePrice + partsEstimate + serviceCharges + deliveryFee - discount) * 0.00);
-    const totalPrice = quotation.pricing?.totalAmount || (basePrice + partsEstimate + serviceCharges + deliveryFee + tax - discount);
+    const serviceCharges = quotation.pricing?.serviceCharges || 0;
+    const deliveryFee = 0;
+
+    // Calculate pickup charge if selected
+    const pickupCharge = isPickupSelected && quotation.serviceDetails?.isPickup && serviceCharges > 0
+        ? serviceCharges
+        : 0;
+
+    const tax = Math.round((basePrice + partsEstimate + pickupCharge + deliveryFee - discount) * 0.00);
+    const totalPrice = basePrice + partsEstimate + pickupCharge + deliveryFee + tax - discount;
+
 
 
     return (
@@ -228,6 +257,80 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Service Type Selection - Only show if pickup is available */}
+                        {quotation.serviceDetails?.isPickup && serviceCharges > 0 && (
+                            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-5 mt-6">
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                    <span className="inline-flex items-center justify-center bg-primary-100 text-primary-600 rounded-full w-8 h-8">
+                                        <Icon icon="mdi:car-wrench" className="text-xl" />
+                                    </span>
+                                    Choose Service Type
+                                </h3>
+
+                                {/* Drop-off Option */}
+                                {quotation.serviceDetails?.isDropoff && quotation.serviceDetails?.dropoffLocation?.address && (
+                                    <div
+                                        onClick={() => setIsPickupSelected(false)}
+                                        className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition ${!isPickupSelected
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            checked={!isPickupSelected}
+                                            onChange={() => setIsPickupSelected(false)}
+                                            className="mt-1 accent-primary-600 cursor-pointer"
+                                        />
+                                        <label className="flex-1 text-gray-700 cursor-pointer">
+                                            <span className="font-medium">Drop-off at:</span>{' '}
+                                            <span className="text-gray-600">{quotation.serviceDetails.dropoffLocation.address}</span>
+                                        </label>
+                                    </div>
+                                )}
+
+                                {/* Pickup Option */}
+                                <div
+                                    onClick={() => setIsPickupSelected(true)}
+                                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition ${isPickupSelected
+                                        ? 'border-primary-500 bg-primary-50'
+                                        : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        checked={isPickupSelected}
+                                        onChange={() => setIsPickupSelected(true)}
+                                        className="mt-1 accent-primary-600 cursor-pointer"
+                                    />
+                                    <label className="flex-1 text-gray-700 cursor-pointer">
+                                        <span className="font-medium">Pickup Service</span>{' '}
+                                        <span className="text-gray-600">
+                                            (+{quotation.pricing?.currency || 'TRY'} {serviceCharges.toLocaleString()})
+                                        </span>
+                                    </label>
+                                </div>
+
+                                {/* Pickup Address Input */}
+                                {isPickupSelected && (
+                                    <div className="space-y-2 animate-fadeIn">
+                                        <label className="text-gray-700 font-medium flex items-center gap-2">
+                                            <Icon icon="mdi:map-marker" className="text-primary-600 text-xl" />
+                                            Pickup Address
+                                        </label>
+                                        <textarea
+                                            value={pickupAddress}
+                                            onChange={(e) => setPickupAddress(e.target.value)}
+                                            placeholder="Enter your pickup address"
+                                            required
+                                            className="w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 p-3 resize-none transition"
+                                            rows={3}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Payment Form */}
                         <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg shadow-sm p-8 border border-gray-100">
@@ -362,12 +465,22 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     <span className="text-gray-600">Parts Price</span>
                                     <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {partsEstimate.toLocaleString()}</span>
                                 </div>
-                                {serviceCharges > 0 && (
-                                    <div className="flex justify-between">
-                                        <span className="text-gray-600">Service Charges</span>
-                                        <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {serviceCharges.toLocaleString()}</span>
+
+                                {/* Show pickup charge if selected */}
+                                {isPickupSelected && pickupCharge > 0 && (
+                                    <div className="flex justify-between text-primary-600">
+                                        <span className="flex items-center gap-1">
+                                            <Icon icon="mdi:truck" width={14} />
+                                            Pickup Charge
+                                        </span>
+                                        <span className="font-medium">
+                                            +{quotation.pricing?.currency || 'TRY'} {pickupCharge.toLocaleString()}
+                                        </span>
                                     </div>
                                 )}
+
+                                {/* Remove old serviceCharges display */}
+
                                 {discount > 0 && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount</span>
@@ -390,10 +503,13 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     <span className="font-medium text-primary-800">Service Details</span>
                                 </div>
                                 <div className="text-sm text-primary-700 space-y-1">
-                                    {quotation.serviceDetails?.serviceType === 'pickup' ? (
-                                        <p>✓ Pickup service available</p>
-                                    ) : quotation.serviceDetails?.serviceType === 'home-service' ? (
-                                        <p>✓ Home service available</p>
+                                    {isPickupSelected ? (
+                                        <>
+                                            <p>✓ Pickup service selected</p>
+                                            <p className="text-xs">Pickup from: {pickupAddress || 'Address pending'}</p>
+                                        </>
+                                    ) : quotation.serviceDetails?.isDropoff && quotation.serviceDetails?.dropoffLocation?.address ? (
+                                        <p>• Drop-off at: {quotation.serviceDetails.dropoffLocation.address}</p>
                                     ) : (
                                         <p>• Drop-off required at service center</p>
                                     )}
@@ -445,6 +561,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
     const [isProcessing, setIsProcessing] = useState(false);
     const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('card');
     const [discount, setDiscount] = useState(0);
+    const [isPickupSelected, setIsPickupSelected] = useState(false);
+    const [pickupAddress, setPickupAddress] = useState('');
 
     const { register, handleSubmit, formState: { errors }, setValue } = useForm({
         resolver: yupResolver(cardSchema),
@@ -483,23 +601,39 @@ function OfferPayment({ offerId, jobId, token, router }) {
     }, [offerId, jobId, token, router]);
 
     const onSubmit = async (formData) => {
+        // VALIDATION CHECK - SABSE PEHLE
+        if (isPickupSelected && !pickupAddress.trim()) {
+            toast.error('Please enter pickup address');
+            return;
+        }
+
         setIsProcessing(true);
+
         try {
+            // Step 1: Process Payment
             const paymentResponse = await axiosInstance.post(
                 '/customer/payments/process',
-                {},
+                 {
+                    cardNumber: formData.cardNumber.replace(/\s/g, ''), // spaces remove
+                    cardHolder: formData.cardHolder,
+                    expireMonth: formData.expiryDate.split('/')[0],
+                    expireYear: formData.expiryDate.split('/')[1],
+                    cvc: formData.cvv
+                },
                 {
                     params: { offerId, jobId },
                     headers: { Authorization: `Bearer ${token}` }
                 }
             );
 
+            // Step 2: Select Offer with pickup details
             await axiosInstance.post(
                 `/repair-jobs/${jobId}/select-offer`,
                 {
                     offerId,
-                    scheduledDate: offer?.availability?.canStartBy
-                    // serviceType: offer?.serviceType
+                    scheduledDate: offer?.availability?.canStartBy,
+                    isPickUp: isPickupSelected,
+                    pickUpAddress: isPickupSelected ? pickupAddress : ''
                 },
                 {
                     headers: { Authorization: `Bearer ${token}` }
@@ -537,6 +671,9 @@ function OfferPayment({ offerId, jobId, token, router }) {
         }
     };
 
+
+
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-50/40 flex items-center justify-center">
@@ -565,7 +702,19 @@ function OfferPayment({ offerId, jobId, token, router }) {
     const partsEstimate = offer?.pricing?.partsEstimate || 0;
     const deliveryFee = offer?.serviceOptions?.pickupAvailable ? 0 : (offer?.deliveryFee || 0);
     const tax = Math.round((laborPrice + partsEstimate + deliveryFee - discount) * 0.00);
-    const totalPrice = laborPrice + partsEstimate + deliveryFee + tax - discount;
+    // const totalPrice = laborPrice + partsEstimate + deliveryFee + tax - discount;
+
+    const pickupCharge = isPickupSelected && offer?.serviceOptions?.pickupAvailable
+        ? offer.serviceOptions?.pickupCharge || 0
+        : 0;
+    const totalPrice = laborPrice + partsEstimate + deliveryFee + pickupCharge + tax - discount;
+
+
+    // if (isPickupSelected && !pickupAddress.trim()) {
+    //     toast.error('Please enter pickup address');
+    //     setIsProcessing(false);
+    //     return;
+    // }
 
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
@@ -629,6 +778,80 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     </div>
                                 </div>
                             </div>
+
+
+                            {/* Service Type Selection */}
+                            <div className="bg-white rounded-xl shadow-md p-6 border border-gray-100 space-y-5">
+                                <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                                    <span className="inline-flex items-center justify-center bg-primary-100 text-primary-600 rounded-full w-8 h-8">
+                                        <Icon icon="mdi:car-wrench" className="text-xl" />
+                                    </span>
+                                    Choose Service Type
+                                </h3>
+
+                                {/* Drop-off Option */}
+                                <div
+                                    onClick={() => setIsPickupSelected(false)}
+                                    className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition ${!isPickupSelected
+                                        ? 'border-primary-500 bg-primary-50'
+                                        : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'
+                                        }`}
+                                >
+                                    <input
+                                        type="radio"
+                                        checked={!isPickupSelected}
+                                        onChange={() => setIsPickupSelected(false)}
+                                        className="mt-1 accent-primary-600 cursor-pointer"
+                                    />
+                                    <label className="flex-1 text-gray-700 cursor-pointer">
+                                        <span className="font-medium">Drop-off at:</span>{' '}
+                                        <span className="text-gray-600">{offer?.serviceOptions?.dropOffLocation}</span>
+                                    </label>
+                                </div>
+
+                                {/* Pickup Option */}
+                                {offer?.serviceOptions?.pickupAvailable && (
+                                    <div
+                                        onClick={() => setIsPickupSelected(true)}
+                                        className={`flex items-start gap-3 p-4 rounded-lg border cursor-pointer transition ${isPickupSelected
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            checked={isPickupSelected}
+                                            onChange={() => setIsPickupSelected(true)}
+                                            className="mt-1 accent-primary-600 cursor-pointer"
+                                        />
+                                        <label className="flex-1 text-gray-700 cursor-pointer">
+                                            <span className="font-medium">Pickup Service</span>{' '}
+                                            <span className="text-gray-600">
+                                                (+{offer?.pricing?.currency} {offer?.serviceOptions?.pickupCharge})
+                                            </span>
+                                        </label>
+                                    </div>
+                                )}
+
+                                {/* Pickup Address Input */}
+                                {isPickupSelected && (
+                                    <div className="space-y-2 animate-fadeIn">
+                                        <label className="text-gray-700 font-medium flex items-center gap-2">
+                                            <Icon icon="mdi:map-marker" className="text-primary-600 text-xl" />
+                                            Pickup Address
+                                        </label>
+                                        <textarea
+                                            value={pickupAddress}
+                                            onChange={(e) => setPickupAddress(e.target.value)}
+                                            placeholder="Enter your pickup address"
+                                            required
+                                            className="w-full rounded-lg border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-primary-500 p-3 resize-none transition"
+                                            rows={3}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+
                         </div>
 
                         {/* Payment Form */}
@@ -764,6 +987,18 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     <span className="text-gray-600">Parts Estimate</span>
                                     <span className="font-medium">{offer?.pricing?.currency || 'TRY'} {partsEstimate.toLocaleString()}</span>
                                 </div>
+
+                                {isPickupSelected && pickupCharge > 0 && (
+                                    <div className="flex justify-between text-primary-600">
+                                        <span className="flex items-center gap-1">
+                                            <span>🚗</span>
+                                            <span>Pickup Charge</span>
+                                        </span>
+                                        <span className="font-medium">
+                                            +{offer?.pricing?.currency || 'TRY'} {pickupCharge.toLocaleString()}
+                                        </span>
+                                    </div>
+                                )}
                                 {!offer?.serviceOptions?.pickupAvailable && deliveryFee > 0 && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Service Fee</span>
@@ -792,14 +1027,15 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     <span className="font-medium text-primary-800">Service Details</span>
                                 </div>
                                 <div className="text-sm text-primary-700 space-y-1">
-                                    {offer?.serviceOptions?.pickupAvailable ? (
-                                        <p>✓ Pickup service available</p>
+                                    {isPickupSelected ? (
+                                        <>
+                                            <p>✓ Pickup service selected</p>
+                                            <p className="text-xs">Pickup from: {pickupAddress || 'Address pending'}</p>
+                                        </>
                                     ) : (
-                                        <p>• Drop-off required at service center</p>
+                                        <p>• Drop-off at: {offer?.serviceOptions?.dropOffLocation}</p>
                                     )}
-                                    {offer?.serviceOptions?.homeService && (
-                                        <p>✓ Home service available</p>
-                                    )}
+                                    {offer?.serviceOptions?.homeService && <p>✓ Home service available</p>}
                                 </div>
                             </div>
 
