@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react';
-import { useForm, Controller, useFieldArray } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
@@ -42,19 +42,25 @@ const quotationSchema = yup.object().shape({
         .string()
         .required('Model name is required')
         .min(2, 'Model name must be at least 2 characters'),
-    repairServices: yup
-        .array()
-        .of(yup.string().required('Service name is required'))
-        .min(1, 'At least one service is required'),
     partsQuality: yup
         .string()
         .required('Parts quality is required')
         .oneOf(['original', 'a-plus', 'china-copy', 'refurbished-original', 'other'], 'Invalid parts quality'),
-    serviceCharge: yup
+    basePrice: yup
         .number()
-        .required('Service charge is required')
-        .positive('Service charge must be a positive number')
-        .typeError('Service charge must be a valid number'),
+        .required('Base price is required')
+        .positive('Base price must be a positive number')
+        .typeError('Base price must be a valid number'),
+    serviceCharges: yup
+        .number()
+        .when('serviceType', {
+            is: (val) => val === 'pickup' || val === 'home-service',
+            then: (schema) => schema
+                .required('Service charges is required')
+                .positive('Service charges must be positive')
+                .typeError('Service charges must be a valid number'),
+            otherwise: (schema) => schema.nullable().default(0)
+        }),
     partsPrice: yup
         .number()
         .min(0, 'Parts price cannot be negative')
@@ -66,17 +72,19 @@ const quotationSchema = yup.object().shape({
         .min(10, 'Description must be at least 10 characters')
         .max(500, 'Description cannot exceed 500 characters'),
     estimatedDuration: yup
-        .string()
+        .number()
         .required('Estimated duration is required')
-        .min(1, 'Estimated duration is required'),
+        .positive('Duration must be positive')
+        .typeError('Estimated duration must be a number'),
     serviceType: yup
         .string()
         .required('Service type is required')
         .oneOf(['drop-off', 'pickup', 'home-service'], 'Invalid service type'),
     warranty: yup
-        .string()
-        .max(100, 'Warranty cannot exceed 100 characters')
-        .nullable(),
+        .number()
+        .min(0, 'Warranty cannot be negative')
+        .nullable()
+        .typeError('Warranty must be a number'),
     repairmanNotes: yup
         .string()
         .max(200, 'Notes cannot exceed 200 characters')
@@ -86,7 +94,10 @@ const quotationSchema = yup.object().shape({
 const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     const { token } = useSelector((state) => state.auth);
     const [loading, setLoading] = useState(false);
-    const [showCustomInput, setShowCustomInput] = useState({});
+    const [selectedServices, setSelectedServices] = useState([]);
+    const [currentService, setCurrentService] = useState('');
+    const [customService, setCustomService] = useState('');
+    const [showCustomInput, setShowCustomInput] = useState(false);
 
     const {
         control,
@@ -98,9 +109,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         defaultValues: {
             brandName: '',
             modelName: '',
-            repairServices: [''],
             partsQuality: 'original',
-            serviceCharge: '',
+            basePrice: '',
+            serviceCharges: 0,
             partsPrice: 0,
             description: '',
             estimatedDuration: '',
@@ -110,12 +121,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         }
     });
 
-    const { fields, append, remove } = useFieldArray({
-        control,
-        name: 'repairServices'
-    });
-
-    const watchedServiceCharge = watch('serviceCharge');
+    const watchedServiceType = watch('serviceType');
+    const watchedBasePrice = watch('basePrice');
+    const watchedServiceCharges = watch('serviceCharges');
     const watchedPartsPrice = watch('partsPrice');
     const watchedDescription = watch('description');
     const watchedRepairmanNotes = watch('repairmanNotes');
@@ -127,41 +135,68 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     ];
 
     const calculateTotal = () => {
-        const serviceCharge = parseFloat(watchedServiceCharge) || 0;
+        const basePrice = parseFloat(watchedBasePrice) || 0;
         const partsPrice = parseFloat(watchedPartsPrice) || 0;
-        return serviceCharge + partsPrice;
+        const serviceCharges = (watchedServiceType === 'pickup' || watchedServiceType === 'home-service') 
+            ? (parseFloat(watchedServiceCharges) || 0) 
+            : 0;
+        return basePrice + partsPrice + serviceCharges;
     };
 
     const handleAddService = () => {
-        append('');
+        if (showCustomInput) {
+            if (customService.trim() && !selectedServices.includes(customService.trim())) {
+                setSelectedServices([...selectedServices, customService.trim()]);
+                setCustomService('');
+                setShowCustomInput(false);
+            }
+        } else {
+            if (currentService && !selectedServices.includes(currentService)) {
+                setSelectedServices([...selectedServices, currentService]);
+                setCurrentService('');
+            }
+        }
+    };
+
+    const handleRemoveService = (serviceToRemove) => {
+        setSelectedServices(selectedServices.filter(service => service !== serviceToRemove));
+    };
+
+    const handleServiceDropdownChange = (value) => {
+        if (value === '__custom__') {
+            setShowCustomInput(true);
+            setCurrentService('');
+        } else {
+            setCurrentService(value);
+            setShowCustomInput(false);
+        }
     };
 
     const onSubmit = async (data) => {
+        if (selectedServices.length === 0) {
+            handleError({ message: 'Please add at least one repair service' });
+            return;
+        }
+
         setLoading(true);
 
         try {
-            // Filter out empty services
-            const filteredServices = data.repairServices.filter(service => service && service.trim());
-
-            if (filteredServices.length === 0) {
-                handleError({ message: 'Please add at least one repair service' });
-                setLoading(false);
-                return;
-            }
-
             const quotationData = {
                 deviceInfo: {
                     brandName: data.brandName.trim(),
                     modelName: data.modelName.trim(),
-                    repairServices: filteredServices.map(s => s.trim())
+                    repairServices: selectedServices
                 },
                 partsQuality: data.partsQuality,
-                serviceCharge: parseFloat(data.serviceCharge),
+                basePrice: parseFloat(data.basePrice),
+                serviceCharges: (data.serviceType === 'pickup' || data.serviceType === 'home-service') 
+                    ? parseFloat(data.serviceCharges) || 0 
+                    : 0,
                 partsPrice: parseFloat(data.partsPrice) || 0,
                 description: data.description.trim(),
-                estimatedDuration: data.estimatedDuration.trim(),
+                estimatedDuration: data.estimatedDuration.toString(),
                 serviceType: data.serviceType,
-                ...(data.warranty && { warranty: data.warranty.trim() }),
+                ...(data.warranty && { warranty: data.warranty.toString() }),
                 ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() })
             };
 
@@ -261,98 +296,88 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
 
                         {/* Repair Services Section */}
                         <div>
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-semibold text-gray-900">Repair Services *</h3>
+                            <h3 className="text-sm font-semibold text-gray-900 mb-3">Repair Services *</h3>
+                            
+                            <div className="flex gap-2 mb-3">
+                                {!showCustomInput ? (
+                                    <select
+                                        value={currentService}
+                                        onChange={(e) => handleServiceDropdownChange(e.target.value)}
+                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    >
+                                        <option value="">Select a service</option>
+                                        {PREDEFINED_SERVICES.map(service => (
+                                            <option 
+                                                key={service} 
+                                                value={service}
+                                                disabled={selectedServices.includes(service)}
+                                            >
+                                                {service}
+                                            </option>
+                                        ))}
+                                        <option value="__custom__">+ Add Custom Service</option>
+                                    </select>
+                                ) : (
+                                    <div className="flex gap-2 flex-1">
+                                        <input
+                                            type="text"
+                                            value={customService}
+                                            onChange={(e) => setCustomService(e.target.value)}
+                                            placeholder="Enter custom service name"
+                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setShowCustomInput(false);
+                                                setCustomService('');
+                                            }}
+                                            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
+                                            title="Back to dropdown"
+                                        >
+                                            <Icon icon="mdi:arrow-left" width={16} />
+                                        </button>
+                                    </div>
+                                )}
+                                
                                 <button
                                     type="button"
                                     onClick={handleAddService}
-                                    className="flex items-center gap-1 px-3 py-1.5 bg-green-600 text-white text-sm rounded-md hover:bg-green-700 transition-colors"
+                                    disabled={showCustomInput ? !customService.trim() : !currentService}
+                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
                                 >
                                     <Icon icon="mdi:plus" width={16} />
-                                    Add Service
+                                    Add
                                 </button>
                             </div>
 
-                            {errors.repairServices?.message && (
-                                <p className="text-red-500 text-sm mb-2">{errors.repairServices.message}</p>
+                            {/* Selected Services Display */}
+                            {selectedServices.length > 0 && (
+                                <div className="bg-gray-50 p-3 rounded-md">
+                                    <p className="text-xs font-medium text-gray-700 mb-2">Selected Services:</p>
+                                    <div className="space-y-2">
+                                        {selectedServices.map((service, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="flex items-center justify-between bg-white p-2 rounded border border-gray-200"
+                                            >
+                                                <span className="text-sm text-gray-700">{service}</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleRemoveService(service)}
+                                                    className="text-red-600 hover:text-red-800 transition-colors"
+                                                >
+                                                    <Icon icon="mdi:close" width={18} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
                             )}
 
-                            <div className="space-y-3">
-                                {fields.map((field, index) => (
-                                    <div key={field.id} className="flex gap-2 items-start">
-                                        <div className="flex-1">
-                                            <Controller
-                                                name={`repairServices.${index}`}
-                                                control={control}
-                                                render={({ field: serviceField }) => (
-                                                    <div className="space-y-2">
-                                                        {!showCustomInput[index] ? (
-                                                            <select
-                                                                value={serviceField.value}
-                                                                onChange={(e) => {
-                                                                    if (e.target.value === '__custom__') {
-                                                                        setShowCustomInput(prev => ({ ...prev, [index]: true }));
-                                                                        serviceField.onChange('');
-                                                                    } else {
-                                                                        serviceField.onChange(e.target.value);
-                                                                    }
-                                                                }}
-                                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                                    errors.repairServices?.[index] ? 'border-red-500' : 'border-gray-300'
-                                                                }`}
-                                                            >
-                                                                <option value="">Select a service</option>
-                                                                {PREDEFINED_SERVICES.map(service => (
-                                                                    <option key={service} value={service}>
-                                                                        {service}
-                                                                    </option>
-                                                                ))}
-                                                                <option value="__custom__">+ Add Custom Service</option>
-                                                            </select>
-                                                        ) : (
-                                                            <div className="flex gap-2">
-                                                                <input
-                                                                    type="text"
-                                                                    {...serviceField}
-                                                                    placeholder="Enter custom service name"
-                                                                    className={`flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                                        errors.repairServices?.[index] ? 'border-red-500' : 'border-gray-300'
-                                                                    }`}
-                                                                />
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        setShowCustomInput(prev => ({ ...prev, [index]: false }));
-                                                                        serviceField.onChange('');
-                                                                    }}
-                                                                    className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                                                                    title="Back to dropdown"
-                                                                >
-                                                                    <Icon icon="mdi:arrow-left" width={16} />
-                                                                </button>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            />
-                                            {errors.repairServices?.[index] && (
-                                                <p className="text-red-500 text-xs mt-1">
-                                                    {errors.repairServices[index].message}
-                                                </p>
-                                            )}
-                                        </div>
-                                        {fields.length > 1 && (
-                                            <button
-                                                type="button"
-                                                onClick={() => remove(index)}
-                                                className="mt-2 text-red-600 hover:text-red-800 transition-colors"
-                                            >
-                                                <Icon icon="mdi:delete" width={20} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
+                            {selectedServices.length === 0 && (
+                                <p className="text-red-500 text-xs mt-1">Please add at least one repair service</p>
+                            )}
                         </div>
 
                         {/* Service Description */}
@@ -383,18 +408,46 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </p>
                         </div>
 
+                        {/* Service Type */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Service Type *
+                            </label>
+                            <Controller
+                                name="serviceType"
+                                control={control}
+                                render={({ field }) => (
+                                    <select
+                                        {...field}
+                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                                            errors.serviceType ? 'border-red-500' : 'border-gray-300'
+                                        }`}
+                                    >
+                                        {serviceTypeOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
+                            />
+                            {errors.serviceType && (
+                                <p className="text-red-500 text-xs mt-1">{errors.serviceType.message}</p>
+                            )}
+                        </div>
+
                         {/* Pricing Section */}
                         <div className="bg-gray-50 p-4 rounded-md space-y-3">
                             <h3 className="text-sm font-semibold text-gray-900 mb-2">Pricing Details</h3>
                             
                             <div className="grid grid-cols-2 gap-3">
-                                {/* Service Charge */}
+                                {/* Base Price */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Service Charge (PKR) *
+                                        Base Price (TRY) *
                                     </label>
                                     <Controller
-                                        name="serviceCharge"
+                                        name="basePrice"
                                         control={control}
                                         render={({ field }) => (
                                             <input
@@ -404,20 +457,20 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                 min="0"
                                                 step="0.01"
                                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                                    errors.serviceCharge ? 'border-red-500' : 'border-gray-300'
+                                                    errors.basePrice ? 'border-red-500' : 'border-gray-300'
                                                 }`}
                                             />
                                         )}
                                     />
-                                    {errors.serviceCharge && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.serviceCharge.message}</p>
+                                    {errors.basePrice && (
+                                        <p className="text-red-500 text-xs mt-1">{errors.basePrice.message}</p>
                                     )}
                                 </div>
 
                                 {/* Parts Price */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Parts Price (PKR)
+                                        Parts Price (TRY)
                                     </label>
                                     <Controller
                                         name="partsPrice"
@@ -441,12 +494,40 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 </div>
                             </div>
 
+                            {/* Service Charges - Only for pickup/home-service */}
+                            {(watchedServiceType === 'pickup' || watchedServiceType === 'home-service') && (
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Service Charges (TRY) *
+                                    </label>
+                                    <Controller
+                                        name="serviceCharges"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <input
+                                                {...field}
+                                                type="number"
+                                                placeholder="0.00"
+                                                min="0"
+                                                step="0.01"
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                                                    errors.serviceCharges ? 'border-red-500' : 'border-gray-300'
+                                                }`}
+                                            />
+                                        )}
+                                    />
+                                    {errors.serviceCharges && (
+                                        <p className="text-red-500 text-xs mt-1">{errors.serviceCharges.message}</p>
+                                    )}
+                                </div>
+                            )}
+
                             {/* Total Amount Display */}
                             <div className="bg-primary-600 p-3 rounded-md">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-white">Total Amount:</span>
                                     <span className="text-lg font-bold text-white">
-                                        PKR {calculateTotal().toFixed(2)}
+                                        ₺{calculateTotal().toFixed(2)}
                                     </span>
                                 </div>
                             </div>
@@ -483,7 +564,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
 
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Estimated Duration *
+                                    Estimated Duration (days) *
                                 </label>
                                 <Controller
                                     name="estimatedDuration"
@@ -491,8 +572,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     render={({ field }) => (
                                         <input
                                             {...field}
-                                            type="text"
-                                            placeholder="e.g., 2 hours, 1 day"
+                                            type="number"
+                                            placeholder="e.g., 2"
+                                            min="0"
                                             className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
                                                 errors.estimatedDuration ? 'border-red-500' : 'border-gray-300'
                                             }`}
@@ -505,39 +587,11 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Service Type */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Service Type *
-                            </label>
-                            <Controller
-                                name="serviceType"
-                                control={control}
-                                render={({ field }) => (
-                                    <select
-                                        {...field}
-                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                                            errors.serviceType ? 'border-red-500' : 'border-gray-300'
-                                        }`}
-                                    >
-                                        {serviceTypeOptions.map(option => (
-                                            <option key={option.value} value={option.value}>
-                                                {option.label}
-                                            </option>
-                                        ))}
-                                    </select>
-                                )}
-                            />
-                            {errors.serviceType && (
-                                <p className="text-red-500 text-xs mt-1">{errors.serviceType.message}</p>
-                            )}
-                        </div>
-
                         {/* Warranty & Notes */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Warranty
+                                    Warranty (days)
                                 </label>
                                 <Controller
                                     name="warranty"
@@ -545,8 +599,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     render={({ field }) => (
                                         <input
                                             {...field}
-                                            type="text"
-                                            placeholder="e.g., 30 days, 3 months"
+                                            type="number"
+                                            placeholder="e.g., 30"
+                                            min="0"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         />
                                     )}

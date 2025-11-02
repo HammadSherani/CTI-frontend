@@ -4,20 +4,25 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { addChat } from '@/store/chat';
+import { useChat } from '@/hooks/useChat';
+
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('active');
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
+  const [isOpen, setIsOpen] = useState(false);
 
   const [allJobs, setAllJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [summary, setSummary] = useState({});
-  const { token } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
+
 
   const fetchAllJobs = async () => {
     try {
@@ -47,6 +52,58 @@ const MyJobsPage = () => {
   useEffect(() => {
     fetchAllJobs();
   }, []);
+
+  const dispatch = useDispatch();
+
+  const { selectChat, openChat } = useChat();
+  
+
+  const handleMessageSend = async (id) => {
+    if (!user && !token) {
+      setIsOpen(true);
+      return;
+    }
+    try {
+      const { data } = await axiosInstance.post(
+        `/chat/start`,
+        { repairmanId: id },
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      console.log('Chat started, response:', data);
+
+      const newChat = {
+        id: data?.chat._id,
+        chatId: data?.chat._id,
+        name: data?.chat?.user?.name ,
+        avatar: data?.chat?.user?.avatar ,
+        userId: data?.chat?.user?._id,
+        lastMessage: '',
+        timestamp: new Date().toISOString(),
+        online: false
+      };
+
+      dispatch(addChat(newChat));
+      console.log('Chat added to list:', newChat);
+
+      openChat();
+
+      selectChat({
+        id: data?.chat._id,
+        name: data?.chat?.user?.name ,
+        avatar: data?.chat?.user?.avatar ,
+      });
+
+      console.log('Chat selected');
+
+    } catch (error) {
+      handleError(error);
+    }
+  };
 
   const getBookingStatus = (job) => {
     return job.bookingDetails?.status || 'unknown';
@@ -81,13 +138,16 @@ const MyJobsPage = () => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'confirmed': return 'bg-primary-100 text-primary-800';
+      case 'repairman_notified': return 'bg-blue-100 text-blue-800';
+      case 'scheduled': return 'bg-purple-100 text-purple-800';
       case 'in_progress': return 'bg-yellow-100 text-yellow-800';
+      case 'parts_needed': return 'bg-orange-100 text-orange-800';
+      case 'quality_check': return 'bg-indigo-100 text-indigo-800';
       case 'completed': return 'bg-green-100 text-green-800';
       case 'delivered': return 'bg-green-100 text-green-800';
       case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'scheduled': return 'bg-purple-100 text-purple-800';
-      case 'parts_needed': return 'bg-orange-100 text-orange-800';
-      case 'quality_check': return 'bg-indigo-100 text-indigo-800';
+      case 'disputed': return 'bg-red-100 text-red-800';
+      case 'closed': return 'bg-gray-600 text-white'; // 🔥 Added closed status color
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -118,7 +178,24 @@ const MyJobsPage = () => {
       job.bookingDetails?.status === 'disputed'
     );
 
-    return { active, completed, cancelled, disputed };
+    const closed = allJobs.filter(job =>
+      job.bookingDetails?.status === 'closed'
+    );
+
+    // 🔥 Debug logs - Check if closed jobs are being filtered correctly
+    console.log('📊 Job Categorization:');
+    console.log('Total Jobs:', allJobs.length);
+    console.log('Active Jobs:', active.length);
+    console.log('Completed Jobs:', completed.length);
+    console.log('Cancelled Jobs:', cancelled.length);
+    console.log('Disputed Jobs:', disputed.length);
+    console.log('🔒 Closed Jobs:', closed.length);
+    console.log('All Job Statuses:', allJobs.map(j => ({
+      id: j._id,
+      status: j.bookingDetails?.status
+    })));
+
+    return { active, completed, cancelled, disputed, closed };
   }, [allJobs]);
 
   const filteredJobs = useMemo(() => {
@@ -127,6 +204,8 @@ const MyJobsPage = () => {
       const jobDetails = job.jobDetails || {};
       const customer = job.customer || {};
       const deviceInfo = jobDetails.deviceInfo || {};
+
+      const isQuotationBased = job.bookingSource === 'direct_message';
 
       const matchesSearch =
         jobDetails.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -138,7 +217,8 @@ const MyJobsPage = () => {
           service.toLowerCase().includes(searchQuery.toLowerCase())
         );
 
-      const jobUrgency = getUrgencyLevel(jobDetails.urgency);
+      // 🔥 For quotation-based jobs, urgency might not exist
+      const jobUrgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
       const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
 
       return matchesSearch && matchesUrgency;
@@ -151,14 +231,17 @@ const MyJobsPage = () => {
     const customer = job.customer || {};
     const deviceInfo = jobDetails.deviceInfo || {};
 
+    // 🔥 Check booking source
+    const isQuotationBased = job.bookingSource === 'direct_message';
+
     const status = getBookingStatus(job);
-    const urgency = getUrgencyLevel(jobDetails.urgency);
+    const urgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
     const customerInitials = customer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
     const router = useRouter();
 
     return (
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6  transition-all duration-300 ease-in-out">
+      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 transition-all duration-300 ease-in-out">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
           <div className="flex items-start space-x-4 w-full">
             <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
@@ -169,18 +252,45 @@ const MyJobsPage = () => {
                 {jobDetails.services?.join(', ') || 'Repair Service'}
               </h3>
               <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
+
+              {/* 🔥 Booking Source Badge */}
+              <div className="flex items-center gap-2 mb-2">
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
+                    ? 'bg-purple-100 text-purple-700'
+                    : 'bg-blue-100 text-blue-700'
+                  }`}>
+                  {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+                </span>
+              </div>
+
               <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
-                <span className="flex items-center">
-                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                  {jobDetails.location?.city || 'Location not specified'}
-                </span>
-                <span className={`font-medium ${getUrgencyColor(urgency)}`}>
-                  {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
-                </span>
+                {/* 🔥 Location - only for job postings */}
+                {!isQuotationBased && jobDetails.location?.city && (
+                  <span className="flex items-center">
+                    <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
+                    {jobDetails.location.city}
+                  </span>
+                )}
+
+                {/* 🔥 Urgency - only for job postings */}
+                {!isQuotationBased && (
+                  <span className={`font-medium ${getUrgencyColor(urgency)}`}>
+                    {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
+                  </span>
+                )}
+
                 {bookingDetails.serviceType && (
                   <span className="flex items-center">
                     <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" aria-hidden="true" />
                     {bookingDetails.serviceType}
+                  </span>
+                )}
+
+                {/* 🔥 Parts Quality - for quotations */}
+                {isQuotationBased && jobDetails.partsQuality && (
+                  <span className="flex items-center">
+                    <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" aria-hidden="true" />
+                    {jobDetails.partsQuality.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
                 )}
               </div>
@@ -197,9 +307,18 @@ const MyJobsPage = () => {
             <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)} mt-2`}>
               {status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
             </span>
-            {jobDetails.expiresAt && (
+
+            {/* 🔥 Expiry time - only for job postings */}
+            {!isQuotationBased && jobDetails.expiresAt && (
               <p className="text-sm text-gray-500 mt-1">
                 {getTimeRemaining(jobDetails.expiresAt)}
+              </p>
+            )}
+
+            {/* 🔥 Warranty - for quotations */}
+            {isQuotationBased && jobDetails.warranty?.duration && (
+              <p className="text-sm text-gray-500 mt-1">
+                Warranty: {jobDetails.warranty.duration} days
               </p>
             )}
           </div>
@@ -217,8 +336,8 @@ const MyJobsPage = () => {
               )}
               {deviceInfo.warrantyStatus && (
                 <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-gray-100 text-gray-800'
                   }`}>
                   Warranty: {deviceInfo.warrantyStatus}
                 </span>
@@ -236,6 +355,16 @@ const MyJobsPage = () => {
           </div>
         )}
 
+        {/* 🔥 Estimated Duration - for quotations */}
+        {isQuotationBased && jobDetails.estimatedDuration && (
+          <div className="mb-4">
+            <div className="flex items-center text-sm text-gray-600">
+              <Icon icon="heroicons:clock" className="w-4 h-4 mr-2" />
+              <span>Estimated Duration: {jobDetails.estimatedDuration} days</span>
+            </div>
+          </div>
+        )}
+
         {jobDetails.description && (
           <div className="mb-4">
             <p className="text-sm text-gray-600">
@@ -244,7 +373,8 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {jobDetails.images && jobDetails.images.length > 0 && (
+        {/* 🔥 Images - only for job postings */}
+        {!isQuotationBased && jobDetails.images && jobDetails.images.length > 0 && (
           <div className="mb-4">
             <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
             <div className="flex space-x-2 overflow-x-auto">
@@ -263,34 +393,36 @@ const MyJobsPage = () => {
           </div>
         )}
 
+        {/* 🔥 Action Buttons */}
         <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
           {job.canUpdateStatus && activeTab === 'active' && (
-            // <Link href={`/repair-man/my-jobs/${job._id}/update-status`} >
             <button
               onClick={() => router.push(`/repair-man/my-jobs/${job._id}/update-status`)}
-              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
               View And Update Status
             </button>
-            // </Link>
           )}
-          {job.canChat && (
-            <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+
+          {(status === 'completed' || status === 'delivered' || status === 'closed') && (
+            <button
+              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/detail`)}
+              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+              <Icon icon="heroicons:eye" className="w-4 h-4 mr-2 inline" />
+              View Details
+            </button>
+          )}
+
+          {/* Chat Button - Available for all except closed */}
+          {job.canChat && status !== 'closed' && (
+            <button
+              onClick={() => handleMessageSend(job?.jobDetails?.customerId?._id)}
+              className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
               <Icon icon="heroicons:chat-bubble-left" className="w-4 h-4 mr-2 inline" />
               Message Client
             </button>
           )}
-          {job.needsPickup && (
-            <button className="flex-1 bg-gradient-to-r from-green-600 to-green-700 text-white py-2 px-4 rounded-lg hover:from-green-700 hover:to-green-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-              <Icon icon="heroicons:truck" className="w-4 h-4 mr-2 inline" />
-              Arrange Pickup
-            </button>
-          )}
-          {job.needsDelivery && (
-            <button className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 text-white py-2 px-4 rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
-              <Icon icon="heroicons:truck" className="w-4 h-4 mr-2 inline" />
-              Arrange Delivery
-            </button>
-          )}
+
+          {/* Dispute Button */}
           {jobDetails.hasActiveDispute && (
             <button
               onClick={() => router.push(`/repair-man/my-jobs/${job._id}/dispute`)}
@@ -300,6 +432,16 @@ const MyJobsPage = () => {
             </button>
           )}
         </div>
+
+        {/* 🔥 Closed Job Message */}
+        {status === 'closed' && (
+          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+            <div className="flex items-center text-gray-600">
+              <Icon icon="heroicons:information-circle" className="w-5 h-5 mr-2" />
+              <span className="text-sm">This job has been closed and archived.</span>
+            </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -312,7 +454,9 @@ const MyJobsPage = () => {
             type === 'active' ? 'heroicons:wrench-screwdriver' :
               type === 'completed' ? 'heroicons:check-circle' :
                 type === 'cancelled' ? 'heroicons:x-circle' :
-                  'heroicons:exclamation-triangle'
+                  type === 'disputed' ? 'heroicons:exclamation-triangle' :
+                    type === 'closed' ? 'heroicons:lock-closed' :
+                      'heroicons:exclamation-triangle'
           }
           className="w-8 h-8 text-gray-400"
           aria-hidden="true"
@@ -325,7 +469,9 @@ const MyJobsPage = () => {
         {type === 'active' ? 'You don\'t have any active jobs at the moment.' :
           type === 'completed' ? 'You haven\'t completed any jobs yet.' :
             type === 'cancelled' ? 'No cancelled jobs found.' :
-              'No disputed jobs found.'}
+              type === 'disputed' ? 'No disputed jobs found.' :
+                type === 'closed' ? 'No closed jobs found. Closed jobs are archived for record keeping.' :
+                  'No jobs found.'}
       </p>
       <button
         onClick={() => fetchAllJobs()}
@@ -337,12 +483,12 @@ const MyJobsPage = () => {
     </div>
   );
 
-  // Calculate tab counts from categorized jobs
   const getTabCounts = () => ({
     active: categorizedJobs.active?.length || 0,
     completed: categorizedJobs.completed?.length || 0,
     cancelled: categorizedJobs.cancelled?.length || 0,
     disputed: categorizedJobs.disputed?.length || 0,
+    closed: categorizedJobs.closed?.length || 0,
   });
 
   const tabCounts = getTabCounts();
@@ -352,7 +498,6 @@ const MyJobsPage = () => {
     setUrgencyFilter('all');
   };
 
-  // Simple tab change without API call
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
   };
@@ -393,6 +538,28 @@ const MyJobsPage = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair bookings and track progress</p>
+
+          {/* 🔥 Summary Stats */}
+          {summary && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600">Total Jobs</p>
+                <p className="text-2xl font-bold text-gray-900">{summary.totalJobs || 0}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600">Job Postings</p>
+                <p className="text-2xl font-bold text-blue-600">{summary.jobPostingBookings || 0}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600">Direct Messages</p>
+                <p className="text-2xl font-bold text-purple-600">{summary.directMessageBookings || 0}</p>
+              </div>
+              <div className="bg-white p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-600">Active</p>
+                <p className="text-2xl font-bold text-green-600">{summary.activeBookings || 0}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
@@ -447,19 +614,20 @@ const MyJobsPage = () => {
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
+            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px overflow-x-auto" role="tablist">
               {[
                 { id: 'active', label: 'Active Jobs', count: tabCounts.active },
                 { id: 'completed', label: 'Completed', count: tabCounts.completed },
                 { id: 'cancelled', label: 'Cancelled', count: tabCounts.cancelled },
                 { id: 'disputed', label: 'Disputed', count: tabCounts.disputed },
+                { id: 'closed', label: 'Closed', count: tabCounts.closed },
               ].map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
-                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
                     }`}
                   role="tab"
                   aria-selected={activeTab === tab.id}

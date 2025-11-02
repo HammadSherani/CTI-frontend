@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import Link from 'next/link';
+import { useChat } from '@/hooks/useChat';
 
 const QuotationMessage = ({ message, isOwner }) => {
     const { token, user } = useSelector((state) => state.auth);
@@ -13,14 +14,14 @@ const QuotationMessage = ({ message, isOwner }) => {
     const [rejectLoading, setRejectLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
 
+    const {closeChat} = useChat()
+
     // Parse quotation data from message
     const quotationData = message.quotationData || {};
     const {
         deviceInfo = {},
         partsQuality = '',
-        serviceCharge = 0,
-        partsPrice = 0,
-        totalAmount = quotationData.totalAmount || (quotationData.serviceCharge + quotationData.partsPrice),
+        pricing = {},
         description = quotationData.description,
         estimatedDuration = quotationData.estimatedDuration,
         serviceType = quotationData.serviceType,
@@ -164,16 +165,23 @@ const QuotationMessage = ({ message, isOwner }) => {
 
                     {/* Pricing Summary */}
                     <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-gray-600">Service Charge:</span>
-                            <span className="font-medium">PKR {serviceCharge?.toFixed(2)}</span>
-                        </div>
-                        {partsPrice > 0 && (
+                        
+                        {/* {pricing.basePrice > 0 && ( */}
+                            <div className="flex justify-between items-center mb-2">
+                                <span className="text-sm text-gray-600">Base Price:</span>
+                                <span className="font-medium">TRY {pricing.basePrice?.toFixed(2)}</span>
+                            </div>
+                        {/* )} */}
+                        {pricing.partsPrice > 0 && (
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm text-gray-600">Parts Cost:</span>
-                                <span className="font-medium">PKR {partsPrice?.toFixed(2)}</span>
+                                <span className="font-medium">TRY {pricing.partsPrice?.toFixed(2)}</span>
                             </div>
                         )}
+                        <div className="flex justify-between items-center mb-2">
+                            <span className="text-sm text-gray-600">Service Charge:</span>
+                            <span className="font-medium">TRY {pricing?.serviceCharges?.toFixed(2)}</span>
+                        </div>
 
                         {partsQuality && (
                             <div className="flex justify-between items-center mb-2">
@@ -187,7 +195,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                             <div className="flex justify-between items-center">
                                 <span className="font-semibold text-gray-800">Total Amount:</span>
                                 <span className="text-lg font-bold text-green-600">
-                                    PKR {totalAmount?.toFixed(2)}
+                                    TRY {pricing.totalAmount?.toFixed(2)}
                                 </span>
                             </div>
                         </div>
@@ -212,8 +220,8 @@ const QuotationMessage = ({ message, isOwner }) => {
                     {/* Validity Status */}
                     {validUntil && (
                         <div className={`p-3 rounded-lg mb-3 ${new Date() > new Date(validUntil)
-                                ? 'bg-red-50 border border-red-200'
-                                : 'bg-primary-50 border border-primary-200'
+                            ? 'bg-red-50 border border-red-200'
+                            : 'bg-primary-50 border border-primary-200'
                             }`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
@@ -284,8 +292,9 @@ const QuotationMessage = ({ message, isOwner }) => {
                                     disabled={isAnyButtonLoading}
                                     className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
                                 >
-                                    <Link 
-                                        href={`/payment?quotationId=${message?.quotationData?.quotationId}`} 
+                                    <Link
+                                        href={`/payment?quotationId=${message?.quotationData?.quotationId}`}
+                                        onClick={() => closeChat()}
                                         className='flex items-center gap-1'
                                     >
                                         {acceptLoading ? (

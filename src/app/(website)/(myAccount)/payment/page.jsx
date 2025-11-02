@@ -65,9 +65,6 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                     return;
                 }
 
-
-                
-
                 setOrderData(response.data.data.quotation);
             } catch (error) {
                 handleError(error);
@@ -88,7 +85,6 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                 params: { quotationId, jobId },
             };
 
-            // Step 1: Process payment
             const { status, data } = await axiosInstance.post('/customer/payments/process', {}, config);
 
             if (status !== 200) {
@@ -97,7 +93,6 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
             toast.success(data?.message || "Payment successful!");
 
-            // Step 2: Update chat quotation response
             try {
                 await axiosInstance.post(
                     `/chat/quotation/${quotationId}/respond`,
@@ -108,9 +103,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                 console.warn("Chat update failed:", err);
                 handleError(err);
             }
-
-            // Optionally redirect user after successful operations
-            router.push(`/payment/order-confirmation?jobId=${jobId}`);
+            router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
         } catch (error) {
             handleError(error);
         } finally {
@@ -166,12 +159,13 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     const quotation = orderData;
     const repairmanProfile = quotation.repairmanId?.repairmanProfile || {};
 
-    // Pricing from quotation.pricing
-    const laborPrice = quotation.pricing?.serviceCharge || 0;
+    const basePrice = quotation.pricing?.basePrice || 0;
     const partsEstimate = quotation.pricing?.partsPrice || 0;
-    const deliveryFee = quotation.serviceDetails?.serviceType === 'pickup' ? 0 : 0; // Delivery fee if needed
-    const tax = Math.round((laborPrice + partsEstimate + deliveryFee - discount) * 0.00);
-    const totalPrice = quotation.pricing?.totalAmount || (laborPrice + partsEstimate + deliveryFee + tax - discount);
+    const serviceCharges = quotation.pricing?.serviceCharges || 0; // Add this line
+    const deliveryFee = quotation.serviceDetails?.serviceType === 'pickup' ? 0 : 0;
+    const tax = Math.round((basePrice + partsEstimate + serviceCharges + deliveryFee - discount) * 0.00);
+    const totalPrice = quotation.pricing?.totalAmount || (basePrice + partsEstimate + serviceCharges + deliveryFee + tax - discount);
+
 
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
@@ -361,32 +355,32 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
                             <div className="space-y-4 text-sm border-t pt-4">
                                 <div className="flex justify-between">
-                                    <span className="text-gray-600">Service Charge</span>
-                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {laborPrice.toLocaleString()}</span>
+                                    <span className="text-gray-600">Base Price</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {basePrice.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Parts Price</span>
-                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {partsEstimate.toLocaleString()}</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {partsEstimate.toLocaleString()}</span>
                                 </div>
-                                {deliveryFee > 0 && (
+                                {serviceCharges > 0 && (
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600">Delivery Fee</span>
-                                        <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {deliveryFee}</span>
+                                        <span className="text-gray-600">Service Charges</span>
+                                        <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {serviceCharges.toLocaleString()}</span>
                                     </div>
                                 )}
                                 {discount > 0 && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount</span>
-                                        <span>-{quotation.pricing?.currency || 'PKR'} {discount.toLocaleString()}</span>
+                                        <span>-{quotation.pricing?.currency || 'TRY'} {discount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Tax</span>
-                                    <span className="font-medium">{quotation.pricing?.currency || 'PKR'} {tax.toLocaleString()}</span>
+                                    <span className="font-medium">{quotation.pricing?.currency || 'TRY'} {tax.toLocaleString()}</span>
                                 </div>
                                 <div className="border-t pt-4 flex justify-between text-lg font-bold">
                                     <span className="text-gray-900">Total</span>
-                                    <span className="text-primary-600">{quotation.pricing?.currency || 'PKR'} {totalPrice.toLocaleString()}</span>
+                                    <span className="text-primary-600">{quotation.pricing?.currency || 'TRY'} {totalPrice.toLocaleString()}</span>
                                 </div>
                             </div>
 
@@ -764,31 +758,31 @@ function OfferPayment({ offerId, jobId, token, router }) {
                             <div className="space-y-4 text-sm border-t pt-4">
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Labor Cost</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {laborPrice.toLocaleString()}</span>
+                                    <span className="font-medium">{offer?.pricing?.currency || 'TRY'} {laborPrice.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Parts Estimate</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {partsEstimate.toLocaleString()}</span>
+                                    <span className="font-medium">{offer?.pricing?.currency || 'TRY'} {partsEstimate.toLocaleString()}</span>
                                 </div>
                                 {!offer?.serviceOptions?.pickupAvailable && deliveryFee > 0 && (
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Service Fee</span>
-                                        <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {deliveryFee}</span>
+                                        <span className="font-medium">{offer?.pricing?.currency || 'TRY'} {deliveryFee}</span>
                                     </div>
                                 )}
                                 {discount > 0 && (
                                     <div className="flex justify-between text-green-600">
                                         <span>Discount</span>
-                                        <span>-{offer?.pricing?.currency || 'PKR'} {discount.toLocaleString()}</span>
+                                        <span>-{offer?.pricing?.currency || 'TRY'} {discount.toLocaleString()}</span>
                                     </div>
                                 )}
                                 <div className="flex justify-between">
                                     <span className="text-gray-600">Tax</span>
-                                    <span className="font-medium">{offer?.pricing?.currency || 'PKR'} {tax.toLocaleString()}</span>
+                                    <span className="font-medium">{offer?.pricing?.currency || 'TRY'} {tax.toLocaleString()}</span>
                                 </div>
                                 <div className="border-t pt-4 flex justify-between text-lg font-bold">
                                     <span className="text-gray-900">Total</span>
-                                    <span className="text-primary-600">{offer?.pricing?.currency || 'PKR'} {totalPrice.toLocaleString()}</span>
+                                    <span className="text-primary-600">{offer?.pricing?.currency || 'TRY'} {totalPrice.toLocaleString()}</span>
                                 </div>
                             </div>
 

@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import LoginModal from '../../mobile-repair/[brandSlug]/[modelId]/[color]/create-job/LoginModal';
 import { useChat } from '@/hooks/useChat';
+import { addChat } from '@/store/chat';
 
 function RepairmanDetail() {
     const [repairman, setRepairman] = useState(null);
@@ -43,23 +44,12 @@ function RepairmanDetail() {
         }
     }, [id])
 
-    // const handleCall = (phoneNumber) => {
-    //     window.open(`tel:${phoneNumber}`, '_self')
-    // }
-
-    const handleWhatsApp = (whatsappNumber) => {
-        const formattedNumber = whatsappNumber.replace(/^0/, '92')
-        window.open(`https://wa.me/${formattedNumber}`, '_blank')
-    }
-
-
 
     const handleMessageSend = async (id) => {
         if (!user && !token) {
             setIsOpen(true);
             return;
         }
-
         try {
             const { data } = await axiosInstance.post(
                 `/chat/start`,
@@ -71,29 +61,36 @@ function RepairmanDetail() {
                 }
             );
 
-            // Chat box kholna
+            console.log('Chat started, response:', data);
+
+            const newChat = {
+                id: data?.chat._id,
+                chatId: data?.chat._id,
+                name: data?.chat?.user?.name || repairman?.repairmanProfile?.fullName,
+                avatar: data?.chat?.user?.avatar || repairman?.repairmanProfile?.profilePhoto,
+                userId: data?.chat?.user?._id || id,
+                lastMessage: '',
+                timestamp: new Date().toISOString(),
+                online: false
+            };
+
+            dispatch(addChat(newChat));
+            console.log('Chat added to list:', newChat);
+
             openChat();
-            
-            // Us chat ko select karna
+
             selectChat({
                 id: data?.chat._id,
-                name: data?.chat?.user.name,
-                avatar: data?.chat?.user.avatar,
-                // online: chat.online,
-                // verified: chat.verified,
-                // username: chat.user?.username || `@${chat.user?.name?.toLowerCase()}`,
+                name: data?.chat?.user?.name || repairman?.repairmanProfile?.fullName,
+                avatar: data?.chat?.user?.avatar || repairman?.repairmanProfile?.profilePhoto,
             });
 
-            // router.push(`/hire-repairman/${id}/chat/${data.chat._id}`);
+            console.log('Chat selected');
+
         } catch (error) {
             handleError(error);
         }
     };
-
-
-    const handleHire = () => {
-        alert(`Hiring ${repairman.repairmanProfile.fullName}...`)
-    }
 
     const formatDate = (dateString) => {
         return new Date(dateString).toLocaleDateString('en-US', {
@@ -138,34 +135,10 @@ function RepairmanDetail() {
 
         <>
             <div className="min-h-screen bg-gray-50">
-                {/* Header */}
-                {/* <div className="bg-white border-b">
-                <div className="max-w-7xl mx-auto px-4 py-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <button 
-                                onClick={() => router.back()}
-                                className="text-gray-600 hover:text-gray-900"
-                            >
-                                <Icon icon="mdi:arrow-left" className="w-6 h-6" />
-                            </button>
-                            <h1 className="text-2xl font-bold text-gray-900">RepairHub</h1>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <button className="text-gray-600 hover:text-gray-900">
-                                <Icon icon="mdi:heart-outline" className="w-6 h-6" />
-                            </button>
-                            <button className="text-gray-600 hover:text-gray-900">
-                                <Icon icon="mdi:share-variant" className="w-6 h-6" />
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div> */}
+
 
                 <div className="max-w-7xl mx-auto px-4 py-8">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        {/* Left Column */}
                         <div className="lg:col-span-2">
                             <div className=" rounded-lg  p-6 mb-6">
                                 <div className="flex items-start space-x-6">
@@ -181,18 +154,13 @@ function RepairmanDetail() {
                                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
                                             {profile.fullName}
                                         </h1>
-                                        {/* <p className="text-lg text-gray-600 mb-3">
-                                        profile.description
-                                    </p> */}
+
                                         <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center">
                                                 <Icon icon="mdi:map-marker" className="w-4 h-4 mr-1" />
                                                 {profile?.city}
                                             </div>
-                                            {/* <div className="flex items-center">
-                                            <Icon icon="mdi:translate" className="w-4 h-4 mr-1" />
-                                            English, Urdu, Hindi
-                                        </div> */}
+
                                         </div>
                                         <div className="flex items-center space-x-6">
                                             <div className="flex items-center">
@@ -206,15 +174,7 @@ function RepairmanDetail() {
                                             </div>
                                         </div>
                                     </div>
-                                    {/* <div className="text-right">
-                                    <div className="flex items-center mb-2">
-                                        <div className="w-3 h-3 bg-green-400 rounded-full mr-2"></div>
-                                        <span className="text-sm text-gray-600">Online</span>
-                                    </div>
-                                    <button className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors">
-                                        Contact me
-                                    </button>
-                                </div> */}
+
                                 </div>
                             </div>
 
@@ -241,158 +201,27 @@ function RepairmanDetail() {
                                             {skill}
                                         </span>
                                     ))}
-                                    {/* <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Social media marketer</span>
-                                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Video editor</span>
-                                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Motion graphics designer</span>
-                                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Software developer</span>
-                                <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">Instagram post designer</span> */}
                                 </div>
                             </div>
 
-                            {/* Services Section */}
-                            {/* <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">My Services</h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <img 
-                                            src="https://via.placeholder.com/120x80?text=Service+1" 
-                                            alt="Service"
-                                            className="w-20 h-16 object-cover rounded"
-                                        />
-                                        <button className="text-gray-400 hover:text-red-500">
-                                            <Icon icon="mdi:heart-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <h3 className="font-medium text-gray-900 mb-2">
-                                        I will edit your youtube videos
-                                    </h3>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center text-yellow-400">
-                                            <Icon icon="mdi:star" className="w-4 h-4" />
-                                            <span className="text-gray-900 ml-1 text-sm">5.0 (3)</span>
-                                        </div>
-                                        <span className="font-semibold text-gray-900">From $30</span>
-                                    </div>
-                                </div>
-
-                                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <img 
-                                            src="https://via.placeholder.com/120x80?text=Service+2" 
-                                            alt="Service"
-                                            className="w-20 h-16 object-cover rounded"
-                                        />
-                                        <button className="text-gray-400 hover:text-red-500">
-                                            <Icon icon="mdi:heart-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <h3 className="font-medium text-gray-900 mb-2">
-                                        I will design a modern, fancy, and minimalist logo
-                                    </h3>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center text-yellow-400">
-                                            <Icon icon="mdi:star" className="w-4 h-4" />
-                                            <span className="text-gray-900 ml-1 text-sm">5.0 (2)</span>
-                                        </div>
-                                        <span className="font-semibold text-gray-900">From $50</span>
-                                    </div>
-                                </div>
-
-                                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <img 
-                                            src="https://via.placeholder.com/120x80?text=Service+3" 
-                                            alt="Service"
-                                            className="w-20 h-16 object-cover rounded"
-                                        />
-                                        <button className="text-gray-400 hover:text-red-500">
-                                            <Icon icon="mdi:heart-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <h3 className="font-medium text-gray-900 mb-2">
-                                        I will develop high quality ios and android mobile apps
-                                    </h3>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center text-yellow-400">
-                                            <Icon icon="mdi:star" className="w-4 h-4" />
-                                            <span className="text-gray-900 ml-1 text-sm">5.0 (1)</span>
-                                        </div>
-                                        <span className="font-semibold text-gray-900">From $300</span>
-                                    </div>
-                                </div>
-
-                                <div className="border rounded-lg p-4 hover:shadow-md transition-shadow">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <img 
-                                            src="https://via.placeholder.com/120x80?text=Service+4" 
-                                            alt="Service"
-                                            className="w-20 h-16 object-cover rounded"
-                                        />
-                                        <button className="text-gray-400 hover:text-red-500">
-                                            <Icon icon="mdi:heart-outline" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                    <h3 className="font-medium text-gray-900 mb-2">
-                                        I will design a modern responsive website
-                                    </h3>
-                                    <div className="flex items-center justify-between">
-                                        <div className="flex items-center text-yellow-400">
-                                            <Icon icon="mdi:star" className="w-4 h-4" />
-                                            <span className="text-gray-900 ml-1 text-sm">5.0</span>
-                                        </div>
-                                        <span className="font-semibold text-gray-900">From $100</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
-
-                            {/* Portfolio Section */}
-                            {/* <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                            <h2 className="text-xl font-semibold text-gray-900 mb-4">Portfolio</h2>
-                            <div className="border rounded-lg overflow-hidden">
-                                <img 
-                                    src="https://via.placeholder.com/600x400?text=Portfolio+Project" 
-                                    alt="Portfolio"
-                                    className="w-full h-64 object-cover"
-                                />
-                                <div className="p-4">
-                                    <div className="flex justify-between items-start mb-3">
-                                        <div>
-                                            <span className="text-sm text-gray-500">From: April 2020</span>
-                                            <h3 className="text-lg font-semibold text-gray-900">Magnet Hub Website</h3>
-                                        </div>
-                                        <div className="text-right">
-                                            <div className="text-2xl font-bold text-gray-900">+62</div>
-                                            <div className="text-sm text-gray-500">Projects</div>
-                                        </div>
-                                    </div>
-                                    <p className="text-gray-600 text-sm mb-4">
-                                        Project Overview Client Goal: The client sought to develop a versatile business platform aimed at connecting businesses, facilitating networking, and streamlining business operations. The platform was intended to serve...
-                                    </p>
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">Business Services & Consulting</span>
-                                        <span className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">Website Design</span>
-                                    </div>
-                                    <div className="flex justify-between text-sm text-gray-600">
-                                        <span>Project cost: $400-$600</span>
-                                        <span>Project duration: 1-3 months</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div> */}
-
-                            {/* Reviews Section */}
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-semibold text-gray-900">6 Reviews</h2>
+                                    <h2 className="text-xl font-semibold text-gray-900">
+                                        {repairman.reviewStats.totalReviews} {repairman.reviewStats.totalReviews === 1 ? 'Review' : 'Reviews'}
+                                    </h2>
                                     <div className="flex items-center">
                                         <div className="flex text-yellow-400 mr-2">
                                             {[...Array(5)].map((_, i) => (
-                                                <Icon key={i} icon="mdi:star" className="w-4 h-4" />
+                                                <Icon
+                                                    key={i}
+                                                    icon={i < Math.floor(repairman.reviewStats.averageRating) ? "mdi:star" : "mdi:star-outline"}
+                                                    className="w-4 h-4"
+                                                />
                                             ))}
                                         </div>
-                                        <span className="font-semibold text-gray-900">5.0</span>
+                                        <span className="font-semibold text-gray-900">
+                                            {repairman.reviewStats.averageRating.toFixed(1)}
+                                        </span>
                                     </div>
                                 </div>
 
@@ -400,65 +229,49 @@ function RepairmanDetail() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                                     <div>
                                         <div className="space-y-2">
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 w-12">5 Stars</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                    <div className="bg-gray-800 h-2 rounded-full" style={{ width: '100%' }}></div>
-                                                </div>
-                                                <span className="text-sm text-gray-600">(6)</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 w-12">4 Stars</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                    <div className="bg-gray-800 h-2 rounded-full" style={{ width: '0%' }}></div>
-                                                </div>
-                                                <span className="text-sm text-gray-600">(0)</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 w-12">3 Stars</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                    <div className="bg-gray-800 h-2 rounded-full" style={{ width: '0%' }}></div>
-                                                </div>
-                                                <span className="text-sm text-gray-600">(0)</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 w-12">2 Stars</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                    <div className="bg-gray-800 h-2 rounded-full" style={{ width: '0%' }}></div>
-                                                </div>
-                                                <span className="text-sm text-gray-600">(0)</span>
-                                            </div>
-                                            <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 w-12">1 Star</span>
-                                                <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                    <div className="bg-gray-800 h-2 rounded-full" style={{ width: '0%' }}></div>
-                                                </div>
-                                                <span className="text-sm text-gray-600">(0)</span>
-                                            </div>
+                                            {[5, 4, 3, 2, 1].map((star) => {
+                                                const count = repairman.reviewStats.ratingDistribution[star] || 0;
+                                                const percentage = repairman.reviewStats.totalReviews > 0
+                                                    ? (count / repairman.reviewStats.totalReviews) * 100
+                                                    : 0;
+
+                                                return (
+                                                    <div key={star} className="flex items-center">
+                                                        <span className="text-sm text-gray-600 w-12">{star} Star{star !== 1 ? 's' : ''}</span>
+                                                        <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
+                                                            <div
+                                                                className="bg-gray-800 h-2 rounded-full transition-all duration-300"
+                                                                style={{ width: `${percentage}%` }}
+                                                            ></div>
+                                                        </div>
+                                                        <span className="text-sm text-gray-600">({count})</span>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900 mb-3">Rating Breakdown</h3>
                                         <div className="space-y-2">
                                             <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Seller communication level</span>
+                                                <span className="text-sm text-gray-600">Service quality</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">5</span>
+                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Quality of delivery</span>
+                                                <span className="text-sm text-gray-600">Communication</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">5</span>
+                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Value of delivery</span>
+                                                <span className="text-sm text-gray-600">Value for money</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">5</span>
+                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -466,110 +279,86 @@ function RepairmanDetail() {
                                 </div>
 
                                 {/* Individual Reviews */}
-                                <div className="space-y-6">
-                                    <div className="border-b pb-6">
-                                        <div className="flex items-start space-x-3">
-                                            <img
-                                                src="https://via.placeholder.com/40x40?text=U"
-                                                alt="User"
-                                                className="w-10 h-10 rounded-full"
-                                            />
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-1">
-                                                    <span className="font-medium text-gray-900">shafimshroff</span>
+                                {repairman.reviews && repairman.reviews.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {repairman.reviews.map((review) => (
+                                            <div key={review._id} className="border-b pb-6 last:border-b-0">
+                                                <div className="flex items-start space-x-3">
                                                     <img
-                                                        src="https://via.placeholder.com/16x12?text=IN"
-                                                        alt="India"
-                                                        className="w-4 h-3"
+                                                        src="https://via.placeholder.com/40x40?text=U"
+                                                        alt={review.customerId?.name || 'User'}
+                                                        className="w-10 h-10 rounded-full"
                                                     />
-                                                </div>
-                                                <div className="flex items-center mb-2">
-                                                    <div className="flex text-yellow-400 mr-2">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Icon key={i} icon="mdi:star" className="w-4 h-4" />
-                                                        ))}
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center space-x-2 mb-1">
+                                                            <span className="font-medium text-gray-900">
+                                                                {review.customerId?.name || 'Anonymous'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center mb-2">
+                                                            <div className="flex text-yellow-400 mr-2">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Icon
+                                                                        key={i}
+                                                                        icon={i < review.overallRating ? "mdi:star" : "mdi:star-outline"}
+                                                                        className="w-4 h-4"
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                            <span className="text-sm text-gray-500">
+                                                                {formatDate(review.createdAt)}
+                                                            </span>
+                                                        </div>
+                                                        <p className="text-gray-700 text-sm leading-relaxed mb-3">
+                                                            {review.reviewText}
+                                                        </p>
+
+                                                        {/* Repairman Response */}
+                                                        {review.repairmanResponse && (
+                                                            <div className="mt-3 ml-4 pl-4 border-l-2 border-green-600 bg-green-50 p-3 rounded-r-lg">
+                                                                <div className="flex items-center mb-2">
+                                                                    <Icon icon="mdi:reply" className="w-4 h-4 text-green-600 mr-2" />
+                                                                    <span className="font-medium text-gray-900 text-sm">
+                                                                        Response from {profile.fullName}
+                                                                    </span>
+                                                                    <span className="text-xs text-gray-500 ml-2">
+                                                                        {formatDate(review.repairmanResponse.respondedAt)}
+                                                                    </span>
+                                                                </div>
+                                                                <p className="text-gray-700 text-sm">
+                                                                    {review.repairmanResponse.text}
+                                                                </p>
+                                                            </div>
+                                                        )}
+
+                                                        <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
+                                                            <span>Helpful?</span>
+                                                            <button className="flex items-center hover:text-gray-700">
+                                                                <Icon icon="mdi:thumb-up-outline" className="w-4 h-4 mr-1" />
+                                                                Yes {review.helpfulVotes > 0 && `(${review.helpfulVotes})`}
+                                                            </button>
+                                                            <button className="flex items-center hover:text-gray-700">
+                                                                <Icon icon="mdi:thumb-down-outline" className="w-4 h-4 mr-1" />
+                                                                No
+                                                            </button>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-sm text-gray-500">9 months ago</span>
-                                                </div>
-                                                <p className="text-gray-700 text-sm leading-relaxed">
-                                                    I wanted to take a moment to express my sincere appreciation for the opportunity to work with your team. It has been an absolute pleasure collaborating with such a talented and dedicated group of professionals. I highly recommend your team's services, as the quality of their work and deliverables have...
-                                                    <button className="text-green-600 hover:text-green-700 ml-1">See more</button>
-                                                </p>
-                                                <div className="flex items-center mt-3">
-                                                    <span className="text-sm text-gray-500 mr-4">$600-$800 • 2 months Duration</span>
-                                                    <img
-                                                        src="https://via.placeholder.com/60x40?text=Project"
-                                                        alt="Project"
-                                                        className="w-15 h-10 rounded"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                                                    <span>Helpful?</span>
-                                                    <button className="flex items-center hover:text-gray-700">
-                                                        <Icon icon="mdi:thumb-up-outline" className="w-4 h-4 mr-1" />
-                                                        Yes
-                                                    </button>
-                                                    <button className="flex items-center hover:text-gray-700">
-                                                        <Icon icon="mdi:thumb-down-outline" className="w-4 h-4 mr-1" />
-                                                        No
-                                                    </button>
                                                 </div>
                                             </div>
-                                        </div>
+                                        ))}
                                     </div>
-
-                                    <div className="border-b pb-6">
-                                        <div className="flex items-start space-x-3">
-                                            <img
-                                                src="https://via.placeholder.com/40x40?text=J"
-                                                alt="User"
-                                                className="w-10 h-10 rounded-full"
-                                            />
-                                            <div className="flex-1">
-                                                <div className="flex items-center space-x-2 mb-1">
-                                                    <span className="font-medium text-gray-900">jakemydawg</span>
-                                                    <span className="text-xs bg-orange-100 text-orange-800 px-2 py-1 rounded">Repeat Client</span>
-                                                    <img
-                                                        src="https://via.placeholder.com/16x12?text=US"
-                                                        alt="United States"
-                                                        className="w-4 h-3"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center mb-2">
-                                                    <div className="flex text-yellow-400 mr-2">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Icon key={i} icon="mdi:star" className="w-4 h-4" />
-                                                        ))}
-                                                    </div>
-                                                    <span className="text-sm text-gray-500">4 years ago</span>
-                                                </div>
-                                                <p className="text-gray-700 text-sm">Amazing videos!</p>
-                                                <div className="flex items-center mt-3">
-                                                    <img
-                                                        src="https://via.placeholder.com/60x40?text=Video"
-                                                        alt="Video"
-                                                        className="w-15 h-10 rounded"
-                                                    />
-                                                </div>
-                                                <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                                                    <span>Helpful?</span>
-                                                    <button className="flex items-center hover:text-gray-700">
-                                                        <Icon icon="mdi:thumb-up-outline" className="w-4 h-4 mr-1" />
-                                                        Yes
-                                                    </button>
-                                                    <button className="flex items-center hover:text-gray-700">
-                                                        <Icon icon="mdi:thumb-down-outline" className="w-4 h-4 mr-1" />
-                                                        No
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
+                                ) : (
+                                    <div className="text-center py-8">
+                                        <Icon icon="mdi:comment-alert-outline" className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-gray-500">No reviews yet</p>
                                     </div>
-                                </div>
+                                )}
 
-                                <button className="mt-6 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-                                    Show More Reviews
-                                </button>
+                                {repairman.reviews && repairman.reviews.length > 0 && (
+                                    <button className="mt-6 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full">
+                                        Show More Reviews
+                                    </button>
+                                )}
                             </div>
                         </div>
 

@@ -1,13 +1,13 @@
-  "use client";
+"use client";
 
-  import React, { useState, useEffect } from 'react';
-  import { Icon } from '@iconify/react';
-  import axiosInstance from '@/config/axiosInstance';
-  import handleError from '@/helper/handleError';
-  import { useParams, useRouter } from 'next/navigation';
-  import { useSelector } from 'react-redux';
-  import { toast } from 'react-toastify';
-  import DisputesModal from '@/components/partials/repairman/DisputesModal';
+import React, { useState, useEffect } from 'react';
+import { Icon } from '@iconify/react';
+import axiosInstance from '@/config/axiosInstance';
+import handleError from '@/helper/handleError';
+import { useParams, useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-toastify';
+import DisputesModal from '@/components/partials/repairman/DisputesModal';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -16,16 +16,14 @@ function UpdateStatus() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState('');
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [statusUpdateResult, setStatusUpdateResult] = useState(null);
+  
   const params = useParams();
   const router = useRouter();
   const id = params.id;
   const { token } = useSelector((state) => state.auth);
-
-  console.log(isModalOpen);
-  
 
   const fetchJobDetails = async () => {
     try {
@@ -70,15 +68,13 @@ function UpdateStatus() {
         }
       });
 
-      // Success case
       toast.success(data.message || 'Status updated successfully!');
       setStatusUpdateResult(data.data);
       setShowSuccessMessage(true);
-      fetchJobDetails(); // Refresh job details
+      fetchJobDetails();
       setSelectedStatus('');
       setNotes('');
 
-      // Hide success message after 5 seconds
       setTimeout(() => {
         setShowSuccessMessage(false);
         setStatusUpdateResult(null);
@@ -100,11 +96,13 @@ function UpdateStatus() {
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
       case 'confirmed': return 'bg-primary-100 text-primary-800 border-primary-200';
+      case 'repairman_notified': return 'bg-blue-100 text-blue-800 border-blue-200';
+      case 'scheduled': return 'bg-purple-100 text-purple-800 border-purple-200';
       case 'in_progress': return 'bg-yellow-100 text-yellow-800 border-yellow-200';
       case 'parts_needed': return 'bg-orange-100 text-orange-800 border-orange-200';
-      case 'quality_check': return 'bg-purple-100 text-purple-800 border-purple-200';
+      case 'quality_check': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
       case 'completed': return 'bg-green-100 text-green-800 border-green-200';
-      case 'delivered': return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+      case 'delivered': return 'bg-green-200 text-green-900 border-green-300';
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
@@ -112,6 +110,7 @@ function UpdateStatus() {
   const getValidStatusTransitions = (currentStatus) => {
     const transitions = {
       'confirmed': ['scheduled', 'in_progress', 'cancelled'],
+      'repairman_notified': ['scheduled', 'in_progress', 'cancelled'],
       'scheduled': ['in_progress', 'cancelled'],
       'in_progress': ['parts_needed', 'quality_check', 'completed', 'cancelled'],
       'parts_needed': ['in_progress', 'cancelled'],
@@ -164,17 +163,26 @@ function UpdateStatus() {
     );
   }
 
+  // 🔥 Extract data with proper fallbacks
   const jobInfo = job.jobInfo || {};
+  const quotationInfo = job.quotationInfo || {}; // 🔥 NEW
   const customer = job.customer || {};
   const bookingDetails = job.bookingDetails || {};
-  const deviceInfo = jobInfo.deviceInfo || {};
+  const deviceInfo = jobInfo.deviceInfo || quotationInfo.deviceInfo || {}; // 🔥 Check both sources
   const actions = job.actions || {};
   const timeline = job.timeline || [];
   const tracking = job.tracking || {};
   const communication = job.communication || {};
+  
+  // 🔥 Determine booking source
+  const isQuotationBased = job.type === 'quotation_booking' || job.bookingSource === 'direct_message';
+  
+  // 🔥 Get services from appropriate source
+  const services = isQuotationBased 
+    ? (quotationInfo.deviceInfo?.repairServices || [])
+    : (jobInfo.services || []);
 
   return (
-
     <>
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -191,9 +199,19 @@ function UpdateStatus() {
               <h1 className="text-3xl font-bold text-gray-900">Job Details</h1>
               <p className="text-gray-600">Manage and update job status</p>
             </div>
-            <div className={`px-4 py-2 rounded-full border ${getStatusColor(tracking.currentLocation)}`}>
-              <span className="font-semibold">
-                {tracking.currentLocation?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+            <div className="flex items-center gap-3">
+              <div className={`px-4 py-2 rounded-full border ${getStatusColor(tracking.currentLocation)}`}>
+                <span className="font-semibold">
+                  {tracking.currentLocation?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              </div>
+              {/* 🔥 Source Badge */}
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                isQuotationBased 
+                  ? 'bg-purple-100 text-purple-700' 
+                  : 'bg-blue-100 text-blue-700'
+              }`}>
+                {isQuotationBased ? 'Direct Message' : 'Job Posting'}
               </span>
             </div>
           </div>
@@ -241,17 +259,30 @@ function UpdateStatus() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-900">
-                      {jobInfo.services?.join(', ') || 'Repair Service'}
+                      {services?.join(', ') || 'Repair Service'}
                     </h3>
                     <p className="text-gray-600 mb-2">{customer.name}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      <span className="flex items-center">
-                        <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                        {jobInfo.location?.city}
-                      </span>
-                      <span className="flex items-center">
-                        <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
-                        {jobInfo.urgency} priority
+                      {/* 🔥 Location - only for job postings */}
+                      {!isQuotationBased && jobInfo.location?.city && (
+                        <span className="flex items-center">
+                          <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
+                          {jobInfo.location.city}
+                        </span>
+                      )}
+                      
+                      {/* 🔥 Urgency - only for job postings */}
+                      {!isQuotationBased && jobInfo.urgency && (
+                        <span className="flex items-center">
+                          <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
+                          {jobInfo.urgency} priority
+                        </span>
+                      )}
+                      
+                      {/* 🔥 Service Type - for all */}
+                      <span className="flex items-center capitalize">
+                        <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" />
+                        {bookingDetails.serviceType || 'N/A'}
                       </span>
                     </div>
                   </div>
@@ -263,10 +294,13 @@ function UpdateStatus() {
                   </div>
                 </div>
 
-                {jobInfo.description && (
+                {/* 🔥 Description - from appropriate source */}
+                {(jobInfo.description || quotationInfo.serviceDetails?.description) && (
                   <div className="mb-6">
                     <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-                    <p className="text-gray-600">{jobInfo.description}</p>
+                    <p className="text-gray-600">
+                      {jobInfo.description || quotationInfo.serviceDetails?.description}
+                    </p>
                   </div>
                 )}
 
@@ -277,27 +311,34 @@ function UpdateStatus() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Brand:</span>
-                        <span className="font-medium">{deviceInfo.brand}</span>
+                        <span className="font-medium">{deviceInfo.brand || deviceInfo.brandName || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Model:</span>
-                        <span className="font-medium">{deviceInfo.model}</span>
+                        <span className="font-medium">{deviceInfo.model || deviceInfo.modelName || 'N/A'}</span>
                       </div>
-                      {deviceInfo.color && (
+                      
+                      {/* 🔥 Color - only for job postings */}
+                      {!isQuotationBased && deviceInfo.color && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Color:</span>
                           <span className="font-medium capitalize">{deviceInfo.color}</span>
                         </div>
                       )}
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Warranty:</span>
-                        <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
+                      
+                      {/* 🔥 Warranty Status - only for job postings */}
+                      {!isQuotationBased && deviceInfo.warrantyStatus && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Warranty:</span>
+                          <span className={`px-2 py-1 rounded text-xs ${
+                            deviceInfo.warrantyStatus === 'active'
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
                           }`}>
-                          {deviceInfo.warrantyStatus}
-                        </span>
-                      </div>
+                            {deviceInfo.warrantyStatus}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -306,32 +347,81 @@ function UpdateStatus() {
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Service Type:</span>
-                        <span className="font-medium">{bookingDetails.serviceType}</span>
+                        <span className="font-medium capitalize">{bookingDetails.serviceType || 'N/A'}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Scheduled:</span>
-                        <span className="font-medium">
-                          {new Date(bookingDetails.scheduledDate).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Base Price:</span>
-                        <span className="font-medium">
-                          {formatCurrency(bookingDetails.pricing?.basePrice, bookingDetails.pricing?.currency)}
-                        </span>
-                      </div>
+                      
+                      {/* 🔥 Scheduled Date - may not exist for quotations */}
+                      {bookingDetails.scheduledDate ? (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Scheduled:</span>
+                          <span className="font-medium">
+                            {new Date(bookingDetails.scheduledDate).toLocaleDateString()}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Scheduled:</span>
+                          <span className="font-medium text-gray-400">To be scheduled</span>
+                        </div>
+                      )}
+                      
+                      {/* 🔥 Base Price - may not exist for quotations */}
+                      {bookingDetails.pricing?.basePrice !== undefined && (
+                        <div className="flex justify-between">
+                          <span className="text-gray-500">Base Price:</span>
+                          <span className="font-medium">
+                            {formatCurrency(bookingDetails.pricing.basePrice, bookingDetails.pricing.currency)}
+                          </span>
+                        </div>
+                      )}
+                      
                       <div className="flex justify-between">
                         <span className="text-gray-500">Parts Price:</span>
                         <span className="font-medium">
-                          {formatCurrency(bookingDetails.pricing?.partsPrice, bookingDetails.pricing?.currency)}
+                          {formatCurrency(bookingDetails.pricing?.partsPrice || 0, bookingDetails.pricing?.currency)}
+                        </span>
+                      </div>
+                      
+                      {/* 🔥 Service Charge */}
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Service Charge:</span>
+                        <span className="font-medium">
+                          {formatCurrency(bookingDetails.pricing?.serviceCharge || 0, bookingDetails.pricing?.currency)}
                         </span>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {/* Address */}
-                {jobInfo.location?.address && (
+                {/* 🔥 Quotation-specific info */}
+                {isQuotationBased && quotationInfo && (
+                  <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-3">Quotation Details</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      {quotationInfo.partsQuality && (
+                        <div>
+                          <span className="text-gray-500">Parts Quality:</span>
+                          <p className="font-medium capitalize">{quotationInfo.partsQuality.replace('-', ' ')}</p>
+                        </div>
+                      )}
+                      {quotationInfo.serviceDetails?.estimatedDuration && (
+                        <div>
+                          <span className="text-gray-500">Estimated Duration:</span>
+                          <p className="font-medium">{quotationInfo.serviceDetails.estimatedDuration} days</p>
+                        </div>
+                      )}
+                      {quotationInfo.repairmanNotes && (
+                        <div className="col-span-2">
+                          <span className="text-gray-500">Notes:</span>
+                          <p className="font-medium">{quotationInfo.repairmanNotes}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Address - only for job postings */}
+                {!isQuotationBased && jobInfo.location?.address && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Address</h4>
                     <p className="text-gray-600">{jobInfo.location.address}</p>
@@ -340,8 +430,6 @@ function UpdateStatus() {
               </div>
 
               {/* Status Update Section */}
-              {/* {actions.canUpdateStatus && ( */}
-
               {tracking.currentLocation === 'delivered' ? (
                 <div className="bg-green-50 border border-green-200 rounded-xl shadow-sm p-8 text-center">
                   <Icon icon="heroicons:check-circle" className="w-16 h-16 text-green-600 mx-auto mb-4" />
@@ -410,10 +498,6 @@ function UpdateStatus() {
                 </div>
               )}
 
-
-
-              {/* )} */}
-
               {/* Timeline */}
               {timeline.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
@@ -441,41 +525,6 @@ function UpdateStatus() {
 
             {/* Sidebar */}
             <div className="space-y-6">
-              {/* Customer Information */}
-              {/* <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Customer Information</h3>
-
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3">
-              <Icon icon="heroicons:user" className="w-5 h-5 text-gray-400" />
-              <div>
-                <p className="font-medium text-gray-900">{customer.name}</p>
-                <p className="text-sm text-gray-500">Customer</p>
-              </div>
-            </div>
-
-            {customer.phone && (
-              <div className="flex items-center space-x-3">
-                <Icon icon="heroicons:phone" className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="font-medium text-gray-900">{customer.phone}</p>
-                  <p className="text-sm text-gray-500">Phone</p>
-                </div>
-              </div>
-            )}
-
-            {customer.email && (
-              <div className="flex items-center space-x-3">
-                <Icon icon="heroicons:envelope" className="w-5 h-5 text-gray-400" />
-                <div>
-                  <p className="font-medium text-gray-900">{customer.email}</p>
-                  <p className="text-sm text-gray-500">Email</p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div> */}
-
               {/* Actions */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
@@ -493,22 +542,38 @@ function UpdateStatus() {
                     </button>
                   )}
 
-                  <button onClick={() => setIsModalOpen(!isModalOpen)} className="w-full cursor-pointer border border-gray-200 flex items-center justify-center px-4 py-3 bg-gray-100 rounded-lg transition-colors">
+                  <button 
+                    onClick={() => setIsModalOpen(!isModalOpen)} 
+                    className="w-full cursor-pointer border border-gray-200 flex items-center justify-center px-4 py-3 bg-gray-100 rounded-lg transition-colors hover:bg-gray-200"
+                  >
                     <Icon icon="mdi:scale-balance" className="w-5 h-5 mr-2" />
                     Create Disputes
                   </button>
 
-
-                  {/* {actions.canMarkCompleted && (
-                  <button className="w-full flex items-center justify-center px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors">
-                    <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
-                    Mark as Completed
-                  </button>
-                )} */}
+                 
                 </div>
               </div>
 
-              {/* Warranty Information */}
+              {/* Payment Status */}
+              {job.payment && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment</h3>
+                  <div className="space-y-2 text-sm">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Status:</span>
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        job.payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                        job.payment.status === 'held' ? 'bg-orange-100 text-orange-700' :
+                        job.payment.status === 'released' ? 'bg-green-100 text-green-700' :
+                        'bg-gray-100 text-gray-700'
+                      }`}>
+                        {job.payment.status?.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {bookingDetails.warranty && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Warranty</h3>
@@ -516,12 +581,14 @@ function UpdateStatus() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-500">Duration:</span>
-                      <span className="font-medium">{bookingDetails.warranty.duration} months</span>
+                      <span className="font-medium">{bookingDetails.warranty.duration} days</span>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-500">Description:</span>
-                      <span className="font-medium">{bookingDetails.warranty.description}</span>
-                    </div>
+                    {bookingDetails.warranty.description && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-500">Description:</span>
+                        <span className="font-medium">{bookingDetails.warranty.description}</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -549,11 +616,9 @@ function UpdateStatus() {
               )}
             </div>
           </div>
-        </div >
-
-
-      </div >
-      <DisputesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(!isModalOpen) } bookingId={id} />
+        </div>
+      </div>
+      <DisputesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(!isModalOpen)} bookingId={id} />
     </>
   );
 }

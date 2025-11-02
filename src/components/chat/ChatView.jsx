@@ -19,36 +19,35 @@ import QuotationMessage from './QuotationMessage';
 // Helper function to get file icon based on file type
 const getFileIcon = (fileName, messageType) => {
     if (!fileName) return { icon: 'mdi:file', color: 'text-gray-500' };
-    
+
     const ext = fileName.split('.').pop()?.toLowerCase();
-    
+
     // Document files
     if (['pdf'].includes(ext)) return { icon: 'mdi:file-pdf-box', color: 'text-red-500' };
     if (['doc', 'docx'].includes(ext)) return { icon: 'mdi:file-word', color: 'text-blue-600' };
     if (['xls', 'xlsx'].includes(ext)) return { icon: 'mdi:file-excel', color: 'text-green-600' };
     if (['ppt', 'pptx'].includes(ext)) return { icon: 'mdi:file-powerpoint', color: 'text-orange-600' };
     if (['txt'].includes(ext)) return { icon: 'mdi:file-document', color: 'text-gray-600' };
-    
+
     // Archive files
     if (['zip', 'rar', '7z', 'tar', 'gz'].includes(ext)) return { icon: 'mdi:folder-zip', color: 'text-yellow-600' };
-    
+
     // Video files
     if (['mp4', 'avi', 'mkv', 'mov', 'wmv'].includes(ext)) return { icon: 'mdi:video', color: 'text-purple-500' };
-    
+
     // Audio files
     if (['mp3', 'wav', 'ogg', 'flac'].includes(ext)) return { icon: 'mdi:music', color: 'text-pink-500' };
-    
+
     // Code files
     if (['js', 'jsx', 'ts', 'tsx', 'py', 'java', 'cpp', 'c', 'html', 'css'].includes(ext)) {
         return { icon: 'mdi:code-braces', color: 'text-indigo-500' };
     }
-    
+
     return { icon: 'mdi:file', color: 'text-gray-500' };
 };
 
 // Helper function to format file size
 const formatFileSize = (url) => {
-    // Agar actual size nahi hai to placeholder return karo
     return 'File';
 };
 
@@ -64,6 +63,21 @@ const getFileNameFromUrl = (url) => {
     }
 };
 
+// Message Skeleton Component
+const MessageSkeleton = () => (
+    <div className="space-y-3">
+        {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[70%] p-3 rounded-lg ${i % 2 === 0 ? 'bg-primary-100' : 'bg-gray-200'
+                    } animate-pulse`}>
+                    <div className="h-4 bg-gray-300 rounded w-32 mb-2"></div>
+                    <div className="h-3 bg-gray-300 rounded w-16"></div>
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 const ChatView = ({ chat, onBack }) => {
     const dispatch = useDispatch();
     const messagesEndRef = useRef(null);
@@ -74,6 +88,7 @@ const ChatView = ({ chat, onBack }) => {
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [oldestMessageId, setOldestMessageId] = useState(null);
+    const [initialLoading, setInitialLoading] = useState(true);
 
     const { token, user } = useSelector((state) => state.auth);
     const { messages, inputText, selectedFile, setInputText: updateInputText } = useChat();
@@ -123,6 +138,12 @@ const ChatView = ({ chat, onBack }) => {
                     chatId: chat.id,
                     messages: data.messages || []
                 }));
+                // Initial load ke baad scroll down
+                setTimeout(() => {
+                    if (messagesEndRef.current) {
+                        messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+                    }
+                }, 100);
             }
 
             setHasMore(data.hasMore);
@@ -132,18 +153,21 @@ const ChatView = ({ chat, onBack }) => {
             handleError(error);
         } finally {
             setLoadingMore(false);
+            setInitialLoading(false);
         }
     }, [token, chat.id, dispatch]);
 
     useEffect(() => {
+        setInitialLoading(true);
         fetchMessages();
     }, [chat.id]);
 
+
     useEffect(() => {
-        if (messagesEndRef.current && !loadingMore) {
-            messagesEndRef.current.scrollIntoView({ behavior: "auto" });
+        if (messagesEndRef.current && !loadingMore && !initialLoading) {
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
         }
-    }, [chatMessages.length]);
+    }, [chatMessages.length, initialLoading, loadingMore]);
 
     const handleScroll = useCallback(() => {
         if (!messagesContainerRef.current || loadingMore || !hasMore) {
@@ -263,7 +287,6 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [handleSendMessage]);
 
-    // File download/open handler
     const handleFileClick = useCallback((mediaUrl) => {
         if (mediaUrl) {
             window.open(mediaUrl, '_blank');
@@ -332,7 +355,10 @@ const ChatView = ({ chat, onBack }) => {
                         </div>
                     )}
 
-                    {chatMessages.length === 0 ? (
+                    {/* Initial Loading Skeleton */}
+                    {initialLoading ? (
+                        <MessageSkeleton />
+                    ) : chatMessages.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">
                             <Icon icon="mdi:chat-outline" width={48} className="mx-auto mb-2 opacity-50" />
                             <p>Start your conversation with {chat.name || 'this user'}</p>
@@ -358,11 +384,10 @@ const ChatView = ({ chat, onBack }) => {
                                     className={`flex ${isOwner ? "justify-end" : "justify-start"} mb-2`}
                                 >
                                     <div
-                                        className={`max-w-[70%] p-2 rounded-lg ${
-                                            isOwner
+                                        className={`max-w-[70%] p-2 rounded-lg ${isOwner
                                                 ? "bg-primary-500 text-white"
                                                 : "bg-gray-200 text-gray-800"
-                                        }`}
+                                            }`}
                                     >
                                         {/* Image Messages */}
                                         {message?.messageType === 'image' && message?.mediaUrl && (
@@ -386,33 +411,30 @@ const ChatView = ({ chat, onBack }) => {
 
                                         {/* File Messages */}
                                         {message?.messageType === 'file' && message?.mediaUrl && (
-                                            <div 
-                                                className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:opacity-90 ${
-                                                    isOwner ? 'bg-primary-600' : 'bg-white'
-                                                }`}
+                                            <div
+                                                className={`flex items-center gap-2 p-2 rounded-md cursor-pointer hover:opacity-90 ${isOwner ? 'bg-primary-600' : 'bg-white'
+                                                    }`}
                                                 onClick={() => handleFileClick(message.mediaUrl)}
                                             >
                                                 <div className="flex-shrink-0">
-                                                    <Icon 
+                                                    <Icon
                                                         icon={getFileIcon(getFileNameFromUrl(message.mediaUrl), message.messageType).icon}
                                                         width={32}
                                                         className={getFileIcon(getFileNameFromUrl(message.mediaUrl), message.messageType).color}
                                                     />
                                                 </div>
                                                 <div className="flex-1 min-w-0">
-                                                    <p className={`text-xs font-medium truncate ${
-                                                        isOwner ? 'text-white' : 'text-gray-800'
-                                                    }`}>
+                                                    <p className={`text-xs font-medium truncate ${isOwner ? 'text-white' : 'text-gray-800'
+                                                        }`}>
                                                         {getFileNameFromUrl(message.mediaUrl)}
                                                     </p>
-                                                    <p className={`text-xs ${
-                                                        isOwner ? 'text-gray-200' : 'text-gray-500'
-                                                    }`}>
+                                                    <p className={`text-xs ${isOwner ? 'text-gray-200' : 'text-gray-500'
+                                                        }`}>
                                                         {formatFileSize(message.mediaUrl)}
                                                     </p>
                                                 </div>
-                                                <Icon 
-                                                    icon="mdi:download" 
+                                                <Icon
+                                                    icon="mdi:download"
                                                     width={20}
                                                     className={isOwner ? 'text-white' : 'text-gray-600'}
                                                 />
@@ -427,9 +449,8 @@ const ChatView = ({ chat, onBack }) => {
                                         )}
 
                                         {/* Timestamp */}
-                                        <span className={`text-xs mt-1 block ${
-                                            isOwner ? 'text-gray-200' : 'text-gray-500'
-                                        }`}>
+                                        <span className={`text-xs mt-1 block ${isOwner ? 'text-gray-200' : 'text-gray-500'
+                                            }`}>
                                             {new Date(message.timestamp || message.createdAt).toLocaleTimeString([], {
                                                 hour: "2-digit",
                                                 minute: "2-digit"
@@ -498,9 +519,8 @@ const ChatView = ({ chat, onBack }) => {
                             <Icon
                                 icon="mdi:send"
                                 width={20}
-                                className={`cursor-pointer transition-colors ${
-                                    (inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
-                                }`}
+                                className={`cursor-pointer transition-colors ${(inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
+                                    }`}
                                 onClick={handleSendMessage}
                             />
                         )}
