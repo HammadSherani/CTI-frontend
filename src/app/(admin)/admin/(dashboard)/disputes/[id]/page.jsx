@@ -13,6 +13,12 @@ function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
+  const [showResolutionModal, setShowResolutionModal] = useState(false)
+  const [resolutionData, setResolutionData] = useState({
+    resolutionType: '',
+    refundAmount: 0,
+    notes: ''
+  })
   const { id } = useParams()
   const { token } = useSelector((state) => state.auth)
   const router = useRouter()
@@ -86,13 +92,32 @@ function DisputesDetail() {
     ).join(' ')
   }
 
-  // Update dispute status
-  const updateDisputeStatus = async (newStatus) => {
+  
+
+  const handleResolutionSubmit = async () => {
+    if (!resolutionData.resolutionType) {
+      toast.error('Please select a resolution type')
+      return
+    }
+
+    if (resolutionData.resolutionType === 'refund_partial' && !resolutionData.refundAmount) {
+      toast.error('Please enter refund amount for partial refund')
+      return
+    }
+
     try {
       setUpdating(true)
-      const { data } = await axiosInstance.patch(
-        `/disputes/admin/${id}/status`,
-        { status: newStatus },
+      const payload = {
+        resolutionType: resolutionData.resolutionType,
+        ...(resolutionData.resolutionType === 'refund_partial' && { 
+          refundAmount: parseFloat(resolutionData.refundAmount) 
+        }),
+        ...(resolutionData.notes && { notes: resolutionData.notes })
+      }
+
+      const { data } = await axiosInstance.post(
+        `/disputes/${id}/resolve`,
+        payload,
         {
           headers: {
             'Authorization': `Bearer ${token}`
@@ -101,7 +126,9 @@ function DisputesDetail() {
       )
 
       if (data.success) {
-        toast.success('Dispute status updated successfully')
+        toast.success('Resolution applied successfully')
+        setShowResolutionModal(false)
+        setResolutionData({ resolutionType: '', refundAmount: 0, notes: '' })
         fetchData()
       }
     } catch (error) {
@@ -109,6 +136,39 @@ function DisputesDetail() {
     } finally {
       setUpdating(false)
     }
+  }
+
+  const getResolutionTypeLabel = (type) => {
+    const labels = {
+      'refund_full': 'Full Refund',
+      'refund_partial': 'Partial Refund',
+      'pay_repairman': 'Pay Repairman',
+      'no_action': 'No Action',
+      'mutual_agreement': 'Mutual Agreement'
+    }
+    return labels[type] || type
+  }
+
+  const getResolutionTypeIcon = (type) => {
+    const icons = {
+      'refund_full': 'heroicons:arrow-uturn-left',
+      'refund_partial': 'heroicons:banknotes',
+      'pay_repairman': 'heroicons:user-circle',
+      'no_action': 'heroicons:x-circle',
+      'mutual_agreement': 'heroicons:handshake'
+    }
+    return icons[type] || 'heroicons:check-circle'
+  }
+
+  const getResolutionTypeColor = (type) => {
+    const colors = {
+      'refund_full': 'bg-green-100 text-green-800 border-green-200',
+      'refund_partial': 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      'pay_repairman': 'bg-blue-100 text-blue-800 border-blue-200',
+      'no_action': 'bg-gray-100 text-gray-800 border-gray-200',
+      'mutual_agreement': 'bg-primary-100 text-primary-800 border-primary-200'
+    }
+    return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
   }
 
   if (loading) {
@@ -140,6 +200,7 @@ function DisputesDetail() {
   }
 
   const currencySymbol = dispute.bookingId?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : '$'
+  const totalAmount = dispute.bookingId?.bookingDetails?.pricing?.totalAmount || 0
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
@@ -161,46 +222,16 @@ function DisputesDetail() {
         </div>
 
         {/* Admin Quick Actions Card */}
-        <div className="bg-gradient-to-r from-primary-600 to-primary-700 rounded-xl shadow-lg p-6 mb-6 text-white">
+        <div className="   ">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-2xl font-bold mb-1">Admin Panel</h2>
-              <p className="text-primary-100">Manage dispute status and resolution</p>
+              <p className="">Manage dispute status and resolution</p>
             </div>
-            <div className="bg-white/20 backdrop-blur-sm rounded-lg px-4 py-2">
-              <p className="text-sm text-primary-100">Dispute ID</p>
-              <p className="text-lg font-bold">{dispute.disputeId}</p>
-            </div>
+           
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <button
-              onClick={() => updateDisputeStatus('under_review')}
-              disabled={updating || dispute.status === 'under_review'}
-              className="px-4 py-3 bg-white text-primary-700 rounded-lg hover:bg-primary-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center shadow-md"
-            >
-              <Icon icon="heroicons:eye" className="w-5 h-5 mr-2" />
-              {dispute.status === 'under_review' ? 'Under Review' : 'Mark Under Review'}
-            </button>
-
-            <button
-              onClick={() => updateDisputeStatus('resolved')}
-              disabled={updating || dispute.status === 'resolved'}
-              className="px-4 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center shadow-md"
-            >
-              <Icon icon="heroicons:check-circle" className="w-5 h-5 mr-2" />
-              {dispute.status === 'resolved' ? 'Resolved' : 'Mark Resolved'}
-            </button>
-
-            <button
-              onClick={() => updateDisputeStatus('closed')}
-              disabled={updating || dispute.status === 'closed'}
-              className="px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium flex items-center justify-center shadow-md"
-            >
-              <Icon icon="heroicons:x-circle" className="w-5 h-5 mr-2" />
-              {dispute.status === 'closed' ? 'Closed' : 'Close Dispute'}
-            </button>
-          </div>
+         
 
           {updating && (
             <div className="mt-3 flex items-center justify-center text-primary-100">
@@ -209,6 +240,260 @@ function DisputesDetail() {
             </div>
           )}
         </div>
+
+        {/* Resolution Management Card */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          <div className="bg-gradient-to-r from-primary-50 to-primary-100 border-b border-primary-200 px-6 py-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-primary-900 flex items-center">
+                <Icon icon="heroicons:clipboard-document-check" className="w-6 h-6 mr-2" />
+                Resolution Management
+              </h3>
+              {!dispute.resolution?.resolutionType && (
+                <button
+                  onClick={() => setShowResolutionModal(true)}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm flex items-center"
+                >
+                  <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
+                  Apply Resolution
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="p-6">
+            {dispute.resolution?.resolutionType ? (
+              <div className="space-y-4">
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center">
+                      <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
+                        <Icon 
+                          icon={getResolutionTypeIcon(dispute.resolution.resolutionType)} 
+                          className="w-6 h-6 text-green-600" 
+                        />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-bold text-gray-900">Resolution Applied</h4>
+                        <p className="text-sm text-gray-600">This dispute has been resolved</p>
+                      </div>
+                    </div>
+                    <span className={`px-4 py-2 rounded-full text-sm font-semibold border ${getResolutionTypeColor(dispute.resolution.resolutionType)}`}>
+                      {getResolutionTypeLabel(dispute.resolution.resolutionType)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    {(dispute.resolution.resolutionType === 'refund_full' || 
+                      dispute.resolution.resolutionType === 'refund_partial') && (
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Refund Amount</span>
+                        <p className="text-2xl font-bold text-green-600 mt-1">
+                          {currencySymbol}{dispute.resolution.refundAmount || totalAmount}
+                        </p>
+                        {dispute.resolution.resolutionType === 'refund_full' && (
+                          <p className="text-xs text-gray-600 mt-1">Full booking amount</p>
+                        )}
+                      </div>
+                    )}
+
+                    {dispute.resolution.resolvedAt && (
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Resolved On</span>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {formatFullDate(dispute.resolution.resolvedAt)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {dispute.resolution.notes && (
+                    <div className="mt-4 pt-4 border-t border-green-200">
+                      <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-2">
+                        Admin Notes
+                      </span>
+                      <p className="text-sm text-gray-700 leading-relaxed">
+                        {dispute.resolution.notes}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <Icon icon="heroicons:clipboard-document-list" className="w-16 h-16 text-gray-300 mx-auto mb-3" />
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Resolution Applied Yet</h4>
+                <p className="text-gray-500 mb-4">Click "Apply Resolution" to resolve this dispute</p>
+                <button
+                  onClick={() => setShowResolutionModal(true)}
+                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
+                >
+                  Apply Resolution Now
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Resolution Modal */}
+        {showResolutionModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-white flex items-center">
+                  <Icon icon="heroicons:clipboard-document-check" className="w-6 h-6 mr-2" />
+                  Apply Resolution
+                </h3>
+                <button
+                  onClick={() => setShowResolutionModal(false)}
+                  className="text-white hover:bg-white/20 rounded-lg p-1 transition-colors"
+                >
+                  <Icon icon="heroicons:x-mark" className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6">
+                {/* Booking Amount Info */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-blue-900 font-medium">Total Booking Amount</p>
+                      <p className="text-xs text-blue-700 mt-0.5">Maximum refundable amount</p>
+                    </div>
+                    <p className="text-2xl font-bold text-blue-600">
+                      {currencySymbol}{totalAmount}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Resolution Type Selection */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Select Resolution Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="space-y-3">
+                    {['refund_full', 'refund_partial', 'pay_repairman', 'no_action', 'mutual_agreement'].map((type) => (
+                      <div
+                        key={type}
+                        onClick={() => setResolutionData({ ...resolutionData, resolutionType: type })}
+                        className={`border-2 rounded-lg p-4 cursor-pointer transition-all ${
+                          resolutionData.resolutionType === type
+                            ? 'border-primary-600 bg-primary-50'
+                            : 'border-gray-200 hover:border-primary-300 bg-white'
+                        }`}
+                      >
+                        <div className="flex items-center">
+                          <div className={`w-5 h-5 rounded-full border-2 mr-3 flex items-center justify-center ${
+                            resolutionData.resolutionType === type
+                              ? 'border-primary-600 bg-primary-600'
+                              : 'border-gray-300'
+                          }`}>
+                            {resolutionData.resolutionType === type && (
+                              <Icon icon="heroicons:check" className="w-3 h-3 text-white" />
+                            )}
+                          </div>
+                          <div className="flex items-center flex-1">
+                            <Icon 
+                              icon={getResolutionTypeIcon(type)} 
+                              className={`w-5 h-5 mr-2 ${
+                                resolutionData.resolutionType === type ? 'text-primary-600' : 'text-gray-400'
+                              }`}
+                            />
+                            <div>
+                              <p className={`font-semibold ${
+                                resolutionData.resolutionType === type ? 'text-primary-900' : 'text-gray-900'
+                              }`}>
+                                {getResolutionTypeLabel(type)}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-0.5">
+                                {type === 'refund_full' && 'Refund the entire booking amount to the customer'}
+                                {type === 'refund_partial' && 'Refund a partial amount to the customer'}
+                                {type === 'pay_repairman' && 'Release payment to the repairman'}
+                                {type === 'no_action' && 'No financial action required'}
+                                {type === 'mutual_agreement' && 'Both parties have agreed on a resolution'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Refund Amount Input (Only for partial refund) */}
+                {resolutionData.resolutionType === 'refund_partial' && (
+                  <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Refund Amount <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
+                        {currencySymbol}
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        max={totalAmount}
+                        step="0.01"
+                        value={resolutionData.refundAmount}
+                        onChange={(e) => setResolutionData({ ...resolutionData, refundAmount: e.target.value })}
+                        className="w-full pl-8 pr-4 py-3 border-2 border-yellow-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 focus:border-transparent"
+                        placeholder="Enter refund amount"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Maximum refundable: {currencySymbol}{totalAmount}
+                    </p>
+                  </div>
+                )}
+
+                {/* Admin Notes */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Admin Notes (Optional)
+                  </label>
+                  <textarea
+                    value={resolutionData.notes}
+                    onChange={(e) => setResolutionData({ ...resolutionData, notes: e.target.value })}
+                    rows="4"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    placeholder="Add any additional notes or comments about this resolution..."
+                  />
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowResolutionModal(false)
+                      setResolutionData({ resolutionType: '', refundAmount: 0, notes: '' })
+                    }}
+                    className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleResolutionSubmit}
+                    disabled={updating || !resolutionData.resolutionType}
+                    className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
+                  >
+                    {updating ? (
+                      <>
+                        <Icon icon="heroicons:arrow-path" className="w-5 h-5 mr-2 animate-spin" />
+                        Applying...
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="heroicons:check" className="w-5 h-5 mr-2" />
+                        Apply Resolution
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dispute Details Header Card */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
@@ -330,18 +615,6 @@ function DisputesDetail() {
                       </div>
                     </div>
                   )}
-                </div>
-              </div>
-            )}
-
-            {/* Refund Amount */}
-            {dispute.resolution?.refundAmount > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <span className="text-sm font-medium text-green-900">Refund Amount</span>
-                  <p className="text-2xl font-bold text-green-600 mt-1">
-                    {currencySymbol}{dispute.resolution.refundAmount}
-                  </p>
                 </div>
               </div>
             )}

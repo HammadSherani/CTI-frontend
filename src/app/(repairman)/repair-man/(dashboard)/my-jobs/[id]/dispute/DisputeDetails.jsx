@@ -97,7 +97,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
             return;
         }
 
-        if (message.trim() && message.trim().length < 10) {
+        if (message.trim() && message.trim().length < 1) {
             toast.error('Message must be at least 10 characters');
             return;
         }
@@ -193,12 +193,14 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                                 <p className="text-base text-gray-800 mt-1 capitalize">{formatCategory(dispute.category)}</p>
                             </div>
 
-                            <div>
-                                <span className="text-sm font-medium text-gray-500">Payment Status</span>
-                                <span className="inline-block mt-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold border border-orange-200">
-                                    {dispute.paymentStatus?.replace('_', ' ').toUpperCase()}
-                                </span>
-                            </div>
+                            {dispute.paymentStatus && (
+                                <div>
+                                    <span className="text-sm font-medium text-gray-500">Payment Status</span>
+                                    <span className="inline-block mt-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold border border-orange-200">
+                                        {dispute.paymentStatus?.replace('_', ' ').toUpperCase()}
+                                    </span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Parties Info */}
@@ -238,6 +240,117 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                             <p className="text-gray-800 mt-2 leading-relaxed">
                                 {dispute.description}
                             </p>
+                        </div>
+                    )}
+
+                    {/* Resolution Information */}
+                    {dispute.status === 'resolved' && dispute.resolution && (
+                        <div className="mt-6 pt-6 border-t border-gray-200">
+                            <div className="bg-green-50 rounded-lg p-5 border border-green-200">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center">
+                                        <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                            <Icon icon="heroicons:check-circle" className="w-6 h-6 text-green-600" />
+                                        </div>
+                                        <div>
+                                            <h4 className="text-lg font-bold text-green-900">Dispute Resolved</h4>
+                                            <p className="text-sm text-green-700">
+                                                {new Date(dispute.resolution.resolvedAt).toLocaleString('en-US', {
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    year: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className="px-3 py-1 bg-green-200 text-green-800 rounded-full text-xs font-semibold">
+                                        {dispute.resolution.resolutionType?.replace(/_/g, ' ').toUpperCase()}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                                        <span className="text-xs font-medium text-green-700 flex items-center mb-1">
+                                            <Icon icon="heroicons:user" className="w-4 h-4 mr-1" />
+                                            Resolved By
+                                        </span>
+                                        <p className="text-base font-semibold text-gray-900">
+                                            {dispute.resolution.resolvedBy?.name || 'Admin'}
+                                        </p>
+                                        {dispute.resolution.resolvedBy?.email && (
+                                            <p className="text-xs text-gray-500 mt-1">
+                                                {dispute.resolution.resolvedBy.email}
+                                            </p>
+                                        )}
+                                    </div>
+
+                                    {dispute.resolution.refundAmount && (
+                                        <div className="bg-white rounded-lg p-4 border border-green-200">
+                                            <span className="text-xs font-medium text-green-700 flex items-center mb-1">
+                                                <Icon icon="heroicons:banknotes" className="w-4 h-4 mr-1" />
+                                                Refund Amount
+                                            </span>
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {formatCurrency(dispute.resolution.refundAmount, bookingDetails.pricing?.currency || 'TRY')}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {dispute.resolution.resolutionNotes && (
+                                    <div className="bg-white rounded-lg p-4 border border-green-200">
+                                        <span className="text-xs font-medium text-green-700 flex items-center mb-2">
+                                            <Icon icon="heroicons:document-text" className="w-4 h-4 mr-1" />
+                                            Resolution Notes
+                                        </span>
+                                        <p className="text-sm text-gray-800 leading-relaxed">
+                                            {dispute.resolution.resolutionNotes}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Admin Notes */}
+                    {dispute.adminNotes && dispute.adminNotes.length > 0 && (
+                        <div className="mt-6 pt-6 border-t border-gray-200">
+                            <div className="flex items-center mb-3">
+                                <Icon icon="heroicons:clipboard-document-list" className="w-5 h-5 text-purple-600 mr-2" />
+                                <span className="text-sm font-medium text-gray-700">Admin Notes</span>
+                            </div>
+                            <div className="space-y-3">
+                                {dispute.adminNotes.map((note, index) => (
+                                    <div key={index} className="bg-purple-50 rounded-lg p-4 border border-purple-200">
+                                        <div className="flex items-start justify-between mb-2">
+                                            <div className="flex items-center">
+                                                <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mr-2">
+                                                    <Icon icon="heroicons:user-circle" className="w-5 h-5 text-purple-600" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-sm font-semibold text-purple-900">
+                                                        {note.addedBy?.name || 'Admin'}
+                                                    </p>
+                                                    {note.addedBy?.email && (
+                                                        <p className="text-xs text-purple-700">{note.addedBy.email}</p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <span className="text-xs text-purple-600">
+                                                {new Date(note.addedAt).toLocaleString('en-US', {
+                                                    month: 'short',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit'
+                                                })}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-800 pl-10">{note.note}</p>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     )}
 

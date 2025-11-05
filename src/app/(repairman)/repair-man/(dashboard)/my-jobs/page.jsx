@@ -487,7 +487,7 @@ const MyJobsPage = () => {
             </button>
           )}
 
-          {jobDetails.hasActiveDispute && (
+          {(jobDetails.hasActiveDispute || job.bookingDetails.status === "disputed") && (
             <button
               onClick={() => router.push(`/repair-man/my-jobs/${job._id}/dispute`)}
               className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">

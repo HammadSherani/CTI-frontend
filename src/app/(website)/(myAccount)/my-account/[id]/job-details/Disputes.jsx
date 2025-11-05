@@ -92,7 +92,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
             return;
         }
 
-        if (message.trim() && message.trim().length < 10) {
+        if (message.trim() && message.trim().length < 1) {
             toast.error('Message must be at least 10 characters');
             return;
         }
