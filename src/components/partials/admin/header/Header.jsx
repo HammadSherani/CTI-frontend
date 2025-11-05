@@ -35,6 +35,7 @@ function Header() {
     { name: "Profile Settings", path: "/profile", icon: "mdi:account-cog-outline" },
     { name: "Service Catalog", path: "/admin/service-catalog", icon: "mdi:tools" },
     { name: "Disputes", path: "/admin/disputes", icon: "mdi:gavel" },
+    { name: "Earnings", path: "/admin/earnings", icon: "mdi:gavel" },
     { name: "Notifications", path: "/notification-center", icon: "mdi:bell-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
     { name: "Sign Out", path: "", icon: "mdi:logout", isLogout: true },
