@@ -22,6 +22,11 @@ function RepairmanEarning() {
   })
   const [withdrawLoading, setWithdrawLoading] = useState(false)
 
+  // ✅ Withdraw History state
+  const [withdrawHistory, setWithdrawHistory] = useState([])
+  const [withdrawSummary, setWithdrawSummary] = useState(null)
+  const [historyLoading, setHistoryLoading] = useState(false)
+
   const fetchData = async () => {
     try {
       setLoading(true)
@@ -38,6 +43,30 @@ function RepairmanEarning() {
     }
   }
 
+  // ✅ Fetch Withdraw History Function
+  const fetchWithdrawHistory = async () => {
+    try {
+      setHistoryLoading(true)
+      const { data } = await axiosInstance.get('/repairman/earnings/withdraw-history', {
+        headers: {
+          'Authorization': 'Bearer ' + token,
+        }
+      })
+      
+      console.log('Withdraw History Response:', data)
+      
+      // Set the withdrawal history data
+      setWithdrawHistory(data.data || [])
+      setWithdrawSummary(data.summary || null)
+      
+    } catch (error) {
+      console.error('Error fetching withdraw history:', error)
+      alert('Failed to load withdrawal history')
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
+
   // ✅ Pre-fill bank details if available
   useEffect(() => {
     if (earningsData?.paymentInfo?.bankDetails && showWithdrawModal) {
@@ -50,6 +79,13 @@ function RepairmanEarning() {
       })
     }
   }, [earningsData, showWithdrawModal])
+
+  // ✅ Fetch withdraw history when tab changes to withdraw-history
+  useEffect(() => {
+    if (activeTab === 'withdraw-history') {
+      fetchWithdrawHistory()
+    }
+  }, [activeTab])
 
   // ✅ Updated withdraw handler with modal
   const handleWithdrawSubmit = async () => {
@@ -101,6 +137,11 @@ function RepairmanEarning() {
       
       // Refresh data
       fetchData()
+      
+      // Refresh history if on withdraw-history tab
+      if (activeTab === 'withdraw-history') {
+        fetchWithdrawHistory()
+      }
 
     } catch (error) {
       console.error('Error withdrawing:', error)
@@ -240,6 +281,17 @@ function RepairmanEarning() {
             }`}
           >
             Withdraw
+          </button>
+
+          <button
+            onClick={() => setActiveTab('withdraw-history')}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${
+              activeTab === 'withdraw-history'
+                ? 'text-primary-600 border-b-2 border-primary-600'
+                : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Withdraw History
           </button>
         </div>
 
@@ -493,6 +545,214 @@ function RepairmanEarning() {
                 <p className="text-gray-500 text-sm">No withdrawal history yet</p>
                 <p className="text-gray-400 text-xs mt-1">Your withdrawal requests will appear here</p>
               </div>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'withdraw-history' && (
+          <>
+            {/* Summary Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-blue-100 p-1.5 rounded-lg">
+                    <Icon icon="solar:clock-circle-bold-duotone" className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <span className="text-xs text-gray-600">Requested</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {historyLoading ? '...' : withdrawSummary?.requested?.count || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(withdrawSummary?.requested?.amount || 0, currency)}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-orange-100 p-1.5 rounded-lg">
+                    <Icon icon="solar:refresh-bold-duotone" className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <span className="text-xs text-gray-600">Processing</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {historyLoading ? '...' : withdrawSummary?.processing?.count || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(withdrawSummary?.processing?.amount || 0, currency)}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-green-100 p-1.5 rounded-lg">
+                    <Icon icon="solar:check-circle-bold-duotone" className="w-4 h-4 text-green-600" />
+                  </div>
+                  <span className="text-xs text-gray-600">Completed</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {historyLoading ? '...' : withdrawSummary?.completed?.count || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(withdrawSummary?.completed?.amount || 0, currency)}
+                </p>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="bg-red-100 p-1.5 rounded-lg">
+                    <Icon icon="solar:close-circle-bold-duotone" className="w-4 h-4 text-red-600" />
+                  </div>
+                  <span className="text-xs text-gray-600">Rejected</span>
+                </div>
+                <p className="text-xl font-bold text-gray-900">
+                  {historyLoading ? '...' : withdrawSummary?.rejected?.count || 0}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {formatCurrency(withdrawSummary?.rejected?.amount || 0, currency)}
+                </p>
+              </div>
+            </div>
+
+            {/* Withdraw History List */}
+            <div className="bg-white rounded-lg shadow">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h2 className="font-semibold text-gray-900">Withdrawal History</h2>
+                <button
+                  onClick={fetchWithdrawHistory}
+                  disabled={historyLoading}
+                  className="px-3 py-1.5 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200 transition-colors text-xs font-medium flex items-center gap-1"
+                >
+                  <Icon icon="solar:refresh-bold" className="w-3 h-3" />
+                  {historyLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
+              
+              {historyLoading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full mx-auto mb-3"></div>
+                  <p className="text-gray-500 text-sm">Loading withdrawal history...</p>
+                </div>
+              ) : withdrawHistory.length === 0 ? (
+                <div className="p-12 text-center">
+                  <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Icon icon="solar:document-bold-duotone" className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 text-sm">No withdrawal history yet</p>
+                  <p className="text-gray-400 text-xs mt-1">Your withdrawal requests will appear here</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {withdrawHistory.map((item) => (
+                    <div key={item._id} className="p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Left Section - Main Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
+                              item.status === 'completed' ? 'bg-green-100 text-green-700' :
+                              item.status === 'processing' ? 'bg-orange-100 text-orange-700' :
+                              item.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              <Icon icon={item.statusBadge?.icon || 'solar:document-bold'} className="w-3.5 h-3.5" />
+                              {item.statusBadge?.text || item.status}
+                            </div>
+                            <span className="text-xs text-gray-500">
+                              {item.earningsCount} earning{item.earningsCount !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+
+                          <div className="space-y-1">
+                            <p className="text-2xl font-bold text-gray-900">
+                              {formatCurrency(item.amount, currency)}
+                            </p>
+                            
+                            {/* Bank Details */}
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Icon icon="solar:card-bold" className="w-3.5 h-3.5" />
+                              <span>{item.bankDetails.bankName}</span>
+                              <span className="text-gray-400">•</span>
+                              <span>{item.bankDetails.accountNumber}</span>
+                            </div>
+                            
+                            {item.bankDetails.branchName && (
+                              <div className="flex items-center gap-2 text-xs text-gray-600">
+                                <Icon icon="solar:map-point-bold" className="w-3.5 h-3.5" />
+                                <span>{item.bankDetails.branchName}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Admin Note */}
+                          {item.adminNote && (
+                            <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
+                              <div className="flex items-start gap-2">
+                                <Icon icon="solar:user-bold-duotone" className="w-4 h-4 text-gray-500 mt-0.5" />
+                                <div>
+                                  <p className="text-xs font-medium text-gray-700 mb-0.5">Admin Note</p>
+                                  <p className="text-xs text-gray-600">{item.adminNote}</p>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Right Section - Dates */}
+                        <div className="text-right space-y-2">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-0.5">Requested</p>
+                            <p className="text-xs font-medium text-gray-900">
+                              {new Date(item.requestedAt).toLocaleDateString('en-US', {
+                                month: 'short',
+                                day: 'numeric',
+                                year: 'numeric'
+                              })}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(item.requestedAt).toLocaleTimeString('en-US', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+
+                          {item.processedAt && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-0.5">Processed</p>
+                              <p className="text-xs font-medium text-gray-900">
+                                {new Date(item.processedAt).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-xs text-gray-500">
+                                {new Date(item.processedAt).toLocaleTimeString('en-US', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          )}
+
+                          {item.expectedReleaseDate && !item.processedAt && (
+                            <div>
+                              <p className="text-xs text-gray-500 mb-0.5">Expected</p>
+                              <p className="text-xs font-medium text-orange-600">
+                                {new Date(item.expectedReleaseDate).toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </>
         )}

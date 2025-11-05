@@ -217,7 +217,7 @@ function AdminEarningPage() {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-gray-900">Withdrawal Overview</h2>
             <Link
-              href="/admin/withdrawals/all"
+              href="/admin/withdrawals/all-withdrawal-request"
               className="flex items-center gap-2 text-violet-600 hover:text-violet-700 font-medium transition-colors"
             >
               View All
