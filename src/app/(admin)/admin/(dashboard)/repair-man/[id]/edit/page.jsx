@@ -323,7 +323,7 @@ function RepairmanEditPage() {
         formDataToSend.append(`certifications[${index}]`, file);
       });
 
-      await axiosInstance.put(`/admin/repairman/${id}`, formDataToSend, {
+      await axiosInstance.put(`/admin/repairman/${id}/update-profile`, formDataToSend, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
@@ -599,7 +599,7 @@ function RepairmanEditPage() {
           </div>
 
           {/* Submit Buttons */}
-          <div className="flex justify-end gap-3">
+          {/* <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => router.back()}
@@ -615,7 +615,7 @@ function RepairmanEditPage() {
               {saving && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
-          </div>
+          </div> */}
         </form>
       </div>
     </div>

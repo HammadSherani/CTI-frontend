@@ -201,7 +201,7 @@ function JobDetails() {
 
     const currentStatus = useMemo(() => {
         if (dataType === 'job_posting') {
-            return job?.status;
+            return  booking?.status;
         } else if (dataType === 'quotation_booking') {
             return booking?.status;
         }
@@ -308,7 +308,7 @@ function JobDetails() {
             </div>
 
             {currentStatus === 'delivered' && (
-                <div className="mt-4 p-4 bg-primary-50 border border-primary-200 rounded-md">
+                <div className="mt-4 p-4 mb-4 bg-primary-50 border border-primary-200 rounded-md">
                     <p className="text-sm text-primary-800 leading-relaxed mb-3">
                         Your repairman has delivered the device. Please review it carefully, and if everything is satisfactory,
                         click the button below to <span className="font-semibold">close this job</span>.

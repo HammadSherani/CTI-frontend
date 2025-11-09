@@ -775,7 +775,7 @@ export default function MyAccountPage() {
       offers_received: jobs.filter(job => job.status === "offers_received").length,
 
       booked: jobs.filter(job =>
-        job.status === 'booked' ||
+        // job.status === 'booked' 
         job.bookingStatus === 'confirmed' ||
         job.bookingStatus === 'repairman_notified' ||
         job.bookingStatus === 'scheduled'

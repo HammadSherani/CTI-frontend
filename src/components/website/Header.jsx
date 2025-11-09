@@ -181,8 +181,6 @@ export function MidHeader() {
         </div>
 
         <div className="flex gap-3 md:gap-5 text-xl items-center">
-
-          {/* Navigation Section  */}
          <ButtonSection />
         </div>
       </div>

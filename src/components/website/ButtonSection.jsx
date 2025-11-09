@@ -54,19 +54,22 @@ function ButtonSection() {
   const [notificationCount] = useState(4);
   const { user } = useSelector((state) => state.auth);
 
-  const handleCartClick = () => {
-    console.log('Cart clicked');
-  };
+  const handleCartClick = () => console.log('Cart clicked');
+  const handleWishlistClick = () => console.log('Wishlist clicked');
+  const handleNotificationClick = () => console.log('Notifications clicked');
 
-  const handleWishlistClick = () => {
-    console.log('Wishlist clicked');
-  };
-
-  const handleNotificationClick = () => {
-    console.log('Notifications clicked');
-  };
-
-  if (!user) return null;
+  // 👇 Show Join Now button when no user is logged in
+  if (!user) {
+    return (
+      <div className="flex items-center gap-4">
+        <Link href="/auth/register">
+          <button className="px-6 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors duration-200 font-medium shadow-sm">
+            Join Now
+          </button>
+        </Link>
+      </div>
+    );
+  }
 
   const renderCustomerButtons = () => (
     <>
@@ -121,7 +124,7 @@ function ButtonSection() {
         showCount
         onClick={handleNotificationClick}
       />
-      <DashboardLink link={"/admin/dashboard"} />
+      <DashboardLink link="/admin/dashboard" />
     </>
   );
 
@@ -135,9 +138,11 @@ function ButtonSection() {
 
   return (
     <div className="flex items-center gap-4">
-      {renderButtons ? renderButtons() : null}
+      {renderButtons ? renderButtons() : <h3>Login</h3>}
     </div>
   );
 }
+
+
 
 export default ButtonSection;
