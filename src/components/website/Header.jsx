@@ -201,6 +201,7 @@ function LowerHeader() {
     { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New" },
     { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" },
     { label: "Deals", icon: "mdi:tag", path: "/deals" },
+    { label: "About Us", icon: "mdi:account-group-outline", path: "/about-us" },
     { label: "Contact", icon: "mdi:phone", path: "/contact" },
   ];
 

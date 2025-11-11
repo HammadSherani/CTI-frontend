@@ -1,6 +1,7 @@
 import Chat from '@/components/chat/GlobalChat'
 import Footer from '@/components/website/Footer'
 import WebsiteHeader from '@/components/website/Header'
+import SelectCountry from '@/components/website/SelectCountry'
 import React from 'react'
 
 function layout({ children }) {
@@ -11,6 +12,8 @@ function layout({ children }) {
 
       <Chat />
       <Footer />
+
+      <SelectCountry />
     </div>
   )
 }
