@@ -8,8 +8,6 @@ import { toast } from 'react-toastify';
 
 
 function EarningsReviewsPage() {
-  const [activeTab, setActiveTab] = useState('earnings');
-  const [earningsFilter, setEarningsFilter] = useState('all');
   const [reviewsFilter, setReviewsFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [reviewsData, setReviewsData] = useState({
@@ -28,82 +26,6 @@ function EarningsReviewsPage() {
   });
 
   const { token } = useSelector(state => state.auth);
-
-  // Mock earnings data (keep as is)
-  const earningsData = {
-    summary: {
-      totalEarnings: 485000,
-      thisMonth: 85000,
-      lastMonth: 74000,
-      pending: 25000,
-      available: 460000,
-      growth: 15,
-      totalJobs: 147,
-      avgJobValue: 3299
-    },
-    monthlyEarnings: [
-      { month: 'Jan 2024', amount: 65000, jobs: 18 },
-      { month: 'Feb 2024', amount: 72000, jobs: 22 },
-      { month: 'Mar 2024', amount: 68000, jobs: 20 },
-      { month: 'Apr 2024', amount: 78000, jobs: 24 },
-      { month: 'May 2024', amount: 82000, jobs: 26 },
-      { month: 'Jun 2024', amount: 69000, jobs: 21 },
-      { month: 'Jul 2024', amount: 74000, jobs: 23 },
-      { month: 'Aug 2024', amount: 85000, jobs: 27 }
-    ],
-    transactions: [
-      {
-        id: 1,
-        jobTitle: 'iPhone 14 Pro Screen Replacement',
-        client: 'Sarah Ahmed',
-        amount: 12000,
-        date: '2024-08-24',
-        status: 'completed',
-        paymentMethod: 'Bank Transfer',
-        jobId: 'JOB001'
-      },
-      {
-        id: 2,
-        jobTitle: 'Samsung Galaxy S23 Water Damage',
-        client: 'Ahmed Khan',
-        amount: 8500,
-        date: '2024-08-23',
-        status: 'pending',
-        paymentMethod: 'Cash',
-        jobId: 'JOB002'
-      },
-      {
-        id: 3,
-        jobTitle: 'Multiple iPhone Repairs',
-        client: 'TechMart Electronics',
-        amount: 25000,
-        date: '2024-08-22',
-        status: 'completed',
-        paymentMethod: 'Bank Transfer',
-        jobId: 'JOB003'
-      },
-      {
-        id: 4,
-        jobTitle: 'OnePlus 9 Pro Battery Replacement',
-        client: 'Fatima Ali',
-        amount: 6500,
-        date: '2024-08-21',
-        status: 'completed',
-        paymentMethod: 'JazzCash',
-        jobId: 'JOB004'
-      },
-      {
-        id: 5,
-        jobTitle: 'Xiaomi Redmi Note Charging Port',
-        client: 'Hassan Malik',
-        amount: 4000,
-        date: '2024-08-20',
-        status: 'completed',
-        paymentMethod: 'EasyPaisa',
-        jobId: 'JOB005'
-      }
-    ]
-  };
 
   // Fetch Reviews and Stats
   const fetchReviewsData = async () => {
@@ -166,144 +88,45 @@ function EarningsReviewsPage() {
   };
 
   useEffect(() => {
-    if (activeTab === 'reviews') {
-      fetchReviewsData();
-    }
-  }, [activeTab]);
+    fetchReviewsData();
+  }, []);
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'processing': return 'bg-primary-100 text-primary-800';
-      default: return 'bg-gray-100 text-gray-800';
+  // Helper function to render stars with half-star support
+  const renderStars = (rating) => {
+    const stars = [];
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 >= 0.5;
+    
+    for (let i = 0; i < 5; i++) {
+      if (i < fullStars) {
+        stars.push(
+          <Icon 
+            key={i} 
+            icon="heroicons:star-solid" 
+            className="w-4 h-4 text-yellow-400" 
+          />
+        );
+      } else if (i === fullStars && hasHalfStar) {
+        stars.push(
+          <Icon 
+            key={i} 
+            icon="heroicons:star-solid" 
+            className="w-4 h-4 text-yellow-400 opacity-50" 
+          />
+        );
+      } else {
+        stars.push(
+          <Icon 
+            key={i} 
+            icon="heroicons:star" 
+            className="w-4 h-4 text-gray-300" 
+          />
+        );
+      }
     }
+    
+    return stars;
   };
-
-  const EarningsOverview = () => (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <Icon icon="heroicons:banknotes" className="w-6 h-6 text-green-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">${earningsData.summary.totalEarnings.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">Total Earnings</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-primary-100 rounded-lg">
-              <Icon icon="heroicons:calendar-days" className="w-6 h-6 text-primary-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">${earningsData.summary.thisMonth.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">This Month</p>
-              <div className="flex items-center text-xs">
-                <Icon icon="heroicons:arrow-up" className="w-3 h-3 text-green-500 mr-1" />
-                <span className="text-green-500">+{earningsData.summary.growth}%</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <Icon icon="heroicons:clock" className="w-6 h-6 text-yellow-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">${earningsData.summary.pending.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">Pending</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <div className="flex items-center">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Icon icon="heroicons:chart-bar" className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="ml-4">
-              <p className="text-2xl font-bold text-gray-900">${earningsData.summary.avgJobValue.toLocaleString()}</p>
-              <p className="text-sm text-gray-600">Avg per Job</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Monthly Chart */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-6">Monthly Earnings</h3>
-        <div className="space-y-4">
-          {earningsData.monthlyEarnings.map((month, index) => (
-            <div key={index} className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <span className="text-sm font-medium text-gray-900 w-20">{month.month}</span>
-                <div className="flex-1 bg-gray-200 rounded-full h-3 w-64">
-                  <div 
-                    className="bg-green-600 h-3 rounded-full" 
-                    style={{ width: `${(month.amount / Math.max(...earningsData.monthlyEarnings.map(m => m.amount))) * 100}%` }}
-                  />
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-semibold text-gray-900">${month.amount.toLocaleString()}</p>
-                <p className="text-sm text-gray-600">{month.jobs} jobs</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Transactions */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-semibold text-gray-900">Recent Transactions</h3>
-          <select
-            value={earningsFilter}
-            onChange={(e) => setEarningsFilter(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-3 py-2"
-          >
-            <option value="all">All Transactions</option>
-            <option value="completed">Completed</option>
-            <option value="pending">Pending</option>
-          </select>
-        </div>
-        
-        <div className="space-y-4">
-          {earningsData.transactions
-            .filter(t => earningsFilter === 'all' || t.status === earningsFilter)
-            .map(transaction => (
-            <div key={transaction.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-              <div className="flex items-center space-x-4">
-                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
-                  <Icon icon="heroicons:banknotes" className="w-5 h-5 text-primary-600" />
-                </div>
-                <div>
-                  <p className="font-medium text-gray-900">{transaction.jobTitle}</p>
-                  <p className="text-sm text-gray-600">Client: {transaction.client}</p>
-                  <p className="text-xs text-gray-500">{transaction.paymentMethod} • Job ID: {transaction.jobId}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-gray-900">${transaction.amount.toLocaleString()}</p>
-                <p className="text-sm text-gray-600">{new Date(transaction.date).toLocaleDateString()}</p>
-                <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(transaction.status)}`}>
-                  {transaction.status}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
 
   const ReviewsOverview = () => {
     const [respondingTo, setRespondingTo] = useState(null);
@@ -327,16 +150,14 @@ function EarningsReviewsPage() {
                 <Icon icon="heroicons:star" className="w-6 h-6 text-yellow-600" />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{reviewsData.summary.overallRating.toFixed(1)}</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {reviewsData.summary.overallRating > 0 
+                    ? reviewsData.summary.overallRating.toFixed(1) 
+                    : '0.0'}
+                </p>
                 <p className="text-sm text-gray-600">Overall Rating</p>
                 <div className="flex mt-1">
-                  {[...Array(5)].map((_, i) => (
-                    <Icon 
-                      key={i} 
-                      icon="heroicons:star" 
-                      className={`w-4 h-4 ${i < Math.floor(reviewsData.summary.overallRating) ? 'text-yellow-400' : 'text-gray-300'}`} 
-                    />
-                  ))}
+                  {renderStars(reviewsData.summary.overallRating)}
                 </div>
               </div>
             </div>
@@ -393,7 +214,7 @@ function EarningsReviewsPage() {
               <div key={rating.stars} className="flex items-center space-x-4">
                 <div className="flex items-center space-x-1 w-16">
                   <span className="text-sm font-medium">{rating.stars}</span>
-                  <Icon icon="heroicons:star" className="w-4 h-4 text-yellow-400" />
+                  <Icon icon="heroicons:star-solid" className="w-4 h-4 text-yellow-400" />
                 </div>
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
@@ -444,7 +265,6 @@ function EarningsReviewsPage() {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <p className="font-medium text-gray-900">{review.customerId?.name || 'Anonymous'}</p>
-                          <p className="text-sm text-gray-600">{review.bookingId?.bookingNumber || 'N/A'}</p>
                           <p className="text-xs text-gray-500">{new Date(review.createdAt).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
@@ -452,7 +272,7 @@ function EarningsReviewsPage() {
                             {[...Array(5)].map((_, i) => (
                               <Icon 
                                 key={i} 
-                                icon="heroicons:star" 
+                                icon={i < review.overallRating ? "heroicons:star-solid" : "heroicons:star"} 
                                 className={`w-4 h-4 ${i < review.overallRating ? 'text-yellow-400' : 'text-gray-300'}`} 
                               />
                             ))}
@@ -525,38 +345,12 @@ function EarningsReviewsPage() {
         
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Earnings & Reviews</h1>
-          <p className="text-gray-600">Track your financial performance and client feedback</p>
-        </div>
-
-        {/* Tabs */}
-        <div className="bg-white rounded-lg border border-gray-200 mb-8">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-8 px-6">
-              {[
-                { id: 'earnings', label: 'Earnings', icon: 'heroicons:banknotes' },
-                { id: 'reviews', label: 'Reviews', icon: 'heroicons:star' }
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-2 text-sm font-medium border-b-2 transition-colors flex items-center space-x-2 ${
-                    activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <Icon icon={tab.icon} className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Reviews</h1>
+          <p className="text-gray-600">Track your client feedback and ratings</p>
         </div>
 
         {/* Content */}
-        {activeTab === 'earnings' && <EarningsOverview />}
-        {activeTab === 'reviews' && <ReviewsOverview />}
+        <ReviewsOverview />
       </div>
     </div>
   );

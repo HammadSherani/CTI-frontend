@@ -10,7 +10,7 @@ function RepairmanEarning() {
   const [earningsData, setEarningsData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  
+
   // ✅ Modal state
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
   const [withdrawAmount, setWithdrawAmount] = useState('')
@@ -52,13 +52,13 @@ function RepairmanEarning() {
           'Authorization': 'Bearer ' + token,
         }
       })
-      
+
       console.log('Withdraw History Response:', data)
-      
+
       // Set the withdrawal history data
       setWithdrawHistory(data.data || [])
       setWithdrawSummary(data.summary || null)
-      
+
     } catch (error) {
       console.error('Error fetching withdraw history:', error)
       alert('Failed to load withdrawal history')
@@ -124,7 +124,7 @@ function RepairmanEarning() {
       })
 
       alert('Withdrawal request submitted successfully! ✅')
-      
+
       // Reset form
       setWithdrawAmount('')
       setBankDetails({
@@ -134,10 +134,10 @@ function RepairmanEarning() {
         iban: ''
       })
       setShowWithdrawModal(false)
-      
+
       // Refresh data
       fetchData()
-      
+
       // Refresh history if on withdraw-history tab
       if (activeTab === 'withdraw-history') {
         fetchWithdrawHistory()
@@ -155,7 +155,7 @@ function RepairmanEarning() {
   // ✅ Quick withdraw (full balance)
   const handleQuickWithdraw = () => {
     const isPaymentComplete = earningsData?.paymentInfo?.isPaymentInformationCompleted || false
-    
+
     if (!isPaymentComplete) {
       alert('Please complete your bank details in settings before requesting a withdrawal.')
       return
@@ -168,11 +168,11 @@ function RepairmanEarning() {
   // ✅ Handle withdraw button click
   const handleWithdrawClick = () => {
     const isPaymentComplete = earningsData?.paymentInfo?.isPaymentInformationCompleted || false
-    
+
     if (!isPaymentComplete) {
       return // Modal won't open, warning is already displayed
     }
-    
+
     setShowWithdrawModal(true)
   }
 
@@ -227,7 +227,7 @@ function RepairmanEarning() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-gray-900">My Earnings</h1>
-          <button 
+          <button
             onClick={fetchData}
             className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
           >
@@ -248,7 +248,7 @@ function RepairmanEarning() {
                 <p className="text-sm text-amber-800 mb-3">
                   Please complete your bank account information in settings before you can request a withdrawal. This is required to process your payments securely.
                 </p>
-                <button 
+                <button
                   onClick={() => window.location.href = '/repair-man/profile/edit-profile?tab=bank'}
                   className="px-4 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors text-sm font-medium flex items-center gap-2"
                 >
@@ -264,32 +264,29 @@ function RepairmanEarning() {
         <div className="flex gap-2 border-b border-gray-200">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
-              activeTab === 'overview'
-                ? 'text-primary-600 border-b-2 border-primary-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'overview'
+              ? 'text-primary-600 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('withdraw')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
-              activeTab === 'withdraw'
-                ? 'text-primary-600 border-b-2 border-primary-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'withdraw'
+              ? 'text-primary-600 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             Withdraw
           </button>
 
           <button
             onClick={() => setActiveTab('withdraw-history')}
-            className={`px-4 py-2 font-medium text-sm transition-colors ${
-              activeTab === 'withdraw-history'
-                ? 'text-primary-600 border-b-2 border-primary-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
+            className={`px-4 py-2 font-medium text-sm transition-colors ${activeTab === 'withdraw-history'
+              ? 'text-primary-600 border-b-2 border-primary-600'
+              : 'text-gray-600 hover:text-gray-900'
+              }`}
           >
             Withdraw History
           </button>
@@ -463,7 +460,7 @@ function RepairmanEarning() {
                     <p className="text-sm text-red-800 mb-4">
                       You must complete your bank account information before requesting a withdrawal. This ensures your payments can be processed securely and efficiently.
                     </p>
-                    <button 
+                    <button
                       onClick={() => window.location.href = '/repairman/settings'}
                       className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
                     >
@@ -478,7 +475,7 @@ function RepairmanEarning() {
             {/* Withdraw Section */}
             <div className={`bg-white rounded-lg shadow p-6 ${!isPaymentInfoComplete ? 'opacity-50 pointer-events-none' : ''}`}>
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Withdraw Funds</h2>
-              
+
               <div className="bg-primary-50 rounded-lg p-4 mb-4 border border-primary-100">
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm text-gray-700">Available Balance</span>
@@ -504,7 +501,7 @@ function RepairmanEarning() {
                 <Icon icon="solar:export-bold" className="w-5 h-5" />
                 Request Withdrawal
               </button>
-              
+
               {availableBalance < 500 && isPaymentInfoComplete && (
                 <p className="text-xs text-red-600 mt-2 text-center">
                   Insufficient balance. Minimum {formatCurrency(500, currency)} required.
@@ -537,7 +534,7 @@ function RepairmanEarning() {
                 <h2 className="font-semibold text-gray-900">Withdrawal History</h2>
                 <span className="text-xs text-gray-500">Recent requests</span>
               </div>
-              
+
               <div className="p-12 text-center">
                 <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
                   <Icon icon="solar:document-bold-duotone" className="w-8 h-8 text-gray-400" />
@@ -552,203 +549,222 @@ function RepairmanEarning() {
         {activeTab === 'withdraw-history' && (
           <>
             {/* Summary Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-blue-100 p-1.5 rounded-lg">
-                    <Icon icon="solar:clock-circle-bold-duotone" className="w-4 h-4 text-blue-600" />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-blue-50 p-2 rounded-lg">
+                    <Icon icon="solar:clock-circle-bold-duotone" className="w-5 h-5 text-blue-600" />
                   </div>
-                  <span className="text-xs text-gray-600">Requested</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {historyLoading ? '...' : withdrawSummary?.requested?.count || 0}
+                  </span>
                 </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {historyLoading ? '...' : withdrawSummary?.requested?.count || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-gray-900 mb-1">Requested</p>
+                <p className="text-xs text-gray-500">
                   {formatCurrency(withdrawSummary?.requested?.amount || 0, currency)}
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-orange-100 p-1.5 rounded-lg">
-                    <Icon icon="solar:refresh-bold-duotone" className="w-4 h-4 text-orange-600" />
+              <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-orange-50 p-2 rounded-lg">
+                    <Icon icon="solar:refresh-bold-duotone" className="w-5 h-5 text-orange-600" />
                   </div>
-                  <span className="text-xs text-gray-600">Processing</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {historyLoading ? '...' : withdrawSummary?.processing?.count || 0}
+                  </span>
                 </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {historyLoading ? '...' : withdrawSummary?.processing?.count || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-gray-900 mb-1">Processing</p>
+                <p className="text-xs text-gray-500">
                   {formatCurrency(withdrawSummary?.processing?.amount || 0, currency)}
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-green-100 p-1.5 rounded-lg">
-                    <Icon icon="solar:check-circle-bold-duotone" className="w-4 h-4 text-green-600" />
+              <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-green-50 p-2 rounded-lg">
+                    <Icon icon="solar:check-circle-bold-duotone" className="w-5 h-5 text-green-600" />
                   </div>
-                  <span className="text-xs text-gray-600">Completed</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {historyLoading ? '...' : withdrawSummary?.completed?.count || 0}
+                  </span>
                 </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {historyLoading ? '...' : withdrawSummary?.completed?.count || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-gray-900 mb-1">Completed</p>
+                <p className="text-xs text-gray-500">
                   {formatCurrency(withdrawSummary?.completed?.amount || 0, currency)}
                 </p>
               </div>
 
-              <div className="bg-white rounded-lg shadow p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="bg-red-100 p-1.5 rounded-lg">
-                    <Icon icon="solar:close-circle-bold-duotone" className="w-4 h-4 text-red-600" />
+              <div className="bg-white rounded-xl border border-gray-200 p-5 hover:shadow-md transition-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="bg-red-50 p-2 rounded-lg">
+                    <Icon icon="solar:close-circle-bold-duotone" className="w-5 h-5 text-red-600" />
                   </div>
-                  <span className="text-xs text-gray-600">Rejected</span>
+                  <span className="text-2xl font-bold text-gray-900">
+                    {historyLoading ? '...' : withdrawSummary?.rejected?.count || 0}
+                  </span>
                 </div>
-                <p className="text-xl font-bold text-gray-900">
-                  {historyLoading ? '...' : withdrawSummary?.rejected?.count || 0}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-sm font-medium text-gray-900 mb-1">Rejected</p>
+                <p className="text-xs text-gray-500">
                   {formatCurrency(withdrawSummary?.rejected?.amount || 0, currency)}
                 </p>
               </div>
             </div>
 
             {/* Withdraw History List */}
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-900">Withdrawal History</h2>
-                <button
-                  onClick={fetchWithdrawHistory}
-                  disabled={historyLoading}
-                  className="px-3 py-1.5 bg-primary-100 text-primary-600 rounded-lg hover:bg-primary-200 transition-colors text-xs font-medium flex items-center gap-1"
-                >
-                  <Icon icon="solar:refresh-bold" className="w-3 h-3" />
-                  {historyLoading ? 'Loading...' : 'Refresh'}
-                </button>
+            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+              {/* Header */}
+              <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900">Withdrawal History</h2>
+                    <p className="text-xs text-gray-500 mt-0.5">Track all your withdrawal requests</p>
+                  </div>
+                  <button
+                    onClick={fetchWithdrawHistory}
+                    disabled={historyLoading}
+                    className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+                  >
+                    <Icon icon="solar:refresh-bold" className="w-4 h-4" />
+                    Refresh
+                  </button>
+                </div>
               </div>
-              
+
+              {/* Content */}
               {historyLoading ? (
-                <div className="p-12 text-center">
-                  <div className="animate-spin w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full mx-auto mb-3"></div>
+                <div className="p-16 text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 mb-4">
+                    <Icon icon="svg-spinners:ring-resize" className="w-12 h-12 text-primary-600" />
+                  </div>
                   <p className="text-gray-500 text-sm">Loading withdrawal history...</p>
                 </div>
               ) : withdrawHistory.length === 0 ? (
-                <div className="p-12 text-center">
-                  <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <Icon icon="solar:document-bold-duotone" className="w-8 h-8 text-gray-400" />
+                <div className="p-16 text-center">
+                  <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon icon="solar:wallet-bold-duotone" className="w-8 h-8 text-gray-400" />
                   </div>
-                  <p className="text-gray-500 text-sm">No withdrawal history yet</p>
-                  <p className="text-gray-400 text-xs mt-1">Your withdrawal requests will appear here</p>
+                  <p className="text-gray-900 font-medium mb-1">No Withdrawal History</p>
+                  <p className="text-gray-500 text-sm">Your withdrawal requests will appear here</p>
                 </div>
               ) : (
-                <div className="divide-y divide-gray-200">
+                <div className="divide-y divide-gray-100">
                   {withdrawHistory.map((item) => (
-                    <div key={item._id} className="p-4 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start justify-between gap-4">
-                        {/* Left Section - Main Info */}
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <div className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${
-                              item.status === 'completed' ? 'bg-green-100 text-green-700' :
-                              item.status === 'processing' ? 'bg-orange-100 text-orange-700' :
-                              item.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                              'bg-blue-100 text-blue-700'
+                    <div key={item._id} className="p-6 hover:bg-gray-50 transition-colors">
+                      {/* Status Badge & Amount Row */}
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 ${item.status === 'completed' ? 'bg-green-50 text-green-700 border border-green-100' :
+                              item.status === 'processing' ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                item.status === 'rejected' ? 'bg-red-50 text-red-700 border border-red-100' :
+                                  'bg-blue-50 text-blue-700 border border-blue-100'
                             }`}>
-                              <Icon icon={item.statusBadge?.icon || 'solar:document-bold'} className="w-3.5 h-3.5" />
-                              {item.statusBadge?.text || item.status}
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {item.earningsCount} earning{item.earningsCount !== 1 ? 's' : ''}
-                            </span>
+                            <Icon icon={item.statusBadge?.icon || 'solar:document-bold'} className="w-3.5 h-3.5" />
+                            {item.statusBadge?.text || item.status}
                           </div>
+                          <span className="text-xs text-gray-400 font-medium">
+                            {item.earningsCount} earning{item.earningsCount !== 1 ? 's' : ''}
+                          </span>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-bold text-gray-900">
+                            {formatCurrency(item.amount, currency)}
+                          </p>
+                        </div>
+                      </div>
 
-                          <div className="space-y-1">
-                            <p className="text-2xl font-bold text-gray-900">
-                              {formatCurrency(item.amount, currency)}
-                            </p>
-                            
-                            {/* Bank Details */}
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Icon icon="solar:card-bold" className="w-3.5 h-3.5" />
-                              <span>{item.bankDetails.bankName}</span>
-                              <span className="text-gray-400">•</span>
-                              <span>{item.bankDetails.accountNumber}</span>
-                            </div>
-                            
-                            {item.bankDetails.branchName && (
-                              <div className="flex items-center gap-2 text-xs text-gray-600">
-                                <Icon icon="solar:map-point-bold" className="w-3.5 h-3.5" />
-                                <span>{item.bankDetails.branchName}</span>
-                              </div>
-                            )}
+                      {/* Bank Details Card */}
+                      <div className="bg-gray-50 rounded-lg p-4 mb-4 border border-gray-100">
+                        <div className="flex items-center gap-2 mb-3">
+                          <Icon icon="solar:card-bold-duotone" className="w-4 h-4 text-gray-600" />
+                          <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Bank Details</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Bank Name</p>
+                            <p className="text-sm font-medium text-gray-900">{item.bankDetails.bankName}</p>
                           </div>
-
-                          {/* Admin Note */}
-                          {item.adminNote && (
-                            <div className="mt-3 bg-gray-50 rounded-lg p-3 border border-gray-100">
-                              <div className="flex items-start gap-2">
-                                <Icon icon="solar:user-bold-duotone" className="w-4 h-4 text-gray-500 mt-0.5" />
-                                <div>
-                                  <p className="text-xs font-medium text-gray-700 mb-0.5">Admin Note</p>
-                                  <p className="text-xs text-gray-600">{item.adminNote}</p>
-                                </div>
-                              </div>
+                          <div>
+                            <p className="text-xs text-gray-500 mb-1">Account Number</p>
+                            <p className="text-sm font-medium text-gray-900 font-mono">{item.bankDetails.accountNumber}</p>
+                          </div>
+                          {item.bankDetails.branchName && (
+                            <div className="col-span-2">
+                              <p className="text-xs text-gray-500 mb-1">Branch</p>
+                              <p className="text-sm font-medium text-gray-900">{item.bankDetails.branchName}</p>
                             </div>
                           )}
                         </div>
+                      </div>
 
-                        {/* Right Section - Dates */}
-                        <div className="text-right space-y-2">
-                          <div>
-                            <p className="text-xs text-gray-500 mb-0.5">Requested</p>
-                            <p className="text-xs font-medium text-gray-900">
-                              {new Date(item.requestedAt).toLocaleDateString('en-US', {
-                                month: 'short',
-                                day: 'numeric',
-                                year: 'numeric'
-                              })}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(item.requestedAt).toLocaleTimeString('en-US', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
+                      {/* Timeline */}
+                      <div className="flex items-center gap-6 text-xs">
+                        <div>
+                          <p className="text-gray-500 mb-1">Requested</p>
+                          <p className="font-medium text-gray-900">
+                            {new Date(item.requestedAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                          </p>
+                          <p className="text-gray-500 text-[10px] mt-0.5">
+                            {new Date(item.requestedAt).toLocaleTimeString('en-US', {
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
 
-                          {item.processedAt && (
+                        {item.processedAt ? (
+                          <>
+                            <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-gray-300" />
                             <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Processed</p>
-                              <p className="text-xs font-medium text-gray-900">
+                              <p className="text-gray-500 mb-1">Processed</p>
+                              <p className="font-medium text-gray-900">
                                 {new Date(item.processedAt).toLocaleDateString('en-US', {
                                   month: 'short',
                                   day: 'numeric',
                                   year: 'numeric'
                                 })}
                               </p>
-                              <p className="text-xs text-gray-500">
+                              <p className="text-gray-500 text-[10px] mt-0.5">
                                 {new Date(item.processedAt).toLocaleTimeString('en-US', {
                                   hour: '2-digit',
                                   minute: '2-digit'
                                 })}
                               </p>
                             </div>
-                          )}
-
-                          {item.expectedReleaseDate && !item.processedAt && (
+                          </>
+                        ) : item.expectedReleaseDate ? (
+                          <>
+                            <Icon icon="solar:arrow-right-linear" className="w-4 h-4 text-gray-300" />
                             <div>
-                              <p className="text-xs text-gray-500 mb-0.5">Expected</p>
-                              <p className="text-xs font-medium text-orange-600">
+                              <p className="text-gray-500 mb-1">Expected</p>
+                              <p className="font-medium text-orange-600">
                                 {new Date(item.expectedReleaseDate).toLocaleDateString('en-US', {
                                   month: 'short',
-                                  day: 'numeric'
+                                  day: 'numeric',
+                                  year: 'numeric'
                                 })}
                               </p>
                             </div>
-                          )}
-                        </div>
+                          </>
+                        ) : null}
                       </div>
+
+                      {/* Admin Note */}
+                      {item.adminNote && (
+                        <div className="mt-4 bg-amber-50 border border-amber-100 rounded-lg p-3">
+                          <div className="flex items-start gap-2">
+                            <Icon icon="solar:chat-round-bold-duotone" className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-amber-900 mb-1">Admin Note</p>
+                              <p className="text-xs text-amber-800 leading-relaxed">{item.adminNote}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -810,52 +826,61 @@ function RepairmanEarning() {
                 </p>
               </div>
 
-              {/* Bank Details */}
+              {/* Processing Fee Display */}
+              {withdrawAmount && parseFloat(withdrawAmount) >= 500 && (
+                <div className="bg-blue-50 rounded-lg p-3 border border-blue-100 space-y-2">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700">Withdrawal Amount:</span>
+                    <span className="font-semibold text-gray-900">
+                      {formatCurrency(parseFloat(withdrawAmount), currency)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-700">Processing Fee (3.5%):</span>
+                    <span className="font-semibold text-red-600">
+                      - {formatCurrency(parseFloat(withdrawAmount) * 0.035, currency)}
+                    </span>
+                  </div>
+                  <div className="pt-2 border-t border-blue-200">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-900">You'll Receive:</span>
+                      <span className="text-lg font-bold text-green-600">
+                        {formatCurrency(parseFloat(withdrawAmount) * 0.965, currency)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Bank Details - Read Only */}
               <div className="space-y-3">
-                <h4 className="text-sm font-semibold text-gray-900">Bank Details</h4>
-                
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Branch Name *</label>
-                  <input
-                    type="text"
-                    value={bankDetails.branchName}
-                    onChange={(e) => setBankDetails({ ...bankDetails, branchName: e.target.value })}
-                    placeholder="Main Branch"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
+                <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <Icon icon="solar:card-bold-duotone" className="w-5 h-5 text-primary-600" />
+                  Bank Details
+                </h4>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Bank Name *</label>
-                  <input
-                    type="text"
-                    value={bankDetails.bankName}
-                    onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
-                    placeholder="Bank of America"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
+                <div className="bg-gray-50 rounded-lg p-4 space-y-3 border border-gray-200">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Branch Name</label>
+                    <p className="text-sm font-medium text-gray-900">{bankDetails.branchName || 'N/A'}</p>
+                  </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Account Number *</label>
-                  <input
-                    type="text"
-                    value={bankDetails.accountNumber}
-                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
-                    placeholder="1234567890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
-                </div>
+                  <div className="border-t border-gray-200 pt-3">
+                    <label className="block text-xs text-gray-500 mb-1">Bank Name</label>
+                    <p className="text-sm font-medium text-gray-900">{bankDetails.bankName || 'N/A'}</p>
+                  </div>
 
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">IBAN (Optional)</label>
-                  <input
-                    type="text"
-                    value={bankDetails.iban}
-                    onChange={(e) => setBankDetails({ ...bankDetails, iban: e.target.value })}
-                    placeholder="PK12ABCD1234567890"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                  />
+                  <div className="border-t border-gray-200 pt-3">
+                    <label className="block text-xs text-gray-500 mb-1">Account Number</label>
+                    <p className="text-sm font-medium text-gray-900 font-mono">{bankDetails.accountNumber || 'N/A'}</p>
+                  </div>
+
+                  {bankDetails.iban && (
+                    <div className="border-t border-gray-200 pt-3">
+                      <label className="block text-xs text-gray-500 mb-1">IBAN</label>
+                      <p className="text-sm font-medium text-gray-900 font-mono">{bankDetails.iban}</p>
+                    </div>
+                  )}
                 </div>
               </div>
 

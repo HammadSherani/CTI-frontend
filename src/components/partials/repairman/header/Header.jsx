@@ -50,7 +50,8 @@ function Header() {
     { name: "My Offer", path: "/repair-man/my-offers", icon: "mdi:handshake-outline" },
     { name: "My Jobs", path: "/repair-man/my-jobs", icon: "mdi:briefcase-outline" },
     // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
-    { name: "Earning & Reviews", path: "/repair-man/earning-reviews", icon: "mdi:star-outline" },
+    { name: "Reviews", path: "/repair-man/reviews", icon: "mdi:star-outline" },
+    { name: "Earnings", path: "/repair-man/earning", icon: "mdi:star-outline" },
     { name: "Disputes", path: "/repair-man/disputes", icon: "mdi:star-outline" },
   ];
 
