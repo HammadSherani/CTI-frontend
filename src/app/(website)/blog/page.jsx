@@ -6,9 +6,9 @@ import FeaturedPosts from "@/components/website/blog/FeaturedPosts";
 const BlogPage = () => {
   return ( 
     <main>
-      <BlogHero />
+      {/* <BlogHero /> */}
       <FeaturedPosts />
-      <BlogGrid />
+      {/* <BlogGrid /> */}
     </main>
   );
 };
