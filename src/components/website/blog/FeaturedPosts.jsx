@@ -1,5 +1,7 @@
 'use client'
 
+import Loader from '@/components/Loader';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import Image from 'next/image';
@@ -45,14 +47,14 @@ const FeaturedPosts = () => {
     const [tags, setTags] = useState([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTag, setSelectedTag] = useState('all');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const { token } = useSelector(state => state.auth);
 
     // Get Blogs with optional filters
     const getBlogs = async (tag = null, search = null) => {
         try {
             setLoading(true);
-            
+
             // Build query parameters
             const params = new URLSearchParams();
             if (tag && tag !== 'all') {
@@ -128,20 +130,27 @@ const FeaturedPosts = () => {
     }, []);
 
     return (
-        <section className="bg-white py-16">
-            <div className="container mx-auto px-4 sm:px-6 lg:px-8">
 
-                <div className="mb-8 text-center flex items-center justify-center flex-col">
-                    <h2 className="text-5xl mb-1 font-bold text-gray-800">Our News</h2>
-                    <p className="text-gray-600 mt-1 max-w-[800px]">
-                        Reliable mobile repair solutions, premium spare parts, and affordable refurbished devices designed to keep you connected without compromise.
-                    </p>
-                </div>
+        <Loader loading={loading}>
+            <div className='bg-white'>
+                <div className='px-12 py-3'>
+                <Breadcrumb />
+            </div>
+            <section className="bg-white pb-16 pt-5">
 
-                {/* Search and Filter Section */}
-                <div className='flex flex-col sm:flex-row items-center justify-between gap-4 mb-8'>
-                    {/* Tags Dropdown */}
-                    {/* <div className="w-full sm:w-auto">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+
+                    <div className="mb-8 text-center flex items-center justify-center flex-col">
+                        <h2 className="text-5xl mb-1 font-bold text-gray-800">Our News</h2>
+                        <p className="text-gray-600 mt-1 max-w-[800px]">
+                            Reliable mobile repair solutions, premium spare parts, and affordable refurbished devices designed to keep you connected without compromise.
+                        </p>
+                    </div>
+
+                    {/* Search and Filter Section */}
+                    <div className='flex flex-col sm:flex-row items-center justify-between gap-4 mb-8'>
+                        {/* Tags Dropdown */}
+                        {/* <div className="w-full sm:w-auto">
                         <select
                             name="tags"
                             value={selectedTag}
@@ -157,119 +166,116 @@ const FeaturedPosts = () => {
                         </select>
                     </div> */}
 
-                    {/* Search Input */}
-                    <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
-                        <input
-                            type="text"
-                            placeholder="Search blogs..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
-                        />
-                        <svg
-                            className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        {/* Search Input */}
+                        {/* <div className="relative w-full sm:w-auto sm:flex-1 sm:max-w-md">
+                            <input
+                                type="text"
+                                placeholder="Search blogs..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
                             />
-                        </svg>
-                    </div>
-                </div>
-
-                {/* Loading State */}
-                {loading && (
-                    <div className="text-center py-8">
-                        <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-                        <p className="mt-2 text-gray-600">Loading blogs...</p>
-                    </div>
-                )}
-
-                {/* Blogs Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-
-                    <div className="lg:col-span-9">
-                        {blogs.length > 0 ? (
-                            <div className="grid grid-cols-1  gap-6">
-                                {blogs.map((blog) => (
-                                    <Link key={blog._id} href={`/blog/${blog.slug}`} className="group">
-                                        <BlogCard
-                                            src={blog.featuredImage || "/assets/blog/blog-ban1.png"}
-                                            alt={blog.title}
-                                            className="h-[500px]"
-                                        />
-                                        <div className="mt-4">
-                                            <div className="flex gap-2 mb-2">
-                                                {blog.tags.map((tag) => (
-                                                    <span
-                                                        key={tag}
-                                                        className="px-3 py-1 bg-primary-100 text-primary-600 text-xs font-medium rounded-full"
-                                                    >
-                                                        {tag}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                            <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors mb-2">
-                                                {blog.title}
-                                            </h3>
-                                            <p className="text-gray-600 text-sm line-clamp-2 mb-2">
-                                                {blog.description}
-                                            </p>
-                                            <p className="text-sm text-gray-400">
-                                                {new Date(blog.createdAt).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
-                                            </p>
-                                        </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        ) : !loading ? (
-                            <div className="text-center py-16">
-                                <p className="text-gray-500 text-lg">No blogs found</p>
-                            </div>
-                        ) : null}
+                            <svg
+                                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
+                            </svg>
+                        </div> */}
                     </div>
 
-                    {/* Sidebar - Featured Blogs */}
-                    <div className="lg:col-span-3">
-                        <div className="sticky top-6">
-                            <div className="bg-white rounded-lg">
-                                <div className="space-y-6">
-                                    {featuredBlog.length > 0 ? (
-                                        featuredBlog.map((blog) => (
-                                            <RelatedPostCard
-                                                key={blog._id}
-                                                image={blog.featuredImage || "/assets/blog/blog-ban1.png"}
-                                                title={blog.title}
-                                                date={new Date(blog.createdAt).toLocaleDateString('en-US', {
-                                                    year: 'numeric',
-                                                    month: 'long',
-                                                    day: 'numeric'
-                                                })}
-                                                slug={blog.slug}
+
+
+                    {/* Blogs Grid */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+                        <div className="lg:col-span-9">
+                            {blogs.length > 0 ? (
+                                <div className="grid grid-cols-1  gap-6">
+                                    {blogs.map((blog) => (
+                                        <Link key={blog._id} href={`/blog/${blog.slug}`} className="group">
+                                            <BlogCard
+                                                src={blog.featuredImage || "/assets/blog/blog-ban1.png"}
+                                                alt={blog.title}
+                                                className="h-[500px]"
                                             />
-                                        ))
-                                    ) : (
-                                        <div className="text-center py-8">
-                                            <p className="text-gray-500 text-sm">No featured blogs</p>
-                                        </div>
-                                    )}
+                                            <div className="mt-4">
+                                                <div className="flex gap-2 mb-2">
+                                                    {blog.tags.map((tag) => (
+                                                        <span
+                                                            key={tag}
+                                                            className="px-3 py-1 bg-primary-100 text-primary-600 text-xs font-medium rounded-full"
+                                                        >
+                                                            {tag}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <h3 className="text-xl font-bold text-gray-900 group-hover:text-primary-600 transition-colors mb-2">
+                                                    {blog.title}
+                                                </h3>
+                                                <p className="text-gray-600 text-sm line-clamp-2 mb-2">
+                                                    {blog.description}
+                                                </p>
+                                                <p className="text-sm text-gray-400">
+                                                    {new Date(blog.createdAt).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+                                </div>
+                            ) : !loading ? (
+                                <div className="text-center py-16">
+                                    <p className="text-gray-500 text-lg">No blogs found</p>
+                                </div>
+                            ) : null}
+                        </div>
+
+                        {/* Sidebar - Featured Blogs */}
+                        <div className="lg:col-span-3">
+                            <div className="sticky top-6">
+                                <div className="bg-white rounded-lg">
+                                    <div className="space-y-6">
+                                        {featuredBlog.length > 0 ? (
+                                            featuredBlog.map((blog) => (
+                                                <RelatedPostCard
+                                                    key={blog._id}
+                                                    image={blog.featuredImage || "/assets/blog/blog-ban1.png"}
+                                                    title={blog.title}
+                                                    date={new Date(blog.createdAt).toLocaleDateString('en-US', {
+                                                        year: 'numeric',
+                                                        month: 'long',
+                                                        day: 'numeric'
+                                                    })}
+                                                    slug={blog.slug}
+                                                />
+                                            ))
+                                        ) : (
+                                            <div className="text-center py-8">
+                                                <p className="text-gray-500 text-sm">No featured blogs</p>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
+                    </div>
                 </div>
+            </section>
             </div>
-        </section>
+            
+        </Loader>
     );
 };
 

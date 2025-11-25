@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
-import LoginModal from '../../mobile-repair/[brandSlug]/[modelId]/[color]/create-job/LoginModal';
+import LoginModal from '../../mobile-repair/[brandSlug]/[modelId]/[color]/LoginModal';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
 

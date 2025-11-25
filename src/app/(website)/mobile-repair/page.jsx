@@ -4,10 +4,14 @@ import Loader from '@/components/Loader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import Image from 'next/image';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
+import Breadcrumb from '@/components/ui/Breadcrumb';
 
-function Page() {
+
+function BrandPage() {
+    const router = useRouter();
     const [brands, setBrands] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -19,11 +23,15 @@ function Page() {
             const { data } = await axiosInstance.get("/public/brands");
             setBrands(data?.data?.brands || []);
         } catch (error) {
-            setError('Failed to load brands. Please try again later.');
+            setError("Failed to load brands. Please try again.");
             handleError(error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleCardClick = (slug) => {
+        router.push(`/mobile-repair/${slug}`);
     };
 
     useEffect(() => {
@@ -31,70 +39,91 @@ function Page() {
     }, []);
 
     return (
-        <Loader loading={loading} >
-            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-                <div className="max-w-7xl mx-auto">
-                    <h4 className="text-3xl md:text-4xl font-bold text-gray-800 text-center mb-8">
-                        Discover Top Brands
-                    </h4>
+        <Loader loading={loading}>
+            <div className='bg-white'>
+                <div className='px-12 py-3'>
 
-                    {/* {loading && (
-                    <div className="flex justify-center items-center min-h-[200px]">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
-                    </div>
-                )} */}
-
-                    {error && (
-                        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6">
-                            <p>{error}</p>
-                            <button
-                                onClick={fetchBrands}
-                                className="mt-2 inline-block px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    )}
-
-                    {!loading && !error && brands.length === 0 && (
-                        <p className="text-center text-gray-600">No brands available at the moment.</p>
-                    )}
-
-                    {!loading && !error && brands.length > 0 && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
-                            {brands.map((brand) => (
-                                <div
-                                    key={brand.id}
-                                    className="group bg-white rounded-lg shadow-md  transition-all duration-300 p-4 flex flex-col items-center justify-center transform "
-                                    role="button"
-                                    tabIndex={0}
-                                    onKeyDown={(e) => e.key === 'Enter' && console.log(`Clicked ${brand.name}`)}
-                                >
-                                    <div className="relative w-24 h-24 md:w-32 md:h-32">
-                                        <Image
-                                            src={brand?.icon || '/fallback-brand.png'}
-                                            alt={brand?.name || 'Brand'}
-                                            fill
-                                            sizes="(max-width: 768px) 100px, 150px"
-                                            className="object-contain transition-transform duration-300 "
-                                            priority={false}
-                                            onError={(e) => (e.target.src = '/fallback-brand.png')}
-                                            aria-label={`Logo of ${brand?.name || 'brand'}`}
-                                        />
-                                    </div>
-                                    <h5 className="mt-4 text-lg md:text-xl font-semibold text-gray-700 capitalize text-center">
-                                        <Link href={`/mobile-repair/${brand?.slug}`}>
-                                            {brand?.name}
-                                        </Link>
-                                    </h5>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                <Breadcrumb />
                 </div>
+                <section className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-gray-100 pb-14 pt-4 px-8 sm:px-8 lg:px-12">
+                    <div className="">
+
+                        {/* Page Title */}
+                        <motion.h4
+                            className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-12"
+                           
+                        >
+                            Explore Top Mobile Brands
+                        </motion.h4>
+
+                        {/* Error Message */}
+                        {error && (
+                            <div className="bg-red-50 border border-red-400 text-red-700 p-4 rounded-md mb-6 text-center shadow-sm">
+                                <p>{error}</p>
+                                <button
+                                    onClick={fetchBrands}
+                                    className="mt-3 px-5 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition"
+                                >
+                                    Retry
+                                </button>
+                            </div>
+                        )}
+
+                        {/* Empty State */}
+                        {!loading && !error && brands.length === 0 && (
+                            <p className="text-center text-gray-500 text-lg tracking-wide">
+                                No brands available at the moment.
+                            </p>
+                        )}
+
+                        {/* Brands Grid */}
+                        {!loading && !error && brands.length > 0 && (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-7">
+                                {brands.map((brand, index) => (
+                                    <motion.div
+                                        key={brand.id}
+                                        className="group bg-white/80 backdrop-blur-md rounded-2xl shadow-sm  transition-all p-5 flex flex-col items-center border border-gray-100 cursor-pointer"
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => handleCardClick(brand?.slug)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault();
+                                                handleCardClick(brand?.slug);
+                                            }
+                                        }}
+                                        initial={{ opacity: 0, y: 20 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                                        whileTap={{ scale: 0.97 }}
+                                    >
+                                        {/* Brand Logo */}
+                                        <div className="relative w-24 h-24 md:w-28 md:h-28 flex items-center justify-center">
+                                            <Image
+                                                src={brand?.icon || "/fallback-brand.png"}
+                                                alt={brand?.name || "Brand"}
+                                                fill
+                                                className="object-contain transition-transform duration-300 group-hover:scale-110"
+                                                sizes="150px"
+                                                onError={(e) => (e.target.src = "/fallback-brand.png")}
+                                            />
+                                        </div>
+
+                                        {/* Brand Name */}
+                                        <h5 className="mt-4 text-lg font-semibold text-gray-700 capitalize text-center group-hover:text-orange-600 transition">
+                                            {brand?.name}
+                                        </h5>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </section>
             </div>
+
+
         </Loader>
     );
 }
 
-export default Page;
+export default BrandPage;

@@ -20,7 +20,7 @@ function Home() {
       {/* <Loader loading={false}> */}
         <Hero />
         <Categories />
-        <PromoBanner />
+        {/* <PromoBanner /> */}
         <RefurbishedTabs />
         <PromoImages />
         <SellingProducts />

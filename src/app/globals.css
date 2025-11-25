@@ -101,3 +101,31 @@ body {
   padding-left: 1rem;
   color: #6b7280;
 }
+
+
+
+
+.loader2 {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  padding: 10px;
+  display: inline-block;
+  position: relative;
+  background: linear-gradient(0deg, white 33%, #FAA525 100%);
+  box-sizing: border-box;
+  animation: rotation 1s linear infinite;
+}
+
+.loader2::after {
+  content: '';
+  box-sizing: border-box;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: #F4F5F7;
+}

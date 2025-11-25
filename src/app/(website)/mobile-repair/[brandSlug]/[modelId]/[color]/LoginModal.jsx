@@ -11,7 +11,7 @@ import handleError from "@/helper/handleError";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import Logins from "../../../../../../../../public/assets/user/login.png"; // Adjust path as needed
+import Logins from "../../../../../../../public/assets/user/login.png"; 
 import Link from "next/link";
 import { setCurrentUser } from "@/store/chat";
 

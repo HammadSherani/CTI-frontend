@@ -13,9 +13,11 @@ function Header() {
   const dropdownRef = useRef(null);
   const catalogDropdownRef = useRef(null);
   const managementDropdownRef = useRef(null);
+  const partsDropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isManagementDropdownOpen, setIsManagementDropdownOpen] = useState(false);
+  const [isPartsDropdownOpen, setIsPartsDropdownOpen] = useState(false);
   const dispatch = useDispatch();
   const {user} = useSelector((state) => state.auth);
 
@@ -43,8 +45,8 @@ function Header() {
         {
           category: "Location Management",
           items: [
-            { name: "City", icon: "mdi:city-variant-outline", path: "/admin/city" },
-            { name: "State", icon: "mdi:map-marker-outline", path: "/admin/state" },
+            { name: "City", icon: "mdi:city-variant-outline", path: "/admin/cities" },
+            { name: "State", icon: "mdi:map-marker-outline", path: "/admin/states" },
             { name: "Country", icon: "mdi:earth", path: "/admin/countries" },
           ]
         }
@@ -68,6 +70,33 @@ function Header() {
           items: [
             { name: "Job Board", icon: "mdi:briefcase-outline", path: "/admin/job-board" },
             { name: "Rating & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
+          ]
+        }
+      ]
+    },
+
+     { 
+      name: "Parts Management", 
+      path: `#`, 
+      icon: "mdi:package-variant",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Inventory",
+          items: [
+            // { name: "Parts Catalog", icon: "mdi:archive-outline", path: "/admin/parts-catalog" },
+            { name: "Parts Categories", icon: "mdi:shape-outline", path: "/admin/parts/parts-categories" },
+            { name: "Stock Management", icon: "mdi:warehouse", path: "/admin/parts/stock-management" },
+            { name: "Low Stock Alerts", icon: "mdi:alert-outline", path: "/admin/low-stock-alerts" },
+          ]
+        },
+        {
+          category: "Orders",
+          items: [
+            { name: "Parts Orders", icon: "mdi:cart-outline", path: "/admin/parts-orders" },
+            // { name: "Suppliers", icon: "mdi:truck-delivery-outline", path: "/admin/suppliers" },
+            // { name: "Purchase History", icon: "mdi:history", path: "/admin/purchase-history" },
+            // { name: "Pricing Management", icon: "mdi:currency-usd", path: "/admin/parts-pricing" },
           ]
         }
       ]
@@ -96,6 +125,9 @@ function Header() {
       if (managementDropdownRef.current && !managementDropdownRef.current.contains(event.target)) {
         setIsManagementDropdownOpen(false);
       }
+      if (partsDropdownRef.current && !partsDropdownRef.current.contains(event.target)) {
+        setIsPartsDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -107,6 +139,7 @@ function Header() {
     setIsDropdownOpen(false);
     setIsCatalogDropdownOpen(false);
     setIsManagementDropdownOpen(false);
+    setIsPartsDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -226,6 +259,8 @@ function Header() {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
               } else if (link.name === "Repairman-Management") {
                 return renderNavLink(link, isManagementDropdownOpen, setIsManagementDropdownOpen, managementDropdownRef);
+              } else if (link.name === "Parts Management") {
+                return renderNavLink(link, isPartsDropdownOpen, setIsPartsDropdownOpen, partsDropdownRef);
               }
               return renderNavLink(link);
             })}
