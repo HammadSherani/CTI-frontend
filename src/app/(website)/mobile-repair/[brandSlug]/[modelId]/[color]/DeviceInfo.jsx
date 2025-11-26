@@ -1,4 +1,5 @@
-const { Icon } = require("@iconify/react");
+import { Icon } from "@iconify/react";
+
 
 const warrantyOptions = [
   { value: 'active', label: 'Under Warranty', icon: 'mdi:shield-check', color: 'text-green-600' },

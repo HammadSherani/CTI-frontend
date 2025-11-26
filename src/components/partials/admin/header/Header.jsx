@@ -36,6 +36,7 @@ function Header() {
         {
           category: "Content Management",
           items: [
+            { name: "Services", icon: "mdi:post-outline", path: "/admin/services" },
             { name: "Banners", icon: "mdi:image-outline", path: "/admin/banners" },
             { name: "Brand", icon: "mdi:tag-outline", path: "/admin/brand" },
             { name: "Models", icon: "mdi:cube-outline", path: "/admin/models" },

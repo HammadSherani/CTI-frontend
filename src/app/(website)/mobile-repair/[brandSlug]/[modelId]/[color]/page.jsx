@@ -20,7 +20,7 @@ import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 
-// Yup schema (unchanged)
+// Updated Yup schema (removed customServices)
 const schema = yup.object().shape({
   description: yup.string().required('Description is required').min(10, 'Please provide more details (minimum 20 characters)'),
   deviceInfo: yup.object().shape({
@@ -45,15 +45,49 @@ const schema = yup.object().shape({
   preferredDate: yup.date().min(new Date(), 'Preferred time must be in the future').required('Preferred time is required'),
   servicePreference: yup.string().required('Service preference is required'),
   selectedServices: yup.array().min(1, 'At least one service must be selected').required('Please select at least one service'),
-  customServices: yup.array().of(
-    yup.object().shape({
-      id: yup.string().required(),
-      name: yup.string().required(),
-    })
-  ).optional(),
 });
 
+// Step Indicator Component
+const StepIndicator = ({ currentStep, steps }) => {
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between">
+        {steps.map((step, index) => (
+          <React.Fragment key={step.id}>
+            <div className="flex flex-col items-center flex-1">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                currentStep > step.id
+                  ? 'bg-green-500 text-white'
+                  : currentStep === step.id
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-200 text-gray-500'
+              }`}>
+                {currentStep > step.id ? (
+                  <Icon icon="mdi:check" className="text-xl" />
+                ) : (
+                  step.id
+                )}
+              </div>
+              <span className={`mt-2 text-sm font-medium ${
+                currentStep === step.id ? 'text-orange-500' : 'text-gray-500'
+              }`}>
+                {step.label}
+              </span>
+            </div>
+            {index < steps.length - 1 && (
+              <div className={`flex-1 h-1 mx-2 mb-6 ${
+                currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
+              }`} />
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 const CreateRepairJobForm = () => {
+  const [currentStep, setCurrentStep] = useState(1);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [isTermsAgreed, setIsTermsAgreed] = useState(false);
@@ -61,11 +95,18 @@ const CreateRepairJobForm = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLoginModal, setShowLoginModal] = useState(false);
-  const [pendingFormData, setPendingFormData] = useState(null); // Store form data when login is required
+  const [pendingFormData, setPendingFormData] = useState(null);
 
   const { user, token } = useSelector((state) => state.auth);
   const router = useRouter();
   const { brandSlug, modelId, color } = useParams();
+
+  const steps = [
+    { id: 1, label: 'Select Service' },
+    { id: 2, label: 'Job Details' },
+    { id: 3, label: 'Location' },
+    { id: 4, label: 'Review & Post' }
+  ];
 
   const getModelData = async () => {
     try {
@@ -83,7 +124,6 @@ const CreateRepairJobForm = () => {
     }
   }, [modelId]);
 
-  // Show login modal when user first arrives on page and is not logged in
   useEffect(() => {
     if (!user || user.role !== "customer") {
       setShowLoginModal(true);
@@ -96,13 +136,13 @@ const CreateRepairJobForm = () => {
     formState: { errors, isSubmitting },
     watch,
     setValue,
-    reset
+    reset,
+    trigger
   } = useForm({
     resolver: yupResolver(schema),
     defaultValues: {
       deviceInfo: { warrantyStatus: '' },
       selectedServices: [],
-      customServices: [],
       urgency: 'medium',
       budget: { min: '', max: '', currency: 'PKR' },
       location: { address: '', city: '', district: '', zipCode: '', coordinates: null },
@@ -145,10 +185,8 @@ const CreateRepairJobForm = () => {
     navigator.geolocation.getCurrentPosition(
       async (position) => {
         const { latitude, longitude } = position.coords;
-        // Fix: Set coordinates as [longitude, latitude] - remove space and fix order
         setValue('location.coordinates', [longitude, latitude], { shouldValidate: true });
         try {
-          // Fix: Pass latitude first, then longitude to reverseGeocode
           const locationData = await reverseGeocode(latitude, longitude);
           if (locationData) {
             setValue('location.address', locationData.address);
@@ -167,6 +205,35 @@ const CreateRepairJobForm = () => {
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
     );
+  };
+
+  const handleNext = async () => {
+    let isValid = false;
+
+    if (currentStep === 1) {
+      isValid = await trigger('selectedServices');
+      if (isValid && selectedServices.length > 0) {
+        setCurrentStep(2);
+      }
+    } else if (currentStep === 2) {
+      // Step 2 me sirf job details aur device info validate karo
+      isValid = await trigger(['description', 'deviceInfo.warrantyStatus', 'urgency']);
+      if (isValid) {
+        setCurrentStep(3);
+      }
+    } else if (currentStep === 3) {
+      // Step 3 me location, preferredDate aur servicePreference validate karo
+      isValid = await trigger(['location', 'preferredDate', 'servicePreference']);
+      if (isValid) {
+        setCurrentStep(4);
+      }
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
   };
 
   const onSubmit = async (formData) => {
@@ -198,7 +265,6 @@ const CreateRepairJobForm = () => {
         urgency: formData.urgency,
         budget: formData.budget,
         location: formData.location,
-        // preferredTime: formData.preferredTime,
         servicePreference: formData.servicePreference,
         services: formData.selectedServices || [],
         maxOffers: 10,
@@ -238,7 +304,6 @@ const CreateRepairJobForm = () => {
     setPendingFormData(null);
   };
 
-
   useEffect(() => {
     setTimeout(() => {
       setLoading(false);
@@ -247,171 +312,225 @@ const CreateRepairJobForm = () => {
 
   return (
     <Loader>
-
       <div className='bg-white'>
-<div className='px-12 py-3'>
+        <div className='px-12 py-3'>
+          <Breadcrumb />
+        </div>
+        <div className="min-h-screen p-4">
+          <div className="px-9 bg-white rounded-lg grid grid-cols-3 gap-4">
+            <div className='col-span-2'>
+              {/* Step Indicator */}
+              <StepIndicator currentStep={currentStep} steps={steps} />
 
-        <Breadcrumb />
-      </div>
-      <div className="min-h-screen  p-4">
-        <div className="px-9 bg-white rounded-lg  overflow-hidden">
-          <div className="">
-            <div className="flex gap-3">
-              <div className="w-40 h-auto bg-gray-800 rounded-md flex items-center justify-center">
-                {modelData?.icon && (
+              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+                {/* Step 1: Service Selection */}
+                {currentStep === 1 && (
+                  <div className="p-4 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Icon icon="mdi:wrench" className="text-2xl text-orange-500" />
+                      <h3 className="text-xl font-semibold text-gray-900">Pick Your Repair Service</h3>
+                    </div>
+                    <ServiceSelector
+                      control={control}
+                      errors={errors}
+                      selectedServices={selectedServices}
+                      setValue={setValue}
+                      watch={watch}
+                      Controller={Controller}
+                    />
+                    {errors.selectedServices && (
+                      <p className="text-red-500 text-sm mt-2">{errors.selectedServices.message}</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Step 2: Job Details */}
+                {currentStep === 2 && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Icon icon="mdi:clipboard-text" className="text-2xl text-orange-500" />
+                        <h3 className="text-xl font-semibold text-gray-900">Job Details</h3>
+                      </div>
+                      <JobDetails control={control} errors={errors} Controller={Controller} />
+                    </div>
+
+                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Icon icon="mdi:cellphone" className="text-2xl text-orange-500" />
+                        <h3 className="text-xl font-semibold text-gray-900">Device Information</h3>
+                      </div>
+                      <DeviceInfo control={control} errors={errors} Controller={Controller} />
+                    </div>
+                  </div>
+                )}
+
+                {/* Step 3: Location */}
+                {currentStep === 3 && (
+                  <div className="p-4 bg-white rounded-lg border border-gray-200">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Icon icon="mdi:map-marker" className="text-2xl text-orange-500" />
+                      <h3 className="text-xl font-semibold text-gray-900">Location & Preferences</h3>
+                    </div>
+                    <LocationPreferences
+                      control={control}
+                      errors={errors}
+                      getCurrentLocation={getCurrentLocation}
+                      isGettingLocation={isGettingLocation}
+                      locationError={locationError}
+                      coordinates={coordinates}
+                      setValue={setValue}
+                      Controller={Controller}
+                    />
+                  </div>
+                )}
+
+                {/* Step 4: Review & Price */}
+                {currentStep === 4 && (
+                  <div className="space-y-4">
+                    <div className="p-4 bg-white rounded-lg border border-gray-200">
+                      <div className="flex items-center gap-2 mb-4">
+                        <Icon icon="mdi:currency-usd" className="text-2xl text-orange-500" />
+                        <h3 className="text-xl font-semibold text-gray-900">Budget Range (Optional)</h3>
+                      </div>
+                      <BudgetRange control={control} errors={errors} Controller={Controller} />
+                    </div>
+
+                    {/* Summary Section */}
+                    <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <h3 className="text-xl font-semibold text-gray-900 mb-4">Order Summary</h3>
+                      <div className="space-y-3">
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Selected Services:</span>
+                          <span className="font-semibold">{selectedServices.length} service(s)</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Service Preference:</span>
+                          <span className="font-semibold capitalize">{watch('servicePreference')}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-gray-600">Urgency:</span>
+                          <span className="font-semibold capitalize">{watch('urgency')}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Terms & Submit */}
+                    <div className="bg-gray-50 p-4 rounded-lg">
+                      <div className="flex items-center gap-2 mb-3">
+                        <input
+                          type="checkbox"
+                          id="terms"
+                          checked={isTermsAgreed}
+                          onChange={(e) => setIsTermsAgreed(e.target.checked)}
+                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+                        />
+                        <label htmlFor="terms" className="text-sm text-gray-600">
+                          I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
+                        </label>
+                      </div>
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || !isTermsAgreed}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 text-lg font-semibold"
+                      >
+                        {isSubmitting ? (
+                          <>
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Submitting...
+                          </>
+                        ) : (
+                          <>
+                            <Icon icon="mdi:check-circle" className="text-xl" />
+                            <span>Post Job</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Navigation Buttons */}
+                <div className="flex justify-between mt-6">
+                  {currentStep > 1 && (
+                    <button
+                      type="button"
+                      onClick={handlePrevious}
+                      className="flex items-center gap-2 px-6 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                    >
+                      <Icon icon="mdi:arrow-left" />
+                      <span>Previous</span>
+                    </button>
+                  )}
+                  
+                  {currentStep < 4 && (
+                    <button
+                      type="button"
+                      onClick={handleNext}
+                      className="flex items-center gap-2 px-6 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 ml-auto"
+                    >
+                      <span>Next</span>
+                      <Icon icon="mdi:arrow-right" />
+                    </button>
+                  )}
+                </div>
+              </form>
+            </div>
+
+            {/* Right Side - Device Info */}
+            <div className="bg-white rounded-2xl overflow-hidden">
+              <div className="relative p-8 flex justify-center items-center">
+                {modelData?.icon ? (
                   <Image
                     src={modelData.icon}
                     alt={modelData?.name || 'Device'}
-                    width={1000}
-                    height={1000}
-                    className="w-28 h-auto object-contain"
+                    width={800}
+                    height={800}
+                    className="w-48 h-auto object-contain transition-transform duration-300"
+                    priority
                   />
+                ) : (
+                  <div className="w-48 h-48 bg-gray-700 rounded-xl flex items-center justify-center">
+                    <span className="text-gray-500 text-5xl">📱</span>
+                  </div>
                 )}
               </div>
-              <div className="flex flex-col gap-1">
-                <h2 className="text-2xl font-bold text-gray-900 capitalize">
-                  {modelData?.name}
+
+              <div className="p-6 bg-white">
+                <h2 className="text-3xl font-extrabold text-gray-900 capitalize mb-3 tracking-tight">
+                  {modelData?.name || 'Device Name'}
                 </h2>
-                <p className="text-lg text-gray-600">
-                  Brand: <span className="font-medium capitalize">{data?.model?.brandId?.name}</span>
-                </p>
-                <p className="text-lg text-gray-600">
-                  Color: <span className="font-medium capitalize">{color}</span>
-                </p>
+
+                <div className="space-y-3 text-base">
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500 font-medium">Brand:</span>
+                    <span className="font-semibold text-gray-800 capitalize bg-gray-100 px-3 py-1 rounded-full">
+                      {data?.model?.brandId?.name || 'N/A'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-gray-500 font-medium">Color:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="w-5 h-5 rounded-full border-2 border-gray-300"
+                        style={{ backgroundColor: color?.toLowerCase() || '#888' }}></span>
+                      <span className="font-semibold text-gray-800 capitalize">
+                        {color || 'Not specified'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Pick Your Repair Service</h3>
-            <ServiceSelector
-              control={control}
-              errors={errors}
-              selectedServices={selectedServices}
-              setValue={setValue}
-              watch={watch}
-              Controller={Controller}
-            />
-          </div>
-
-          {selectedServices.length > 0 && (
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 p-4">
-              <div className="border-b border-gray-200 pb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon icon="mdi:clipboard-text" className="text-lg text-orange-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Job Details</h3>
-                </div>
-                <JobDetails control={control} errors={errors} Controller={Controller} />
-              </div>
-
-              <div className="border-b border-gray-200 pb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon icon="mdi:cellphone" className="text-lg text-orange-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Device Information</h3>
-                </div>
-                <DeviceInfo control={control} errors={errors} Controller={Controller} />
-              </div>
-
-              <div className="border-b border-gray-200 pb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon icon="mdi:map-marker" className="text-lg text-orange-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Location & Preferences</h3>
-                </div>
-                <LocationPreferences
-                  control={control}
-                  errors={errors}
-                  getCurrentLocation={getCurrentLocation}
-                  isGettingLocation={isGettingLocation}
-                  locationError={locationError}
-                  coordinates={coordinates}
-                  setValue={setValue} // Ye prop add karna zaroori hai
-                  Controller={Controller}
-                />
-              </div>
-
-              <div className="pb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon icon="mdi:currency-usd" className="text-lg text-orange-500" />
-                  <h3 className="text-lg font-semibold text-gray-900">Budget Range (Optional)</h3>
-                </div>
-                <BudgetRange control={control} errors={errors} Controller={Controller} />
-              </div>
-
-              <div className="bg-gray-50 p-4 rounded-b-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <input
-                    type="checkbox"
-                    id="terms"
-                    checked={isTermsAgreed}
-                    onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                    className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                  />
-                  <label htmlFor="terms" className="text-lg text-gray-600">
-                    I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
-                  </label>
-                </div>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || !isTermsAgreed}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 disabled:opacity-50 text-lg"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                      Submitting...
-                    </>
-                  ) : (
-                    <>
-                      <span>Post Job</span>
-                      <Icon icon="mdi:arrow-right" />
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {selectedServices.length === 0 && (
-            <div className="p-4 bg-gray-50 rounded-b-lg">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Price Summary</h3>
-              <div className="bg-white rounded-md p-3 text-center">
-                <p className="text-gray-500 text-lg">No Service Selected</p>
-                <p className="text-gray-400 text-lg mt-1">Please select a repair service to see the estimated price range.</p>
-              </div>
-              <div className="flex items-center gap-2 my-3">
-                <input
-                  type="checkbox"
-                  id="terms-default"
-                  checked={isTermsAgreed}
-                  onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                  disabled
-                  className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                />
-                <label htmlFor="terms-default" className="text-lg text-gray-400">
-                  I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
-                </label>
-              </div>
-              <button
-                type="button"
-                disabled
-                className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-md opacity-50 cursor-not-allowed text-lg"
-              >
-                <span>Post Jobs</span>
-                <Icon icon="mdi:arrow-right" />
-              </button>
-            </div>
-          )}
+          <LoginModal
+            isOpen={showLoginModal}
+            onClose={handleCloseLoginModal}
+            onSuccess={handleLoginSuccess}
+          />
         </div>
-
-        <LoginModal
-          isOpen={showLoginModal}
-          onClose={handleCloseLoginModal}
-          onSuccess={handleLoginSuccess}
-        />
       </div>
-      </div>
-
-      
     </Loader>
   );
 };
