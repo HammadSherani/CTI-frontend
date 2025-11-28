@@ -8,7 +8,7 @@ const BookingDetails = ({ booking, job, dataType }) => {
     const isQuotationBased = booking?.bookingSource === 'direct_message' || dataType === 'quotation_booking';
 
     const currencySymbol = booking?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : 
-                          booking?.bookingDetails?.pricing?.currency === 'PKR' ? 'PKR ' : '$';
+                          booking?.bookingDetails?.pricing?.currency === 'TRY' ? 'TRY ' : '$';
 
     return (
         <div className="bg-primary-50 border border-primary-200 rounded-lg p-6 mb-6">

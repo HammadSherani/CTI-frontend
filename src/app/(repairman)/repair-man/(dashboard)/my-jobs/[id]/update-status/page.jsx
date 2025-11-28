@@ -89,7 +89,7 @@ function UpdateStatus() {
     }
   };
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
   };
 

@@ -56,7 +56,7 @@ const RepairJobCard = ({ job }) => {
     });
   };
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     if (!amount || amount === 0) return 'Not specified';
     return `${currency} ${amount.toLocaleString()}`;
   };
@@ -82,7 +82,7 @@ const RepairJobCard = ({ job }) => {
     : job?.deviceInfo;
 
   const services = isQuotationBased
-    ? job?.quotationId?.deviceInfo?.repairServices || []
+    ? job?.quotationId?.deviceInfo?.repairServices || []  
     : job?.services || [];
 
   const pricing = isQuotationBased
@@ -90,8 +90,14 @@ const RepairJobCard = ({ job }) => {
     : job?.budget;
 
   const deviceName = isQuotationBased
-    ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.join(', ')}`
-    : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.join(', ')}`;
+  ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${
+      services.map(service => service?.name).join(', ')
+    }`
+  : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${
+      services.map(s => s?.name || s).join(', ')
+    }`;
+
+
 
   const totalOffer = job?.offers?.length || 0;
 
@@ -160,7 +166,7 @@ const RepairJobCard = ({ job }) => {
                 key={index}
                 className="px-4 py-2 text-sm font-medium text-primary-800 rounded-lg border"
               >
-                {service}
+                {service?.name}
               </span>
             ))}
           </div>
@@ -307,7 +313,7 @@ const ReviewJobs = () => {
     }
   };
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
   };
 

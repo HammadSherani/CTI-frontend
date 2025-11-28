@@ -55,11 +55,11 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
         ).join(' ');
     };
 
-    const formatCurrency = (amount, currency = 'PKR') => {
+    const formatCurrency = (amount, currency = 'TRY') => {
         return `${currency} ${amount?.toLocaleString() || 0}`;
     };
 
-    const currencySymbol = 'PKR';
+    const currencySymbol = 'TRY';
 
     // Extract job data
     const jobInfo = job?.jobInfo || {};

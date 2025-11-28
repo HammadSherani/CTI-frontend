@@ -55,29 +55,26 @@ const StepIndicator = ({ currentStep, steps }) => {
         {steps.map((step, index) => (
           <React.Fragment key={step.id}>
             <div className="flex flex-col items-center flex-1">
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                currentStep > step.id
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${currentStep > step.id
                   ? 'bg-green-500 text-white'
                   : currentStep === step.id
-                  ? 'bg-orange-500 text-white'
-                  : 'bg-gray-200 text-gray-500'
-              }`}>
+                    ? 'bg-orange-500 text-white'
+                    : 'bg-gray-200 text-gray-500'
+                }`}>
                 {currentStep > step.id ? (
                   <Icon icon="mdi:check" className="text-xl" />
                 ) : (
                   step.id
                 )}
               </div>
-              <span className={`mt-2 text-sm font-medium ${
-                currentStep === step.id ? 'text-orange-500' : 'text-gray-500'
-              }`}>
+              <span className={`mt-2 text-sm font-medium ${currentStep === step.id ? 'text-orange-500' : 'text-gray-500'
+                }`}>
                 {step.label}
               </span>
             </div>
             {index < steps.length - 1 && (
-              <div className={`flex-1 h-1 mx-2 mb-6 ${
-                currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
-              }`} />
+              <div className={`flex-1 h-1 mx-2 mb-6 ${currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
+                }`} />
             )}
           </React.Fragment>
         ))}
@@ -144,7 +141,7 @@ const CreateRepairJobForm = () => {
       deviceInfo: { warrantyStatus: '' },
       selectedServices: [],
       urgency: 'medium',
-      budget: { min: '', max: '', currency: 'PKR' },
+      budget: { min: '', max: '', currency: 'TRY' },
       location: { address: '', city: '', district: '', zipCode: '', coordinates: null },
       preferredTime: '',
       servicePreference: 'pickup',
@@ -311,7 +308,7 @@ const CreateRepairJobForm = () => {
   }, []);
 
   return (
-    <Loader>
+    <Loader loading={loading}>
       <div className='bg-white'>
         <div className='px-12 py-3'>
           <Breadcrumb />
@@ -326,10 +323,10 @@ const CreateRepairJobForm = () => {
                 {/* Step 1: Service Selection */}
                 {currentStep === 1 && (
                   <div className="p-4 bg-white rounded-lg border border-gray-200">
-                    <div className="flex items-center gap-2 mb-4">
+                    {/* <div className="flex items-center gap-2 mb-4">
                       <Icon icon="mdi:wrench" className="text-2xl text-orange-500" />
                       <h3 className="text-xl font-semibold text-gray-900">Pick Your Repair Service</h3>
-                    </div>
+                    </div> */}
                     <ServiceSelector
                       control={control}
                       errors={errors}
@@ -381,6 +378,7 @@ const CreateRepairJobForm = () => {
                       coordinates={coordinates}
                       setValue={setValue}
                       Controller={Controller}
+                      watch={watch}
                     />
                   </div>
                 )}
@@ -462,7 +460,7 @@ const CreateRepairJobForm = () => {
                       <span>Previous</span>
                     </button>
                   )}
-                  
+
                   {currentStep < 4 && (
                     <button
                       type="button"
@@ -478,8 +476,8 @@ const CreateRepairJobForm = () => {
             </div>
 
             {/* Right Side - Device Info */}
-            <div className="bg-white rounded-2xl overflow-hidden">
-              <div className="relative p-8 flex justify-center items-center">
+            <div className=" rounded-md bg-gray-50 border border-gray-200 h-fit overflow-hidden">
+              <div className="relative  p-8 flex justify-center items-center">
                 {modelData?.icon ? (
                   <Image
                     src={modelData.icon}
@@ -496,31 +494,38 @@ const CreateRepairJobForm = () => {
                 )}
               </div>
 
-              <div className="p-6 bg-white">
-                <h2 className="text-3xl font-extrabold text-gray-900 capitalize mb-3 tracking-tight">
+              <div className="p-3 bg-white rounded-md  border border-gray-100">
+                <h2 className="text-2xl capitalize font-semibold text-gray-900 mb-4">
                   {modelData?.name || 'Device Name'}
                 </h2>
 
-                <div className="space-y-3 text-base">
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500 font-medium">Brand:</span>
-                    <span className="font-semibold text-gray-800 capitalize bg-gray-100 px-3 py-1 rounded-full">
+                <div className="space-y-4 text-base">
+                  {/* Brand */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Brand</span>
+                    <span className="font-medium text-gray-800 px-3 py-1 bg-gray-100 rounded-full capitalize">
                       {data?.model?.brandId?.name || 'N/A'}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <span className="text-gray-500 font-medium">Color:</span>
+                  {/* Color */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">Color</span>
+
                     <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full border-2 border-gray-300"
-                        style={{ backgroundColor: color?.toLowerCase() || '#888' }}></span>
-                      <span className="font-semibold text-gray-800 capitalize">
+                      <span
+                        className="w-5 h-5 rounded-full border border-gray-300"
+                        style={{ backgroundColor: color?.toLowerCase() || '#888' }}
+                      ></span>
+
+                      <span className="font-medium text-gray-800 capitalize">
                         {color || 'Not specified'}
                       </span>
                     </div>
                   </div>
                 </div>
               </div>
+
             </div>
           </div>
 

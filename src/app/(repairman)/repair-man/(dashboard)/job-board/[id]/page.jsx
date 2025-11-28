@@ -43,7 +43,7 @@ function JobDetailPage() {
   }, [id]);
 
   // Helper functions
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount?.toLocaleString()}`;
   };
 

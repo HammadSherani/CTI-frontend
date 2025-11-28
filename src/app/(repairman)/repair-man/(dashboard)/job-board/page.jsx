@@ -213,7 +213,7 @@ const MyJobsPage = () => {
   };
 
   // Helper function to format currency
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount.toLocaleString()}`;
   };
 

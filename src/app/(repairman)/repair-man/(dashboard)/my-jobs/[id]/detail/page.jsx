@@ -43,7 +43,7 @@ function JobDetailPage() {
     fetchJobDetails();
   }, [id]);
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
   };
 

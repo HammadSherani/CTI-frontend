@@ -358,8 +358,8 @@ function OrderConfirmation() {
         ? quotationTotal
         : calculateOfferPricing(offer, job),
       currency: isQuotation
-        ? (quotation.pricing.currency || 'PKR')
-        : (offer?.pricing.currency || 'PKR'),
+        ? (quotation.pricing.currency || 'TRY')
+        : (offer?.pricing.currency || 'TRY'),
       estimatedTime: isQuotation
         ? (quotation.serviceDetails?.estimatedDuration
           ? `${quotation.serviceDetails.estimatedDuration} days`

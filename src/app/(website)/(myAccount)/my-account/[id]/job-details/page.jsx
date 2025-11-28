@@ -180,7 +180,9 @@ function JobDetails() {
 
     const deviceTitle = useMemo(() => {
         if (dataType === 'job_posting' && job) {
-            return `${job.deviceInfo?.brand || ''} ${job.deviceInfo?.model || ''} (${job.deviceInfo?.color || ''}) - ${job.services?.join(', ') || ''}`;
+            return `${job.deviceInfo?.brand || ''} ${job.deviceInfo?.model || ''} (${job.deviceInfo?.color || ''}) - ${
+      job.services.map(service => service?.name).join(', ')
+    }`;
         } else if (dataType === 'quotation_booking' && quotation) {
             return `${quotation.deviceInfo?.brandName || ''} ${quotation.deviceInfo?.modelName || ''} - ${quotation.deviceInfo?.repairServices?.join(', ') || ''}`;
         }
@@ -251,12 +253,10 @@ function JobDetails() {
                     <div className="flex items-center gap-4">
                         <StatusBadge status={currentStatus} />
 
-                        {/* 🔥 Show urgency only for job postings */}
                         {dataType === 'job_posting' && job?.urgency && (
                             <UrgencyBadge urgency={job.urgency} />
                         )}
 
-                        {/* 🔥 Show source badge */}
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${dataType === 'quotation_booking'
                             ? 'bg-purple-100 text-purple-700'
                             : 'bg-primary-100 text-primary-700'
@@ -353,7 +353,6 @@ function JobDetails() {
                         Details
                     </button>
 
-                    {/* 🔥 Offers tab - only for job postings */}
                     {shouldShowOffers && (
                         <button
                             onClick={() => setActiveTab('proposals')}
@@ -366,7 +365,6 @@ function JobDetails() {
                         </button>
                     )}
 
-                    {/* 🔥 Repairman info tab - only for quotations */}
                     {dataType === 'quotation_booking' && repairman && (
                         <button
                             onClick={() => setActiveTab('repairman')}
@@ -405,7 +403,6 @@ function JobDetails() {
                 </nav>
             </div>
 
-            {/* 🔥 DETAILS TAB */}
             {activeTab === 'details' ? (
                 <div className="bg-white border border-gray-200 rounded-lg p-8">
                     {/* 🔥 Job Posting Details */}
@@ -437,7 +434,7 @@ function JobDetails() {
                                                 key={index}
                                                 className="px-4 py-2 bg-primary-50 text-primary-700 rounded-full border border-primary-200 text-sm"
                                             >
-                                                {service}
+                                                {service.name}
                                             </span>
                                         ))}
                                     </div>

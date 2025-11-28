@@ -55,7 +55,7 @@ const RepairJobCard = ({ job }) => {
     });
   };
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     if (!amount || amount === 0) return 'Not specified';
     return `${currency} ${amount.toLocaleString()}`;
   };
@@ -244,7 +244,7 @@ const ReviewJobs = () => {
     }
   };
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount?.toLocaleString() || 0}`;
   };
 

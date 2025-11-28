@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import socketService from "@/utils/socketService";
 import ButtonSection from "./ButtonSection";
+import { usePathname, useRouter } from "next/navigation";
 
 export function TopHeader() {
   const [showSearch, setShowSearch] = useState(false);
@@ -220,6 +221,13 @@ function LowerHeader() {
     },
 
   ];
+
+const pathname = usePathname();
+
+useEffect(() => {
+  setIsCategoryOpen(false);
+}, [pathname]);
+
 
   useEffect(() => {
     function handleClickOutside(event) {

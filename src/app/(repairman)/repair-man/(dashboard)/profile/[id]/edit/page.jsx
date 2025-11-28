@@ -207,7 +207,7 @@ function ProfileEditPage() {
 
   const currencyOptions = [
     { value: 'USD', label: 'USD ($)' },
-    { value: 'PKR', label: 'PKR (₨)' },
+    { value: 'TRY', label: 'TRY (₨)' },
     { value: 'EUR', label: 'EUR (€)' },
     { value: 'GBP', label: 'GBP (£)' }
   ];

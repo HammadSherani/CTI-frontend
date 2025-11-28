@@ -13,7 +13,7 @@ export default function Dashboard() {
         title: "iPhone Screen Replacement",
         description: "Cracked iPhone 12 screen, needs urgent replacement",
         location: "DHA Phase 5, Lahore",
-        budget: "8000-12000 PKR",
+        budget: "8000-12000 TRY",
         urgency: "A",
         postedTime: "2 hours ago",
         client: "Sarah Khan",
@@ -23,7 +23,7 @@ export default function Dashboard() {
         title: "Samsung Battery Replacement",
         description: "Samsung Galaxy S20 battery drains quickly",
         location: "Gulberg III, Lahore",
-        budget: "4000-6000 PKR",
+        budget: "4000-6000 TRY",
         urgency: "B",
         postedTime: "4 hours ago",
         client: "Ali Raza",
@@ -147,7 +147,7 @@ export default function Dashboard() {
               <h3 className="font-medium text-gray-900">{offer.jobTitle}</h3>
               <p className="text-sm text-gray-600">Client: {offer.client}</p>
               <div className="flex items-center justify-between mt-2">
-                <span className="text-sm font-semibold text-green-600">{offer.offerAmount.toLocaleString()} PKR</span>
+                <span className="text-sm font-semibold text-green-600">{offer.offerAmount.toLocaleString()} TRY</span>
                 <span
                   className={`px-2 py-1 rounded-full text-xs font-medium ${offer.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-primary-100 text-primary-800"
                     }`}
@@ -248,7 +248,7 @@ export default function Dashboard() {
                 <p className="text-xs text-gray-500 mt-1">Submitted {offer.submittedAt}</p>
               </div>
               <div className="text-right">
-                <p className="font-semibold text-green-600">{offer.offerAmount.toLocaleString()} PKR</p>
+                <p className="font-semibold text-green-600">{offer.offerAmount.toLocaleString()} TRY</p>
                 <span
                   className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${offer.status === "pending" ? "bg-yellow-100 text-yellow-800" : "bg-primary-100 text-primary-800"
                     }`}
@@ -305,7 +305,7 @@ export default function Dashboard() {
               <p className="text-xs text-gray-500 mt-2">Started: {repair.startDate}</p>
             </div>
             <div className="text-right">
-              <p className="font-semibold text-green-600">{repair.amount.toLocaleString()} PKR</p>
+              <p className="font-semibold text-green-600">{repair.amount.toLocaleString()} TRY</p>
               <p className="text-xs text-gray-500 mt-1">Est. {repair.estimatedCompletion}</p>
             </div>
           </div>
@@ -336,7 +336,7 @@ export default function Dashboard() {
               <span
                 className={`font-semibold ${transaction.type === "credit" ? "text-green-600" : "text-red-600"}`}
               >
-                {transaction.type === "credit" ? "+" : "-"}{transaction.amount.toLocaleString()} PKR
+                {transaction.type === "credit" ? "+" : "-"}{transaction.amount.toLocaleString()} TRY
               </span>
             </div>
           ))}

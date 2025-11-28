@@ -220,7 +220,7 @@ function RatingAndReviewsDetails() {
                         <p className="text-sm text-gray-700">{review.jobId.description}</p>
                         <div className="mt-3 flex gap-4 text-sm">
                             <span className="text-gray-600">
-                                Budget: PKR {review.jobId.budget.min} - {review.jobId.budget.max}
+                                Budget: TRY {review.jobId.budget.min} - {review.jobId.budget.max}
                             </span>
                             <span className="text-gray-600">
                                 Urgency: <span className="capitalize">{review.jobId.urgency}</span>

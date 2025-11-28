@@ -14,7 +14,6 @@ import AddressLocation from "./AddressLocation";
 import ExperienceAvailability from "./ExperienceAvailability";
 import DocumentUploads from "./DocumentUploads";
 
-// Validation schemas for each step
 const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2, "Name must be at least 2 characters"),
   fatherName: yup.string().required("Father's name is required").min(2, "Name must be at least 2 characters"),

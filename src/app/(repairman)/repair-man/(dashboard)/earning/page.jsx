@@ -180,7 +180,7 @@ function RepairmanEarning() {
     fetchData()
   }, [])
 
-  const formatCurrency = (amount, currency = 'PKR') => {
+  const formatCurrency = (amount, currency = 'TRY') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
@@ -215,7 +215,7 @@ function RepairmanEarning() {
     totalWithdrawn = 0,
     pendingAmount = 0,
     lockedAmount = 0,
-    currency = 'PKR'
+    currency = 'TRY'
   } = wallet || {}
 
   // ✅ Payment info check
