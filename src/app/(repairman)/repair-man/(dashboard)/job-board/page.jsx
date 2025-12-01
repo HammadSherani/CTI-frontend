@@ -18,139 +18,48 @@ const MyJobsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // GPS Location states
-  const [currentLocation, setCurrentLocation] = useState(null);
-  const [locationLoading, setLocationLoading] = useState(false);
-  const [useGPS, setUseGPS] = useState(false);
-  const [locationError, setLocationError] = useState(null);
-  const [radius, setRadius] = useState(10);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedCity, setSelectedCity] = useState('');
 
   const { token } = useSelector((state) => state.auth);
   const router = useRouter();
 
-  const getCurrentLocation = () => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by this browser.'));
-        return;
-      }
-
-      const options = {
-        enableHighAccuracy: true,
-        timeout: 15000,
-        maximumAge: 60000
-      };
-
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-            accuracy: position.coords.accuracy
-          };
-          console.log('GPS Location obtained:', location);
-          resolve(location);
-        },
-        (error) => {
-          let errorMessage = 'Unable to get location';
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorMessage = 'Location permission denied. Please enable location access in your browser settings.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorMessage = 'Location information is unavailable. Please check your GPS settings.';
-              break;
-            case error.TIMEOUT:
-              errorMessage = 'Location request timed out. Please try again.';
-              break;
-            default:
-              errorMessage = 'An unknown error occurred while getting location.';
-          }
-          console.error('GPS Error:', error);
-          reject(new Error(errorMessage));
-        },
-        options
-      );
-    });
+  const handleStateChange = (stateId) => {
+    setSelectedState(stateId);
+    setSelectedCity('');
   };
 
-  // Handle GPS location toggle
-  const handleGPSToggle = async () => {
-    if (!useGPS) {
-      setLocationLoading(true);
-      setLocationError(null);
-
-      try {
-        const location = await getCurrentLocation();
-        setCurrentLocation(location);
-        setUseGPS(true);
-        console.log('GPS Location obtained:', location);
-
-        // Fetch jobs with new location
-        await fetchJobs(location);
-      } catch (error) {
-        console.error('GPS Error:', error);
-        setLocationError(error.message);
-        setUseGPS(false);
-      } finally {
-        setLocationLoading(false);
-      }
-    } else {
-      // Turn off GPS, use profile location
-      setUseGPS(false);
-      setCurrentLocation(null);
-      setLocationError(null);
-      await fetchJobs();
-    }
-  };
-
-  // FIXED: Updated fetchJobs to accept custom radius parameter
-  const fetchJobs = async (gpsLocation = null, customRadius = null) => {
+  const fetchJobs = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Use the custom radius if provided, otherwise use state radius
-      const searchRadius = customRadius !== null ? customRadius : radius;
-
-      // Build query parameters
-      const params = new URLSearchParams({
-        radius: searchRadius.toString(),
-        page: '1',
-        limit: '50'
-      });
-
-      // Add GPS location if available and GPS is enabled
-      if (useGPS && (gpsLocation || currentLocation)) {
-        const location = gpsLocation || currentLocation;
-        params.append('useCurrentLocation', 'true');
-        params.append('lat', location.lat.toString());
-        params.append('lng', location.lng.toString());
-        console.log('Sending GPS coordinates to API:', {
-          lat: location.lat,
-          lng: location.lng,
-          radius: searchRadius
-        });
+      const params = new URLSearchParams();
+      
+      if (selectedState) {
+        params.append('state', selectedState);
+      }
+      if (selectedCity) {
+        params.append('city', selectedCity);
       }
 
-      const url = `/repairman/offers/jobs/nearby?${params}`;
-      console.log('API Request URL:', url);
-      console.log('Using radius:', searchRadius);
-
+      const url = `/repairman/jobs?${params.toString()}`;
+      
       const { data } = await axiosInstance.get(url, {
         headers: {
           'Authorization': 'Bearer ' + token,
         }
       });
 
-      console.log('API Response:', {
-        jobsCount: data?.data?.jobs?.length || 0,
-        locationMethod: data?.data?.searchParams?.locationUsed,
-        repairmanLocation: data?.data?.searchParams?.repairmanLocation,
-        searchRadius: searchRadius
-      });
-
       setJobs(data?.data?.jobs || []);
+      setStates(data?.data?.states || []);
+      setCities(data?.data?.cities || []);
+      
+      if (!selectedState && data?.data?.selectedState) {
+        setSelectedState(data?.data?.selectedState);
+      }
 
     } catch (error) {
       console.error('Error fetching jobs:', error);
@@ -162,42 +71,14 @@ const MyJobsPage = () => {
     }
   };
 
-  // Refresh current location and jobs
-  const refreshLocation = async () => {
-    if (useGPS) {
-      setLocationLoading(true);
-      try {
-        const location = await getCurrentLocation();
-        setCurrentLocation(location);
-        await fetchJobs(location);
-      } catch (error) {
-        setLocationError(error.message);
-      } finally {
-        setLocationLoading(false);
-      }
-    } else {
-      await fetchJobs();
-    }
+  const refreshJobs = async () => {
+    await fetchJobs();
   };
-
-  // FIXED: Handle radius change properly
-  const handleRadiusChange = (newRadius) => {
-    console.log('Radius changing from', radius, 'to', newRadius);
-    setRadius(newRadius);
-    // Pass the new radius directly to fetchJobs since state update is async
-    fetchJobs(useGPS ? currentLocation : null, newRadius);
-  };
-
-  // Debug: Monitor radius state changes
-  useEffect(() => {
-    console.log('Radius state updated to:', radius);
-  }, [radius]);
 
   useEffect(() => {
     fetchJobs();
-  }, []);
+  }, [selectedState, selectedCity]);
 
-  // Helper function to get job status based on API data
   const getJobStatus = (job) => {
     if (job.status === 'offers_received') {
       return job.hasSubmittedOffer ? 'offer-submitted' : 'available';
@@ -205,19 +86,16 @@ const MyJobsPage = () => {
     return job.status;
   };
 
-  // Helper function to get urgency level
   const getUrgencyLevel = (urgencyScore) => {
     if (urgencyScore >= 3) return 'high';
     if (urgencyScore >= 2) return 'medium';
     return 'low';
   };
 
-  // Helper function to format currency
   const formatCurrency = (amount, currency = 'TRY') => {
     return `${currency} ${amount.toLocaleString()}`;
   };
 
-  // Helper function to get time remaining
   const getTimeRemaining = (timeRemaining) => {
     if (timeRemaining > 24) {
       return `${Math.floor(timeRemaining / 24)} days`;
@@ -246,9 +124,7 @@ const MyJobsPage = () => {
     }
   };
 
-  // Categorize jobs based on completion status - Only Open and Completed
   const categorizeJobs = (jobs) => {
-    // Open jobs include: available jobs, offer-submitted jobs, in-progress jobs, accepted jobs
     const open = jobs.filter(job =>
       job.status === 'offers_received' ||
       job.status === 'in-progress' ||
@@ -257,7 +133,6 @@ const MyJobsPage = () => {
       job.status === 'pending'
     );
 
-    // Completed jobs
     const completed = jobs.filter(job => job.status === 'completed');
 
     return { open, completed };
@@ -265,7 +140,6 @@ const MyJobsPage = () => {
 
   const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
 
-  // Filter and search jobs
   const filteredJobs = useMemo(() => {
     const jobsToFilter = categorizedJobs[activeTab] || [];
     return jobsToFilter.filter((job) => {
@@ -284,7 +158,7 @@ const MyJobsPage = () => {
     });
   }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
 
-  const JobCard = ({ job, expandedJob, setExpandedJob, activeTab, useGPS }) => {
+  const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
     const jobStatus = getJobStatus(job);
     const urgency = getUrgencyLevel(job.urgencyScore);
     const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
@@ -335,25 +209,8 @@ const MyJobsPage = () => {
             <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
               <div className="flex items-center gap-1">
                 <Icon icon="heroicons:map-pin" className="w-4 h-4 text-gray-400" />
-                <span className="font-medium">{job.location?.address}, {job.location?.city}</span>
+                <span className="font-medium">{job.location?.address}</span>
               </div>
-
-              {job.distance && (
-                <div className="flex items-center gap-1">
-                  <Icon icon="heroicons:map" className="w-4 h-4 text-gray-400" />
-                  <span>{job.distance.toFixed(1)} km away</span>
-                  {useGPS && (
-                    <Icon icon="heroicons:signal" className="w-3 h-3 text-green-500 ml-1" />
-                  )}
-                </div>
-              )}
-
-              {job.travelTimeFormatted && (
-                <div className="flex items-center gap-1 text-primary-600">
-                  <Icon icon="heroicons:clock" className="w-4 h-4" />
-                  <span className="font-medium">{job.travelTimeFormatted}</span>
-                </div>
-              )}
             </div>
           </div>
 
@@ -379,7 +236,6 @@ const MyJobsPage = () => {
           </div>
         </div>
 
-        {/* Action Buttons */}
         <div className="p-6 pt-4 bg-gray-50 border-t border-gray-100">
           <div className="flex flex-col sm:flex-row gap-3">
             {activeTab === 'open' && (
@@ -450,7 +306,7 @@ const MyJobsPage = () => {
       </p>
       {type === 'open' && (
         <button
-          onClick={refreshLocation}
+          onClick={refreshJobs}
           className="bg-primary-500 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
         >
           Refresh Jobs
@@ -469,6 +325,8 @@ const MyJobsPage = () => {
   const handleClearFilters = () => {
     setSearchQuery('');
     setUrgencyFilter('all');
+    setSelectedState('');
+    setSelectedCity('');
   };
 
   if (error) {
@@ -479,7 +337,7 @@ const MyJobsPage = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
-            onClick={refreshLocation}
+            onClick={refreshJobs}
             className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
           >
             Try Again
@@ -488,7 +346,6 @@ const MyJobsPage = () => {
       </div>
     );
   }
-
 
   if (loading) {
     return (
@@ -502,10 +359,8 @@ const MyJobsPage = () => {
   }
 
   return (
-
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
@@ -544,19 +399,36 @@ const MyJobsPage = () => {
               <option value="medium">Medium</option>
               <option value="low">Low</option>
             </select>
+
             <select
-              id="radius"
-              value={radius}
-              onChange={(e) => handleRadiusChange(parseInt(e.target.value))}
+              value={selectedState}
+              onChange={(e) => handleStateChange(e.target.value)}
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
-              aria-label="Filter by radius"
+              aria-label="Filter by state"
             >
-              {[5, 10, 15, 20, 30, 50, 1000].map((r) => (
-                <option key={r} value={r}>
-                  {r} km
+              <option value="">All States</option>
+              {states.map((state) => (
+                <option key={state._id} value={state._id}>
+                  {state.name}
                 </option>
               ))}
             </select>
+
+            <select
+              value={selectedCity}
+              onChange={(e) => setSelectedCity(e.target.value)}
+              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+              aria-label="Filter by city"
+              disabled={!cities.length}
+            >
+              <option value="">All Cities</option>
+              {cities.map((city) => (
+                <option key={city._id} value={city._id}>
+                  {city.name}
+                </option>
+              ))}
+            </select>
+
             <button
               onClick={handleClearFilters}
               className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
@@ -565,7 +437,7 @@ const MyJobsPage = () => {
               Clear Filters
             </button>
             <button
-              onClick={refreshLocation}
+              onClick={refreshJobs}
               className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
               aria-label="Refresh jobs"
             >
@@ -574,7 +446,6 @@ const MyJobsPage = () => {
           </div>
         </div>
 
-        {/* Tabs - Only Open Jobs and Completed Jobs */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">

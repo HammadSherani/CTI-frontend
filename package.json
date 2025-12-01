@@ -30,7 +30,6 @@
     "@tiptap/extension-underline": "^3.11.0",
     "@tiptap/react": "^3.11.0",
     "@tiptap/starter-kit": "^3.11.0",
-    "@types/react-dom": "^19.2.3",
     "axios": "^1.11.0",
     "cloudinary": "^2.7.0",
     "country-state-city": "^3.2.1",
@@ -58,8 +57,6 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "24.3.0",
-    "@types/react": "19.1.10",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "tailwindcss": "^4"

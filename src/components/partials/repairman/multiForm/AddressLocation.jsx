@@ -1,224 +1,123 @@
 "use client";
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Controller } from "react-hook-form";
+import axiosInstance from "@/config/axiosInstance";
+import { toast } from "react-toastify";
 
 const AddressLocation = ({ control, errors, setValue, watch }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [map, setMap] = useState(null);
-  const [marker, setMarker] = useState(null);
-  const [searchBox, setSearchBox] = useState(null);
-  const mapRef = useRef(null);
-  const searchInputRef = useRef(null);
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  
+  const [loadingCountries, setLoadingCountries] = useState(false);
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
 
-  // Watch for location changes
-  const currentLocation = watch('location');
-  const currentAddress = watch('address');
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+  // Watch for changes
+  const selectedCountry = watch('country');
+  const selectedState = watch('state');
+  const selectedCity = watch('city');
 
-  // Load Google Maps API
+  // Fetch countries on component mount
   useEffect(() => {
-    if (window.google) {
-      setIsLoaded(true);
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.onload = () => setIsLoaded(true);
-    document.head.appendChild(script);
-
-    return () => {
-      document.head.removeChild(script);
-    };
+    fetchCountries();
   }, []);
 
-  // Initialize map
+  // Fetch states when country changes
   useEffect(() => {
-    if (isLoaded && mapRef.current && !map) {
-      const initialMap = new window.google.maps.Map(mapRef.current, {
-        center: { lat: 24.8607, lng: 67.0011 },
-        zoom: 12,
-        styles: [
-          {
-            featureType: "all",
-            elementType: "geometry.fill",
-            stylers: [{ weight: "2.00" }]
-          },
-          {
-            featureType: "all",
-            elementType: "geometry.stroke",
-            stylers: [{ color: "#9c9c9c" }]
-          }
-        ]
-      });
-
-      setMap(initialMap);
-
-      // Initialize SearchBox
-      if (searchInputRef.current) {
-        const searchBoxInstance = new window.google.maps.places.SearchBox(searchInputRef.current);
-        setSearchBox(searchBoxInstance);
-
-        // Bias SearchBox results towards current map's viewport
-        initialMap.addListener("bounds_changed", () => {
-          searchBoxInstance.setBounds(initialMap.getBounds());
-        });
-
-        searchBoxInstance.addListener("places_changed", () => {
-          const places = searchBoxInstance.getPlaces();
-
-          if (places.length === 0) {
-            return;
-          }
-
-          // Clear existing marker
-          if (marker) {
-            marker.setMap(null);
-          }
-
-          const place = places[0];
-
-          // Create new marker
-          const newMarker = new window.google.maps.Marker({
-            position: place.geometry.location,
-            map: initialMap,
-            title: place.name,
-            icon: {
-              url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-              scaledSize: new window.google.maps.Size(32, 32),
-            }
-          });
-
-          setMarker(newMarker);
-
-          // Update form values
-          updateFormFromPlace(place);
-
-          // Pan to the selected place
-          initialMap.panTo(place.geometry.location);
-          initialMap.setZoom(15);
-        });
-      }
-
-      // Add click listener to map
-      initialMap.addListener("click", (event) => {
-        const lat = event.latLng.lat();
-        const lng = event.latLng.lng();
-
-        // Clear existing marker
-        if (marker) {
-          marker.setMap(null);
-        }
-
-        // Create new marker
-        const newMarker = new window.google.maps.Marker({
-          position: { lat, lng },
-          map: initialMap,
-          icon: {
-            url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png',
-            scaledSize: new window.google.maps.Size(32, 32),
-          }
-        });
-
-        setMarker(newMarker);
-
-        // Reverse geocoding to get address
-        const geocoder = new window.google.maps.Geocoder();
-        geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-          if (status === "OK" && results[0]) {
-            updateFormFromGeocode(results[0], lat, lng);
-          }
-        });
-      });
+    if (selectedCountry) {
+      fetchStates(selectedCountry);
+      // Reset state and city when country changes
+      setValue('state', '');
+      setValue('city', '');
+      setCities([]);
+    } else {
+      setStates([]);
+      setCities([]);
     }
-  }, [isLoaded, map, marker]);
+  }, [selectedCountry, setValue]);
 
-  const updateFormFromPlace = (place) => {
-    const addressComponents = place.address_components || [];
-    let city = '';
-    let district = '';
-    let zipCode = '';
+  // Fetch cities when state changes
+  useEffect(() => {
+    if (selectedState) {
+      fetchCities(selectedState);
+      // Reset city when state changes
+      setValue('city', '');
+    } else {
+      setCities([]);
+    }
+  }, [selectedState, setValue]);
 
-    addressComponents.forEach(component => {
-      const types = component.types;
-      if (types.includes('locality')) {
-        city = component.long_name;
-      } else if (types.includes('administrative_area_level_2')) {
-        district = component.long_name;
-      } else if (types.includes('postal_code')) {
-        zipCode = component.long_name;
+  // Fetch Countries
+  const fetchCountries = async () => {
+    try {
+      setLoadingCountries(true);
+      const response = await axiosInstance.get('/public/countries');
+      
+      if (response.data && response.data.data) {
+        setCountries(response.data.data);
+      } else {
+        setCountries([]);
       }
-    });
-
-    const lat = place.geometry.location.lat();
-    const lng = place.geometry.location.lng();
-
-    setValue('city', city);
-    setValue('district', district);
-    setValue('zipCode', zipCode);
-    setValue('fullAddress', place.formatted_address || '');
-    setValue('location', {
-      lat: lat,
-      lng: lng,
-      address: place.formatted_address || ''
-    });
-
-    // Set address with coordinates in the desired format
-    setValue('address', {
-      city: city,
-      district: district,
-      zipCode: zipCode,
-      fullAddress: place.formatted_address || '',
-      coordinates: [lat, lng]
-    });
+    } catch (error) {
+      console.error('Error fetching countries:', error);
+      toast.error('Failed to load countries. Please refresh the page.');
+      setCountries([]);
+    } finally {
+      setLoadingCountries(false);
+    }
   };
 
-  const updateFormFromGeocode = (result, lat, lng) => {
-    const addressComponents = result.address_components || [];
-    let city = '';
-    let district = '';
-    let zipCode = '';
-
-    addressComponents.forEach(component => {
-      const types = component.types;
-      if (types.includes('locality')) {
-        city = component.long_name;
-      } else if (types.includes('administrative_area_level_2')) {
-        district = component.long_name;
-      } else if (types.includes('postal_code')) {
-        zipCode = component.long_name;
+  // Fetch States by Country ID
+  const fetchStates = async (countryId) => {
+    try {
+      setLoadingStates(true);
+      const response = await axiosInstance.get(`/public/states/country/${countryId}`);
+      
+      if (response.data && response.data.data) {
+        setStates(response.data.data);
+      } else {
+        setStates([]);
       }
-    });
+    } catch (error) {
+      console.error('Error fetching states:', error);
+      toast.error('Failed to load states.');
+      setStates([]);
+    } finally {
+      setLoadingStates(false);
+    }
+  };
 
-    setValue('city', city);
-    setValue('district', district);
-    setValue('zipCode', zipCode);
-    setValue('fullAddress', result.formatted_address);
-    setValue('location', {
-      lat: lat,
-      lng: lng,
-      address: result.formatted_address
-    });
-
-    // Set address with coordinates in the desired format
-    setValue('address', {
-      city: city,
-      district: district,
-      zipCode: zipCode,
-      fullAddress: result.formatted_address,
-      coordinates: [lat, lng]
-    });
+  // Fetch Cities by State ID
+  const fetchCities = async (stateId) => {
+    try {
+      setLoadingCities(true);
+      const response = await axiosInstance.get(`/public/cities/state/${stateId}`);
+      
+      if (response.data && response.data.data) {
+        setCities(response.data.data);
+      } else {
+        setCities([]);
+      }
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+      toast.error('Failed to load cities.');
+      setCities([]);
+    } finally {
+      setLoadingCities(false);
+    }
   };
 
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Address & Location</h2>
 
-      {/* Shop Name - This remains active */}
+      {/* Shop Name */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Shop Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Shop Name <span className="text-red-500">*</span>
+          </label>
           <Controller
             name="shopName"
             control={control}
@@ -226,116 +125,131 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               <input
                 {...field}
                 type="text"
-                placeholder="Your shop name"
-                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.shopName ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                placeholder="Enter your shop name"
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.shopName ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
             )}
           />
-          {errors.shopName && <p className="text-red-500 text-sm mt-1">{errors.shopName.message}</p>}
-        </div>
-      </div>
-
-      {/* Location Search */}
-      <div className="space-y-4">
-        <label className="block text-sm font-medium text-gray-700 mb-2">
-          Search Your Location
-        </label>
-        <div className="relative">
-          <input
-            ref={searchInputRef}
-            type="text"
-            placeholder="Type your address or location name..."
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 pr-12 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all"
-          />
-          <div className="absolute right-3 top-3">
-            <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-        </div>
-        <p className="text-sm text-gray-500">
-          🔍 Search for your location above or click on the map below to select your exact position
-        </p>
-      </div>
-
-      {/* Google Map */}
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-gray-700">
-          Select Location on Map
-        </label>
-        <div
-          ref={mapRef}
-          className="w-full h-96 border border-gray-300 rounded-lg"
-          style={{ minHeight: '400px' }}
-        >
-          {!isLoaded && (
-            <div className="w-full h-full flex items-center justify-center bg-gray-100 rounded-lg">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading Google Maps...</p>
-              </div>
-            </div>
+          {errors.shopName && (
+            <p className="text-red-500 text-sm mt-1">{errors.shopName.message}</p>
           )}
         </div>
-        {currentLocation && (
-          <p className="text-sm mt-2">
-            <span className='font-bold'>Location selected</span>: {currentLocation.address}
-          </p>
-        )}
-        {currentAddress && currentAddress.coordinates && (
-          <p className="text-sm hidden text-primary-600 mt-1">
-            <span className='font-bold'>Coordinates</span>: [{currentAddress.coordinates[0].toFixed(6)}, {currentAddress.coordinates[1].toFixed(6)}]
-          </p>
-        )}
       </div>
 
-      {/* Disabled Location Fields */}
+      {/* Country, State, City Dropdowns */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* Country Dropdown */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">City</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Country <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="country"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                disabled={loadingCountries}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.country ? 'border-red-500' : 'border-gray-300'
+                } ${loadingCountries ? 'bg-gray-100 cursor-wait' : ''}`}
+              >
+                <option value="">
+                  {loadingCountries ? 'Loading countries...' : 'Select Country'}
+                </option>
+                {countries.map((country) => (
+                  <option key={country._id || country.id} value={country._id || country.id}>
+                    {country.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          {errors.country && (
+            <p className="text-red-500 text-sm mt-1">{errors.country.message}</p>
+          )}
+        </div>
+
+        {/* State Dropdown */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            State <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="state"
+            control={control}
+            render={({ field }) => (
+              <select
+                {...field}
+                disabled={!selectedCountry || loadingStates}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.state ? 'border-red-500' : 'border-gray-300'
+                } ${!selectedCountry || loadingStates ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              >
+                <option value="">
+                  {!selectedCountry
+                    ? 'First select a country'
+                    : loadingStates
+                    ? 'Loading states...'
+                    : 'Select State'}
+                </option>
+                {states.map((state) => (
+                  <option key={state._id || state.id} value={state._id || state.id}>
+                    {state.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          />
+          {errors.state && (
+            <p className="text-red-500 text-sm mt-1">{errors.state.message}</p>
+          )}
+        </div>
+
+        {/* City Dropdown */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            City <span className="text-red-500">*</span>
+          </label>
           <Controller
             name="city"
             control={control}
             render={({ field }) => (
-              <input
+              <select
                 {...field}
-                type="text"
-                disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed"
-                placeholder="Auto-filled from map selection"
-              />
+                disabled={!selectedState || loadingCities}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.city ? 'border-red-500' : 'border-gray-300'
+                } ${!selectedState || loadingCities ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+              >
+                <option value="">
+                  {!selectedState
+                    ? 'First select a state'
+                    : loadingCities
+                    ? 'Loading cities...'
+                    : 'Select City'}
+                </option>
+                {cities.map((city) => (
+                  <option key={city._id || city.id} value={city._id || city.id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
             )}
           />
-          {errors?.city?.message && (
-            <p className="text-red-500 text-sm">{errors.city.message}</p>
+          {errors.city && (
+            <p className="text-red-500 text-sm mt-1">{errors.city.message}</p>
           )}
-
         </div>
 
+        {/* ZIP Code */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">District</label>
-          <Controller
-            name="district"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed"
-                placeholder="Auto-filled from map selection"
-              />
-            )}
-          />
-
-          {errors?.district?.message && (
-            <p className="text-red-500 text-sm">{errors.district.message}</p>
-          )}
-        </div>
-
-        <div className='sm:col-span-2'>
-          <label className="block text-sm font-medium text-gray-700 mb-2">ZIP Code</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            ZIP Code <span className="text-red-500">*</span>
+          </label>
           <Controller
             name="zipCode"
             control={control}
@@ -343,31 +257,48 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               <input
                 {...field}
                 type="text"
-                // disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3  "
-                placeholder="Entter Zip Code"
+                placeholder="Enter ZIP code"
+                maxLength={5}
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.zipCode ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
             )}
           />
-
-          {errors?.zipCode?.message && (
-            <p className="text-red-500 text-sm">{errors.zipCode.message}</p>
+          {errors.zipCode && (
+            <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>
           )}
         </div>
 
-        <div className='hidden'>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Coordinates</label>
-          <input
-            type="text"
-            disabled
-            value={currentAddress?.coordinates ? `[${currentAddress.coordinates[0].toFixed(6)}, ${currentAddress.coordinates[1].toFixed(6)}]` : ''}
-            className="w-full border border-gray-300 rounded-lg px-4 py-3 bg-gray-100 text-gray-600 cursor-not-allowed text-sm"
-            placeholder="[Lat, Lng] coordinates"
+        {/* Tax Number */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Tax Number <span className="text-red-500">*</span>
+          </label>
+          <Controller
+            name="taxNumber"
+            control={control}
+            render={({ field }) => (
+              <input
+                {...field}
+                type="text"
+                placeholder="Enter tax number"
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.taxNumber ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+            )}
           />
+          {errors.taxNumber && (
+            <p className="text-red-500 text-sm mt-1">{errors.taxNumber.message}</p>
+          )}
         </div>
 
+        {/* Full Address */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Full Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Full Address <span className="text-red-500">*</span>
+          </label>
           <Controller
             name="fullAddress"
             control={control}
@@ -375,20 +306,42 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
               <textarea
                 {...field}
                 rows="3"
-                // disabled
-                className="w-full border border-gray-300 rounded-lg px-4 py-3  "
-                placeholder="Complete address will be auto-filled from map selection"
+                placeholder="Enter complete address (street, building number, landmarks, etc.)"
+                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                  errors.fullAddress ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
             )}
           />
-
-           {errors?.fullAddress?.message && (
-            <p className="text-red-500 text-sm">{errors.fullAddress.message}</p>
+          {errors.fullAddress && (
+            <p className="text-red-500 text-sm mt-1">{errors.fullAddress.message}</p>
           )}
         </div>
       </div>
 
-
+      {/* Info Box */}
+      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <div className="flex items-start">
+          <svg
+            className="w-5 h-5 text-blue-500 mt-0.5 mr-3 flex-shrink-0"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+          >
+            <path
+              fillRule="evenodd"
+              d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+              clipRule="evenodd"
+            />
+          </svg>
+          <div className="text-sm text-blue-700">
+            <p className="font-medium mb-1">Address Selection</p>
+            <p>
+              Please select your country, state, and city from the dropdowns above. Then provide
+              your complete shop address including street name, building number, and any landmarks.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

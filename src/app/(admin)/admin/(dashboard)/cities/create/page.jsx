@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
@@ -9,7 +9,6 @@ import { useRouter } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
-import Autocomplete from 'react-google-autocomplete';
 
 const citySchema = yup.object().shape({
   name: yup
@@ -23,92 +22,7 @@ const citySchema = yup.object().shape({
   state: yup
     .string()
     .required('State is required'),
-  latitude: yup
-    .number()
-    .required('Please select a valid location')
-    .min(-90, 'Latitude must be between -90 and 90')
-    .max(90, 'Latitude must be between -90 and 90'),
-  longitude: yup
-    .number()
-    .required('Please select a valid location')
-    .min(-180, 'Longitude must be between -180 and 180')
-    .max(180, 'Longitude must be between -180 and 180'),
 });
-
-// Country name to ISO code mapping
-const countryISOCodes = {
-  'Pakistan': 'PK',
-  'India': 'IN',
-  'United States': 'US',
-  'United Kingdom': 'GB',
-  'Canada': 'CA',
-  'Australia': 'AU',
-  'China': 'CN',
-  'Japan': 'JP',
-  'Germany': 'DE',
-  'France': 'FR',
-  'Italy': 'IT',
-  'Spain': 'ES',
-  'Brazil': 'BR',
-  'Mexico': 'MX',
-  'Russia': 'RU',
-  'South Africa': 'ZA',
-  'Saudi Arabia': 'SA',
-  'UAE': 'AE',
-  'Turkey': 'TR',
-  'Bangladesh': 'BD',
-  'Egypt': 'EG',
-  'Indonesia': 'ID',
-  'Malaysia': 'MY',
-  'Singapore': 'SG',
-  'Thailand': 'TH',
-  'Vietnam': 'VN',
-  'Philippines': 'PH',
-  'South Korea': 'KR',
-  'Argentina': 'AR',
-  'Chile': 'CL',
-  'Colombia': 'CO',
-  'Peru': 'PE',
-  'Venezuela': 'VE',
-  'Nigeria': 'NG',
-  'Kenya': 'KE',
-  'Ghana': 'GH',
-  'Morocco': 'MA',
-  'Algeria': 'DZ',
-  'Tunisia': 'TN',
-  'New Zealand': 'NZ',
-  'Netherlands': 'NL',
-  'Belgium': 'BE',
-  'Switzerland': 'CH',
-  'Austria': 'AT',
-  'Sweden': 'SE',
-  'Norway': 'NO',
-  'Denmark': 'DK',
-  'Finland': 'FI',
-  'Poland': 'PL',
-  'Czech Republic': 'CZ',
-  'Hungary': 'HU',
-  'Romania': 'RO',
-  'Greece': 'GR',
-  'Portugal': 'PT',
-  'Ireland': 'IE',
-  'Israel': 'IL',
-  'Iran': 'IR',
-  'Iraq': 'IQ',
-  'Jordan': 'JO',
-  'Lebanon': 'LB',
-  'Kuwait': 'KW',
-  'Qatar': 'QA',
-  'Bahrain': 'BH',
-  'Oman': 'OM',
-  'Yemen': 'YE',
-  'Afghanistan': 'AF',
-  'Sri Lanka': 'LK',
-  'Nepal': 'NP',
-  'Myanmar': 'MM',
-  'Cambodia': 'KH',
-  'Laos': 'LA',
-};
 
 function CreateCity() {
   const [submitError, setSubmitError] = useState('');
@@ -117,15 +31,12 @@ function CreateCity() {
   const [states, setStates] = useState([]);
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingStates, setLoadingStates] = useState(false);
-  const [selectedCountryCode, setSelectedCountryCode] = useState('');
-  const [autocompleteKey, setAutocompleteKey] = useState(0);
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
 
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors, isSubmitting, isValid },
     reset,
     watch,
@@ -136,16 +47,12 @@ function CreateCity() {
       name: '',
       country: '',
       state: '',
-      latitude: '',
-      longitude: '',
     },
   });
 
   const watchedName = watch('name');
   const watchedCountry = watch('country');
   const watchedState = watch('state');
-  const watchedLatitude = watch('latitude');
-  const watchedLongitude = watch('longitude');
 
   useEffect(() => {
     fetchCountries();
@@ -154,30 +61,18 @@ function CreateCity() {
   useEffect(() => {
     if (watchedCountry) {
       fetchStates(watchedCountry);
-      const selectedCountry = countries.find(c => c._id === watchedCountry);
-      if (selectedCountry) {
-        const countryCode = countryISOCodes[selectedCountry.name];
-        setSelectedCountryCode(countryCode || '');
-        // Reset state and city when country changes
-        setValue('state', '');
-        setValue('name', '');
-        setValue('latitude', '');
-        setValue('longitude', '');
-        setAutocompleteKey(prev => prev + 1);
-      }
+      // Reset state and city when country changes
+      setValue('state', '');
+      setValue('name', '');
     } else {
       setStates([]);
-      setSelectedCountryCode('');
     }
-  }, [watchedCountry, countries]);
+  }, [watchedCountry]);
 
   useEffect(() => {
     if (watchedState) {
       // Reset city name when state changes
       setValue('name', '');
-      setValue('latitude', '');
-      setValue('longitude', '');
-      setAutocompleteKey(prev => prev + 1);
     }
   }, [watchedState]);
 
@@ -225,10 +120,6 @@ function CreateCity() {
         name: data.name,
         state: data.state,
         isActive: true,
-        coordinates: {
-          latitude: data.latitude,
-          longitude: data.longitude,
-        },
       };
 
       const response = await axiosInstance.post('/admin/cities', payload, {
@@ -241,7 +132,6 @@ function CreateCity() {
       setSubmitSuccess('City created successfully!');
       reset();
       setStates([]);
-      setSelectedCountryCode('');
 
       setTimeout(() => setSubmitSuccess(''), 5000);
 
@@ -258,8 +148,14 @@ function CreateCity() {
   };
 
   const onInvalid = (errors) => {
-    if (errors.latitude || errors.longitude) {
-      toast.error('Please select valid location and coordinates');
+    if (errors.name) {
+      toast.error('Please enter a valid city name');
+    }
+    if (errors.country) {
+      toast.error('Please select a country');
+    }
+    if (errors.state) {
+      toast.error('Please select a state');
     }
   };
 
@@ -268,7 +164,6 @@ function CreateCity() {
     setSubmitError('');
     setSubmitSuccess('');
     setStates([]);
-    setSelectedCountryCode('');
     router.push('/admin/cities');
   };
 
@@ -288,7 +183,7 @@ function CreateCity() {
               </button>
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">Create New City</h1>
-                <p className="text-gray-600 mt-1">Add a new city with location details</p>
+                <p className="text-gray-600 mt-1">Add a new city</p>
               </div>
             </div>
           </div>
@@ -331,7 +226,7 @@ function CreateCity() {
                   } ${watchedCountry ? 'bg-green-50' : ''}`}
                   disabled={loadingCountries}
                 >
-                  <option value="">Select a country first</option>
+                  <option value="">Select a country</option>
                   {countries.map((country) => (
                     <option key={country._id} value={country._id}>
                       {country.name}
@@ -410,49 +305,22 @@ function CreateCity() {
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
                 City Name *
               </label>
-              {!watchedState ? (
-                <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500 flex items-center">
-                  <Icon icon="mdi:information" className="w-4 h-4 mr-2" />
+              <input
+                id="name"
+                type="text"
+                {...register('name')}
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                  errors.name ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="Enter city name (e.g., Karachi, Lahore)"
+                disabled={!watchedState}
+              />
+              {!watchedState && (
+                <p className="mt-1 text-xs text-gray-500 flex items-center">
+                  <Icon icon="mdi:information" className="w-3 h-3 mr-1" />
                   Please select a country and state first
-                </div>
-              ) : (
-                <Controller
-                  name="name"
-                  control={control}
-                  render={({ field }) => (
-                    <Autocomplete
-                      key={autocompleteKey}
-                      apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}
-                      onPlaceSelected={(place) => {
-                        const cityName = place.name || place.formatted_address;
-                        const lat = place.geometry?.location?.lat();
-                        const lng = place.geometry?.location?.lng();
-                        
-                        setValue('name', cityName, { shouldValidate: true });
-                        if (lat) setValue('latitude', lat, { shouldValidate: true });
-                        if (lng) setValue('longitude', lng, { shouldValidate: true });
-                      }}
-                      options={{
-                        types: ['(cities)'],
-                        componentRestrictions: selectedCountryCode ? { country: selectedCountryCode } : undefined,
-                      }}
-                      defaultValue={field.value}
-                      onChange={(e) => field.onChange(e.target.value)}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        errors.name ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      placeholder={`Start typing city name from ${states.find(s => s._id === watchedState)?.name || 'selected state'}...`}
-                    />
-                  )}
-                />
+                </p>
               )}
-              <p className="mt-1 text-xs text-gray-500 flex items-center">
-                <Icon icon="mdi:information" className="w-3 h-3 mr-1" />
-                {watchedState 
-                  ? `Only cities from ${countries.find(c => c._id === watchedCountry)?.name} will be shown`
-                  : 'Select a state to enable city selection'
-                }
-              </p>
               {errors.name && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.name.message}

@@ -13,6 +13,7 @@ import ContactInformation from "./ContactInformation";
 import AddressLocation from "./AddressLocation";
 import ExperienceAvailability from "./ExperienceAvailability";
 import DocumentUploads from "./DocumentUploads";
+import { clearAuth } from '@/store/auth';
 
 const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2, "Name must be at least 2 characters"),
@@ -31,7 +32,6 @@ const step1Schema = yup.object({
     .oneOf(["Male", "Female", "Other"], "Invalid gender"),
 });
 
-
 const step2Schema = yup.object({
   mobileNumber: yup
     .string()
@@ -49,18 +49,18 @@ const step2Schema = yup.object({
     .matches(/^05\d{9}$/, "Enter valid contact number"),
 });
 
-
 const step3Schema = yup.object({
   shopName: yup.string().required("Shop name is required").min(2, "Shop name must be at least 2 characters"),
-  fullAddress: yup.string().required("Full address is required").min(10, "Address must be at least 10 characters"),
+  country: yup.string().required("Country is required"),
+  state: yup.string().required("State is required"),
   city: yup.string().required("City is required"),
-  district: yup.string().required("District is required"),
   zipCode: yup
     .string()
     .required("ZIP code is required")
     .matches(/^\d{5}$/, "ZIP code must be 5 digits"),
+  fullAddress: yup.string().required("Full address is required").min(10, "Address must be at least 10 characters"),
+  taxNumber: yup.string().required("Tax number is required").min(5, "Tax number must be at least 5 characters"),
 });
-
 
 const step4Schema = yup.object({
   yearsOfExperience: yup
@@ -83,13 +83,64 @@ const step4Schema = yup.object({
 });
 
 const step5Schema = yup.object({
-  profilePhoto: yup.mixed().required("Profile photo is required"),
-  nationalIdOrPassportScan: yup.mixed().required("T.C. ID or passport scan is required"),
-  shopPhoto: yup.mixed().required("Shop photo is required"),
-  utilityBillOrShopProof: yup.mixed().required("Shop proof is required"),
-  certifications: yup.mixed(), // optional
+  profilePhoto: yup
+    .mixed()
+    .required("Profile photo is required")
+    .test("fileExists", "Profile photo is required", (value) => {
+      return value !== null && value !== undefined && value instanceof File;
+    })
+    .test("fileSize", "File size must be less than 5MB", (value) => {
+      if (!value) return true;
+      return value.size <= 5 * 1024 * 1024; // 5MB
+    })
+    .test("fileType", "Only image files are allowed", (value) => {
+      if (!value) return true;
+      return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(value.type);
+    }),
+  nationalIdOrPassportScan: yup
+    .mixed()
+    .required("T.C. ID or passport scan is required")
+    .test("fileExists", "T.C. ID or passport scan is required", (value) => {
+      return value !== null && value !== undefined && value instanceof File;
+    })
+    .test("fileSize", "File size must be less than 5MB", (value) => {
+      if (!value) return true;
+      return value.size <= 5 * 1024 * 1024;
+    })
+    .test("fileType", "Only image or PDF files are allowed", (value) => {
+      if (!value) return true;
+      return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'].includes(value.type);
+    }),
+  shopPhoto: yup
+    .mixed()
+    .required("Shop photo is required")
+    .test("fileExists", "Shop photo is required", (value) => {
+      return value !== null && value !== undefined && value instanceof File;
+    })
+    .test("fileSize", "File size must be less than 5MB", (value) => {
+      if (!value) return true;
+      return value.size <= 5 * 1024 * 1024;
+    })
+    .test("fileType", "Only image files are allowed", (value) => {
+      if (!value) return true;
+      return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(value.type);
+    }),
+  utilityBillOrShopProof: yup
+    .mixed()
+    .required("Shop proof is required")
+    .test("fileExists", "Shop proof is required", (value) => {
+      return value !== null && value !== undefined && value instanceof File;
+    })
+    .test("fileSize", "File size must be less than 5MB", (value) => {
+      if (!value) return true;
+      return value.size <= 5 * 1024 * 1024;
+    })
+    .test("fileType", "Only image or PDF files are allowed", (value) => {
+      if (!value) return true;
+      return ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'].includes(value.type);
+    }),
+  certifications: yup.mixed().nullable(), // optional
 });
-
 
 const schemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema];
 
@@ -136,14 +187,13 @@ const useFormPersistence = () => {
 };
 
 export default function RepairmanMultiStepForm() {
-  const [isDocumentsUploaded, setIsDocumentsUploaded] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
   const { saveToStorage, getFromStorage, clearStorage } = useFormPersistence();
 
   // Initialize step from URL or storage
   const [step, setStep] = useState(() => {
-    // First check URL params
     const urlStep = searchParams.get('step');
     if (urlStep && !isNaN(parseInt(urlStep))) {
       const parsedStep = parseInt(urlStep, 10);
@@ -152,13 +202,12 @@ export default function RepairmanMultiStepForm() {
       }
     }
 
-    // Then check storage
     const savedStep = getFromStorage('step');
     if (savedStep && savedStep >= 1 && savedStep <= 5) {
       return savedStep;
     }
 
-    return 1; // Default to step 1
+    return 1;
   });
 
   // Initialize form data from storage
@@ -189,7 +238,6 @@ export default function RepairmanMultiStepForm() {
     setStep(newStep);
     saveToStorage('step', newStep);
 
-    // Update URL without page reload
     if (typeof window !== 'undefined') {
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('step', newStep.toString());
@@ -229,29 +277,23 @@ export default function RepairmanMultiStepForm() {
     resolver: yupResolver(schemas[step - 1]),
     mode: "onChange",
     defaultValues: {
-      // Basic defaults
       emailAddress: user?.email || "",
       shopName: '',
+      country: '',
+      state: '',
       city: '',
-      district: '',
       zipCode: '',
       fullAddress: '',
-      location: null,
-
-      // Personal Information defaults
+      taxNumber: '',
       fullName: '',
       fatherName: '',
       nationalIdOrCitizenNumber: '',
       dob: '',
       gender: '',
-
-      // Contact Information defaults
       mobileNumber: '',
       whatsappNumber: '',
       emergencyContactPerson: '',
       emergencyContactNumber: '',
-
-      // Experience defaults
       yearsOfExperience: '',
       specializations: [],
       brandsWorkedWith: [],
@@ -259,8 +301,6 @@ export default function RepairmanMultiStepForm() {
       workingDays: [],
       workingHours: { start: '', end: '' },
       pickupService: false,
-
-      // Document defaults
       profilePhoto: null,
       nationalIdOrPassportScan: null,
       shopPhoto: null,
@@ -273,27 +313,24 @@ export default function RepairmanMultiStepForm() {
   useEffect(() => {
     const allSavedData = { ...informationData, ...documentData };
 
-    // Reset form with saved data
     reset({
       emailAddress: user?.email || "",
       shopName: '',
+      country: '',
+      state: '',
       city: '',
-      district: '',
       zipCode: '',
       fullAddress: '',
-      location: null,
-
+      taxNumber: '',
       fullName: '',
       fatherName: '',
       nationalIdOrCitizenNumber: '',
       dob: '',
       gender: '',
-
       mobileNumber: '',
       whatsappNumber: '',
       emergencyContactPerson: '',
       emergencyContactNumber: '',
-
       yearsOfExperience: '',
       specializations: [],
       brandsWorkedWith: [],
@@ -301,14 +338,11 @@ export default function RepairmanMultiStepForm() {
       workingDays: [],
       workingHours: { start: '', end: '' },
       pickupService: false,
-
       profilePhoto: null,
       nationalIdOrPassportScan: null,
       shopPhoto: null,
       utilityBillOrShopProof: null,
       certifications: null,
-
-      // Override with saved data
       ...allSavedData,
     });
   }, [step, reset, informationData, documentData, user?.email]);
@@ -333,7 +367,6 @@ export default function RepairmanMultiStepForm() {
 
   const prevStep = () => {
     if (step > 1) {
-      // Save current data before going back
       const currentData = getValues();
       if (step <= 4) {
         setInformationData(prev => ({ ...prev, ...currentData }));
@@ -346,126 +379,166 @@ export default function RepairmanMultiStepForm() {
   };
 
   const onSubmit = async (data) => {
-    if (step <= 4) {
-      try {
-        console.log("Received data:", data);
+    // Only submit on step 5 (final step)
+    if (step < 5) {
+      // For steps 1-4, just save data and move to next step
+      setInformationData(prev => ({ ...prev, ...data }));
+      updateStep(step + 1);
+      return;
+    }
 
-        const mappedData = { ...data };
-        console.log("Mapped data before transformation:", mappedData);
+    // Step 5: Final submission with all data including documents
+    try {
+      setIsSubmitting(true);
 
-        if (data.brandsWorkedWith) {
-          mappedData.brands = data.brandsWorkedWith.map(brand => brand.id || brand._id);
-          delete mappedData.brandsWorkedWith;
-          console.log("Transformed brands:", mappedData.brands);
-        }
+      // ✅ CRITICAL: Validate required documents BEFORE proceeding
+      console.log("Validating documents...");
+      console.log("profilePhoto:", data.profilePhoto);
+      console.log("nationalIdOrPassportScan:", data.nationalIdOrPassportScan);
+      console.log("shopPhoto:", data.shopPhoto);
+      console.log("utilityBillOrShopProof:", data.utilityBillOrShopProof);
 
-        // Fix experience field name if needed
-        if (data.yearsOfExperience) {
-          mappedData.experience = data.yearsOfExperience.toString();
-          delete mappedData.yearsOfExperience;
-        }
+      const hasRequiredFiles = 
+        data.profilePhoto instanceof File &&
+        data.nationalIdOrPassportScan instanceof File &&
+        data.shopPhoto instanceof File &&
+        data.utilityBillOrShopProof instanceof File;
 
-        const payload = {
-          repairmanProfile: { ...informationData, ...mappedData },
-        };
-
-        console.log("Sending payload:", payload);
-
-        const response = await axiosInstance.put("/repairman/profile", payload, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        toast.success(response.data.message);
-        updateStep(5);
-      } catch (error) {
-        console.error("Profile update error:", error);
-        toast.error(error.response?.data?.message || "Error updating profile. Please try again.");
+      if (!hasRequiredFiles) {
+        toast.error("Please upload all required documents before submitting.");
+        setIsSubmitting(false);
+        return; // ⚠️ STOP execution here - form will NOT submit
       }
-    } else {
-      // Document upload step - Updated for S3
-      const finalDocumentData = { ...documentData, ...data };
 
-      try {
-        console.log("Processing Document Data for S3 Upload:", finalDocumentData);
+      // Merge all collected data
+      const allFormData = { ...informationData, ...data };
+      console.log("All form data:", allFormData);
 
-        // Validate that we have at least some files
-        const hasRequiredFiles = finalDocumentData.profilePhoto ||
-          finalDocumentData.nationalIdOrPassportScan ||
-          finalDocumentData.shopPhoto ||
-          finalDocumentData.utilityBillOrShopProof;
+      // Create FormData for multipart/form-data
+      const formData = new FormData();
 
-        if (!hasRequiredFiles) {
-          toast.error("Please select at least one required document to upload.");
-          return;
-        }
+      // Add all text fields as repairmanProfile JSON
+      const repairmanProfile = {
+        fullName: allFormData.fullName,
+        fatherName: allFormData.fatherName,
+        nationalIdOrCitizenNumber: allFormData.nationalIdOrCitizenNumber,
+        dob: allFormData.dob,
+        gender: allFormData.gender,
+        mobileNumber: allFormData.mobileNumber,
+        whatsappNumber: allFormData.whatsappNumber,
+        emailAddress: allFormData.emailAddress,
+        emergencyContactPerson: allFormData.emergencyContactPerson,
+        emergencyContactNumber: allFormData.emergencyContactNumber,
+        shopName: allFormData.shopName,
+        zipCode: allFormData.zipCode,
+        taxNumber: allFormData.taxNumber,
+        experience: allFormData.yearsOfExperience?.toString(),
+        specializations: allFormData.specializations,
+        brands: allFormData.brandsWorkedWith?.map(brand => brand.id || brand._id),
+        description: allFormData.description,
+        workingDays: allFormData.workingDays,
+        workingHours: allFormData.workingHours,
+        pickupService: allFormData.pickupService,
+      };
 
-        // Show loading state
-        setIsDocumentsUploaded(true)
-        // toast.info("Uploading documents to secure cloud storage... Please wait.");
+      // Append repairmanProfile as JSON string
+      formData.append('repairmanProfile', JSON.stringify(repairmanProfile));
 
-        // Create FormData for S3 upload
-        const formData = new FormData();
+      // Append country, state, city, address separately
+      formData.append('country', allFormData.country);
+      formData.append('state', allFormData.state);
+      formData.append('city', allFormData.city);
+      formData.append('address', allFormData.fullAddress);
 
-        // Add individual files to FormData
-        if (finalDocumentData.profilePhoto) {
-          formData.append('profilePhoto', finalDocumentData.profilePhoto);
-          console.log("Added profilePhoto:", finalDocumentData.profilePhoto.name);
-        }
+      // Append document files
+      formData.append('profilePhoto', data.profilePhoto);
+      console.log("Added profilePhoto:", data.profilePhoto.name);
 
-        if (finalDocumentData.nationalIdOrPassportScan) {
-          formData.append('nationalIdOrPassportScan', finalDocumentData.nationalIdOrPassportScan);
-          console.log("Added nationalIdOrPassportScan:", finalDocumentData.nationalIdOrPassportScan.name);
-        }
+      formData.append('nationalIdOrPassportScan', data.nationalIdOrPassportScan);
+      console.log("Added nationalIdOrPassportScan:", data.nationalIdOrPassportScan.name);
 
-        if (finalDocumentData.shopPhoto) {
-          formData.append('shopPhoto', finalDocumentData.shopPhoto);
-          console.log("Added shopPhoto:", finalDocumentData.shopPhoto.name);
-        }
+      formData.append('shopPhoto', data.shopPhoto);
+      console.log("Added shopPhoto:", data.shopPhoto.name);
 
-        if (finalDocumentData.utilityBillOrShopProof) {
-          formData.append('utilityBillOrShopProof', finalDocumentData.utilityBillOrShopProof);
-          console.log("Added utilityBillOrShopProof:", finalDocumentData.utilityBillOrShopProof.name);
-        }
+      formData.append('utilityBillOrShopProof', data.utilityBillOrShopProof);
+      console.log("Added utilityBillOrShopProof:", data.utilityBillOrShopProof.name);
 
-        // Handle multiple certification files
-        if (finalDocumentData.certifications && finalDocumentData.certifications.length > 0) {
-          Array.from(finalDocumentData.certifications).forEach((file, index) => {
-            formData.append('certifications', file);
-            console.log(`Added certification ${index + 1}:`, file.name);
-          });
-        }
+      // Handle multiple certification files (optional)
+      if (data.certifications && data.certifications.length > 0) {
+        Array.from(data.certifications).forEach((file, index) => {
+          formData.append('certifications', file);
+          console.log(`Added certification ${index + 1}:`, file.name);
+        });
+      }
 
-        console.log("FormData prepared, starting S3 upload...");
+      console.log("Sending single API request to /repairman/profile...");
 
-        // Upload directly to S3 via your backend
-        const response = await axiosInstance.post(
-          "/repairman/profile/upload-documents",
-          formData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              'Content-Type': 'multipart/form-data'
-            },
-            timeout: 120000, // 2 minutes timeout for large file uploads
-            onUploadProgress: (progressEvent) => {
-              const percentCompleted = Math.round(
-                (progressEvent.loaded * 100) / progressEvent.total
-              );
-              console.log(`Upload progress: ${percentCompleted}%`);
-              // Optional: You can show progress to user here
-              // toast.info(`Uploading... ${percentCompleted}%`);
-            }
+      // Single API call with all data
+      const response = await axiosInstance.put(
+        "/repairman/profile",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          },
+          timeout: 120000, // 2 minutes timeout
+          onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round(
+              (progressEvent.loaded * 100) / progressEvent.total
+            );
+            console.log(`Upload progress: ${percentCompleted}%`);
           }
-        );
+        }
+      );
 
-        console.log("S3 Upload Response:", response.data);
+      console.log("API Response:", response.data);
 
-        // Show success message
-        toast.success("Registration completed successfully!");
-        setIsDocumentsUploaded(false);
+      // Check if response is successful (200 or success: true)
+      if (response.status === 200 || response.data.success) {
+        // Success handling
+        toast.success("Registration completed! Your account has been submitted for approval. You will receive an email once it's approved.");
 
-        // Clear all stored form data
+        // Clear all stored form data from sessionStorage
         clearStorage();
+
+        // Clear form state
+        setInformationData({});
+        setDocumentData({});
+       dispatch(clearAuth());
+
+        // Reset form fields
+        reset({
+          emailAddress: user?.email || "",
+          shopName: '',
+          country: '',
+          state: '',
+          city: '',
+          zipCode: '',
+          fullAddress: '',
+          taxNumber: '',
+          fullName: '',
+          fatherName: '',
+          nationalIdOrCitizenNumber: '',
+          dob: '',
+          gender: '',
+          mobileNumber: '',
+          whatsappNumber: '',
+          emergencyContactPerson: '',
+          emergencyContactNumber: '',
+          yearsOfExperience: '',
+          specializations: [],
+          brandsWorkedWith: [],
+          description: '',
+          workingDays: [],
+          workingHours: { start: '', end: '' },
+          pickupService: false,
+          profilePhoto: null,
+          nationalIdOrPassportScan: null,
+          shopPhoto: null,
+          utilityBillOrShopProof: null,
+          certifications: null,
+        });
 
         // Remove step parameter from URL
         if (typeof window !== 'undefined') {
@@ -474,66 +547,56 @@ export default function RepairmanMultiStepForm() {
           router.replace(newUrl.pathname, { scroll: false });
         }
 
-        // Show completion details
+        // Update profile completion status
         if (response.data.data) {
-          const { isProfileComplete, completionPercentage, uploadedDocuments } = response.data.data;
+          const { isProfileComplete, completionPercentage } = response.data.data;
           console.log(`Profile completion: ${completionPercentage}%`);
-          console.log('Uploaded documents:', uploadedDocuments);
 
           if (isProfileComplete) {
-            toast.success("Your profile is now complete!");
-            dispatch(setProfileComplete(true));
-            // Optional: Redirect to dashboard
-            // router.push('/repair-man/dashboard');
+            // toast.success("Your profile is now complete!");
+            // dispatch(setProfileComplete(true));
+            // Redirect to dashboard
+            setTimeout(() => {
+              router.push('/repair-man/dashboard');
+            }, 1500);
           } else {
-            toast.info(`Profile ${completionPercentage}% complete. Some additional information may be required.`);
+            // toast.info(`Profile ${completionPercentage}% complete.`);
           }
         }
-
-      } catch (error) {
-        console.error("Error in S3 document upload process:", error);
-
-        // Handle different types of errors
-        if (error.response) {
-          // Server responded with error status
-          const errorMessage = error.response.data?.message || "Server error occurred during upload";
-
-          // Handle specific S3/upload errors
-          if (error.response.status === 413) {
-            toast.error("File size too large. Please reduce file sizes and try again.");
-          } else if (error.response.status === 415) {
-            toast.error("Invalid file type. Please use JPG, PNG, or PDF files only.");
-          } else if (error.response.status === 400 && errorMessage.includes('file')) {
-            toast.error("Invalid file format or corrupted file. Please check your files and try again.");
-          } else {
-            toast.error(errorMessage);
-          }
-
-          console.error("Server error details:", {
-            status: error.response.status,
-            data: error.response.data,
-            headers: error.response.headers
-          });
-        } else if (error.request) {
-          // Request was made but no response received (network error)
-          if (error.code === 'ECONNABORTED') {
-            toast.error("Upload timeout. Please check your internet connection and try again.");
-          } else {
-            toast.error("Network error. Please check your connection and try again.");
-          }
-          console.error("Network error:", error.request);
-        } else if (error.message?.includes('File size')) {
-          // File size validation error
-          toast.error("One or more files exceed the maximum size limit of 5MB.");
-        } else {
-          // Something else happened
-          toast.error("Error uploading documents. Please try again.");
-          console.error("Upload error:", error.message);
-        }
-
-        // Optional: Clear loading states or reset form partially
-        // You might want to keep the form data so user doesn't lose their selections
       }
+
+    } catch (error) {
+      console.error("Error submitting profile:", error);
+
+      // Handle different types of errors
+      if (error.response) {
+        const errorMessage = error.response.data?.message || "Server error occurred";
+
+        if (error.response.status === 413) {
+          toast.error("File size too large. Please reduce file sizes and try again.");
+        } else if (error.response.status === 415) {
+          toast.error("Invalid file type. Please use JPG, PNG, or PDF files only.");
+        } else if (error.response.status === 400) {
+          toast.error(errorMessage);
+        } else {
+          toast.error(errorMessage);
+        }
+
+        console.error("Server error details:", {
+          status: error.response.status,
+          data: error.response.data,
+        });
+      } else if (error.request) {
+        if (error.code === 'ECONNABORTED') {
+          toast.error("Upload timeout. Please check your internet connection and try again.");
+        } else {
+          toast.error("Network error. Please check your connection and try again.");
+        }
+      } else {
+        toast.error("Error submitting profile. Please try again.");
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -548,7 +611,8 @@ export default function RepairmanMultiStepForm() {
     console.log('Current step:', step);
     console.log('Information data:', informationData);
     console.log('Document data:', documentData);
-  }, [step, informationData, documentData]);
+    console.log('Form errors:', errors);
+  }, [step, informationData, documentData, errors]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-orange-50 p-4">
@@ -559,17 +623,25 @@ export default function RepairmanMultiStepForm() {
           {steps.map((s, idx) => (
             <div key={s} className="flex items-center">
               <div className="flex flex-col items-center">
-                <div
+                <button
+                  type="button"
+                  onClick={() => {
+                    // Only allow clicking on current step or previous completed steps
+                    if (s <= step) {
+                      updateStep(s);
+                    }
+                  }}
+                  disabled={s > step}
                   className={`flex items-center justify-center w-12 h-12 rounded-full font-semibold transition-all duration-300
                   ${step === s
                       ? "bg-orange-500 text-white shadow-lg scale-110"
                       : step > s
-                        ? "bg-green-500 text-white"
-                        : "bg-gray-200 text-gray-700"
+                        ? "bg-green-500 text-white cursor-pointer hover:scale-105"
+                        : "bg-gray-200 text-gray-700 cursor-not-allowed"
                     }`}
                 >
                   {step > s ? "✓" : s}
-                </div>
+                </button>
                 <span className="text-xs mt-1 text-center font-medium">
                   {stepTitles[idx]}
                 </span>
@@ -601,12 +673,10 @@ export default function RepairmanMultiStepForm() {
             />
           )}
 
-          {/* Step 4: Experience & Availability - Using Component */}
           {step === 4 && (
             <ExperienceAvailability control={control} errors={errors} />
           )}
 
-          {/* Step 5: Document Uploads - Using Component */}
           {step === 5 && (
             <DocumentUploads control={control} errors={errors} />
           )}
@@ -616,7 +686,7 @@ export default function RepairmanMultiStepForm() {
             <button
               type="button"
               onClick={prevStep}
-              disabled={step === 1}
+              disabled={step === 1 || isSubmitting}
               className="px-6 py-3 bg-gray-300 text-gray-800 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-400 transition-colors"
             >
               Previous
@@ -626,24 +696,17 @@ export default function RepairmanMultiStepForm() {
               Step {step} of {steps.length}
             </div>
 
-            {step === 4 ? (
+            {step === 5 ? (
               <button
                 type="submit"
-                className="px-6 py-3 bg-primary-500 text-white rounded-lg font-medium hover:bg-primary-600 transition-colors shadow-lg"
-              >
-                Save Information & Continue
-              </button>
-            ) : step === 5 ? (
-              <button
-                type="submit"
-                disabled={isDocumentsUploaded}
+                disabled={isSubmitting}
                 className={`px-6 py-3 rounded-lg font-medium transition-colors shadow-lg flex items-center justify-center gap-2
-    ${isDocumentsUploaded
+                  ${isSubmitting
                     ? "bg-gray-400 cursor-not-allowed"
                     : "bg-green-500 hover:bg-green-600 text-white"
                   }`}
               >
-                {isDocumentsUploaded ? (
+                {isSubmitting ? (
                   <div className="flex items-center gap-2">
                     <svg
                       className="animate-spin h-5 w-5 text-white"
@@ -668,15 +731,15 @@ export default function RepairmanMultiStepForm() {
                     <span>Submitting...</span>
                   </div>
                 ) : (
-                  "Upload Documents & Complete"
+                  "Complete Registration"
                 )}
               </button>
-
             ) : (
               <button
                 type="button"
                 onClick={nextStep}
-                className="px-6 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors shadow-lg"
+                disabled={isSubmitting}
+                className="px-6 py-3 bg-orange-500 text-white rounded-lg font-medium hover:bg-orange-600 transition-colors shadow-lg disabled:opacity-50"
               >
                 Next Step
               </button>

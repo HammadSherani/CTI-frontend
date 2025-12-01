@@ -23,7 +23,7 @@ const InputField = ({ label, value }) => (
 
 // Image Display Component
 const ImageDisplay = ({ url, alt, label }) => {
-  if (!url) return null;
+  if (!url || url === "") return null;
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
@@ -105,7 +105,6 @@ function KycRepairmanDetail() {
         payload.reason = rejectionReason;
       }
 
-      // Updated endpoint to match backend
       await axiosInstance.post(`/admin/repairman/new-repairmans/${id}/toggle-kyc`, payload, {
         headers: {
           'Authorization': 'Bearer ' + token
@@ -125,7 +124,6 @@ function KycRepairmanDetail() {
       await fetchRepairman();
     } catch (error) {
       handleError(error);
-    //   toast.error('Failed to update KYC status');
     } finally {
       setUpdatingStatus(false);
     }
@@ -266,7 +264,7 @@ function KycRepairmanDetail() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField label="Full Name" value={profile.fullName} />
             <InputField label="Father's Name" value={profile.fatherName} />
-            <InputField label="CNIC Number" value={profile.nationalIdOrCitizenNumber} />
+            <InputField label="National ID Number" value={profile.nationalIdOrCitizenNumber} />
             <InputField label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : ''} />
             <InputField label="Gender" value={profile.gender} />
             <InputField label="Email Address" value={profile.emailAddress} />
@@ -287,6 +285,29 @@ function KycRepairmanDetail() {
           </div>
         </div>
 
+        {/* Location Information */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Icon icon="mdi:map-marker" className="w-5 h-5 text-primary-600" />
+            Location Information
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InputField label="Country" value={data?.country?.name} />
+            <InputField label="State" value={data?.state?.name} />
+            <InputField label="City" value={data?.city?.name} />
+            <InputField label="Zip Code" value={profile.zipCode} />
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+              <textarea
+                value={data?.address || profile.fullAddress || ''}
+                disabled
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
+              />
+            </div>
+          </div>
+        </div>
+
         {/* Shop Information */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -295,8 +316,10 @@ function KycRepairmanDetail() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InputField label="Shop Name" value={profile.shopName} />
+            <InputField label="Tax Number" value={profile.taxNumber} />
+            <InputField label="District" value={profile.district} />
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Shop Address</label>
               <textarea
                 value={profile.fullAddress || ''}
                 disabled
@@ -304,9 +327,6 @@ function KycRepairmanDetail() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
               />
             </div>
-            <InputField label="City" value={profile.city} />
-            <InputField label="District" value={profile.district} />
-            <InputField label="Zip Code" value={profile.zipCode} />
           </div>
         </div>
 
@@ -317,16 +337,25 @@ function KycRepairmanDetail() {
             Working Schedule
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Working Hours" value={`${profile.workingHours?.start || ''} - ${profile.workingHours?.end || ''}`} />
+            <InputField 
+              label="Working Hours" 
+              value={profile.workingHours?.start && profile.workingHours?.end 
+                ? `${profile.workingHours.start} - ${profile.workingHours.end}` 
+                : 'Not specified'} 
+            />
             <InputField label="Pickup Service" value={profile.pickupService ? 'Yes' : 'No'} />
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Working Days</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
               <div className="flex flex-wrap gap-2">
-                {profile.workingDays?.map((day) => (
-                  <span key={day} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
-                    {day}
-                  </span>
-                ))}
+                {profile.workingDays && profile.workingDays.length > 0 ? (
+                  profile.workingDays.map((day) => (
+                    <span key={day} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
+                      {day}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No working days specified</span>
+                )}
               </div>
             </div>
           </div>
@@ -339,21 +368,39 @@ function KycRepairmanDetail() {
             Professional Details
           </h3>
           <div className="grid grid-cols-1 gap-4">
-            <InputField label="Years of Experience" value={profile.yearsOfExperience || ''} />
+            <InputField label="Years of Experience" value={profile.yearsOfExperience?.toString() || '0'} />
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Specializations</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Specializations</label>
               <div className="flex flex-wrap gap-2">
-                {profile.specializations?.map((spec, index) => (
-                  <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                    {spec}
-                  </span>
-                ))}
+                {profile.specializations && profile.specializations.length > 0 ? (
+                  profile.specializations.map((spec, index) => (
+                    <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                      {spec}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No specializations specified</span>
+                )}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Brands Worked With</label>
+              <div className="flex flex-wrap gap-2">
+                {profile.brandsWorkedWith && profile.brandsWorkedWith.length > 0 ? (
+                  profile.brandsWorkedWith.map((brand, index) => (
+                    <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                      {typeof brand === 'string' ? brand : brand.name || 'Unknown Brand'}
+                    </span>
+                  ))
+                ) : (
+                  <span className="text-gray-500 text-sm">No brands specified</span>
+                )}
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
               <textarea
-                value={profile.description || ''}
+                value={profile.description || 'No description provided'}
                 disabled
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
@@ -361,6 +408,29 @@ function KycRepairmanDetail() {
             </div>
           </div>
         </div>
+
+        {/* Bank Details */}
+        {profile.bankDetails && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+              <Icon icon="mdi:bank" className="w-5 h-5 text-primary-600" />
+              Bank Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField label="Account Title" value={profile.bankDetails.accountTitle} />
+              <InputField label="Account Number" value={profile.bankDetails.accountNumber} />
+              <InputField label="Bank Name" value={profile.bankDetails.bankName} />
+              <InputField label="Branch Name" value={profile.bankDetails.branchName} />
+              <InputField label="IBAN" value={profile.bankDetails.iban} />
+              <InputField 
+                label="Last Updated" 
+                value={profile.bankDetails.updatedAt 
+                  ? new Date(profile.bankDetails.updatedAt).toLocaleDateString() 
+                  : 'Not updated yet'} 
+              />
+            </div>
+          </div>
+        )}
 
         {/* Documents */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
@@ -370,7 +440,7 @@ function KycRepairmanDetail() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <ImageDisplay url={profile.profilePhoto} alt="Profile Photo" label="Profile Photo" />
-            <ImageDisplay url={profile.nationalIdOrPassportScan} alt="CNIC" label="CNIC/Passport Scan" />
+            <ImageDisplay url={profile.nationalIdOrPassportScan} alt="National ID" label="National ID/Passport Scan" />
             <ImageDisplay url={profile.shopPhoto} alt="Shop" label="Shop Photo" />
             <ImageDisplay url={profile.utilityBillOrShopProof} alt="Utility Bill" label="Utility Bill/Shop Proof" />
           </div>
@@ -379,7 +449,7 @@ function KycRepairmanDetail() {
             <div className="mt-6">
               <label className="block text-sm font-medium text-gray-700 mb-3">Certifications</label>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {profile.certifications.map((cert, index) => (
+                {profile.certifications.filter(cert => cert !== "").map((cert, index) => (
                   <img
                     key={index}
                     src={cert}
@@ -400,9 +470,9 @@ function KycRepairmanDetail() {
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Icon icon="mdi:chart-line" className="w-5 h-5 text-primary-600" />
-            Statistics
+            Statistics & Status
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="p-4 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-600 font-medium">Total Jobs</p>
               <p className="text-2xl font-bold text-blue-900">{profile.totalJobs || 0}</p>
@@ -414,6 +484,26 @@ function KycRepairmanDetail() {
             <div className="p-4 bg-green-50 rounded-lg">
               <p className="text-sm text-green-600 font-medium">KYC Status</p>
               <p className="text-2xl font-bold text-green-900 capitalize">{currentKycStatus}</p>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg">
+              <p className="text-sm text-purple-600 font-medium">KYC Completed</p>
+              <p className="text-2xl font-bold text-purple-900">
+                {profile.isKycCompleted ? 'Yes' : 'No'}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="p-4 bg-indigo-50 rounded-lg">
+              <p className="text-sm text-indigo-600 font-medium">Payment Info Completed</p>
+              <p className="text-2xl font-bold text-indigo-900">
+                {profile.isPaymentInformationCompleted ? 'Yes' : 'No'}
+              </p>
+            </div>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <p className="text-sm text-gray-600 font-medium">Joined Date</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A'}
+              </p>
             </div>
           </div>
         </div>
