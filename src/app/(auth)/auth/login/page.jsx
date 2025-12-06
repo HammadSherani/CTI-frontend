@@ -50,6 +50,7 @@ function Login() {
   const onSubmit = async (data) => {
     try {
       console.log("Login submitted:", data);
+
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
@@ -58,28 +59,38 @@ function Login() {
 
       const resData = response.data.data;
 
-      // Dispatch auth data to Redux
-      dispatch(setAuth({
-        user: resData.user,
-        token: resData.token,
-        userType: resData.user.role
-      }));
+      // 🔐 If email is NOT verified → redirect to verification page
+      if (response.data.requiresVerification) {
+        console.log("Email not verified → redirecting to OTP page...");
+
+        router.push(`/auth/verify-email?email=${resData.email}&userId=${resData.userId}`);
+        return;
+      }
+
+      // 🔐 Save to Redux
+      dispatch(
+        setAuth({
+          user: resData.user,
+          token: resData.token,
+          userType: resData.user.role,
+        })
+      );
 
       dispatch(setCurrentUser(resData.user));
 
-      // Update FCM token after successful login
+      // 🔐 Update FCM token
       try {
         await updateFCMToken(resData.token);
-        console.log('✅ FCM token updated successfully');
+        console.log("FCM updated successfully");
       } catch (fcmError) {
-        console.error('⚠️ FCM token update failed:', fcmError);
-        // Don't block login if FCM fails
+        console.error("FCM update failed", fcmError);
       }
 
-      // Route based on user role
+      // 🔐 ROLE-BASED ROUTING
       if (resData?.user?.role === "admin") {
         router.push("/admin/dashboard");
       } else if (resData?.user?.role === "repairman") {
+        // Pending accounts cannot login (handled in API)
         if (resData?.user?.isProfileComplete) {
           router.push("/repair-man/dashboard");
         } else {
@@ -90,9 +101,18 @@ function Login() {
       }
 
     } catch (error) {
+      // If API explicitly returned 401 with verification flag
+      if (error?.response?.data?.requiresVerification) {
+        const { email, userId } = error.response.data.data;
+
+        router.push(`/auth/verify-otp?email=${email}&userId=${userId}`);
+        return;
+      }
+
       handleError(error);
     }
   };
+
 
   return (
     <>
@@ -198,8 +218,8 @@ function Login() {
                           type="email"
                           placeholder="Enter your email"
                           className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.email
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-200 focus:border-orange-500"
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-orange-500"
                             }`}
                         />
                         <Icon
@@ -232,8 +252,8 @@ function Login() {
                           type={showPassword ? "text" : "password"}
                           placeholder="Enter your password"
                           className={`w-full px-4 py-3 pl-12 pr-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.password
-                              ? "border-red-300 focus:border-red-500"
-                              : "border-gray-200 focus:border-orange-500"
+                            ? "border-red-300 focus:border-red-500"
+                            : "border-gray-200 focus:border-orange-500"
                             }`}
                         />
                         <Icon
@@ -274,8 +294,8 @@ function Login() {
                           className="sr-only"
                         />
                         <div className={`w-5 h-5 border-2 rounded-md flex items-center justify-center transition-all duration-200 ${field.value
-                            ? 'bg-orange-500 border-orange-500'
-                            : 'border-gray-300 hover:border-orange-300'
+                          ? 'bg-orange-500 border-orange-500'
+                          : 'border-gray-300 hover:border-orange-300'
                           }`}>
                           {field.value && (
                             <Icon icon="mdi:check" className="text-white text-sm" />

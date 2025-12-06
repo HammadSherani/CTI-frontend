@@ -12,7 +12,7 @@ import axiosInstance from "../../../../config/axiosInstance";
 import handleError from "../../../../helper/handleError";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setAuth } from "@/store/auth";
 
 const schema = yup.object().shape({
@@ -29,6 +29,12 @@ function OtpVerification() {
   const [canResend, setCanResend] = useState(false);
   const [isResending, setIsResending] = useState(false);
   const inputRefs = useRef([]);
+  const searchParams  = useSearchParams();
+  const userEmail = searchParams.get("email");
+  const userId = searchParams.get("userId");
+  console.log("email", userEmail);
+  console.log("userId", userId);
+  
 
   const { user } = useSelector((state) => state.auth);
   const router = useRouter();
@@ -46,7 +52,6 @@ function OtpVerification() {
     },
   });
 
-  // Timer effect
   useEffect(() => {
     if (timer > 0) {
       const interval = setInterval(() => {
@@ -102,7 +107,7 @@ function OtpVerification() {
 
       const response = await axiosInstance.post("/auth/verify-otp", {
         otp: data.otp,
-        email: user?.email,
+        email: user?.email || userEmail,
       });
 
       if (response.status !== 200) {
@@ -147,7 +152,7 @@ function OtpVerification() {
   const handleResendOtp = async () => {
     setIsResending(true);
     try {
-      await axiosInstance.post("/auth/resend-otp", { email: user?.email });
+      await axiosInstance.post("/auth/resend-otp", { email: user?.email || userEmail });
       setTimer(120);
       setCanResend(false);
       setOtpValues(["", "", "", "", "", ""]);

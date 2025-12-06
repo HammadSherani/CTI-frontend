@@ -86,9 +86,9 @@ const partSchema = yup.object().shape({
   returnPolicy: yup
     .string()
     .nullable(),
-  compatibility: yup
-    .array()
-    .nullable(),
+  // compatibility: yup
+  //   .object()
+  //   .nullable(),
   images: yup
     .mixed()
     .test('fileCount', 'You can upload maximum 10 images', (value) => {
@@ -115,7 +115,7 @@ function CreatePart() {
   const [brands, setBrands] = useState([]);
   const [models, setModels] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [compatibilityOptions, setCompatibilityOptions] = useState([]);
+  // const [compatibilityOptions, setCompatibilityOptions] = useState([]);
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingCategories, setLoadingCategories] = useState(false);
@@ -139,7 +139,7 @@ function CreatePart() {
       model: '',
       category: '',
       partType: '',
-      compatibility: [],
+      // compatibility: [],
       color: '',
       warranty: '',
       condition: 'New',
@@ -184,10 +184,10 @@ function CreatePart() {
   useEffect(() => {
     if (watchedBrand) {
       fetchModels(watchedBrand);
-      fetchCompatibility(watchedBrand);
+      // fetchCompatibility(watchedBrand);
     } else {
       setModels([]);
-      setCompatibilityOptions([]);
+      // setCompatibilityOptions([]);
     }
   }, [watchedBrand]);
 
@@ -326,11 +326,11 @@ function CreatePart() {
       if (data.returnPolicy) formData.append('returnPolicy', data.returnPolicy);
 
       // Compatibility array
-      if (data.compatibility && data.compatibility.length > 0) {
-        data.compatibility.forEach(comp => {
-          formData.append('compatibility', comp);
-        });
-      }
+      // if (data.compatibility && data.compatibility.length > 0) {
+      //   data.compatibility.forEach(comp => {
+      //     formData.append('compatibility', comp);
+      //   });
+      // }
 
       // Add images if provided
       if (imagePreviews.length > 0) {
@@ -619,7 +619,7 @@ function CreatePart() {
                 </div>
 
                 {/* Compatibility */}
-                <div className="md:col-span-2">
+                {/* <div className="md:col-span-2">
                   <label htmlFor="compatibility" className="block text-sm font-medium text-gray-700 mb-2">
                     Compatible Models
                   </label>
@@ -642,7 +642,11 @@ function CreatePart() {
                   <p className="mt-1 text-sm text-gray-500">
                     Hold Ctrl (Cmd on Mac) to select multiple models
                   </p>
-                </div>
+
+                    {errors.compatibility && (
+                    <p className="mt-1 text-sm text-red-600">{errors.compatibility.message}</p>
+                  )}
+                </div> */}
               </div>
             </div>
 
@@ -674,7 +678,7 @@ function CreatePart() {
                 </div>
 
                 {/* Repairman Price */}
-                <div>
+                {/* <div>
                   <label htmlFor="repairmanPrice" className="block text-sm font-medium text-gray-700 mb-2">
                     Repairman Price (USD)
                   </label>
@@ -686,7 +690,7 @@ function CreatePart() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
                     placeholder="0.00"
                   />
-                </div>
+                </div> */}
 
                 {/* Cost Price */}
                 <div>

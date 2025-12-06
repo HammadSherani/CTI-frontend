@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import Button from '@/components/ui/button';
 import axiosInstance from '@/config/axiosInstance';
+import Loader from '@/components/Loader';
 
 
 const JobDescription = ({ job }) => {
@@ -82,7 +83,7 @@ const RepairJobCard = ({ job }) => {
     : job?.deviceInfo;
 
   const services = isQuotationBased
-    ? job?.quotationId?.deviceInfo?.repairServices || []  
+    ? job?.quotationId?.deviceInfo?.repairServices || []
     : job?.services || [];
 
   const pricing = isQuotationBased
@@ -90,11 +91,9 @@ const RepairJobCard = ({ job }) => {
     : job?.budget;
 
   const deviceName = isQuotationBased
-  ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${
-      services.map(service => service?.name).join(', ')
+    ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
     }`
-  : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${
-      services.map(s => s?.name || s).join(', ')
+    : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
     }`;
 
 
@@ -321,16 +320,16 @@ const ReviewJobs = () => {
     fetchCompletedJobs();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading completed jobs...</p>
-        </div>
-      </div>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
+  //         <p className="text-gray-600">Loading completed jobs...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   if (jobs.length === 0) {
     return (
@@ -347,386 +346,388 @@ const ReviewJobs = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Review Completed Jobs</h1>
-          <p className="text-gray-600">Share your experience and help other customers</p>
-        </div>
+    <Loader loading={loading} >
+      <div className="min-h-screen bg-gray-50 py-8">
+        <div className="px-4 sm:px-6 lg:px-8">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Review Completed Jobs</h1>
+            <p className="text-gray-600">Share your experience and help other customers</p>
+          </div>
 
-        {/* Jobs List */}
-        <div className="space-y-6">
-          {jobs.map((job) => {
-            // 🔥 Determine booking source
-            const isQuotationBased = job.bookingSource === 'direct_message';
+          {/* Jobs List */}
+          <div className="space-y-6">
+            {jobs.map((job) => {
+              // 🔥 Determine booking source
+              const isQuotationBased = job.bookingSource === 'direct_message';
 
-            // 🔥 Get device info from appropriate source
-            const deviceInfo = isQuotationBased
-              ? job.quotationId?.deviceInfo
-              : job.jobId?.deviceInfo;
+              // 🔥 Get device info from appropriate source
+              const deviceInfo = isQuotationBased
+                ? job.quotationId?.deviceInfo
+                : job.jobId?.deviceInfo;
 
-            // 🔥 Get services from appropriate source
-            const services = isQuotationBased
-              ? job.quotationId?.deviceInfo?.repairServices
-              : job.jobId?.services;
+              // 🔥 Get services from appropriate source
+              const services = isQuotationBased
+                ? job.quotationId?.deviceInfo?.repairServices
+                : job.jobId?.services;
 
-            // 🔥 Get description from appropriate source
-            const description = isQuotationBased
-              ? job.quotationId?.serviceDetails?.description
-              : job.jobId?.description;
+              // 🔥 Get description from appropriate source
+              const description = isQuotationBased
+                ? job.quotationId?.serviceDetails?.description
+                : job.jobId?.description;
 
-            return (
-              <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-                {/* Job Header */}
-                <div className="p-6 border-b border-gray-200">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex-1">
-                      {/* 🔥 Device Title */}
-                      <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                        {isQuotationBased
-                          ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''}`
-                          : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''}`
-                        }
-                      </h3>
+              return (
+                <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                  {/* Job Header */}
+                  <div className="p-6 border-b border-gray-200">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        {/* 🔥 Device Title */}
+                        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                          {isQuotationBased
+                            ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''}`
+                            : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''}`
+                          }
+                        </h3>
 
-                      {/* 🔥 Description */}
-                      {description && (
-                        <p className="text-gray-600 mb-3 line-clamp-2">{description}</p>
-                      )}
-
-                      <div className="flex flex-wrap gap-3 text-sm">
-                        {/* 🔥 Services */}
-                        {services && services.length > 0 && (
-                          <span className="flex items-center text-gray-500">
-                            <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" />
-                            {services.join(', ')}
-                          </span>
+                        {/* 🔥 Description */}
+                        {description && (
+                          <p className="text-gray-600 mb-3 line-clamp-2">{description}</p>
                         )}
 
-                        {/* 🔥 Completion Date */}
-                        <span className="flex items-center text-gray-500">
-                          <Icon icon="heroicons:calendar" className="w-4 h-4 mr-1" />
-                          Completed {new Date(job.timeline?.completedAt || job.timeline?.deliveredAt).toLocaleDateString()}
-                        </span>
+                        <div className="flex flex-wrap gap-3 text-sm">
+                          {/* 🔥 Services */}
+                          {services && services.length > 0 && (
+                            <span className="flex items-center text-gray-500">
+                              <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" />
+                              {services.join(', ')}
+                            </span>
+                          )}
 
-                        {/* 🔥 Source Badge */}
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isQuotationBased
-                          ? 'bg-purple-100 text-purple-700'
-                          : 'bg-blue-100 text-blue-700'
-                          }`}>
-                          {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+                          {/* 🔥 Completion Date */}
+                          <span className="flex items-center text-gray-500">
+                            <Icon icon="heroicons:calendar" className="w-4 h-4 mr-1" />
+                            Completed {new Date(job.timeline?.completedAt || job.timeline?.deliveredAt).toLocaleDateString()}
+                          </span>
+
+                          {/* 🔥 Source Badge */}
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${isQuotationBased
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-blue-100 text-blue-700'
+                            }`}>
+                            {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="ml-4">
+                        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                          <Icon icon="heroicons:check-circle" className="w-4 h-4 mr-1" />
+                          Completed
                         </span>
                       </div>
                     </div>
 
-                    <div className="ml-4">
-                      <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
-                        <Icon icon="heroicons:check-circle" className="w-4 h-4 mr-1" />
-                        Completed
-                      </span>
+                    {/* Repairman Info */}
+                    <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
+                      <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                        <span className="text-lg font-semibold text-primary-700">
+                          {job.repairmanId?.name?.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{job.repairmanId?.name}</p>
+                        <p className="text-sm text-gray-500">{job.repairmanId?.repairmanProfile?.shopName}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-gray-900">
+                          {formatCurrency(job.bookingDetails?.pricing?.totalAmount, job.bookingDetails?.pricing?.currency)}
+                        </p>
+                        <p className="text-xs text-gray-500">Total paid</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Repairman Info */}
-                  <div className="flex items-center space-x-3 p-4 bg-gray-50 rounded-lg">
-                    <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-                      <span className="text-lg font-semibold text-primary-700">
-                        {job.repairmanId?.name?.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium text-gray-900">{job.repairmanId?.name}</p>
-                      <p className="text-sm text-gray-500">{job.repairmanId?.repairmanProfile?.shopName}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-lg font-bold text-gray-900">
-                        {formatCurrency(job.bookingDetails?.pricing?.totalAmount, job.bookingDetails?.pricing?.currency)}
-                      </p>
-                      <p className="text-xs text-gray-500">Total paid</p>
-                    </div>
-                  </div>
-                </div>
+                  {/* Review Section */}
+                  <div className="p-6 bg-gray-50">
+                    {job.review ? (
+                      // Already Reviewed - Show Review
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-semibold text-gray-900">Your Review</h4>
+                          <span className="text-xs text-gray-500">
+                            {new Date(job.review.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
 
-                {/* Review Section */}
-                <div className="p-6 bg-gray-50">
-                  {job.review ? (
-                    // Already Reviewed - Show Review
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-semibold text-gray-900">Your Review</h4>
-                        <span className="text-xs text-gray-500">
-                          {new Date(job.review.createdAt).toLocaleDateString()}
-                        </span>
-                      </div>
+                        {/* Star Rating Display */}
+                        <div className="flex items-center space-x-2">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Icon
+                              key={star}
+                              icon="heroicons:star-solid"
+                              className={`w-6 h-6 ${star <= job.review.overallRating
+                                ? 'text-yellow-400'
+                                : 'text-gray-300'
+                                }`}
+                            />
+                          ))}
+                          <span className="ml-2 text-sm font-medium text-gray-700">
+                            {job.review.overallRating} out of 5
+                          </span>
+                        </div>
 
-                      {/* Star Rating Display */}
-                      <div className="flex items-center space-x-2">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Icon
-                            key={star}
-                            icon="heroicons:star-solid"
-                            className={`w-6 h-6 ${star <= job.review.overallRating
-                              ? 'text-yellow-400'
-                              : 'text-gray-300'
-                              }`}
-                          />
-                        ))}
-                        <span className="ml-2 text-sm font-medium text-gray-700">
-                          {job.review.overallRating} out of 5
-                        </span>
-                      </div>
+                        {/* Review Text */}
+                        <div className="bg-white p-4 rounded-lg border border-gray-200">
+                          <p className="text-gray-700">{job.review.reviewText}</p>
+                        </div>
 
-                      {/* Review Text */}
-                      <div className="bg-white p-4 rounded-lg border border-gray-200">
-                        <p className="text-gray-700">{job.review.reviewText}</p>
-                      </div>
-
-                      {/* Repairman Response */}
-                      {job.review.repairmanResponse && (
-                        <div className="bg-primary-50 p-4 rounded-lg border border-primary-100">
-                          <div className="flex items-start space-x-3">
-                            <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 text-primary-600 mt-1" />
-                            <div className="flex-1">
-                              <p className="text-xs font-semibold text-primary-900 mb-1">Repairman's Response</p>
-                              <p className="text-sm text-gray-700">{job.review.repairmanResponse.text}</p>
-                              <p className="text-xs text-gray-500 mt-2">
-                                {new Date(job.review.repairmanResponse.respondedAt).toLocaleDateString()}
-                              </p>
+                        {/* Repairman Response */}
+                        {job.review.repairmanResponse && (
+                          <div className="bg-primary-50 p-4 rounded-lg border border-primary-100">
+                            <div className="flex items-start space-x-3">
+                              <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 text-primary-600 mt-1" />
+                              <div className="flex-1">
+                                <p className="text-xs font-semibold text-primary-900 mb-1">Repairman's Response</p>
+                                <p className="text-sm text-gray-700">{job.review.repairmanResponse.text}</p>
+                                <p className="text-xs text-gray-500 mt-2">
+                                  {new Date(job.review.repairmanResponse.respondedAt).toLocaleDateString()}
+                                </p>
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      )}
+                        )}
 
-                      {/* Badge */}
-                      <div className="flex items-center text-sm text-green-600">
-                        <Icon icon="heroicons:check-circle-solid" className="w-5 h-5 mr-1" />
-                        Review submitted successfully
+                        {/* Badge */}
+                        <div className="flex items-center text-sm text-green-600">
+                          <Icon icon="heroicons:check-circle-solid" className="w-5 h-5 mr-1" />
+                          Review submitted successfully
+                        </div>
                       </div>
-                    </div>
-                  ) : selectedJob === job._id ? (
-                    // 🔥 IMPROVED Write Review Form
-                    <div className="space-y-6">
-                      {/* 🔥 Header with visual indicator */}
-                      <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                    ) : selectedJob === job._id ? (
+                      // 🔥 IMPROVED Write Review Form
+                      <div className="space-y-6">
+                        {/* 🔥 Header with visual indicator */}
+                        <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+                          <div>
+                            <h4 className="font-semibold text-gray-900 text-lg">Write Your Review</h4>
+                            <p className="text-sm text-gray-500 mt-1">Share your experience with this service</p>
+                          </div>
+                          <button
+                            onClick={() => {
+                              setSelectedJob(null);
+                              setRating(0);
+                              setReviewText('');
+                            }}
+                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            <Icon icon="heroicons:x-mark" className="w-6 h-6" />
+                          </button>
+                        </div>
+
+                        {/* 🔥 Progress Indicator */}
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${rating > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                              }`}>
+                              {rating > 0 ? <Icon icon="heroicons:check" className="w-5 h-5" /> : '1'}
+                            </div>
+                            <span className={rating > 0 ? 'text-green-700 font-medium' : 'text-gray-500'}>
+                              Rate Service
+                            </span>
+                          </div>
+                          <div className="flex-1 h-px bg-gray-200 mx-3"></div>
+                          <div className="flex items-center space-x-2">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${reviewText.trim().length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
+                              }`}>
+                              {reviewText.trim().length > 0 ? <Icon icon="heroicons:check" className="w-5 h-5" /> : '2'}
+                            </div>
+                            <span className={reviewText.trim().length > 0 ? 'text-green-700 font-medium' : 'text-gray-500'}>
+                              Write Review
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* 🔥 Star Rating with Enhanced UI */}
+                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border-2 border-dashed border-yellow-200">
+                          <div className="flex items-center justify-between mb-3">
+                            <label className="text-base font-semibold text-gray-900 flex items-center">
+                              <Icon icon="heroicons:star" className="w-5 h-5 mr-2 text-yellow-500" />
+                              Rate Your Experience
+                              <span className="text-red-500 ml-1">*</span>
+                            </label>
+                            {rating === 0 && (
+                              <span className="text-xs text-orange-600 font-medium animate-pulse">
+                                👈 Required
+                              </span>
+                            )}
+                          </div>
+
+                          <p className="text-sm text-gray-600 mb-4">
+                            {rating === 0 && "Tap on the stars to rate"}
+                            {rating === 1 && "😞 Poor - Not satisfied at all"}
+                            {rating === 2 && "😕 Below Average - Below expectations"}
+                            {rating === 3 && "😐 Average - Met basic expectations"}
+                            {rating === 4 && "😊 Good - Satisfied with service"}
+                            {rating === 5 && "🌟 Excellent - Exceeded expectations!"}
+                          </p>
+
+                          <div className="flex items-center justify-center space-x-3">
+                            {[1, 2, 3, 4, 5].map((star) => (
+                              <button
+                                key={star}
+                                type="button"
+                                onClick={() => setRating(star)}
+                                onMouseEnter={() => setHoverRating(star)}
+                                onMouseLeave={() => setHoverRating(0)}
+                                className="focus:outline-none transition-all duration-200 hover:scale-125 active:scale-95"
+                              >
+                                <Icon
+                                  icon={star <= (hoverRating || rating) ? "heroicons:star-solid" : "heroicons:star"}
+                                  className={`w-12 h-12 transition-colors duration-200 ${star <= (hoverRating || rating)
+                                    ? 'text-yellow-400 drop-shadow-lg'
+                                    : 'text-gray-300'
+                                    }`}
+                                />
+                              </button>
+                            ))}
+                          </div>
+
+                          {rating > 0 && (
+                            <div className="mt-4 text-center">
+                              <span className="inline-flex items-center px-4 py-2 bg-white rounded-full text-sm font-semibold text-gray-900 shadow-sm">
+                                <Icon icon="heroicons:star-solid" className="w-4 h-4 mr-1 text-yellow-400" />
+                                {rating} out of 5 stars
+                              </span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* 🔥 Review Text with Character Counter */}
                         <div>
-                          <h4 className="font-semibold text-gray-900 text-lg">Write Your Review</h4>
-                          <p className="text-sm text-gray-500 mt-1">Share your experience with this service</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedJob(null);
-                            setRating(0);
-                            setReviewText('');
-                          }}
-                          className="text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                          <Icon icon="heroicons:x-mark" className="w-6 h-6" />
-                        </button>
-                      </div>
-
-                      {/* 🔥 Progress Indicator */}
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${rating > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-                            }`}>
-                            {rating > 0 ? <Icon icon="heroicons:check" className="w-5 h-5" /> : '1'}
-                          </div>
-                          <span className={rating > 0 ? 'text-green-700 font-medium' : 'text-gray-500'}>
-                            Rate Service
-                          </span>
-                        </div>
-                        <div className="flex-1 h-px bg-gray-200 mx-3"></div>
-                        <div className="flex items-center space-x-2">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center font-medium ${reviewText.trim().length > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-400'
-                            }`}>
-                            {reviewText.trim().length > 0 ? <Icon icon="heroicons:check" className="w-5 h-5" /> : '2'}
-                          </div>
-                          <span className={reviewText.trim().length > 0 ? 'text-green-700 font-medium' : 'text-gray-500'}>
-                            Write Review
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* 🔥 Star Rating with Enhanced UI */}
-                      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl border-2 border-dashed border-yellow-200">
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="text-base font-semibold text-gray-900 flex items-center">
-                            <Icon icon="heroicons:star" className="w-5 h-5 mr-2 text-yellow-500" />
-                            Rate Your Experience
+                          <label className="block text-base font-semibold text-gray-900 mb-2 flex items-center">
+                            <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 mr-2 text-primary-500" />
+                            Your Review
                             <span className="text-red-500 ml-1">*</span>
                           </label>
-                          {rating === 0 && (
-                            <span className="text-xs text-orange-600 font-medium animate-pulse">
-                              👈 Required
-                            </span>
-                          )}
-                        </div>
-
-                        <p className="text-sm text-gray-600 mb-4">
-                          {rating === 0 && "Tap on the stars to rate"}
-                          {rating === 1 && "😞 Poor - Not satisfied at all"}
-                          {rating === 2 && "😕 Below Average - Below expectations"}
-                          {rating === 3 && "😐 Average - Met basic expectations"}
-                          {rating === 4 && "😊 Good - Satisfied with service"}
-                          {rating === 5 && "🌟 Excellent - Exceeded expectations!"}
-                        </p>
-
-                        <div className="flex items-center justify-center space-x-3">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <button
-                              key={star}
-                              type="button"
-                              onClick={() => setRating(star)}
-                              onMouseEnter={() => setHoverRating(star)}
-                              onMouseLeave={() => setHoverRating(0)}
-                              className="focus:outline-none transition-all duration-200 hover:scale-125 active:scale-95"
-                            >
-                              <Icon
-                                icon={star <= (hoverRating || rating) ? "heroicons:star-solid" : "heroicons:star"}
-                                className={`w-12 h-12 transition-colors duration-200 ${star <= (hoverRating || rating)
-                                  ? 'text-yellow-400 drop-shadow-lg'
-                                  : 'text-gray-300'
-                                  }`}
-                              />
-                            </button>
-                          ))}
-                        </div>
-
-                        {rating > 0 && (
-                          <div className="mt-4 text-center">
-                            <span className="inline-flex items-center px-4 py-2 bg-white rounded-full text-sm font-semibold text-gray-900 shadow-sm">
-                              <Icon icon="heroicons:star-solid" className="w-4 h-4 mr-1 text-yellow-400" />
-                              {rating} out of 5 stars
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* 🔥 Review Text with Character Counter */}
-                      <div>
-                        <label className="block text-base font-semibold text-gray-900 mb-2 flex items-center">
-                          <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 mr-2 text-primary-500" />
-                          Your Review
-                          <span className="text-red-500 ml-1">*</span>
-                        </label>
-                        <p className="text-sm text-gray-600 mb-3">
-                          Tell us about your experience. What went well? What could be improved?
-                        </p>
-                        <div className="relative">
-                          <textarea
-                            value={reviewText}
-                            onChange={(e) => setReviewText(e.target.value)}
-                            placeholder="Example: The repair was done professionally and quickly. The repairman was friendly and explained everything clearly. My device is working perfectly now!"
-                            rows={5}
-                            maxLength={500}
-                            className={`w-full px-4 py-3 border-2 rounded-lg transition-all focus:outline-none ${reviewText.trim().length === 0
-                              ? 'border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
-                              : 'border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-200'
-                              }`}
-                          />
-                          <div className="absolute bottom-3 right-3 flex items-center space-x-2">
-                            <span className={`text-xs font-medium px-2 py-1 rounded ${reviewText.length > 450
-                              ? 'bg-red-100 text-red-600'
-                              : reviewText.length > 300
-                                ? 'bg-yellow-100 text-yellow-600'
-                                : 'bg-gray-100 text-gray-500'
-                              }`}>
-                              {reviewText.length}/500
-                            </span>
-                          </div>
-                        </div>
-                        {reviewText.trim().length > 0 && reviewText.trim().length < 20 && (
-                          <p className="text-xs text-orange-600 mt-2 flex items-center">
-                            <Icon icon="heroicons:information-circle" className="w-4 h-4 mr-1" />
-                            Please write at least 20 characters for a meaningful review
+                          <p className="text-sm text-gray-600 mb-3">
+                            Tell us about your experience. What went well? What could be improved?
                           </p>
-                        )}
-                      </div>
-
-                      {(rating === 0 || !reviewText.trim()) && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start space-x-3">
-                          <Icon icon="heroicons:light-bulb" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-blue-900">Before you submit:</p>
-                            <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                              {rating === 0 && (
-                                <li className="flex items-center">
-                                  <Icon icon="heroicons:x-circle" className="w-4 h-4 mr-2 text-red-500" />
-                                  Please select a star rating above
-                                </li>
-                              )}
-                              {!reviewText.trim() && (
-                                <li className="flex items-center">
-                                  <Icon icon="heroicons:x-circle" className="w-4 h-4 mr-2 text-red-500" />
-                                  Please write your review
-                                </li>
-                              )}
-                              {reviewText.trim().length > 0 && reviewText.trim().length < 20 && (
-                                <li className="flex items-center">
-                                  <Icon icon="heroicons:exclamation-triangle" className="w-4 h-4 mr-2 text-yellow-500" />
-                                  Review should be at least 20 characters
-                                </li>
-                              )}
-                            </ul>
+                          <div className="relative">
+                            <textarea
+                              value={reviewText}
+                              onChange={(e) => setReviewText(e.target.value)}
+                              placeholder="Example: The repair was done professionally and quickly. The repairman was friendly and explained everything clearly. My device is working perfectly now!"
+                              rows={5}
+                              maxLength={500}
+                              className={`w-full px-4 py-3 border-2 rounded-lg transition-all focus:outline-none ${reviewText.trim().length === 0
+                                ? 'border-gray-300 focus:border-primary-500 focus:ring-2 focus:ring-primary-200'
+                                : 'border-green-300 focus:border-green-500 focus:ring-2 focus:ring-green-200'
+                                }`}
+                            />
+                            <div className="absolute bottom-3 right-3 flex items-center space-x-2">
+                              <span className={`text-xs font-medium px-2 py-1 rounded ${reviewText.length > 450
+                                ? 'bg-red-100 text-red-600'
+                                : reviewText.length > 300
+                                  ? 'bg-yellow-100 text-yellow-600'
+                                  : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                {reviewText.length}/500
+                              </span>
+                            </div>
                           </div>
+                          {reviewText.trim().length > 0 && reviewText.trim().length < 20 && (
+                            <p className="text-xs text-orange-600 mt-2 flex items-center">
+                              <Icon icon="heroicons:information-circle" className="w-4 h-4 mr-1" />
+                              Please write at least 20 characters for a meaningful review
+                            </p>
+                          )}
                         </div>
-                      )}
 
-                      <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+                        {(rating === 0 || !reviewText.trim()) && (
+                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start space-x-3">
+                            <Icon icon="heroicons:light-bulb" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-blue-900">Before you submit:</p>
+                              <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                                {rating === 0 && (
+                                  <li className="flex items-center">
+                                    <Icon icon="heroicons:x-circle" className="w-4 h-4 mr-2 text-red-500" />
+                                    Please select a star rating above
+                                  </li>
+                                )}
+                                {!reviewText.trim() && (
+                                  <li className="flex items-center">
+                                    <Icon icon="heroicons:x-circle" className="w-4 h-4 mr-2 text-red-500" />
+                                    Please write your review
+                                  </li>
+                                )}
+                                {reviewText.trim().length > 0 && reviewText.trim().length < 20 && (
+                                  <li className="flex items-center">
+                                    <Icon icon="heroicons:exclamation-triangle" className="w-4 h-4 mr-2 text-yellow-500" />
+                                    Review should be at least 20 characters
+                                  </li>
+                                )}
+                              </ul>
+                            </div>
+                          </div>
+                        )}
+
+                        <div className="flex flex-col sm:flex-row items-center space-y-3 sm:space-y-0 sm:space-x-3 pt-4 border-t border-gray-200">
+                          <button
+                            onClick={() => handleSubmitReview(
+                              isQuotationBased ? null : job.jobId?._id,
+                              job._id,
+                              job.repairmanId._id
+                            )}
+                            disabled={submitting || rating === 0 || !reviewText.trim() || reviewText.trim().length < 20}
+                            className="w-full sm:flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-semibold text-base shadow-lg disabled:shadow-none transform hover:scale-105 disabled:scale-100 active:scale-95"
+                          >
+                            {submitting ? (
+                              <>
+                                <Icon icon="heroicons:arrow-path" className="w-5 h-5 mr-2 animate-spin" />
+                                Submitting Your Review...
+                              </>
+                            ) : (
+                              <>
+                                <Icon icon="heroicons:paper-airplane" className="w-5 h-5 mr-2" />
+                                Submit Review
+                              </>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => {
+                              setSelectedJob(null);
+                              setRating(0);
+                              setReviewText('');
+                            }}
+                            disabled={submitting}
+                            className="w-full sm:w-auto px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="relative group">
+                        <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-200"></div>
                         <button
-                          onClick={() => handleSubmitReview(
-                            isQuotationBased ? null : job.jobId?._id,
-                            job._id,
-                            job.repairmanId._id
-                          )}
-                          disabled={submitting || rating === 0 || !reviewText.trim() || reviewText.trim().length < 20}
-                          className="w-full sm:flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl hover:from-primary-700 hover:to-primary-800 disabled:from-gray-300 disabled:to-gray-400 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center font-semibold text-base shadow-lg disabled:shadow-none transform hover:scale-105 disabled:scale-100 active:scale-95"
+                          onClick={() => setSelectedJob(job._id)}
+                          className="relative w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all duration-200 flex items-center justify-center font-semibold text-base shadow-lg transform group-hover:scale-105 active:scale-95"
                         >
-                          {submitting ? (
-                            <>
-                              <Icon icon="heroicons:arrow-path" className="w-5 h-5 mr-2 animate-spin" />
-                              Submitting Your Review...
-                            </>
-                          ) : (
-                            <>
-                              <Icon icon="heroicons:paper-airplane" className="w-5 h-5 mr-2" />
-                              Submit Review
-                            </>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => {
-                            setSelectedJob(null);
-                            setRating(0);
-                            setReviewText('');
-                          }}
-                          disabled={submitting}
-                          className="w-full sm:w-auto px-8 py-4 border-2 border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          Cancel
+                          <Icon icon="heroicons:star" className="w-6 h-6 mr-2" />
+                          Write a Review for This Job
                         </button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="relative group">
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-primary-600 to-purple-600 rounded-xl blur opacity-30 group-hover:opacity-50 transition duration-200"></div>
-                      <button
-                        onClick={() => setSelectedJob(job._id)}
-                        className="relative w-full bg-gradient-to-r from-primary-600 to-primary-700 text-white py-4 px-6 rounded-xl hover:from-primary-700 hover:to-primary-800 transition-all duration-200 flex items-center justify-center font-semibold text-base shadow-lg transform group-hover:scale-105 active:scale-95"
-                      >
-                        <Icon icon="heroicons:star" className="w-6 h-6 mr-2" />
-                        Write a Review for This Job
-                      </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </Loader>
   );
 };
 
@@ -918,177 +919,174 @@ export default function MyAccountPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 w-full mb-5">
-      <div className="">
-        <div className="grid grid-cols-12 gap-4 bg-white rounded-2xl shadow-sm overflow-hidden min-h-[80vh]">
-          <main className="overflow-y-auto py-6 px-5 col-span-12">
-            <div>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
-                <div>
-                  <h1 className="text-3xl font-bold text-gray-900">My Repair Jobs</h1>
-                  <p className="text-gray-600 mt-1">Manage and track your device repair requests</p>
+    <Loader loading={loading}>
+      <div className="min-h-screen bg-gray-50 p-2 w-full mb-5">
+        <div className="">
+          <div className="grid grid-cols-12 gap-4 bg-white rounded-2xl shadow-sm overflow-hidden min-h-[80vh]">
+            <main className="overflow-y-auto py-6 px-5 col-span-12">
+              <div>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-8">
+                  <div>
+                    <h1 className="text-3xl font-bold text-gray-900">My Repair Jobs</h1>
+                    <p className="text-gray-600 mt-1">Manage and track your device repair requests</p>
+                  </div>
+                  <Link href="/mobile-repair">
+                    <Button className="mt-4 sm:mt-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                      <Icon icon="mdi:plus" className="w-5 h-5" />
+                      New Repair Request
+                    </Button>
+                  </Link>
                 </div>
-                <Link href="/mobile-repair">
-                  <Button className="mt-4 sm:mt-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-                    <Icon icon="mdi:plus" className="w-5 h-5" />
-                    New Repair Request
-                  </Button>
-                </Link>
-              </div>
 
-              {/* Tab Menu */}
-              <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden">
-                <div className="border-b border-gray-200">
-                  <nav className="flex space-x-8 justify-around px-6" aria-label="Tabs">
-                    {tabs.map((tab) => (
+                {/* Tab Menu */}
+                <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden">
+                  <div className="border-b border-gray-200">
+                    <nav className="flex space-x-8 justify-around px-6" aria-label="Tabs">
+                      {tabs.map((tab) => (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === tab.id
+                            ? 'border-primary-500 text-primary-600'
+                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                            }`}
+                        >
+                          <Icon icon={tab.icon} className="w-4 h-4" />
+                          {tab.label}
+                          <span className={`px-2 py-1 text-xs rounded-full ${activeTab === tab.id
+                            ? 'bg-primary-100 text-primary-600'
+                            : 'bg-gray-100 text-gray-600'
+                            }`}>
+                            {jobCounts[tab.id]}
+                          </span>
+                        </button>
+                      ))}
+                    </nav>
+                  </div>
+
+                  {/* Search Bar inside tab container */}
+                  <div className="p-6">
+                    <div className="relative">
+                      <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <input
+                        type="text"
+                        placeholder="Search by brand, service, location, color..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 pr-4 py-3 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {filteredJobs.length > 0 && activeTab !== 'review' && (
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                    <p className="text-sm text-gray-600">
+                      Showing {startIndex + 1} to {Math.min(endIndex, filteredJobs.length)} of {filteredJobs.length} jobs
+                    </p>
+                    <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                      <label className="text-sm text-gray-600">Jobs per page:</label>
+                      <select
+                        value={itemsPerPage}
+                        onChange={(e) => {
+                          setItemsPerPage(Number(e.target.value));
+                          setCurrentPage(1);
+                        }}
+                        className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value={5}>5</option>
+                        <option value={6}>6</option>
+                        <option value={10}>10</option>
+                        <option value={15}>15</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Jobs List */}
+                <div className="space-y-4 mb-8">
+                  {activeTab === 'review' ? (
+                    <ReviewJobs />
+                  ) : currentJobs?.length > 0 ? (
+                    currentJobs?.map((job) => (
+                      <RepairJobCard key={job._id || job.id} job={job} />
+                    ))
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <Icon icon="mdi:tools" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">
+                        {activeTab === 'all' ? 'No repair jobs found' : `No ${activeTab.replace('_', ' ')} jobs found`}
+                      </h3>
+                      <p className="text-gray-500 mb-4">
+                        {searchTerm || activeTab !== 'all'
+                          ? 'Try adjusting your search or switching to a different tab.'
+                          : 'Get started by creating your first repair request.'
+                        }
+                      </p>
+                      <Link href="/mobile-repair">
+                        <Button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg">
+                          <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
+                          Create Repair Request
+                        </Button>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {filteredJobs.length > 0 && totalPages > 1 && activeTab !== 'review' && (
+                  <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-6 py-4">
+                    <div className="flex items-center gap-2 mb-4 sm:mb-0">
                       <button
-                        key={tab.id}
-                        onClick={() => setActiveTab(tab.id)}
-                        className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === tab.id
-                          ? 'border-primary-500 text-primary-600'
-                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        onClick={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 1
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
                           }`}
                       >
-                        <Icon icon={tab.icon} className="w-4 h-4" />
-                        {tab.label}
-                        <span className={`px-2 py-1 text-xs rounded-full ${activeTab === tab.id
-                          ? 'bg-primary-100 text-primary-600'
-                          : 'bg-gray-100 text-gray-600'
-                          }`}>
-                          {jobCounts[tab.id]}
-                        </span>
+                        <Icon icon="mdi:chevron-left" className="w-4 h-4 mr-1" />
+                        Previous
                       </button>
-                    ))}
-                  </nav>
-                </div>
+                    </div>
 
-                {/* Search Bar inside tab container */}
-                <div className="p-6">
-                  <div className="relative">
-                    <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      placeholder="Search by brand, service, location, color..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 pr-4 py-3 w-full border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                    />
-                  </div>
-                </div>
-              </div>
+                    <div className="flex items-center gap-1">
+                      {getPageNumbers().map((pageNumber, index) => (
+                        <button
+                          key={index}
+                          onClick={() => pageNumber !== '...' && handlePageChange(pageNumber)}
+                          disabled={pageNumber === '...'}
+                          className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pageNumber === currentPage
+                            ? 'bg-primary-600 text-white'
+                            : pageNumber === '...'
+                              ? 'text-gray-400 cursor-default'
+                              : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                            }`}
+                        >
+                          {pageNumber}
+                        </button>
+                      ))}
+                    </div>
 
-              {filteredJobs.length > 0 && activeTab !== 'review' && (
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-                  <p className="text-sm text-gray-600">
-                    Showing {startIndex + 1} to {Math.min(endIndex, filteredJobs.length)} of {filteredJobs.length} jobs
-                  </p>
-                  <div className="flex items-center gap-2 mt-2 sm:mt-0">
-                    <label className="text-sm text-gray-600">Jobs per page:</label>
-                    <select
-                      value={itemsPerPage}
-                      onChange={(e) => {
-                        setItemsPerPage(Number(e.target.value));
-                        setCurrentPage(1);
-                      }}
-                      className="px-2 py-1 border border-gray-200 rounded text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    >
-                      <option value={5}>5</option>
-                      <option value={6}>6</option>
-                      <option value={10}>10</option>
-                      <option value={15}>15</option>
-                    </select>
-                  </div>
-                </div>
-              )}
-
-              {/* Jobs List */}
-              <div className="space-y-4 mb-8">
-                {activeTab === 'review' ? (
-                  <ReviewJobs />
-                ) : loading ? (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <div className="w-16 h-16 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-gray-500">Loading your repair jobs...</p>
-                  </div>
-                ) : currentJobs?.length > 0 ? (
-                  currentJobs?.map((job) => (
-                    <RepairJobCard key={job._id || job.id} job={job} />
-                  ))
-                ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <Icon icon="mdi:tools" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">
-                      {activeTab === 'all' ? 'No repair jobs found' : `No ${activeTab.replace('_', ' ')} jobs found`}
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      {searchTerm || activeTab !== 'all'
-                        ? 'Try adjusting your search or switching to a different tab.'
-                        : 'Get started by creating your first repair request.'
-                      }
-                    </p>
-                    <Link href="/mobile-repair">
-                      <Button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg">
-                        <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
-                        Create Repair Request
-                      </Button>
-                    </Link>
+                    <div className="flex items-center gap-2 mt-4 sm:mt-0">
+                      <button
+                        onClick={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === totalPages
+                          ? 'text-gray-400 cursor-not-allowed'
+                          : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
+                          }`}
+                      >
+                        Next
+                        <Icon icon="mdi:chevron-right" className="w-4 h-4 ml-1" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-
-              {filteredJobs.length > 0 && totalPages > 1 && activeTab !== 'review' && (
-                <div className="flex flex-col sm:flex-row items-center justify-between bg-white border border-gray-200 rounded-xl px-6 py-4">
-                  <div className="flex items-center gap-2 mb-4 sm:mb-0">
-                    <button
-                      onClick={handlePreviousPage}
-                      disabled={currentPage === 1}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === 1
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
-                        }`}
-                    >
-                      <Icon icon="mdi:chevron-left" className="w-4 h-4 mr-1" />
-                      Previous
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-1">
-                    {getPageNumbers().map((pageNumber, index) => (
-                      <button
-                        key={index}
-                        onClick={() => pageNumber !== '...' && handlePageChange(pageNumber)}
-                        disabled={pageNumber === '...'}
-                        className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors ${pageNumber === currentPage
-                          ? 'bg-primary-600 text-white'
-                          : pageNumber === '...'
-                            ? 'text-gray-400 cursor-default'
-                            : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
-                          }`}
-                      >
-                        {pageNumber}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="flex items-center gap-2 mt-4 sm:mt-0">
-                    <button
-                      onClick={handleNextPage}
-                      disabled={currentPage === totalPages}
-                      className={`flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${currentPage === totalPages
-                        ? 'text-gray-400 cursor-not-allowed'
-                        : 'text-gray-700 hover:text-primary-600 hover:bg-primary-50'
-                        }`}
-                    >
-                      Next
-                      <Icon icon="mdi:chevron-right" className="w-4 h-4 ml-1" />
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
+            </main>
+          </div>
         </div>
       </div>
-    </div>
+    </Loader>
   );
 }

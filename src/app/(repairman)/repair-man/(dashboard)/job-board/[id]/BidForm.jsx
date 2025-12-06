@@ -2,10 +2,11 @@ import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
 import { yupResolver } from "@hookform/resolvers/yup";
 import axiosInstance from "@/config/axiosInstance";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import PartModal from "./PartModal";
 
 const schema = yup.object({
     basePrice: yup
@@ -53,7 +54,26 @@ const schema = yup.object({
     serviceOptions: yup.object({
         dropOffAvailable: yup.boolean(),
         pickupAvailable: yup.boolean(),
-        pickupCharge: yup.number().min(0, "Pickup charge cannot be negative")
+        pickupCharge: yup
+            .number()
+            .when('pickupAvailable', {
+                is: true,
+                then: (schema) => schema
+                    .required("Pickup charge is required when pickup service is selected")
+                    .min(0.01, "Pickup charge must be greater than 0"),
+                otherwise: (schema) => schema.min(0, "Pickup charge cannot be negative").nullable()
+            }),
+        dropOffLocation: yup
+            .string()
+            .when('dropOffAvailable', {
+                is: true,
+                then: (schema) => schema
+                    .required("Drop-off address is required when drop-off service is selected")
+                    .min(10, "Address must be at least 10 characters"),
+                otherwise: (schema) => schema.nullable()
+            })
+    }).test('at-least-one-service', 'Please select at least one service option (Drop-off or Pickup)', function(value) {
+        return value.dropOffAvailable || value.pickupAvailable;
     })
 });
 
@@ -63,14 +83,15 @@ export default function BidForm({
 }) {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const router = useRouter()
-
-    console.log(jobId, repairmanId);
+    const [isOpen, setIsOpen] = useState(false);
+    const [selectedParts, setSelectedParts] = useState([]);
+    const router = useRouter();
 
     const {
         control,
         handleSubmit,
         watch,
+        setValue,
         formState: { errors, isValid }
     } = useForm({
         resolver: yupResolver(schema),
@@ -93,26 +114,33 @@ export default function BidForm({
             serviceOptions: {
                 dropOffAvailable: false,
                 pickupAvailable: false,
-                pickupCharge: 0
+                pickupCharge: 0,
+                dropOffLocation: ""
             }
         }
     });
 
-    const watchedValues = watch();
-    const platformFeePercentage = 5; // Commission
-    
-    // Calculate base total
-    const baseTotal = (parseFloat(watchedValues.basePrice) || 0) + (parseFloat(watchedValues.partsEstimate) || 0);
-    
-    // Add pickup charges if applicable
-    const pickupCharges = watchedValues.serviceOptions?.pickupAvailable ? (parseFloat(watchedValues.serviceOptions.pickupCharge) || 0) : 0;
-    
-    const totalPrice = baseTotal;
-    
-    const platformFee = (totalPrice * platformFeePercentage) / 100;
-    
-    const netAmount = totalPrice - platformFee;
+    useEffect(() => {
+        const saved = localStorage.getItem(`selectedParts_${jobId}`);
+        if (saved) {
+            const parts = JSON.parse(saved);
+            setSelectedParts(parts);
 
+            const totalPartsPrice = parts.reduce((sum, part) => sum + (part.price || 0), 0);
+            setValue('partsEstimate', totalPartsPrice);
+        }
+    }, [isOpen, setValue, jobId]);
+
+    const watchedValues = watch();
+    const platformFeePercentage = 5;
+
+    const totalPartsPrice = selectedParts.reduce((sum, part) => sum + (part.price || 0), 0);
+    const basePrice = parseFloat(watchedValues.basePrice) || 0;
+    const baseTotal = basePrice + totalPartsPrice;
+    const pickupCharges = watchedValues.serviceOptions?.pickupAvailable ? (parseFloat(watchedValues.serviceOptions.pickupCharge) || 0) : 0;
+    const totalPrice = baseTotal;
+    const platformFee = (basePrice * platformFeePercentage) / 100;
+    const netAmount = totalPrice - platformFee;
     const characterCount = watchedValues.description?.length || 0;
     const minCharacters = 100;
 
@@ -127,63 +155,58 @@ export default function BidForm({
     const onSubmit = async (data) => {
         try {
             setIsSubmitting(true);
+
+            // ✅ Extract only part IDs for requiredParts
+            const partIds = selectedParts.map(part => part.id);
+
             const payload = {
                 jobId: jobId,
                 repairmanId: repairmanId,
-
+                requiredParts: partIds,  // ✅ Send part IDs array
+                isPartRequired: selectedParts.length > 0,  // ✅ Set to true if parts exist
+                selectedParts: selectedParts,  // ✅ Send full part details
                 pricing: {
                     basePrice: parseFloat(data.basePrice),
-                    partsEstimate: parseFloat(data.partsEstimate) || 0,
+                    partsEstimate: totalPartsPrice,
                     totalPrice: totalPrice,
                     partsQuality: data.partsQuality,
                     currency: 'TRY'
                 },
-
                 estimatedTime: {
                     value: parseInt(data.estimatedTime),
                     unit: data.timeUnit
                 },
-
                 description: data.description,
-
                 warranty: {
                     duration: parseInt(data.warranty.duration),
                     description: data.warranty.description || '',
                     terms: data.warranty.terms || ''
                 },
-
                 availability: {
                     canStartBy: new Date(data.availability.canStartBy),
                     preferredSlots: []
                 },
-
                 serviceOptions: {
                     dropOffAvailable: data.serviceOptions.dropOffAvailable,
                     pickupAvailable: data.serviceOptions.pickupAvailable,
                     pickupCharge: data.serviceOptions.pickupCharge || 0,
-                    dropOffLocation: ""
+                    dropOffLocation: data.serviceOptions.dropOffLocation || ""
                 },
-
                 fees: {
                     platformFee: platformFee,
                     platformFeePercentage: platformFeePercentage
                 },
-
                 servicesIncluded: [],
                 status: 'pending',
                 expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
                 viewedByCustomer: false,
-
                 locationContext: {
                     submissionMethod: 'profile-stored',
                     submittedAt: new Date(),
                     accuracyLevel: 'profile-based'
                 },
-
                 messages: []
             };
-
-            console.log("Payload to send:", payload);
 
             const res = await axiosInstance.post(`/repairman/offers/jobs/${jobId}/offer`, payload, {
                 headers: {
@@ -192,9 +215,8 @@ export default function BidForm({
             });
 
             toast.success(res.data.message);
+            localStorage.removeItem(`selectedParts_${jobId}`);
             router.push('/repair-man/job-board');
-
-            console.log("Response from server:", res.data);
 
         } catch (error) {
             handleError(error)
@@ -218,6 +240,15 @@ export default function BidForm({
         return now.toISOString().slice(0, 16);
     };
 
+    const handleRemovePart = (partId) => {
+        const updatedParts = selectedParts.filter(p => p.id !== partId);
+        setSelectedParts(updatedParts);
+        localStorage.setItem(`selectedParts_${jobId}`, JSON.stringify(updatedParts));
+
+        const totalPartsPrice = updatedParts.reduce((sum, part) => sum + (part.price || 0), 0);
+        setValue('partsEstimate', totalPartsPrice);
+    };
+
     const totalWithPickup = totalPrice + pickupCharges;
 
     return (
@@ -233,7 +264,6 @@ export default function BidForm({
 
             <form onSubmit={handleSubmit(onSubmit)} className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Base Price */}
                     <div className="space-y-2">
                         <label htmlFor="basePrice" className="block text-sm font-medium text-gray-700">
                             Base Service Price <span className="text-red-500">*</span>
@@ -251,8 +281,8 @@ export default function BidForm({
                                         id="basePrice"
                                         type="number"
                                         className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.basePrice
-                                                ? 'border-red-500 ring-2 ring-red-100'
-                                                : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                            ? 'border-red-500 ring-2 ring-red-100'
+                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
                                             } focus:outline-none`}
                                         placeholder="0.00"
                                         min="0"
@@ -266,10 +296,9 @@ export default function BidForm({
                         )}
                     </div>
 
-                    {/* Parts Estimate */}
                     <div className="space-y-2">
                         <label htmlFor="partsEstimate" className="block text-sm font-medium text-gray-700">
-                            Parts Estimate
+                            Parts Estimate (Auto-calculated)
                         </label>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -283,23 +312,16 @@ export default function BidForm({
                                         {...field}
                                         id="partsEstimate"
                                         type="number"
-                                        className={`block w-full pl-7 pr-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.partsEstimate
-                                                ? 'border-red-500 ring-2 ring-red-100'
-                                                : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                            } focus:outline-none`}
+                                        value={totalPartsPrice}
+                                        readOnly
+                                        className="block w-full pl-7 pr-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50 cursor-not-allowed"
                                         placeholder="0.00"
-                                        min="0"
-                                        step="0.01"
                                     />
                                 )}
                             />
                         </div>
-                        {errors.partsEstimate && (
-                            <p className="text-red-500 text-xs mt-1">{errors.partsEstimate.message}</p>
-                        )}
                     </div>
 
-                    {/* Parts Quality */}
                     <div className="space-y-2">
                         <label htmlFor="partsQuality" className="block text-sm font-medium text-gray-700">
                             Parts Quality
@@ -308,20 +330,33 @@ export default function BidForm({
                             name="partsQuality"
                             control={control}
                             render={({ field }) => (
-                                <select
-                                    {...field}
-                                    id="partsQuality"
-                                    className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.partsQuality
-                                            ? 'border-red-500 ring-2 ring-red-100'
-                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
-                                        } focus:outline-none`}
-                                >
-                                    {partsQualityOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                                <div className="space-y-2">
+                                    {selectedParts.length > 0 ? (
+                                        <div className="block w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-gray-50">
+                                            {selectedParts.map((part, index) => (
+                                                <div key={part.id} className="flex items-center justify-between py-1">
+                                                    <span className="text-gray-700">{part.name}</span>
+                                                    <span className="font-medium text-primary-600">{part.partType}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <select
+                                            {...field}
+                                            id="partsQuality"
+                                            className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.partsQuality
+                                                ? 'border-red-500 ring-2 ring-red-100'
+                                                : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                                } focus:outline-none`}
+                                        >
+                                            {partsQualityOptions.map(option => (
+                                                <option key={option.value} value={option.value}>
+                                                    {option.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
                             )}
                         />
                         {errors.partsQuality && (
@@ -343,8 +378,8 @@ export default function BidForm({
                                         id="estimatedTime"
                                         type="number"
                                         className={`flex-1 px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${errors.estimatedTime
-                                                ? 'border-red-500 ring-2 ring-red-100'
-                                                : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                            ? 'border-red-500 ring-2 ring-red-100'
+                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
                                             } focus:outline-none`}
                                         placeholder="2"
                                         min="1"
@@ -369,7 +404,6 @@ export default function BidForm({
                         )}
                     </div>
 
-                    {/* Warranty Duration */}
                     <div className="space-y-2">
                         <label htmlFor="warrantyDuration" className="block text-sm font-medium text-gray-700">
                             Warranty Duration <span className="text-red-500">*</span>
@@ -384,8 +418,8 @@ export default function BidForm({
                                         id="warrantyDuration"
                                         type="number"
                                         className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${getFieldError('warranty.duration')
-                                                ? 'border-red-500 ring-2 ring-red-100'
-                                                : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                            ? 'border-red-500 ring-2 ring-red-100'
+                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
                                             } focus:outline-none`}
                                         placeholder="30"
                                         min="1"
@@ -401,7 +435,6 @@ export default function BidForm({
                         )}
                     </div>
 
-                    {/* Availability */}
                     <div className="space-y-2">
                         <label htmlFor="availability" className="block text-sm font-medium text-gray-700">
                             Can Start By <span className="text-red-500">*</span>
@@ -415,8 +448,8 @@ export default function BidForm({
                                     id="availability"
                                     type="date"
                                     className={`block w-full px-3 py-2.5 border rounded-lg text-sm transition-colors duration-200 ${getFieldError('availability.canStartBy')
-                                            ? 'border-red-500 ring-2 ring-red-100'
-                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                        ? 'border-red-500 ring-2 ring-red-100'
+                                        : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
                                         } focus:outline-none`}
                                     min={getMinDateTime()}
                                 />
@@ -426,13 +459,62 @@ export default function BidForm({
                             <p className="text-red-500 text-xs mt-1">{getFieldError('availability.canStartBy')}</p>
                         )}
                     </div>
+
+                    <button
+                        onClick={() => setIsOpen(true)}
+                        type="button"
+                        className="p-4 bg-primary-500 rounded-md hover:bg-primary-600 cursor-pointer transition-colors">
+                        <span className="text-sm font-semibold text-white">
+                            {selectedParts.length > 0 ? `Selected Parts (${selectedParts.length})` : 'Select Required Parts'}
+                        </span>
+                    </button>
                 </div>
 
-                {/* Service Options */}
+                {selectedParts.length > 0 && (
+                    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                        <h6 className="text-sm font-semibold text-gray-900 mb-3">Selected Parts</h6>
+                        <div className="space-y-2">
+                            {selectedParts.map((part) => (
+                                <div key={part.id} className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200">
+                                    <div className="flex-1">
+                                        <p className="text-sm font-medium text-gray-900">{part.name}</p>
+                                        <div className="flex items-center gap-3 mt-1">
+                                            <span className="text-xs text-gray-600">{part.brand} • {part.model}</span>
+                                            <span className="text-xs text-gray-600">SKU: {part.sku}</span>
+                                            <span className="text-xs font-medium text-green-600">{part.partType}</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemovePart(part.id)}
+                                            className="text-red-500 hover:text-red-700 transition-colors"
+                                        >
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 <div className="mt-6 space-y-4">
-                    <h6 className="text-lg font-medium text-gray-900">Service Options</h6>
-                    
-                    {/* Drop-off Service - Free */}
+                    <div className="flex items-center justify-between">
+                        <h6 className="text-lg font-medium text-gray-900">Service Options</h6>
+                        <span className="text-xs text-red-500 font-medium">* Select at least one option</span>
+                    </div>
+
+                    {/* Service Options Error */}
+                    {errors.serviceOptions?.message && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                            <p className="text-red-600 text-sm font-medium">{errors.serviceOptions.message}</p>
+                        </div>
+                    )}
+
                     <div className="flex items-start space-x-3 p-4 bg-green-50 border border-green-200 rounded-lg">
                         <Controller
                             name="serviceOptions.dropOffAvailable"
@@ -453,11 +535,37 @@ export default function BidForm({
                                 Drop-off Service
                                 <span className="text-xs bg-green-600 text-white px-2 py-0.5 rounded-full">FREE</span>
                             </label>
-                            <p className="text-xs text-gray-600 mt-1">Customer will bring the item to your location - No service charges</p>
+                            <p className="text-xs text-gray-600 mt-1">Customer will bring the item to your location</p>
+                            
+                            {watchedValues.serviceOptions?.dropOffAvailable && (
+                                <div className="mt-3">
+                                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                                        Drop-off Location Address <span className="text-red-500">*</span>
+                                    </label>
+                                    <Controller
+                                        name="serviceOptions.dropOffLocation"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <textarea
+                                                {...field}
+                                                rows={2}
+                                                placeholder="Enter your workshop/service center address"
+                                                className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 resize-none ${
+                                                    getFieldError('serviceOptions.dropOffLocation')
+                                                        ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
+                                                        : 'border-green-300 focus:border-primary-500 focus:ring-primary-100'
+                                                }`}
+                                            />
+                                        )}
+                                    />
+                                    {getFieldError('serviceOptions.dropOffLocation') && (
+                                        <p className="text-red-500 text-xs mt-1">{getFieldError('serviceOptions.dropOffLocation')}</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Pickup Service - With Charges */}
                     <div className="flex items-start space-x-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                         <Controller
                             name="serviceOptions.pickupAvailable"
@@ -495,20 +603,26 @@ export default function BidForm({
                                                     {...field}
                                                     type="number"
                                                     placeholder="Enter pickup charges"
-                                                    className="w-full pl-7 pr-3 py-2 border border-blue-300 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100"
+                                                    className={`w-full pl-7 pr-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                                                        getFieldError('serviceOptions.pickupCharge')
+                                                            ? 'border-red-500 focus:border-red-500 focus:ring-red-100'
+                                                            : 'border-blue-300 focus:border-primary-500 focus:ring-primary-100'
+                                                    }`}
                                                     min="0"
                                                     step="0.01"
                                                 />
                                             )}
                                         />
                                     </div>
+                                    {getFieldError('serviceOptions.pickupCharge') && (
+                                        <p className="text-red-500 text-xs mt-1">{getFieldError('serviceOptions.pickupCharge')}</p>
+                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
                 </div>
 
-                {/* Warranty Description */}
                 <div className="mt-6 space-y-2">
                     <label htmlFor="warrantyDescription" className="block text-sm font-medium text-gray-700">
                         Warranty Description
@@ -528,7 +642,6 @@ export default function BidForm({
                     />
                 </div>
 
-                {/* Description */}
                 <div className="mt-6 space-y-2">
                     <label htmlFor="description" className="block text-sm font-medium text-gray-700">
                         Describe your proposal <span className="text-red-500">*</span>
@@ -542,8 +655,8 @@ export default function BidForm({
                                     {...field}
                                     id="description"
                                     className={`block w-full px-3 py-3 border rounded-lg text-sm resize-none transition-colors duration-200 ${errors.description
-                                            ? 'border-red-500 ring-2 ring-red-100'
-                                            : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
+                                        ? 'border-red-500 ring-2 ring-red-100'
+                                        : 'border-gray-300 hover:border-gray-400 focus:border-primary-500 focus:ring-2 focus:ring-primary-100'
                                         } focus:outline-none`}
                                     rows={6}
                                     placeholder="Explain how you'll approach this repair, your relevant experience, and why you're the right person for the job..."
@@ -556,8 +669,7 @@ export default function BidForm({
                         <span className="text-gray-500">
                             Minimum {minCharacters} characters required (Max 300)
                         </span>
-                        <span className={`font-medium ${characterCount >= minCharacters ? 'text-green-600' : 'text-gray-500'
-                            }`}>
+                        <span className={`font-medium ${characterCount >= minCharacters ? 'text-green-600' : 'text-gray-500'}`}>
                             {characterCount}/{minCharacters}
                         </span>
                     </div>
@@ -566,8 +678,7 @@ export default function BidForm({
                     )}
                 </div>
 
-                {/* Price Summary */}
-                {(watchedValues.basePrice || watchedValues.partsEstimate) && (
+                {(watchedValues.basePrice || totalPartsPrice > 0) && (
                     <div className="mt-6 bg-gradient-to-br from-gray-50 to-blue-50 rounded-lg p-5 border-2 border-gray-200">
                         <h6 className="text-base font-semibold text-gray-900 mb-4 flex items-center gap-2">
                             <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -578,21 +689,36 @@ export default function BidForm({
                         <div className="space-y-2.5 text-sm">
                             <div className="flex justify-between py-1">
                                 <span className="text-gray-600">Base service price:</span>
-                                <span className="font-medium">₺{(parseFloat(watchedValues.basePrice) || 0).toFixed(2)}</span>
-                            </div>
-                            <div className="flex justify-between py-1">
-                                <span className="text-gray-600">Parts estimate:</span>
-                                <span className="font-medium">₺{(parseFloat(watchedValues.partsEstimate) || 0).toFixed(2)}</span>
-                            </div>
-                            
-                            <hr className="border-gray-300 my-2" />
-                            
-                            <div className="flex justify-between py-2 bg-white -mx-2 px-2 rounded-lg">
-                                <span className="text-gray-900 font-semibold">Subtotal:</span>
-                                <span className="text-gray-900 font-bold text-lg">₺{(baseTotal).toFixed(2)}</span>
+                                <span className="font-medium">₺{basePrice.toFixed(2)}</span>
                             </div>
 
-                            {/* Pickup Service Charges - Only show if pickup is selected */}
+                            {selectedParts.length > 0 && (
+                                <div className="bg-white p-3 rounded-lg border border-gray-200">
+                                    <div className="flex justify-between py-1 mb-2">
+                                        <span className="text-gray-700 font-medium">Parts breakdown:</span>
+                                        <span className="font-medium">₺{totalPartsPrice.toFixed(2)}</span>
+                                    </div>
+                                    {selectedParts.map((part) => (
+                                        <div key={part.id} className="flex justify-between py-1 pl-4 text-xs">
+                                            <span className="text-gray-600">• {part.name}</span>
+                                            <span className="text-gray-600">₺{part.price?.toFixed(2)}</span>
+                                        </div>
+                                    ))}
+                                    <div className="mt-2 pt-2 border-t border-gray-200">
+                                        <p className="text-xs text-green-600 font-medium">
+                                            ✓ No commission on parts
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+
+                            <hr className="border-gray-300 my-2" />
+
+                            <div className="flex justify-between py-2 bg-white -mx-2 px-2 rounded-lg">
+                                <span className="text-gray-900 font-semibold">Subtotal:</span>
+                                <span className="text-gray-900 font-bold text-lg">₺{baseTotal.toFixed(2)}</span>
+                            </div>
+
                             {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
                                 <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-300 rounded-lg">
                                     <div className="flex items-start gap-2 mb-2">
@@ -613,26 +739,24 @@ export default function BidForm({
                                 </div>
                             )}
 
-                            {/* Total with pickup - only show if pickup selected */}
                             {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
                                 <div className="mt-3 p-3 bg-primary-100 border-2 border-primary-400 rounded-lg">
                                     <div className="flex justify-between items-center">
                                         <span className="font-bold text-primary-900">Total (with Pickup):</span>
-                                        <span className="font-bold text-primary-900 text-xl">₺{totalPrice.toFixed(2)} + {pickupCharges.toFixed(2)} = ₺{totalWithPickup.toFixed(2)}</span>
+                                        <span className="font-bold text-primary-900 text-xl">₺{totalWithPickup.toFixed(2)}</span>
                                     </div>
                                 </div>
                             )}
 
-                            {/* Commission Deduction */}
                             <div className="mt-4 pt-3 border-t-2 border-gray-300">
                                 <div className="flex justify-between py-1">
-                                    <span className="text-gray-600">Platform commission ({platformFeePercentage}%):</span>
+                                    <span className="text-gray-600">Platform commission ({platformFeePercentage}% on base price only):</span>
                                     <span className="text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
                                 </div>
                             </div>
-                            
+
                             <hr className="border-gray-300 my-2" />
-                            
+
                             <div className="flex justify-between py-2 bg-green-50 -mx-2 px-2 rounded-lg">
                                 <span className="text-gray-900 font-semibold">You'll receive:</span>
                                 <span className="text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
@@ -640,21 +764,20 @@ export default function BidForm({
                         </div>
                         <div className="mt-3 pt-3 border-t border-gray-200">
                             <p className="text-xs text-gray-500 italic">
-                                * {platformFeePercentage}% commission will be deducted from your total amount
+                                * {platformFeePercentage}% commission applies only to base service price, not on parts
                             </p>
                         </div>
                     </div>
                 )}
 
-                {/* Submit Button */}
                 <div className="mt-8 pt-6 border-t border-gray-100">
                     <div className="flex flex-col sm:flex-row gap-4 sm:justify-end">
                         <button
                             type="submit"
                             disabled={!isValid || isSubmitting}
                             className={`px-8 py-2.5 rounded-lg font-medium transition-all duration-200 ${isValid && !isSubmitting
-                                    ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md'
-                                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                ? 'bg-primary-600 hover:bg-primary-700 text-white shadow-sm hover:shadow-md'
+                                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 }`}
                         >
                             {isSubmitting ? (
@@ -668,7 +791,6 @@ export default function BidForm({
                             ) : (
                                 'Submit Offer'
                             )}
-
                         </button>
                     </div>
 
@@ -679,6 +801,12 @@ export default function BidForm({
                     )}
                 </div>
             </form>
+
+            <PartModal
+                isOpen={isOpen}
+                onClose={() => setIsOpen(!isOpen)}
+                jobId={jobId}
+            />
         </div>
     );
-}
+}   

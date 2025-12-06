@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter, usePathname } from "next/navigation";
 import { clearAuth } from "../store/auth"; 
+import Loader from "./Loader";
 
 // Role-based route configuration (unchanged)
 const ROLE_ROUTES = {
@@ -174,7 +175,7 @@ function AuthGuard({ children, allowedRoles = [], redirectTo = null, requireAuth
   }, [user, token, loading, pathname, allowedRoles, redirectTo, requireAuth, router, dispatch]);
 
   if (loading || isAuthorizing) {
-    return <LoadingScreen />;
+    return <Loader loading={loading || isAuthorizing} />;
   }
 
   if (requireAuth && (!user || !token)) {
