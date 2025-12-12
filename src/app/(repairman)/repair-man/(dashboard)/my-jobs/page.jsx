@@ -56,7 +56,7 @@ const MyJobsPage = () => {
   const dispatch = useDispatch();
 
   const { selectChat, openChat } = useChat();
-  
+
 
   const handleMessageSend = async (id) => {
     if (!user && !token) {
@@ -79,8 +79,8 @@ const MyJobsPage = () => {
       const newChat = {
         id: data?.chat._id,
         chatId: data?.chat._id,
-        name: data?.chat?.user?.name ,
-        avatar: data?.chat?.user?.avatar ,
+        name: data?.chat?.user?.name,
+        avatar: data?.chat?.user?.avatar,
         userId: data?.chat?.user?._id,
         lastMessage: '',
         timestamp: new Date().toISOString(),
@@ -94,8 +94,8 @@ const MyJobsPage = () => {
 
       selectChat({
         id: data?.chat._id,
-        name: data?.chat?.user?.name ,
-        avatar: data?.chat?.user?.avatar ,
+        name: data?.chat?.user?.name,
+        avatar: data?.chat?.user?.avatar,
       });
 
       console.log('Chat selected');
@@ -236,20 +236,18 @@ const MyJobsPage = () => {
             </div>
             <div className="flex-1">
               <h3 className="font-bold text-xl text-gray-900 mb-1">
-                {jobDetails.services?.join(', ') || 'Repair Service'}
+                {deviceInfo.brand} {deviceInfo.model} - {jobDetails.services?.map(service => service?.name).join(', ') || jobDetails.services?.join(', ')}
               </h3>
               <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
 
-              {/* Booking Source Badge */}
               <div className="flex items-center gap-2 mb-2">
                 <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'bg-blue-100 text-blue-700'
+                  ? 'bg-purple-100 text-purple-700'
+                  : 'bg-blue-100 text-blue-700'
                   }`}>
                   {isQuotationBased ? 'Direct Message' : 'Job Posting'}
                 </span>
 
-                {/* Pickup Badge - for job postings only */}
                 {!isQuotationBased && isPickupService && (
                   <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
                     <Icon icon="heroicons:truck" className="w-3 h-3 inline mr-1" />
@@ -262,7 +260,7 @@ const MyJobsPage = () => {
                 {!isQuotationBased && jobDetails.location?.city && (
                   <span className="flex items-center">
                     <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {jobDetails.location.city}
+                    {jobDetails.location.city?.name} , {jobDetails.location?.state?.name}
                   </span>
                 )}
 
@@ -326,8 +324,8 @@ const MyJobsPage = () => {
               )}
               {deviceInfo.warrantyStatus && (
                 <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
-                    ? 'bg-green-100 text-green-800'
-                    : 'bg-gray-100 text-gray-800'
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
                   }`}>
                   Warranty: {deviceInfo.warrantyStatus}
                 </span>
@@ -336,13 +334,12 @@ const MyJobsPage = () => {
           </div>
         )}
 
-        {/* ✅ UNIFIED Location Display Section */}
         {(() => {
           // FOR QUOTATION-BASED JOBS
           if (isQuotationBased) {
             const serviceType = bookingDetails.serviceType;
             const locationAddress = jobDetails.location?.address || '';
-            
+
             if (serviceType === 'pickup' && locationAddress) {
               return (
                 <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
@@ -361,7 +358,7 @@ const MyJobsPage = () => {
                 </div>
               );
             }
-            
+
             if (serviceType === 'drop-off' && locationAddress) {
               return (
                 <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -375,8 +372,7 @@ const MyJobsPage = () => {
                 </div>
               );
             }
-          } 
-          // FOR JOB POSTING JOBS
+          }
           else {
             if (isPickupService && pickupAddress) {
               return (
@@ -396,7 +392,7 @@ const MyJobsPage = () => {
                 </div>
               );
             }
-            
+
             if (!isPickupService && jobDetails.location?.address) {
               return (
                 <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
@@ -411,7 +407,7 @@ const MyJobsPage = () => {
               );
             }
           }
-          
+
           return null;
         })()}
 
@@ -623,7 +619,7 @@ const MyJobsPage = () => {
           )}
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+        <div className="mb-6 bg-white p-4 rounded-md border border-gray-200 shadow-xs grid sm:grid-cols-2 grid-cols-1 gap-4 items-center">
           <div className="relative flex-1 w-full">
             <input
               type="text"
@@ -644,11 +640,11 @@ const MyJobsPage = () => {
               </button>
             )}
           </div>
-          <div className="flex gap-4 w-full sm:w-auto">
+          <div className="flex flex-1 gap-4 w-full sm:w-auto">
             <select
               value={urgencyFilter}
               onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+              className="px-4 py-3 flex-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
               aria-label="Filter by urgency"
             >
               <option value="all">All Priorities</option>
@@ -663,13 +659,13 @@ const MyJobsPage = () => {
             >
               Clear Filters
             </button>
-            <button
+            {/* <button
               onClick={() => fetchAllJobs()}
               className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
               aria-label="Refresh jobs"
             >
               <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-            </button>
+            </button> */}
           </div>
         </div>
 
@@ -687,8 +683,8 @@ const MyJobsPage = () => {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
-                      ? 'border-primary-500 text-primary-600'
-                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                    ? 'border-primary-500 text-primary-600'
+                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
                     }`}
                   role="tab"
                   aria-selected={activeTab === tab.id}

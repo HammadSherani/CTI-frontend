@@ -205,7 +205,6 @@ function UpdateStatus() {
                   {tracking.currentLocation?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
               </div>
-              {/* 🔥 Source Badge */}
               <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                 isQuotationBased 
                   ? 'bg-purple-100 text-purple-700' 
@@ -216,7 +215,6 @@ function UpdateStatus() {
             </div>
           </div>
 
-          {/* Success Message */}
           {showSuccessMessage && statusUpdateResult && (
             <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-start">
@@ -245,9 +243,7 @@ function UpdateStatus() {
           )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Main Content */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Job Overview */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Job Overview</h2>
 
@@ -259,19 +255,18 @@ function UpdateStatus() {
                   </div>
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-900">
-                      {services?.join(', ') || 'Repair Service'}
+                      {deviceInfo.brand || deviceInfo.brandName} {deviceInfo.model || deviceInfo.modelName} - {services?.map(service => service?.name).join(', ') || services?.join(', ') || 'Repair Service'}
+                      
                     </h3>
                     <p className="text-gray-600 mb-2">{customer.name}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
-                      {/* 🔥 Location - only for job postings */}
                       {!isQuotationBased && jobInfo.location?.city && (
                         <span className="flex items-center">
                           <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                          {jobInfo.location.city}
+                          { jobInfo.location?.city?.name || jobInfo.location.city}
                         </span>
                       )}
                       
-                      {/* 🔥 Urgency - only for job postings */}
                       {!isQuotationBased && jobInfo.urgency && (
                         <span className="flex items-center">
                           <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
@@ -279,7 +274,6 @@ function UpdateStatus() {
                         </span>
                       )}
                       
-                      {/* 🔥 Service Type - for all */}
                       <span className="flex items-center capitalize">
                         <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" />
                         {bookingDetails.serviceType || 'N/A'}
@@ -294,7 +288,6 @@ function UpdateStatus() {
                   </div>
                 </div>
 
-                {/* 🔥 Description - from appropriate source */}
                 {(jobInfo.description || quotationInfo.serviceDetails?.description) && (
                   <div className="mb-6">
                     <h4 className="font-medium text-gray-900 mb-2">Description</h4>
@@ -303,8 +296,6 @@ function UpdateStatus() {
                     </p>
                   </div>
                 )}
-
-                {/* Device Information */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Device Information</h4>
@@ -318,7 +309,6 @@ function UpdateStatus() {
                         <span className="font-medium">{deviceInfo.model || deviceInfo.modelName || 'N/A'}</span>
                       </div>
                       
-                      {/* 🔥 Color - only for job postings */}
                       {!isQuotationBased && deviceInfo.color && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Color:</span>

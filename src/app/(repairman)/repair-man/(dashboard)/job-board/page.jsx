@@ -198,7 +198,7 @@ const MyJobsPage = () => {
                     className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
                   >
                     <Icon icon="heroicons:wrench-screwdriver" className="w-3 h-3 mr-1" />
-                    {service}
+                    {service?.name}
                   </span>
                 ))}
               </div>
@@ -366,8 +366,8 @@ const MyJobsPage = () => {
           <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
         </div>
 
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full">
+        <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full col-span-2">
             <input
               type="text"
               placeholder="Search jobs by title, client, or description..."
@@ -387,8 +387,8 @@ const MyJobsPage = () => {
               </button>
             )}
           </div>
-          <div className="flex gap-4 w-full sm:w-auto">
-            <select
+
+           <select
               value={urgencyFilter}
               onChange={(e) => setUrgencyFilter(e.target.value)}
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
@@ -400,7 +400,7 @@ const MyJobsPage = () => {
               <option value="low">Low</option>
             </select>
 
-            <select
+             <select
               value={selectedState}
               onChange={(e) => handleStateChange(e.target.value)}
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
@@ -414,10 +414,12 @@ const MyJobsPage = () => {
               ))}
             </select>
 
-            <select
+            <div className='col-span-2 w-full flex items-center gap-4 flex-1'>
+
+               <select
               value={selectedCity}
               onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+              className="px-4 flex-1 w-full py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm "
               aria-label="Filter by city"
               disabled={!cities.length}
             >
@@ -431,19 +433,24 @@ const MyJobsPage = () => {
 
             <button
               onClick={handleClearFilters}
-              className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
+              className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
               aria-label="Clear all filters"
             >
               Clear Filters
             </button>
-            <button
+            </div>
+
+
+            
+            {/* <button
               onClick={refreshJobs}
               className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
               aria-label="Refresh jobs"
             >
               <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-            </button>
-          </div>
+            </button> */}
+
+         
         </div>
 
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm">

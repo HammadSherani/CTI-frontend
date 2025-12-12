@@ -286,8 +286,7 @@ const MyOffersPage = () => {
           <p className="text-gray-600 text-lg">Track and manage all your job offers with ease</p>
         </div>
 
-        {/* Search and Filter */}
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
+        <div className="mb-6 grid md:grid-cols-2 bg-white p-4 shadow-sm rounded-md grid-cols-1 gap-4">
           <div className="relative flex-1 w-full">
             <input
               type="text"
@@ -308,11 +307,11 @@ const MyOffersPage = () => {
               </button>
             )}
           </div>
-          <div className="flex gap-4 w-full sm:w-auto">
+          <div className="flex gap-4 items-center  flex-1 w-full ">
             <select
               value={urgencyFilter}
               onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
+              className="px-4 py-3.5 flex-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
               aria-label="Filter by urgency"
             >
               <option value="all">All Priorities</option>

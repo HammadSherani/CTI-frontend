@@ -645,7 +645,6 @@ function OfferPayment({ offerId, jobId, token, router }) {
         }
     });
 
-    // User details form with proper validation
     const {
         register: registerUser,
         handleSubmit: handleUserSubmit,

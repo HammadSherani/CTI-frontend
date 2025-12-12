@@ -130,26 +130,28 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
             </div>
 
             {/* Actions */}
-            <div className="flex space-x-2">
+            <div className="flex space-x-2 flex-1">
                 {offer.status === 'pending' && !offer.isExpired && (
-                    <>
-                        <Link href={`/repair-man/my-offers/${offer._id}/edit`}>
+                    <div className="flex gap-3 w-full">
+                        <Link href={`/repair-man/my-offers/${offer._id}/edit`} className="flex-1">
                             <button
-                                // onClick={handleEditOffer}
-                                className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium"
+                                className="w-full bg-primary-600 text-white py-2 px-3 rounded-md 
+                           hover:bg-primary-700 transition-colors text-sm font-medium"
                             >
-
                                 Edit Offer
-
                             </button>
                         </Link>
+
                         <button
                             onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
-                            className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md hover:bg-red-50 transition-colors text-sm font-medium">
+                            className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md 
+                       hover:bg-red-50 transition-colors text-sm font-medium"
+                        >
                             Withdraw
                         </button>
-                    </>
+                    </div>
                 )}
+
                 {offer.status === 'under_review' && (
                     <>
                         <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
