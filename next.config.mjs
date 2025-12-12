@@ -1,9 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Add your other Next.js configurations here
-  // For example:
   images: {
-    domains: ['clicktointegrate.s3.eu-north-1.amazonaws.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'clicktointegrate.s3.eu-north-1.amazonaws.com',
+        port: '',
+        pathname: '/**', // allows all paths under this domain
+      },
+    ],
   },
   // experimental: {
   //   appDir: true,
