@@ -58,7 +58,6 @@ function ButtonSection() {
   const handleWishlistClick = () => console.log('Wishlist clicked');
   const handleNotificationClick = () => console.log('Notifications clicked');
 
-  // 👇 Show Join Now button when no user is logged in
   if (!user) {
     return (
       <div className="flex items-center gap-4">

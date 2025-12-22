@@ -147,7 +147,7 @@ export function MidHeader() {
         </div>
 
         <div className="flex items-center w-full md:w-2/4 relative">
-          <div className={`flex items-center bg-gray-100 rounded-full w-full px-4 transition-all duration-300 ${searchFocused ? 'ring-2 ring-orange-500 bg-white shadow-lg' : 'hover:bg-gray-200'
+          <div className={`flex items-center bg-gray-100 rounded-lg w-full px-4 transition-all duration-300 ${searchFocused ? 'ring-2 ring-orange-500 bg-white shadow-lg' : 'hover:bg-gray-200'
             }`}>
             <Icon icon="mdi:magnify" className="text-gray-400" aria-label="Search Icon" />
             <input

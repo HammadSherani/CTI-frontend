@@ -10,25 +10,36 @@ import { City, State } from 'country-state-city'
 function HireRepairman() {
   const [repairman, setRepairman] = useState([])
   const [loading, setLoading] = useState(true)
+  const [cities, setCities] = useState([])
   const [selectedCity, setSelectedCity] = useState('')
   const [selectedState, setSelectedState] = useState('')
   const [page, setPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const limit = 30
 
-  const pakistanStates = State.getStatesOfCountry('PK')
-  
-  const getCities = () => {
-    if (selectedState) {
-      const stateObj = pakistanStates.find(s => s.name === selectedState)
-      if (stateObj) {
-        return City.getCitiesOfState('TR', stateObj.isoCode)
-      }
-    }
-    return City.getCitiesOfCountry('TR')
-  }
+  // const pakistanStates = State.getStatesOfCountry('PK')
 
-  const cities = getCities()
+  // const getCities = () => {
+  //   if (selectedState) {
+  //     const stateObj = pakistanStates.find(s => s.name === selectedState)
+  //     if (stateObj) {
+  //       return City.getCitiesOfState('TR', stateObj.isoCode)
+  //     }
+  //   }
+  //   return City.getCitiesOfCountry('TR')
+  // }
+
+  // const cities = getCities()
+
+
+  const getCities = async () => {
+    try {
+      const {data} = await axiosInstance.get("/public/cities")
+      setCities(data.data)
+    } catch (error) {
+      handleError(error)
+    }
+  }
 
   const getRepairman = async () => {
     try {
@@ -48,11 +59,12 @@ function HireRepairman() {
 
   useEffect(() => {
     getRepairman()
+    getCities()
   }, [page, selectedCity, selectedState])
 
   const handleStateChange = (e) => {
     setSelectedState(e.target.value)
-    setSelectedCity('') // Clear city when state changes
+    setSelectedCity('')
     setPage(1)
   }
 
@@ -61,17 +73,20 @@ function HireRepairman() {
     setPage(1)
   }
 
-  const handleClearFilters = () => {
-    setSelectedCity('')
-    setSelectedState('')
-    setPage(1)
-  }
+  // const handleClearFilters = () => {
+  //   setSelectedCity('')
+  //   setSelectedState('')
+  //   setPage(1)
+  // }
 
   const handlePageChange = (newPage) => {
     if (newPage > 0 && newPage <= totalPages) {
       setPage(newPage)
     }
   }
+
+  console.log("cities", cities);
+  
 
   if (loading) {
     return (
@@ -87,51 +102,27 @@ function HireRepairman() {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Hire Expert Repairmen
-          </h1>
-          <p className="text-xl text-gray-600">
-            Find trusted repair specialists near you for all your device repair needs
-          </p>
+        <div>
+
         </div>
-
-        {/* Filters Section */}
-        <div className="mb-6 bg-white p-4 rounded-lg shadow-md">
-          <div className="flex flex-wrap gap-4 items-end">
-            {/* State Filter */}
-            {/* <div className="flex-1 min-w-[200px]">
-              <label htmlFor="state-filter" className="block text-sm font-medium text-gray-700 mb-2">
-                <Icon icon="mdi:map" className="inline w-4 h-4 mr-1" />
-                Filter by State/Province:
-              </label>
-              <select
-                id="state-filter"
-                value={selectedState}
-                onChange={handleStateChange}
-                className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
-              >
-                <option value="">All States/Provinces</option>
-                {pakistanStates.map((state) => (
-                  <option key={state.isoCode} value={state.name}>
-                    {state.name}
-                  </option>
-                ))}
-              </select>
-            </div> */}
-
-            {/* City Filter */}
-            <div className="flex-1 min-w-[200px]">
-              <label htmlFor="city-filter" className="block text-sm font-medium text-gray-700 mb-2">
-                <Icon icon="mdi:city" className="inline w-4 h-4 mr-1" />
-                Filter by City:
-              </label>
+        <div className='grid grid-cols-1 md:grid-cols-2 items-center mb-6'>
+          <div className="">
+            <h1 className="text-4xl font-semibold text-gray-900">
+              Hire Expert Repairmen
+            </h1>
+          </div>
+          <div className="flex justify-end flex-wrap gap-4 items-end">
+            <div className="w-[350px]">
+              {/* <label htmlFor="city-filter" className="block text-sm font-medium text-gray-700 mb-2">
+                  <Icon icon="mdi:city" className="inline w-4 h-4 mr-1" />
+                  Filter by City:
+                </label> */}
               <select
                 id="city-filter"
                 value={selectedCity}
                 onChange={handleCityChange}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-600"
-                disabled={cities.length === 0}
+                // disabled={cities.length === 0}
               >
                 <option value="">All Cities</option>
                 {cities.map((city) => (
@@ -140,95 +131,53 @@ function HireRepairman() {
                   </option>
                 ))}
               </select>
-              {cities.length === 0 && (
+              {/* {cities.length === 0 && (
                 <p className="text-xs text-gray-500 mt-1">Select a state first to see cities</p>
-              )}
+              )} */}
             </div>
 
-            {/* Clear Filters Button */}
-            {(selectedCity || selectedState) && (
-              <div>
-                <button
-                  onClick={handleClearFilters}
-                  className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition flex items-center gap-2"
-                >
-                  <Icon icon="mdi:filter-remove" className="w-5 h-5" />
-                  Clear Filters
-                </button>
-              </div>
-            )}
           </div>
-
-          {/* Active Filters Display */}
-          {(selectedCity || selectedState) && (
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="text-sm text-gray-600">Active filters:</span>
-              {selectedState && (
-                <span className="px-3 py-1 bg-primary-100 text-primary-800 text-sm rounded-full flex items-center gap-1">
-                  State: {selectedState}
-                  <button onClick={() => setSelectedState('')} className="ml-1">
-                    <Icon icon="mdi:close" className="w-4 h-4" />
-                  </button>
-                </span>
-              )}
-              {selectedCity && (
-                <span className="px-3 py-1 bg-green-100 text-green-800 text-sm rounded-full flex items-center gap-1">
-                  City: {selectedCity}
-                  <button onClick={() => setSelectedCity('')} className="ml-1">
-                    <Icon icon="mdi:close" className="w-4 h-4" />
-                  </button>
-                </span>
-              )}
-            </div>
-          )}
         </div>
 
-        {/* Repairmen Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {repairman.map((repair) => (
             <Link href={`/hire-repairman/${repair._id}`} key={repair._id}>
-              <div className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden flex">
-                <div className="w-1/3 relative p-2">
-                  <img
-                    src={repair.repairmanProfile.profilePhoto}
-                    alt={repair.repairmanProfile.fullName}
-                    className="w-full h-56 rounded-md object-cover"
-                    onError={(e) => {
-                      e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'
-                    }}
-                  />
-                  <div className="absolute top-4 right-4">
-                    <div className="bg-white rounded-full p-2 shadow-lg">
-                      <Icon icon="mdi:star" className="w-5 h-5 text-yellow-500" />
-                    </div>
+              <div className="bg-white grid-cols-1 p-2  grid  border border-gray-200 rounded-md transition-all duration-300 overflow-hidden flex">
+                <img
+                  src={repair.repairmanProfile.profilePhoto}
+                  alt={repair.repairmanProfile.fullName}
+                  className="w-full h-44 rounded-md object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'
+                  }}
+                />
+                <div className="absolute top-4 right-4">
+                  <div className="bg-white rounded-full p-2 shadow-lg">
+                    <Icon icon="mdi:star" className="w-5 h-5 text-yellow-500" />
                   </div>
                 </div>
 
-                <div className="w-2/3 p-2 flex flex-col justify-between">
-                  <div>
-                    <div className="flex items-center justify-between">
+                <div className=" flex flex-col justify-between">
+                  <div className='p-2'>
+                    {/* <div className="flex items-center justify-between">
                       <h3 className="font-bold text-lg text-gray-900 mb-2 truncate">
                         {repair.repairmanProfile.fullName}
                       </h3>
 
                       <div className="flex items-center gap-2">
-                        <button className="flex items-center gap-1 px-3 py-1 text-sm border rounded-md text-gray-700 hover:bg-orange-100 hover:text-orange-500 transition">
-                          <Icon icon="mdi:chat" className="text-lg" />
-                          Chat
-                        </button>
-
                         <span className="flex items-center gap-1 px-2 py-1 text-xs bg-green-100 text-green-600 rounded-full">
                           <Icon icon="mdi:check-decagram" className="text-base text-green-500" />
                           Verified
                         </span>
                       </div>
-                    </div>
+                    </div> */}
 
-                    <div className="flex items-center mb-3">
-                      <Icon icon="mdi:store" className="w-5 h-5 text-primary-600 mr-2 flex-shrink-0" />
-                      <h4 className="font-semibold text-gray-900 truncate">
+                    <div className="flex items-center mb-3 flex-1">
+                      {/* <Icon icon="mdi:store" className="w-5 h-5 text-primary-600 mr-2 flex-shrink-0" /> */}
+                      <h4 className="font-semibold line-clamp-1 flex-1 text-lg capitalize text-gray-900 truncate">
                         {repair.repairmanProfile.shopName}
                       </h4>
+                      {/* <Icon icon="icon-park-outline:share" className='w-4 h-4 text-gray-400 mr-2 flex-shrink-0' /> */}
                     </div>
 
                     <div className="flex items-start mb-3">
@@ -238,8 +187,8 @@ function HireRepairman() {
                           {repair.repairmanProfile.fullAddress}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
-                          {repair.repairmanProfile.city}
-                          {repair.repairmanProfile.state && `, ${repair.repairmanProfile.state}`}
+                          {repair?.city.name}
+                          {repair?.state.name && `, ${repair?.state.name}`}
                         </p>
                       </div>
                     </div>
