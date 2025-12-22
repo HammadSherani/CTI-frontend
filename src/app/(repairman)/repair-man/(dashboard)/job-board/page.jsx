@@ -8,12 +8,13 @@ import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Loader from '@/components/Loader';
+import SmallLoader from '@/components/SmallLoader';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('open');
   const [searchQuery, setSearchQuery] = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
-  const [expandedJob, setExpandedJob] = useState(null);
+  // const [expandedJob, setExpandedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -24,7 +25,7 @@ const MyJobsPage = () => {
   const [selectedCity, setSelectedCity] = useState('');
 
   const { token } = useSelector((state) => state.auth);
-  const router = useRouter();
+  // const router = useRouter();
 
   const handleStateChange = (stateId) => {
     setSelectedState(stateId);
@@ -37,7 +38,7 @@ const MyJobsPage = () => {
       setError(null);
 
       const params = new URLSearchParams();
-      
+
       if (selectedState) {
         params.append('state', selectedState);
       }
@@ -46,7 +47,7 @@ const MyJobsPage = () => {
       }
 
       const url = `/repairman/jobs?${params.toString()}`;
-      
+
       const { data } = await axiosInstance.get(url, {
         headers: {
           'Authorization': 'Bearer ' + token,
@@ -56,7 +57,7 @@ const MyJobsPage = () => {
       setJobs(data?.data?.jobs || []);
       setStates(data?.data?.states || []);
       setCities(data?.data?.cities || []);
-      
+
       if (!selectedState && data?.data?.selectedState) {
         setSelectedState(data?.data?.selectedState);
       }
@@ -349,46 +350,41 @@ const MyJobsPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading Jobs...</p>
-        </div>
-      </div>
+     <SmallLoader loading={loading} text='Loading Jobs...' />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
-          <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
-        </div>
-
-        <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 flex flex-col sm:flex-row gap-4 items-center">
-          <div className="relative flex-1 w-full col-span-2">
-            <input
-              type="text"
-              placeholder="Search jobs by title, client, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
-              aria-label="Search jobs"
-            />
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                aria-label="Clear search"
-              >
-                <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-              </button>
-            )}
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
+            <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
-           <select
+          <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 flex flex-col sm:flex-row gap-4 items-center">
+            <div className="relative flex-1 w-full col-span-2">
+              <input
+                type="text"
+                placeholder="Search jobs by title, client, or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
+                aria-label="Search jobs"
+              />
+              <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                  aria-label="Clear search"
+                >
+                  <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+                </button>
+              )}
+            </div>
+
+            <select
               value={urgencyFilter}
               onChange={(e) => setUrgencyFilter(e.target.value)}
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
@@ -400,7 +396,7 @@ const MyJobsPage = () => {
               <option value="low">Low</option>
             </select>
 
-             <select
+            <select
               value={selectedState}
               onChange={(e) => handleStateChange(e.target.value)}
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
@@ -416,32 +412,32 @@ const MyJobsPage = () => {
 
             <div className='col-span-2 w-full flex items-center gap-4 flex-1'>
 
-               <select
-              value={selectedCity}
-              onChange={(e) => setSelectedCity(e.target.value)}
-              className="px-4 flex-1 w-full py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm "
-              aria-label="Filter by city"
-              disabled={!cities.length}
-            >
-              <option value="">All Cities</option>
-              {cities.map((city) => (
-                <option key={city._id} value={city._id}>
-                  {city.name}
-                </option>
-              ))}
-            </select>
+              <select
+                value={selectedCity}
+                onChange={(e) => setSelectedCity(e.target.value)}
+                className="px-4 flex-1 w-full py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm "
+                aria-label="Filter by city"
+                disabled={!cities.length}
+              >
+                <option value="">All Cities</option>
+                {cities.map((city) => (
+                  <option key={city._id} value={city._id}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
 
-            <button
-              onClick={handleClearFilters}
-              className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
-              aria-label="Clear all filters"
-            >
-              Clear Filters
-            </button>
+              <button
+                onClick={handleClearFilters}
+                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
+                aria-label="Clear all filters"
+              >
+                Clear Filters
+              </button>
             </div>
 
 
-            
+
             {/* <button
               onClick={refreshJobs}
               className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
@@ -450,52 +446,52 @@ const MyJobsPage = () => {
               <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
             </button> */}
 
-         
-        </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
-          <div className="border-b border-gray-200">
-            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
-              {[
-                { id: 'open', label: 'Open Jobs', count: tabCounts.open },
-                { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
-                    }`}
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  aria-controls={`${tab.id}-panel`}
-                >
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </nav>
           </div>
 
-          <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
-            {filteredJobs.length > 0 ? (
-              <div className="space-y-6">
-                {filteredJobs.map((job) => (
-                  <JobCard key={job._id} job={job} />
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+            <div className="border-b border-gray-200">
+              <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
+                {[
+                  { id: 'open', label: 'Open Jobs', count: tabCounts.open },
+                  { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 ${activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                      }`}
+                    role="tab"
+                    aria-selected={activeTab === tab.id}
+                    aria-controls={`${tab.id}-panel`}
+                  >
+                    {tab.label}
+                    {tab.count > 0 && (
+                      <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
+                        {tab.count}
+                      </span>
+                    )}
+                  </button>
                 ))}
-              </div>
-            ) : (
-              <EmptyState type={activeTab} />
-            )}
+              </nav>
+            </div>
+
+            <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
+              {filteredJobs.length > 0 ? (
+                <div className="space-y-6">
+                  {filteredJobs.map((job) => (
+                    <JobCard key={job._id} job={job} />
+                  ))}
+                </div>
+              ) : (
+                <EmptyState type={activeTab} />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
   );
 };
 

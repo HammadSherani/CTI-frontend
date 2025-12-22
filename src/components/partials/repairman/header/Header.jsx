@@ -24,21 +24,6 @@ function Header() {
   const { user, token } = useSelector((state) => state.auth);
   const { unreadCount } = useNotifications();
 
-  // Socket connection for repairmen only
-  // useEffect(() => {
-  //   if (token && user?.role === 'repairman') {
-  //     console.log('Connecting socket for repairman:', user.name);
-  //     socketService.connect(token);
-  //     socketService.requestNotificationPermission();
-  //   }
-    
-  //   return () => {
-  //     if (user?.role === 'repairman') {
-  //       socketService.disconnect();
-  //     }
-  //   };
-  // }, [token, user?.role, user?.name]);
-
   const handleLogout = useCallback(() => {
     // socketService.disconnect();
     dispatch(clearAuth());
@@ -52,7 +37,7 @@ function Header() {
     // { name: "Chat", path: "/chat", icon: "mdi:chat-outline" },
     { name: "Reviews", path: "/repair-man/reviews", icon: "mdi:star-outline" },
     { name: "Earnings", path: "/repair-man/earning", icon: "mdi:star-outline" },
-    { name: "Disputes", path: "/repair-man/disputes", icon: "mdi:star-outline" },
+    // { name: "Disputes", path: "/repair-man/disputes", icon: "mdi:star-outline" },
     { name: "Parts Order", path: "/repair-man/parts-order", icon: "mdi:star-outline" },
   ];
 
