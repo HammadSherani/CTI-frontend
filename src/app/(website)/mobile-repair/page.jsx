@@ -43,20 +43,24 @@ function BrandPage() {
             <div className='bg-white'>
                 <div className='px-12 py-3'>
 
-                <Breadcrumb />
+                    <Breadcrumb />
                 </div>
                 <section className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-gray-100 pb-14 pt-4 px-8 sm:px-8 lg:px-12">
                     <div className="">
 
-                        {/* Page Title */}
-                        <motion.h4
-                            className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-12"
-                           
-                        >
-                            Explore Top Mobile Brands
-                        </motion.h4>
+                        <div className='flex items-center justify-between'>
+                            <motion.h4
+                                className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-12"
 
-                        {/* Error Message */}
+                            >
+                                Explore Top Mobile Brands
+                            </motion.h4>
+
+                            
+
+                        </div>
+
+
                         {error && (
                             <div className="bg-red-50 border border-red-400 text-red-700 p-4 rounded-md mb-6 text-center shadow-sm">
                                 <p>{error}</p>

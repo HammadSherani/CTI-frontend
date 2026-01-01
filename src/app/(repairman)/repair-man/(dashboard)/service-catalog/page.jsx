@@ -358,15 +358,15 @@ const ServiceCatalogPage = () => {
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Service Catalog</h1>
               <p className="text-gray-600 text-lg">
                 Manage your repair services and pricing
-                {pagination.total > 0 && (
+                {/* {pagination.total > 0 && (
                   <span className="ml-2 text-primary-600 font-semibold">
                     ({pagination.total} {pagination.total === 1 ? 'service' : 'services'})
                   </span>
-                )}
+                )} */}
               </p>
             </div>
             <Link href="/repair-man/service-catalog/add">
-              <button className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-green-800 transition-all duration-200 flex items-center space-x-2 shadow-lg">
+              <button className="bg-primary-600 to-primary-700 text-white px-6 py-3 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 flex items-center space-x-2 shadow-lg">
                 <Icon icon="heroicons:plus" className="w-5 h-5" />
                 <span>Add New Service</span>
               </button>

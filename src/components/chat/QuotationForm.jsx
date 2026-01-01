@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
@@ -8,30 +8,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-
-// Predefined service options
-const PREDEFINED_SERVICES = [
-    'Screen Replacement',
-    'Battery Replacement',
-    'Charging Port Repair',
-    'Camera Repair',
-    'Speaker Repair',
-    'Microphone Repair',
-    'Water Damage Repair',
-    'Software Update',
-    'Data Recovery',
-    'Back Glass Replacement',
-    'Button Repair',
-    'Face ID Repair',
-    'Touch ID Repair',
-    'Logic Board Repair',
-    'Network Issue Fix',
-    'Motherboard Repair',
-    'Display Replacement',
-    'Fingerprint Sensor Repair',
-    'Vibration Motor Repair',
-    'SIM Card Slot Repair'
-];
+import PartModal from '@/app/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
 
 const quotationSchema = yup.object().shape({
     brandName: yup
@@ -99,16 +76,21 @@ const quotationSchema = yup.object().shape({
 const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     const { token } = useSelector((state) => state.auth);
     const [loading, setLoading] = useState(false);
+    const [services, setService] = useState([])
     const [selectedServices, setSelectedServices] = useState([]);
-    const [currentService, setCurrentService] = useState('');
-    const [customService, setCustomService] = useState('');
-    const [showCustomInput, setShowCustomInput] = useState(false);
-    const [dropoffAddress, setDropoffAddress] = useState('');
+    const [selectedParts, setSelectedParts] = useState([]);
+    const [brands, setBrands] = useState([]);
+    const [models, setModels] = useState([]);
+    const [selectedBrandId, setSelectedBrandId] = useState('');
+    const [selectedModelId, setSelectedModelId] = useState('');
+    const [isPartRequired, setIsPartRequired] = useState(false);
+    const [isPartModalOpen, setIsPartModalOpen] = useState(false);
 
     const {
         control,
         handleSubmit,
         watch,
+        setValue,
         formState: { errors }
     } = useForm({
         resolver: yupResolver(quotationSchema),
@@ -128,6 +110,120 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         }
     });
 
+    const fetchBrands = async () => {
+        try {
+            const response = await axiosInstance.get('/public/brands', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setBrands(response.data.data.brands || []);
+        } catch (error) {
+            handleError(error);
+        }
+    };
+
+    const fetchModels = async (brandId) => {
+        if (!brandId) {
+            setModels([]);
+            setValue('modelName', '');
+            setSelectedModelId('');
+            return;
+        }
+        try {
+            const response = await axiosInstance.get(`/public/models/brand/${brandId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setModels(response.data.data.models || []);
+        } catch (error) {
+            handleError(error);
+            setModels([]);
+        }
+    };
+
+
+    const fetchServices = async () => {
+        try {
+            const response = await axiosInstance.get('/public/services', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            setService(response.data.data || []);
+        } catch (error) {
+            handleError(error);
+        }
+    };
+
+
+
+
+    useEffect(() => {
+        fetchBrands();
+        fetchServices();
+
+        localStorage.setItem(`isPartRequired_chat_${chatId}`, 'false');
+
+        const keys = Object.keys(localStorage);
+        const matchedKey = keys.find(key => key.endsWith(chatId));
+
+        const isSameChat = matchedKey === `isPartRequired_chat_${chatId}`;
+        console.log("Is same chat? ", isSameChat);
+
+    }, [token]);
+
+
+    useEffect(() => {
+        if (selectedBrandId) {
+            fetchModels(selectedBrandId);
+        } else {
+            setModels([]);
+            setSelectedModelId('');
+            setValue('modelName', '');
+        }
+    }, [selectedBrandId]);
+
+    const handleIsPartRequiredToggle = (e, chatId) => {
+        const isChecked = e.target.checked;
+
+        // Save: isPartRequired_chat_123
+        localStorage.setItem('isPartRequired_chat_' + chatId, isChecked);
+
+        // Check: find key that ends with the chatId
+        const keys = Object.keys(localStorage);
+
+        const matchedKey = keys.find(key => key.endsWith(chatId));
+
+        const isSameChat = matchedKey === `isPartRequired_chat_${chatId}`;
+
+        console.log("Is same chat?", isSameChat); // true or false
+
+        setIsPartRequired(isChecked);
+    };
+
+
+    console.log('brands', brands);
+    console.log('models', models);
+    console.log('selectedParts', selectedParts);
+
+
+    // const getSelectedParts = (chatId) => {
+    //     const chatIdEnd = chatId.split('_').pop();
+
+    //     const key = `selectedParts_quotation_chat_${chatIdEnd}`;
+
+    //     const storedData = localStorage.getItem(key);
+
+    //     if (storedData) {
+    //         setSelectedParts(JSON.parse(storedData));
+    //     } else {
+    //         setSelectedParts([]);
+    //     }
+    // };
+
+
     const watchedServiceType = watch('serviceType');
     const watchedBasePrice = watch('basePrice');
     const watchedServiceCharges = watch('serviceCharges');
@@ -141,14 +237,21 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         { value: 'pickup', label: 'Pickup Service' },
     ];
 
-    // ✅ Calculate subtotal (without service charges)
     const calculateSubtotal = () => {
         const basePrice = parseFloat(watchedBasePrice) || 0;
-        const partsPrice = parseFloat(watchedPartsPrice) || 0;
-        return basePrice + partsPrice;
+
+        const partsPrice = isPartRequired
+            ? selectedParts.reduce(
+                (total, part) => total + Number(part.price || 0),
+                0
+            )
+            : 0;
+
+        return (basePrice + partsPrice);
     };
 
-    // ✅ Calculate grand total (with service charges)
+
+
     const calculateGrandTotal = () => {
         const subtotal = calculateSubtotal();
         const serviceCharges = (watchedServiceType === 'pickup')
@@ -157,32 +260,14 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         return subtotal + serviceCharges;
     };
 
-    const handleAddService = () => {
-        if (showCustomInput) {
-            if (customService.trim() && !selectedServices.includes(customService.trim())) {
-                setSelectedServices([...selectedServices, customService.trim()]);
-                setCustomService('');
-                setShowCustomInput(false);
-            }
-        } else {
-            if (currentService && !selectedServices.includes(currentService)) {
-                setSelectedServices([...selectedServices, currentService]);
-                setCurrentService('');
-            }
-        }
-    };
-
     const handleRemoveService = (serviceToRemove) => {
         setSelectedServices(selectedServices.filter(service => service !== serviceToRemove));
     };
 
-    const handleServiceDropdownChange = (value) => {
-        if (value === '__custom__') {
-            setShowCustomInput(true);
-            setCurrentService('');
-        } else {
-            setCurrentService(value);
-            setShowCustomInput(false);
+    const handleServiceSelect = (serviceId) => {
+        const selectedService = services.find(s => s._id === serviceId);
+        if (selectedService && !selectedServices.some(s => s === selectedService._id)) {
+            setSelectedServices([...selectedServices, selectedService._id]);
         }
     };
 
@@ -209,14 +294,13 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                 ...(data.warranty && { warranty: data.warranty.toString() }),
                 ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() }),
 
-                // ✅ Service Type based conditional data
                 ...(data.serviceType === 'pickup' && {
                     serviceType: 'pickup',
                     serviceCharges: parseFloat(data.serviceCharges) || 0,
                     isPickup: true,
                     isDropoff: false,
                     pickupLocation: {
-                        address: '' // Customer will provide during payment
+                        address: ''
                     },
                     dropoffLocation: {
                         address: ''
@@ -259,6 +343,10 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         }
     };
 
+    console.log('chatId', chatId);
+    console.log('selectedParts in quotation form', selectedParts);
+
+
     return (
         <div className="fixed inset-0 bg-black/80 bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
@@ -273,15 +361,12 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                     />
                 </div>
 
-                {/* Form */}
                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                        {/* Device Information Section */}
-                        <div className="bg-primary-50 p-4 rounded-md space-y-3">
+                        <div className=" space-y-3">
                             <h3 className="text-sm font-semibold text-primary-900 mb-2">Device Information</h3>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Brand Name */}
+                            <div className="grid grid-cols-1 gap-3">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Brand Name *
@@ -290,13 +375,38 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         name="brandName"
                                         control={control}
                                         render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="text"
-                                                placeholder="e.g., Apple, Samsung, Huawei"
+                                            <select
+                                                value={selectedBrandId}
+                                                onChange={(e) => {
+                                                    const brandId = e.target.value;
+                                                    const selectedBrand = brands.find(b => b._id === brandId);
+                                                    if (selectedBrand) {
+                                                        field.onChange(selectedBrand.name);
+                                                        setSelectedBrandId(brandId);
+                                                        setValue('modelName', '');
+                                                        setSelectedModelId('');
+                                                        setModels([]);
+                                                    } else {
+                                                        field.onChange('');
+                                                        setSelectedBrandId('');
+                                                        setValue('modelName', '');
+                                                        setSelectedModelId('');
+                                                        setModels([]);
+                                                    }
+                                                }}
                                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.brandName ? 'border-red-500' : 'border-gray-300'
                                                     }`}
-                                            />
+                                            >
+                                                <option value="">Select a Brand</option>
+                                                {brands.map((brand) => (
+                                                    <option
+                                                        key={brand._id}
+                                                        value={brand._id}
+                                                    >
+                                                        {brand.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         )}
                                     />
                                     {errors.brandName && (
@@ -304,7 +414,6 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     )}
                                 </div>
 
-                                {/* Model Name */}
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Model Name *
@@ -313,13 +422,32 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         name="modelName"
                                         control={control}
                                         render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="text"
-                                                placeholder="e.g., iPhone 14 Pro, Galaxy S23"
+                                            <select
+                                                value={selectedModelId}
+                                                onChange={(e) => {
+                                                    const modelId = e.target.value;
+                                                    const selectedModel = models.find(m => m._id === modelId);
+                                                    if (selectedModel) {
+                                                        field.onChange(selectedModel.name);
+                                                        setSelectedModelId(modelId);
+                                                    } else {
+                                                        field.onChange('');
+                                                        setSelectedModelId('');
+                                                    }
+                                                }}
                                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.modelName ? 'border-red-500' : 'border-gray-300'
                                                     }`}
-                                            />
+                                            >
+                                                <option value="">Select a Model</option>
+                                                {models.map((model) => (
+                                                    <option
+                                                        key={model._id}
+                                                        value={model._id}
+                                                    >
+                                                        {model.name}
+                                                    </option>
+                                                ))}
+                                            </select>
                                         )}
                                     />
                                     {errors.modelName && (
@@ -329,93 +457,54 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Repair Services Section */}
                         <div>
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">Repair Services *</h3>
 
-                            <div className="flex gap-2 mb-3">
-                                {!showCustomInput ? (
-                                    <select
-                                        value={currentService}
-                                        onChange={(e) => handleServiceDropdownChange(e.target.value)}
-                                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                    >
-                                        <option value="">Select a service</option>
-                                        {PREDEFINED_SERVICES.map(service => (
-                                            <option
-                                                key={service}
-                                                value={service}
-                                                disabled={selectedServices.includes(service)}
-                                            >
-                                                {service}
-                                            </option>
-                                        ))}
-                                        <option value="__custom__">+ Add Custom Service</option>
-                                    </select>
-                                ) : (
-                                    <div className="flex gap-2 flex-1">
-                                        <input
-                                            type="text"
-                                            value={customService}
-                                            onChange={(e) => setCustomService(e.target.value)}
-                                            placeholder="Enter custom service name"
-                                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setShowCustomInput(false);
-                                                setCustomService('');
-                                            }}
-                                            className="px-3 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
-                                            title="Back to dropdown"
-                                        >
-                                            <Icon icon="mdi:arrow-left" width={16} />
-                                        </button>
-                                    </div>
-                                )}
-
-                                <button
-                                    type="button"
-                                    onClick={handleAddService}
-                                    disabled={showCustomInput ? !customService.trim() : !currentService}
-                                    className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1"
+                            <div className="mb-3">
+                                <select
+                                    onChange={(e) => handleServiceSelect(e.target.value)}
+                                    value=""
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                 >
-                                    <Icon icon="mdi:plus" width={16} />
-                                    Add
-                                </button>
+                                    <option value="">Select a service</option>
+                                    {services.map(service => (
+                                        <option
+                                            key={service._id}
+                                            value={service._id}
+                                        >
+                                            {service.name}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
 
-                            {/* Selected Services Display */}
                             {selectedServices.length > 0 && (
                                 <div className="bg-gray-50 p-3 rounded-md">
                                     <p className="text-xs font-medium text-gray-700 mb-2">Selected Services:</p>
                                     <div className="space-y-2">
-                                        {selectedServices.map((service, index) => (
-                                            <div
-                                                key={index}
-                                                className="flex items-center justify-between bg-white p-2 rounded border border-gray-200"
-                                            >
-                                                <span className="text-sm text-gray-700">{service}</span>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleRemoveService(service)}
-                                                    className="text-red-600 hover:text-red-800 transition-colors"
+                                        {selectedServices.map((serviceId, index) => {
+                                            const service = services.find(s => s._id === serviceId);
+                                            return (
+                                                <div
+                                                    key={index}
+                                                    className="flex items-center justify-between bg-white p-2 rounded border border-gray-200"
                                                 >
-                                                    <Icon icon="mdi:close" width={18} />
-                                                </button>
-                                            </div>
-                                        ))}
+                                                    <span className="text-sm text-gray-700">{service?.name}</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveService(serviceId)}
+                                                        className="text-red-600 hover:text-red-800 transition-colors"
+                                                    >
+                                                        <Icon icon="mdi:close" width={18} />
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
-
-                            {selectedServices.length === 0 && (
-                                <p className="text-red-500 text-xs mt-1">Please add at least one repair service</p>
-                            )}
                         </div>
 
-                        {/* Service Description */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Service Description *
@@ -442,7 +531,6 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </p>
                         </div>
 
-                        {/* Service Type */}
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
                                 Service Type *
@@ -467,18 +555,72 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             {errors.serviceType && (
                                 <p className="text-red-500 text-xs mt-1">{errors.serviceType.message}</p>
                             )}
+
+
+                            <div className='mt-3'>
+
+                                {watchedServiceType === 'pickup' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                                            Pickup Service Charges (TRY) *
+                                        </label>
+                                        <Controller
+                                            name="serviceCharges"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <input
+                                                    {...field}
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    min="0"
+                                                    step="0.01"
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.serviceCharges ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
+                                                />
+                                            )}
+                                        />
+                                        {errors.serviceCharges && (
+                                            <p className="text-red-500 text-xs mt-1">{errors.serviceCharges.message}</p>
+                                        )}
+                                        <p className="text-xs text-gray-500 mt-1">
+                                            Additional charge for pickup service
+                                        </p>
+                                    </div>
+                                )}
+
+
+                                {watchedServiceType === 'drop-off' && (
+                                    <div>
+                                        <label>Drop-off Location Address *</label>
+                                        <Controller
+                                            name="dropoffAddress"
+                                            control={control}
+                                            render={({ field }) => (
+                                                <textarea
+                                                    {...field}
+                                                    placeholder="Enter your shop/service center address..."
+                                                    rows={2}
+                                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.dropoffAddress ? 'border-red-500' : 'border-gray-300'
+                                                        }`}
+                                                />
+                                            )}
+                                        />
+                                        {errors.dropoffAddress && (
+                                            <p className="text-red-500 text-xs mt-1">{errors.dropoffAddress.message}</p>
+                                        )}
+                                    </div>
+                                )}
+
+                            </div>
+
+
                         </div>
 
-
-
-
-                        {/* Pricing Section */}
                         <div className="bg-gray-50 p-4 rounded-md space-y-3">
                             <h3 className="text-sm font-semibold text-gray-900 mb-2">Pricing Details</h3>
 
-                            <div className="grid grid-cols-2 gap-3">
-                                {/* Base Price */}
-                                <div>
+                            <div className="grid grid-cols-1 gap-3">
+                                <div className='col-span-1'>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Base Price (TRY) *
                                     </label>
@@ -502,84 +644,95 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     )}
                                 </div>
 
-                                {/* Parts Price */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Parts Price (TRY)
-                                    </label>
-                                    <Controller
-                                        name="partsPrice"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="number"
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.partsPrice ? 'border-red-500' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                        )}
+                                <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-md border border-gray-200">
+                                    <input
+                                        type="checkbox"
+                                        id="isPartRequired"
+                                        checked={isPartRequired}
+                                        onChange={(e) => handleIsPartRequiredToggle(e, chatId)}
+                                        className="w-4 h-4 text-primary-600 bg-white border-gray-300 rounded focus:ring-primary-500 focus:ring-2 cursor-pointer"
                                     />
-                                    {errors.partsPrice && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.partsPrice.message}</p>
-                                    )}
+                                    <label
+                                        htmlFor="isPartRequired"
+                                        className="text-sm font-medium text-gray-700 cursor-pointer select-none"
+                                    >
+                                        Is Part Required?
+                                    </label>
                                 </div>
+
+                                {isPartRequired && (
+                                    <>
+                                        <div>
+                                            {/* <label className="block text-sm font-medium text-gray-700 mb-1">
+                                                Parts Price (TRY)
+                                            </label>
+                                            <Controller
+                                                name="partsPrice"
+                                                control={control}
+                                                render={({ field }) => (
+                                                    <input
+                                                        {...field}
+                                                        type="number"
+                                                        placeholder="0.00"
+                                                        min="0"
+                                                        step="0.01"
+                                                        className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.partsPrice ? 'border-red-500' : 'border-gray-300'
+                                                            }`}
+                                                    />
+                                                )}
+                                            />
+                                            {errors.partsPrice && (
+                                                <p className="text-red-500 text-xs mt-1">{errors.partsPrice.message}</p>
+                                            )} */}
+
+
+                                            {isPartRequired && selectedParts.length > 0 && (
+                                                <div className="mt-3 bg-gray-50 border border-gray-200 rounded-lg p-3">
+                                                    <h4 className="text-sm font-semibold text-gray-800 mb-2 flex items-center gap-2">
+                                                        <span className="inline-block w-2 h-2 bg-primary-600 rounded-full"></span>
+                                                        Selected Parts
+                                                    </h4>
+
+                                                    <div className="space-y-2">
+                                                        {selectedParts.map((part, index) => (
+                                                            <div
+                                                                key={index}
+                                                                className="flex items-center justify-between bg-white p-2 rounded-md shadow-sm border border-gray-200"
+                                                            >
+                                                                <span className="text-sm text-gray-700 font-medium">
+                                                                    {part.name}
+                                                                </span>
+
+                                                                <span className="text-sm font-semibold text-primary-600">
+                                                                    {part.price} TRY
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsPartModalOpen(true);
+                                            }}
+                                            className="w-full px-4 py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-md transition-colors flex items-center justify-center gap-2 font-medium"
+                                        >
+                                            <Icon icon="mdi:plus-circle" width={20} />
+                                            Select Required Parts
+                                        </button>
+                                    </>
+                                )}
                             </div>
 
-                            {watchedServiceType === 'drop-off' && (
-                                <div>
-                                    <label>Drop-off Location Address *</label>
-                                    <Controller
-                                        name="dropoffAddress"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <textarea
-                                                {...field}
-                                                placeholder="Enter your shop/service center address..."
-                                                rows={2}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.dropoffAddress ? 'border-red-500' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                        )}
-                                    />
-                                    {errors.dropoffAddress && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.dropoffAddress.message}</p>
-                                    )}
-                                </div>
-                            )}
 
-                            {watchedServiceType === 'pickup' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Pickup Service Charges (TRY) *
-                                    </label>
-                                    <Controller
-                                        name="serviceCharges"
-                                        control={control}
-                                        render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="number"
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.serviceCharges ? 'border-red-500' : 'border-gray-300'
-                                                    }`}
-                                            />
-                                        )}
-                                    />
-                                    {errors.serviceCharges && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.serviceCharges.message}</p>
-                                    )}
-                                    <p className="text-xs text-gray-500 mt-1">
-                                        Additional charge for pickup service
-                                    </p>
-                                </div>
-                            )}
 
-                            {/* ✅ Price Breakdown Display */}
+
                             <div className="bg-white border border-gray-200 rounded-md p-3 space-y-2">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-600">Base Price:</span>
@@ -587,11 +740,22 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 </div>
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="text-gray-600">Parts Price:</span>
-                                    <span className="font-medium">₺{(parseFloat(watchedPartsPrice) || 0).toFixed(2)}</span>
+
+                                    <span className="font-medium">
+                                        ₺{
+                                            isPartRequired && selectedParts.length > 0
+                                                ? selectedParts
+                                                    .reduce((total, part) => total + Number(part.price || 0), 0)
+                                                    .toFixed(2)
+                                                : '0.00'
+                                        }
+                                    </span>
+
                                 </div>
+
                                 <div className="border-t pt-2 flex justify-between items-center text-sm font-semibold">
                                     <span className="text-gray-700">Subtotal:</span>
-                                    <span>₺{calculateSubtotal().toFixed(2)}</span>
+                                    <span>₺{calculateSubtotal()?.toFixed(2)}</span>
                                 </div>
 
                                 {watchedServiceType === 'pickup' && parseFloat(watchedServiceCharges) > 0 && (
@@ -605,7 +769,6 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                 )}
                             </div>
 
-                            {/* ✅ Grand Total Display */}
                             <div className="bg-primary-600 p-3 rounded-md">
                                 <div className="flex justify-between items-center">
                                     <span className="text-sm font-medium text-white">Grand Total:</span>
@@ -616,9 +779,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Parts Quality & Estimated Duration */}
                         <div className="grid grid-cols-2 gap-3">
-                            <div>
+                            <div className='hidden'>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Parts Quality *
                                 </label>
@@ -666,10 +828,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     <p className="text-red-500 text-xs mt-1">{errors.estimatedDuration.message}</p>
                                 )}
                             </div>
-                        </div>
 
-                        {/* Warranty & Notes */}
-                        <div className="grid grid-cols-2 gap-4">
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Warranty (days)
@@ -691,8 +851,12 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                     <p className="text-red-500 text-xs mt-1">{errors.warranty.message}</p>
                                 )}
                             </div>
+                        </div>
 
-                            <div>
+                        <div className="grid grid-cols-2 gap-4">
+                            
+
+                            <div className='col-span-2'>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Additional Notes
                                 </label>
@@ -718,7 +882,6 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="flex gap-3 pt-4 border-t">
                             <button
                                 type="button"
@@ -748,6 +911,13 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                     </form>
                 </div>
             </div>
+
+            <PartModal
+                chatId={chatId}
+                isOpen={isPartModalOpen}
+                onClose={() => setIsPartModalOpen(false)}
+                setPartsArray={setSelectedParts}
+            />
         </div>
     );
 };

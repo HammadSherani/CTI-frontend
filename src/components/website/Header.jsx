@@ -197,13 +197,13 @@ function LowerHeader() {
 
 
   const navItems = [
-    { label: "Home", icon: "mdi:home", path: "/" },
-    { label: "Hire Repairman", icon: "mdi:map-marker", path: "/hire-repairman" },
-    { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New" },
-    { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" },
-    { label: "Deals", icon: "mdi:tag", path: "/deals" },
-    { label: "About Us", icon: "mdi:account-group-outline", path: "/about-us" },
-    { label: "Contact", icon: "mdi:phone", path: "/contact" },
+    { label: "Home", icon: "mdi:home", path: "/", isVisible: true },
+    { label: "Hire Repairman", icon: "mdi:map-marker", path: "/repairmans", isVisible: true },
+    { label: "Quick Service", icon: "mdi:flash", path: "/quick-service", badge: "New", isVisible: true },
+    { label: "Repair Shops", icon: "mdi:store", path: "/repair-shops" ,isVisible: true },
+    { label: "Deals", icon: "mdi:tag", path: "/deals" ,isVisible: true },
+    { label: "About Us", icon: "mdi:account-group-outline", path: "/about-us" ,isVisible: true },
+    { label: "Contact", icon: "mdi:phone", path: "/contact" ,isVisible: true },
   ];
 
   const categories = [
@@ -217,7 +217,7 @@ function LowerHeader() {
       icon: "mdi:cellphone",
       name: "Hire Repairman",
       // subCategories: ["iPhone Repair", "Android Repair", "Screen Replacement", "Battery Service"],
-      link: "/hire-repairman"
+      link: "/repairmans"
     },
 
   ];

@@ -91,7 +91,9 @@ const ChatView = ({ chat, onBack }) => {
     const [initialLoading, setInitialLoading] = useState(true);
 
     const { token, user } = useSelector((state) => state.auth);
-    const { messages, inputText, selectedFile, setInputText: updateInputText } = useChat();
+    const { messages, inputText, selectedFile, setInputText: updateInputText, selectChat } = useChat();
+
+    
 
     const {
         socket,
@@ -280,6 +282,17 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
 
+    const handleModelClose = () => {
+        setShowQuotationForm(false)
+        console.log(`selectedParts_quotation_chat_${chat.id}`);
+        
+        localStorage.removeItem(`selectedParts_quotation_chat_${chat.id}`);
+    }
+
+    // console.log("chat.id" ,chat.id);
+    
+    
+
     const handleKeyPress = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
@@ -293,10 +306,12 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, []);
 
+
+
+
     return (
         <>
             <div className="flex flex-col w-96 h-[500px] bg-white rounded-lg shadow-xl border border-gray-200">
-                {/* Header */}
                 <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Icon icon="mdi:arrow-left" width={20} onClick={onBack} className="cursor-pointer hover:opacity-70" />
@@ -325,18 +340,13 @@ const ChatView = ({ chat, onBack }) => {
 
                     <div className="flex items-center gap-2">
                         {user?.role === 'repairman' && (
-                            <Icon
-                                icon="mdi:receipt"
-                                width={20}
-                                className="cursor-pointer hover:opacity-70 text-green-400"
-                                onClick={() => setShowQuotationForm(true)}
-                                title="Create Quotation"
-                            />
+                            <p
+                            onClick={() => setShowQuotationForm(true)}
+                            className='text-sm cursor-pointer border py-1 px-2 rounded-sm'>Create Quote</p>
                         )}
                     </div>
                 </div>
 
-                {/* Messages */}
                 <div
                     ref={messagesContainerRef}
                     onScroll={handleScroll}
@@ -531,7 +541,7 @@ const ChatView = ({ chat, onBack }) => {
             {showQuotationForm && (
                 <QuotationForm
                     chatId={chat.id}
-                    onClose={() => setShowQuotationForm(false)}
+                    onClose={handleModelClose}
                     onSuccess={handleQuotationSuccess}
                 />
             )}

@@ -10,6 +10,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import LoginModal from '../../mobile-repair/[brandSlug]/[modelId]/[color]/LoginModal';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
+import Loader from '@/components/Loader';
+import Link from 'next/link';
 
 function RepairmanDetail() {
     const [repairman, setRepairman] = useState(null);
@@ -100,51 +102,71 @@ function RepairmanDetail() {
         })
     }
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading repairman details...</p>
-                </div>
-            </div>
-        )
-    }
+    // if (loading) {
+    //     return (
+    //         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    //             <div className="text-center">
+    //                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+    //                 <p className="text-gray-600">Loading repairman details...</p>
+    //             </div>
+    //         </div>
+    //     )
+    // }
 
-    if (!repairman) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <Icon icon="mdi:account-alert" className="w-24 h-24 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Repairman Not Found</h3>
-                    <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
-                    <button
-                        onClick={() => router.back()}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                        Go Back
-                    </button>
-                </div>
-            </div>
-        )
-    }
+    // if (!repairman) {
+    //     return (
+    //         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+    //             <div className="text-center">
+    //                 <Icon icon="mdi:account-alert" className="w-24 h-24 text-gray-400 mx-auto mb-4" />
+    //                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Repairman Not Found</h3>
+    //                 <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
+    //                 <button
+    //                     onClick={() => router.back()}
+    //                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+    //                 >
+    //                     Go Back
+    //                 </button>
+    //             </div>
+    //         </div>
+    //     )
+    // }
 
-    const profile = repairman.repairmanProfile;
+    // const profile = repairman.repairmanProfile;
 
     return (
 
-        <>
+        <Loader loading={loading}>
             <div className="min-h-screen bg-gray-50">
-
-
                 <div className="max-w-7xl mx-auto px-4 py-8">
+
+                    <div>
+                        {/* Breadcrumb */}
+
+                        <div className="flex items-center space-x-2 mb-4">
+                            <Link href="/" className="text-gray-600 hover:text-gray-800">
+                                <Icon icon="mdi:home" className="inline w-4 h-4 mr-1" />
+                                Home
+                            </Link>
+                            <span className="text-gray-500">/</span>
+                            <Link
+                                href="/repairmans"
+                                className="text-gray-500 hover:text-gray-600 transition-colors"
+                            >
+                                Repairman
+                            </Link>
+                            <span className="text-gray-500">/</span>
+                            <span className="text-gray-500 capitalize">{repairman?.repairmanProfile?.shopName}</span>
+                        </div>
+
+
+                    </div>
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                         <div className="lg:col-span-2">
-                            <div className=" rounded-lg  p-6 mb-6">
+                            <div className=" rounded-lg bg-white p-6 mb-6">
                                 <div className="flex items-start space-x-6">
                                     <img
-                                        src={profile.profilePhoto}
-                                        alt={profile.fullName}
+                                        src={repairman?.repairmanProfile?.profilePhoto}
+                                        alt={repairman?.repairmanProfile?.fullName}
                                         className="w-32 h-32 rounded-full object-cover"
                                         onError={(e) => {
                                             e.target.src = 'https://via.placeholder.com/150x150?text=No+Image'
@@ -152,13 +174,13 @@ function RepairmanDetail() {
                                     />
                                     <div className="flex-1">
                                         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                            {profile.fullName}
+                                            {repairman?.repairmanProfile?.fullName}
                                         </h1>
 
                                         <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
                                             <div className="flex items-center">
                                                 <Icon icon="mdi:map-marker" className="w-4 h-4 mr-1" />
-                                                {profile?.city}
+                                                {repairman?.city?.name}, {repairman?.state?.name}
                                             </div>
 
                                         </div>
@@ -169,8 +191,8 @@ function RepairmanDetail() {
                                                         <Icon key={i} icon="mdi:star" className="w-4 h-4" />
                                                     ))}
                                                 </div>
-                                                <span className="font-semibold text-gray-900">{profile.rating}</span>
-                                                <span className="text-gray-500 ml-1">({profile.totalJobs})</span>
+                                                <span className="font-semibold text-gray-900">{repairman?.repairmanProfile?.rating}</span>
+                                                <span className="text-gray-500 ml-1">({repairman?.repairmanProfile?.totalJobs})</span>
                                             </div>
                                         </div>
                                     </div>
@@ -182,7 +204,7 @@ function RepairmanDetail() {
                             <div className="bg-white rounded-lg  p-6 mb-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-4">About me</h2>
                                 <p className="text-gray-700 leading-relaxed mb-4">
-                                    {profile.description}
+                                    {repairman?.repairmanProfile?.description}
                                 </p>
                                 <button className="text-green-600 hover:text-green-700 font-medium">
                                     Read more
@@ -193,7 +215,7 @@ function RepairmanDetail() {
                             <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
                                 <h2 className="text-xl font-semibold text-gray-900 mb-4">Skills</h2>
                                 <div className="flex flex-wrap gap-3">
-                                    {profile.specializations.map((skill, index) => (
+                                    {repairman?.repairmanProfile?.specializations.map((skill, index) => (
                                         <span
                                             key={index}
                                             className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors cursor-pointer"
@@ -207,20 +229,20 @@ function RepairmanDetail() {
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-xl font-semibold text-gray-900">
-                                        {repairman.reviewStats.totalReviews} {repairman.reviewStats.totalReviews === 1 ? 'Review' : 'Reviews'}
+                                        {repairman?.reviewStats.totalReviews} {repairman?.reviewStats.totalReviews === 1 ? 'Review' : 'Reviews'}
                                     </h2>
                                     <div className="flex items-center">
                                         <div className="flex text-yellow-400 mr-2">
                                             {[...Array(5)].map((_, i) => (
                                                 <Icon
                                                     key={i}
-                                                    icon={i < Math.floor(repairman.reviewStats.averageRating) ? "mdi:star" : "mdi:star-outline"}
+                                                    icon={i < Math.floor(repairman?.reviewStats.averageRating) ? "mdi:star" : "mdi:star-outline"}
                                                     className="w-4 h-4"
                                                 />
                                             ))}
                                         </div>
                                         <span className="font-semibold text-gray-900">
-                                            {repairman.reviewStats.averageRating.toFixed(1)}
+                                            {repairman?.reviewStats.averageRating.toFixed(1)}
                                         </span>
                                     </div>
                                 </div>
@@ -230,9 +252,9 @@ function RepairmanDetail() {
                                     <div>
                                         <div className="space-y-2">
                                             {[5, 4, 3, 2, 1].map((star) => {
-                                                const count = repairman.reviewStats.ratingDistribution[star] || 0;
-                                                const percentage = repairman.reviewStats.totalReviews > 0
-                                                    ? (count / repairman.reviewStats.totalReviews) * 100
+                                                const count = repairman?.reviewStats.ratingDistribution[star] || 0;
+                                                const percentage = repairman?.reviewStats.totalReviews > 0
+                                                    ? (count / repairman?.reviewStats.totalReviews) * 100
                                                     : 0;
 
                                                 return (
@@ -257,21 +279,21 @@ function RepairmanDetail() {
                                                 <span className="text-sm text-gray-600">Service quality</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
+                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-sm text-gray-600">Communication</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
+                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-sm text-gray-600">Value for money</span>
                                                 <div className="flex items-center">
                                                     <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman.reviewStats.averageRating.toFixed(1)}</span>
+                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
                                                 </div>
                                             </div>
                                         </div>
@@ -279,9 +301,9 @@ function RepairmanDetail() {
                                 </div>
 
                                 {/* Individual Reviews */}
-                                {repairman.reviews && repairman.reviews.length > 0 ? (
+                                {repairman?.reviews && repairman?.reviews.length > 0 ? (
                                     <div className="space-y-6">
-                                        {repairman.reviews.map((review) => (
+                                        {repairman?.reviews.map((review) => (
                                             <div key={review._id} className="border-b pb-6 last:border-b-0">
                                                 <div className="flex items-start space-x-3">
                                                     <img
@@ -319,7 +341,7 @@ function RepairmanDetail() {
                                                                 <div className="flex items-center mb-2">
                                                                     <Icon icon="mdi:reply" className="w-4 h-4 text-green-600 mr-2" />
                                                                     <span className="font-medium text-gray-900 text-sm">
-                                                                        Response from {profile.fullName}
+                                                                        Response from {repairman?.repairmanProfile?.fullName}
                                                                     </span>
                                                                     <span className="text-xs text-gray-500 ml-2">
                                                                         {formatDate(review.repairmanResponse.respondedAt)}
@@ -354,7 +376,7 @@ function RepairmanDetail() {
                                     </div>
                                 )}
 
-                                {repairman.reviews && repairman.reviews.length > 0 && (
+                                {repairman?.reviews && repairman?.reviews.length > 0 && (
                                     <button className="mt-6 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full">
                                         Show More Reviews
                                     </button>
@@ -368,12 +390,12 @@ function RepairmanDetail() {
                             <div className="bg-white rounded-lg shadow-sm p-6 ">
                                 <div className="flex items-center space-x-3 mb-4">
                                     <img
-                                        src={profile.profilePhoto}
-                                        alt={profile.fullName}
+                                        src={repairman?.repairmanProfile?.profilePhoto}
+                                        alt={repairman?.repairmanProfile?.fullName}
                                         className="w-12 h-12 rounded-full object-cover"
                                     />
                                     <div>
-                                        <h3 className="font-semibold text-gray-900">{profile.fullName}</h3>
+                                        <h3 className="font-semibold text-gray-900">{repairman?.repairmanProfile?.fullName}</h3>
                                         <div className="flex items-center">
                                             <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                                             <span className="text-sm text-gray-600">Offline • 02:04 AM local time</span>
@@ -400,7 +422,7 @@ function RepairmanDetail() {
 
                                     <button
                                         onClick={() => handleMessageSend(repairman._id)}
-                                        className="w-full py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
+                                        className="w-full cursor-pointer py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
                                     >
                                         <Icon icon="mdi:email" className="w-5 h-5 mr-2" />
                                         Send Message
@@ -420,11 +442,11 @@ function RepairmanDetail() {
                             <div className="bg-white rounded-lg shadow-sm p-6">
                                 <h3 className="font-semibold text-gray-900 mb-4">Shop Information</h3>
 
-                                {profile.shopPhoto && (
+                                {repairman?.repairmanProfile?.shopPhoto && (
                                     <div className="mb-4">
                                         <img
-                                            src={profile.shopPhoto}
-                                            alt={profile.shopName}
+                                            src={repairman?.repairmanProfile?.shopPhoto}
+                                            alt={repairman?.repairmanProfile?.shopName}
                                             className="w-full h-32 object-cover rounded-lg"
                                             onError={(e) => {
                                                 e.target.src = 'https://via.placeholder.com/300x150?text=No+Shop+Image'
@@ -437,7 +459,7 @@ function RepairmanDetail() {
                                     <div className="flex items-start">
                                         <Icon icon="mdi:store" className="w-4 h-4 text-gray-500 mr-2 mt-1 flex-shrink-0" />
                                         <div>
-                                            <p className="font-medium text-gray-900">{profile.shopName}</p>
+                                            <p className="font-medium text-gray-900">{repairman?.repairmanProfile?.shopName}</p>
                                         </div>
                                     </div>
 
@@ -452,21 +474,21 @@ function RepairmanDetail() {
                                     <div className="flex items-center">
                                         <Icon icon="mdi:clock" className="w-4 h-4 text-gray-500 mr-2" />
                                         <span className="text-sm text-gray-700">
-                                            {profile.workingHours.start} - {profile.workingHours.end}
+                                            {repairman?.repairmanProfile?.workingHours.start} - {repairman?.repairmanProfile?.workingHours.end}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center">
                                         <Icon icon="mdi:calendar" className="w-4 h-4 text-gray-500 mr-2" />
                                         <span className="text-sm text-gray-700">
-                                            {profile.workingDays.join(', ')}
+                                            {repairman?.repairmanProfile?.workingDays.join(', ')}
                                         </span>
                                     </div>
 
                                     <div className="flex items-center">
                                         <Icon icon="mdi:truck" className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className={`text-sm ${profile.pickupService ? 'text-green-600' : 'text-red-600'}`}>
-                                            Pickup Service: {profile.pickupService ? 'Available' : 'Not Available'}
+                                        <span className={`text-sm ${repairman?.repairmanProfile?.pickupService ? 'text-green-600' : 'text-red-600'}`}>
+                                            Pickup Service: {repairman?.repairmanProfile?.pickupService ? 'Available' : 'Not Available'}
                                         </span>
                                     </div>
                                 </div>
@@ -514,8 +536,8 @@ function RepairmanDetail() {
                                         <span className="text-sm text-gray-600">Email Verified</span>
                                         <div className="flex items-center">
                                             <Icon
-                                                icon={repairman.isEmailVerified ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman.isEmailVerified ? 'text-green-600' : 'text-red-600'}`}
+                                                icon={repairman?.isEmailVerified ? "mdi:check-circle" : "mdi:close-circle"}
+                                                className={`w-4 h-4 ${repairman?.isEmailVerified ? 'text-green-600' : 'text-red-600'}`}
                                             />
                                         </div>
                                     </div>
@@ -523,8 +545,8 @@ function RepairmanDetail() {
                                         <span className="text-sm text-gray-600">Profile Complete</span>
                                         <div className="flex items-center">
                                             <Icon
-                                                icon={repairman.isProfileComplete ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman.isProfileComplete ? 'text-green-600' : 'text-red-600'}`}
+                                                icon={repairman?.isProfileComplete ? "mdi:check-circle" : "mdi:close-circle"}
+                                                className={`w-4 h-4 ${repairman?.isProfileComplete ? 'text-green-600' : 'text-red-600'}`}
                                             />
                                         </div>
                                     </div>
@@ -532,15 +554,15 @@ function RepairmanDetail() {
                                         <span className="text-sm text-gray-600">Documents</span>
                                         <div className="flex items-center">
                                             <Icon
-                                                icon={repairman.isDocumentComplete ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman.isDocumentComplete ? 'text-green-600' : 'text-red-600'}`}
+                                                icon={repairman?.isDocumentComplete ? "mdi:check-circle" : "mdi:close-circle"}
+                                                className={`w-4 h-4 ${repairman?.isDocumentComplete ? 'text-green-600' : 'text-red-600'}`}
                                             />
                                         </div>
                                     </div>
                                     <div className="pt-2 border-t">
                                         <div className="flex justify-between">
                                             <span className="text-sm text-gray-600">Member Since</span>
-                                            <span className="text-sm text-gray-900 font-medium">{formatDate(repairman.createdAt)}</span>
+                                            <span className="text-sm text-gray-900 font-medium">{formatDate(repairman?.createdAt)}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -584,7 +606,7 @@ function RepairmanDetail() {
 
 
             />
-        </>
+        </Loader>
     )
 
 }
