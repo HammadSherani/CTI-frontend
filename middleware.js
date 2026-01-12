@@ -3,9 +3,9 @@ import { NextResponse } from 'next/server';
 export function middleware(request) {
   // Example: redirect from "/" to "/auth/login"
   // You can customize this logic
-  if (request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/auth/login', request.url));
-  }
+  // if (request.nextUrl.pathname === '/') {
+  //   return NextResponse.redirect(new URL('/auth/login', request.url));
+  // }
 
   // Default: continue request
   return NextResponse.next();
