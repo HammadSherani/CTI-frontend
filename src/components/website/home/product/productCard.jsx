@@ -71,9 +71,9 @@ export default function ProductCard({
         <button
           type="button"
           onClick={onAdd}
-          className="mt-3 w-full rounded-lg border-none py-2 text-base font-medium text-gray-800 hover:bg-gray-50"
+          className="mt-3 w-full rounded-lg border-none py-2 text-base font-medium text-gray-800 hover:bg-primary-100 cursor-pointer bg-primary-50 transition-all duration-300" 
         >
-          Add to Card
+          Coming Soon
         </button>
       </div>
     </div>

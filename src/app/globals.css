@@ -54,9 +54,12 @@ body {
 
 
 @keyframes fadeBg {
-  0%, 100% {
+
+  0%,
+  100% {
     opacity: 1;
   }
+
   50% {
     opacity: 0.97;
   }
@@ -72,7 +75,7 @@ body {
   outline: none;
 }
 
-.ProseMirror > * + * {
+.ProseMirror>*+* {
   margin-top: 0.75em;
 }
 
@@ -128,4 +131,30 @@ body {
   height: 140px;
   border-radius: 50%;
   background: #F4F5F7;
+}
+
+
+/* .swiper-pagination-bullet {
+  width: 24px !important;
+  height: 8px !important;
+  background-color: #e5e7eb !important;
+  opacity: 1 !important;
+  margin: 0 4px !important;
+  border-radius: 5px !important; 
+} */
+.swiper-pagination-bullet-active{
+  width: 24px !important;
+  height: 8px !important;
+  background-color: #aaabae !important;
+  opacity: 1 !important;
+  margin: 0 4px !important;
+  border-radius: 5px !important; 
+}
+
+.swiper-pagination-bullet-active {
+  background-color: #f17821 !important;
+}
+
+.swiper-pagination {
+  bottom: 1rem !important;
 }

@@ -38,10 +38,10 @@ export function InterestTags() {
 
 export function ContentSection() {
   return (
-    <div className="bg-white py-8">
+    <div className="bg-white py-16">
       <div className="max-w-7xl mx-auto">
         <h2 className="text-3xl font-bold text-gray-800 mb-4">
-          Tüm İhtiyaçlarınız İçin Tek İhtiyacınız Trendyol!
+          Tüm İhtiyaçlarınız İçin Tek İhtiyacınız!
         </h2>
         <div className="space-y-4 text-gray-600">
           <p>

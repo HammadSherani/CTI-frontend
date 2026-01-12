@@ -11,14 +11,19 @@ import handleError from '@/helper/handleError';
 import PartModal from '@/app/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
 
 const quotationSchema = yup.object().shape({
-    brandName: yup
+    brand: yup
         .string()
         .required('Brand name is required')
         .min(2, 'Brand name must be at least 2 characters'),
-    modelName: yup
+    model: yup
         .string()
         .required('Model name is required')
         .min(2, 'Model name must be at least 2 characters'),
+    repairServices: yup
+        .array()
+        .of(yup.string())
+        .min(1, 'At least one repair service is required')
+        .required('Repair services are required'),
     partsQuality: yup
         .string()
         .required('Parts quality is required')
@@ -95,8 +100,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     } = useForm({
         resolver: yupResolver(quotationSchema),
         defaultValues: {
-            brandName: '',
-            modelName: '',
+            brand: '',
+            model: '',
             partsQuality: 'original',
             basePrice: '',
             serviceCharges: 0,
@@ -126,7 +131,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     const fetchModels = async (brandId) => {
         if (!brandId) {
             setModels([]);
-            setValue('modelName', '');
+            setValue('model', '');
             setSelectedModelId('');
             return;
         }
@@ -181,7 +186,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         } else {
             setModels([]);
             setSelectedModelId('');
-            setValue('modelName', '');
+            setValue('model', '');
         }
     }, [selectedBrandId]);
 
@@ -207,6 +212,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     console.log('brands', brands);
     console.log('models', models);
     console.log('selectedParts', selectedParts);
+    const partsPrice = selectedParts.reduce
 
 
     // const getSelectedParts = (chatId) => {
@@ -261,13 +267,17 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
     };
 
     const handleRemoveService = (serviceToRemove) => {
-        setSelectedServices(selectedServices.filter(service => service !== serviceToRemove));
+        const newServices = selectedServices.filter(service => service !== serviceToRemove);
+        setSelectedServices(newServices);
+        setValue('repairServices', newServices);
     };
 
     const handleServiceSelect = (serviceId) => {
         const selectedService = services.find(s => s._id === serviceId);
         if (selectedService && !selectedServices.some(s => s === selectedService._id)) {
-            setSelectedServices([...selectedServices, selectedService._id]);
+            const newServices = [...selectedServices, selectedService._id];
+            setSelectedServices(newServices);
+            setValue('repairServices', newServices);
         }
     };
 
@@ -280,15 +290,27 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
         setLoading(true);
 
         try {
+            console.log("Quotation Data", data);
+
+            const calculatedPartsPrice = isPartRequired
+                ? selectedParts.reduce((total, part) => total + Number(part.price || 0), 0)
+                : 0;
+
+            const requiredPartIds = isPartRequired
+                ? selectedParts.map(part => part._id || part.id)
+                : [];
+
             const quotationData = {
                 deviceInfo: {
-                    brandName: data.brandName.trim(),
-                    modelName: data.modelName.trim(),
+                    brand: data.brand,
+                    model: data.model,
                     repairServices: selectedServices
                 },
                 partsQuality: data.partsQuality,
                 basePrice: parseFloat(data.basePrice),
-                partsPrice: parseFloat(data.partsPrice) || 0,
+                partsPrice: calculatedPartsPrice,
+                isPartRequired: isPartRequired,  
+                ...(isPartRequired && { requiredParts: requiredPartIds }), 
                 description: data.description.trim(),
                 estimatedDuration: data.estimatedDuration.toString(),
                 ...(data.warranty && { warranty: data.warranty.toString() }),
@@ -372,7 +394,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         Brand Name *
                                     </label>
                                     <Controller
-                                        name="brandName"
+                                        name="brand"
                                         control={control}
                                         render={({ field }) => (
                                             <select
@@ -381,20 +403,20 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                     const brandId = e.target.value;
                                                     const selectedBrand = brands.find(b => b._id === brandId);
                                                     if (selectedBrand) {
-                                                        field.onChange(selectedBrand.name);
+                                                        field.onChange(selectedBrand._id);
                                                         setSelectedBrandId(brandId);
-                                                        setValue('modelName', '');
+                                                        setValue('model', '');
                                                         setSelectedModelId('');
                                                         setModels([]);
                                                     } else {
                                                         field.onChange('');
                                                         setSelectedBrandId('');
-                                                        setValue('modelName', '');
+                                                        setValue('model', '');
                                                         setSelectedModelId('');
                                                         setModels([]);
                                                     }
                                                 }}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.brandName ? 'border-red-500' : 'border-gray-300'
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.brand ? 'border-red-500' : 'border-gray-300'
                                                     }`}
                                             >
                                                 <option value="">Select a Brand</option>
@@ -409,8 +431,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                             </select>
                                         )}
                                     />
-                                    {errors.brandName && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.brandName.message}</p>
+                                    {errors.brand && (
+                                        <p className="text-red-500 text-xs mt-1">{errors.brand.message}</p>
                                     )}
                                 </div>
 
@@ -419,7 +441,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         Model Name *
                                     </label>
                                     <Controller
-                                        name="modelName"
+                                        name="model"
                                         control={control}
                                         render={({ field }) => (
                                             <select
@@ -428,14 +450,14 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                                     const modelId = e.target.value;
                                                     const selectedModel = models.find(m => m._id === modelId);
                                                     if (selectedModel) {
-                                                        field.onChange(selectedModel.name);
+                                                        field.onChange(selectedModel._id);
                                                         setSelectedModelId(modelId);
                                                     } else {
                                                         field.onChange('');
                                                         setSelectedModelId('');
                                                     }
                                                 }}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.modelName ? 'border-red-500' : 'border-gray-300'
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.model ? 'border-red-500' : 'border-gray-300'
                                                     }`}
                                             >
                                                 <option value="">Select a Model</option>
@@ -450,21 +472,29 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                             </select>
                                         )}
                                     />
-                                    {errors.modelName && (
-                                        <p className="text-red-500 text-xs mt-1">{errors.modelName.message}</p>
+                                    {errors.model && (
+                                        <p className="text-red-500 text-xs mt-1">{errors.model.message}</p>
                                     )}
                                 </div>
                             </div>
                         </div>
 
                         <div>
+                            <Controller
+                                name="repairServices"
+                                control={control}
+                                defaultValue={[]}
+                                render={() => null}
+                            />
+
                             <h3 className="text-sm font-semibold text-gray-900 mb-3">Repair Services *</h3>
 
                             <div className="mb-3">
                                 <select
                                     onChange={(e) => handleServiceSelect(e.target.value)}
                                     value=""
-                                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.repairServices ? 'border-red-500' : 'border-gray-300'
+                                        }`}
                                 >
                                     <option value="">Select a service</option>
                                     {services.map(service => (
@@ -476,6 +506,9 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                                         </option>
                                     ))}
                                 </select>
+                                {errors.repairServices && (
+                                    <p className="text-red-500 text-xs mt-1">{errors.repairServices.message}</p>
+                                )}
                             </div>
 
                             {selectedServices.length > 0 && (
@@ -854,7 +887,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess }) => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            
+
 
                             <div className='col-span-2'>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">

@@ -26,6 +26,7 @@ const QuotationMessage = ({ message, isOwner }) => {
         repairmanNotes = quotationData.repairmanNotes,
         validUntil = quotationData.validUntil,
         status = quotationData.status || 'sent'
+        // requi
     } = quotationData;
 
 
@@ -37,7 +38,8 @@ const QuotationMessage = ({ message, isOwner }) => {
         isPickup = false,
         isDropoff = false,
         pickupLocation = {},
-        dropoffLocation = {}
+        dropoffLocation = {},
+        requiredParts = {}
     } = serviceDetails;
 
     // Extract device info
@@ -121,9 +123,9 @@ const QuotationMessage = ({ message, isOwner }) => {
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
+                            {/* <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
                                 {status.charAt(0).toUpperCase() + status.slice(1)}
-                            </span>
+                            </span> */}
                             <button
                                 onClick={() => setShowDetails(!showDetails)}
                                 className="p-1 hover:bg-gray-200 rounded"
@@ -295,7 +297,6 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Validity Status */}
                     {validUntil && (
                         <div className={`p-3 rounded-lg mb-3 ${new Date() > new Date(validUntil)
                             ? 'bg-red-50 border border-red-200'
@@ -325,9 +326,15 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Expandable Details */}
+                    <p className='cursor-pointer text-sm w-fit hover:underline'  onClick={() => setShowDetails(!showDetails)}>
+                        See More Details
+                    </p>
+
                     {showDetails && (
                         <div className="mt-4 pt-4 border-t space-y-3">
+                            {/* {requiredParts?.} */}
+
+
                             {warranty && (
                                 <div>
                                     <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Warranty</span>
@@ -371,7 +378,6 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 </div>
                             )}
 
-                            {/* Price Breakdown in Details */}
                             {serviceCharges > 0 && (
                                 <div className="bg-primary-50 p-3 rounded-lg">
                                     <span className="text-gray-600 text-xs font-medium uppercase tracking-wide block mb-2">
@@ -396,7 +402,6 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Customer Response Buttons */}
                     {canRespond && (
                         <div className="mt-4 pt-4 border-t">
                             <div className="flex gap-3">
@@ -437,7 +442,6 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    {/* Response Status */}
                     {(status === 'accepted' || status === 'rejected') && (
                         <div className="mt-3 p-3 rounded-lg bg-gray-50 text-center">
                             <span className={`text-sm font-medium ${status === 'accepted' ? 'text-green-600' : 'text-red-600'

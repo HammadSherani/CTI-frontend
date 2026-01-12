@@ -12,6 +12,13 @@ import OurProcess from '@/components/website/home/ourProcess'
 import BottomPromoImages from '@/components/website/home/bottomPromoImages'
 import { Brands, ContentSection, InterestTags } from '@/components/website/Footer'
 import Loader from '@/components/Loader';
+import FilterBar from '@/components/website/FilterBar';
+import OurServices from '@/components/website/home/ourServices';
+import TopRepairman from '@/components/website/home/TopRepairman';
+import BecomePartner from '@/components/website/home/becomePartner';
+import Testimonials from '@/components/website/home/testimonials';
+import AcademySection from '@/components/website/home/MobileAcademySection';
+import FreelancerSupportAcademySection from '@/components/website/home/MobileAcademySection';
 
 function Home() {
 
@@ -19,19 +26,22 @@ function Home() {
     <div>
       {/* <Loader loading={false}> */}
         <Hero />
-        <Categories />
-        {/* <PromoBanner /> */}
-        <RefurbishedTabs />
-        <PromoImages />
+        <FilterBar />
+        <OurServices />
+        <TopRepairman />
+        {/* <PromoImages /> */}
+        <BecomePartner />
         <SellingProducts />
-        <PromotionalBanners />
-        <SellingProducts />
-        <OurPartners />
+        {/* <PromotionalBanners /> */}
+        <SellingProducts title={"Refurbished Products"}  />
+        <Testimonials />
+        {/* <OurPartners /> */}
         <OurProcess />
-        <BottomPromoImages />
-        <InterestTags />
+        {/* <BottomPromoImages /> */}
+        {/* <InterestTags /> */}
+        <FreelancerSupportAcademySection />
         <ContentSection />
-        <Brands />
+        {/* <Brands /> */}
       {/* </Loader> */}
     </div>
   )

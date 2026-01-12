@@ -3,13 +3,13 @@ import Link from 'next/link';
 import React, { useState } from 'react';
 import { useSelector } from 'react-redux';
 
-const IconButton = ({ 
-  icon, 
-  label, 
-  count = 0, 
+const IconButton = ({
+  icon,
+  label,
+  count = 0,
   showCount = false,
   href,
-  onClick 
+  onClick
 }) => {
   const button = (
     <div className="relative group cursor-pointer" aria-label={label}>
@@ -37,7 +37,7 @@ const IconButton = ({
   return <div onClick={onClick}>{button}</div>;
 };
 
-const DashboardLink = ({link}) => (
+const DashboardLink = ({ link }) => (
   <Link href={link}>
     <button className="relative ml-1 text-sm group px-6 cursor-pointer py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors duration-200 font-medium shadow-sm">
       Dashboard
@@ -60,13 +60,50 @@ function ButtonSection() {
 
   if (!user) {
     return (
-      <div className="flex items-center gap-4">
-        <Link href="/auth/register">
-          <button className="px-6 py-2 text-sm bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors duration-200 font-medium shadow-sm">
-            Join Now
+      <div className="flex items-center  gap-2">
+        {/* Primary CTA */}
+        {/* <Link href="/auth/register">
+          <button
+            className="px-6 py-2.5 text-sm font-semibold text-white rounded-lg
+                 bg-gradient-to-r from-orange-500 to-orange-600
+                 hover:from-orange-600 hover:to-orange-700
+                 shadow-md hover:shadow-lg
+                 transition-all duration-200
+                 active:scale-95 text-nowrap"
+          >
+
+            Create Account
+          </button>
+        </Link> */}
+
+
+        <Link href="/cart">
+          <button
+            className=" p-3
+                 hover:bg-gray-100/60 w-12 h-12 flex itens-cemter justify-center rounded-full 
+                 
+                 transition-all duration-200 cursor-pointer
+                 "
+          >
+
+            <Icon icon="proicons:cart" width="22" height="22" />
+          </button>
+        </Link>
+
+        <Link href="/auth/login">
+          <button
+            className="px-5 py-2.5 text-base font-medium  rounded-full
+                 
+                 hover:bg-gray-100/60
+                 transition-all cursor-pointer duration-200
+                 active:scale-95 flex items-center gap-1 duration-300 transition-all"
+          >
+            <Icon icon="mynaui:user" width="18" height="18" />
+            Login
           </button>
         </Link>
       </div>
+
     );
   }
 

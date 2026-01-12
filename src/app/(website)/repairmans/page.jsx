@@ -160,11 +160,11 @@ function HireRepairman() {
                       e.target.src = 'https://via.placeholder.com/300x200?text=No+Image'
                     }}
                   />
-                  <div className="absolute top-4 right-4">
+                  {/* <div className="absolute top-4 right-4">
                     <div className="bg-white rounded-full p-2 shadow-lg">
                       <Icon icon="mdi:star" className="w-5 h-5 text-yellow-500" />
                     </div>
-                  </div>
+                  </div> */}
 
                   <div className=" flex flex-col justify-between">
                     <div className='p-2'>

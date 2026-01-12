@@ -57,15 +57,15 @@ const demoProducts = [
   },
 ];
 
-export default function ProductsCarousel({ products = demoProducts, title = 'Çok Satan Ürünler', onAdd }) {
+export default function ProductsCarousel({ products = demoProducts, title = 'New Products', onAdd }) {
   const swiperRef = useRef(null);
 
   return (
     <section className="py-6">
       <div>
         <div
-          className="rounded-2xl p-4 sm:p-6"
-          style={{ background: 'linear-gradient(to top, rgb(255,253,251), #fcefe7)' }}
+          className="rounded-2xl "
+          // style={{ background: 'linear-gradient(to top, rgb(255,253,251), #fcefe7)' }}
         >
           {/* header */}
           <div className="mb-4 flex items-center justify-between">
