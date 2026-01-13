@@ -135,8 +135,8 @@ function HireRepairman() {
                 >
                   <option value="">All Cities</option>
                   {cities.map((city) => (
-                    <option key={city.name} value={city._id}>
-                      {city.name}
+                    <option key={city?.name} value={city._id}>
+                      {city?.name}
                     </option>
                   ))}
                 </select>
@@ -196,8 +196,8 @@ function HireRepairman() {
                             {repair.repairmanProfile.fullAddress}
                           </p>
                           <p className="text-sm font-medium text-gray-900">
-                            {repair?.city.name}
-                            {repair?.state.name && `, ${repair?.state.name}`}
+                            {repair?.city?.name}
+                            {repair?.state?.name && `, ${repair?.state?.name}`}
                           </p>
                         </div>
                       </div>
