@@ -10,7 +10,6 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 
-// Validation schema - Only image file validation (image itself is optional for update)
 const bannerSchema = yup.object().shape({
   image: yup
     .mixed()
@@ -23,8 +22,23 @@ const bannerSchema = yup.object().shape({
     .test('fileSize', 'Image size must be less than 2MB', (value) => {
       if (!value || value.length === 0) return true; // Optional on edit
       const file = value[0];
-      return file && file.size <= 2 * 1024 * 1024; // 2MB
+      return file && file.size <= 2 * 1024 * 1024;
     }),
+
+  label: yup
+    .string()
+    .trim()
+    .optional(),
+
+  title: yup
+    .string()
+    .trim()
+    .required('Title is required'),
+
+  description: yup
+    .string()
+    .trim()
+    .optional(),
 });
 
 function EditBannerPage() {
@@ -42,19 +56,21 @@ function EditBannerPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isValid },
     reset,
+    watch,
     setValue,
   } = useForm({
     resolver: yupResolver(bannerSchema),
     defaultValues: {
-      ctaText: '',
-      ctaLink: '',
-      startDate: '',
-      endDate: '',
       image: null,
+      label: '',
+      title: '',
+      description: '',
     },
   });
+
+  const watchedImage = watch('image');
 
   // Fetch banner data on mount
   useEffect(() => {
@@ -75,22 +91,14 @@ function EditBannerPage() {
       const bannerData = response.data.data;
       
       // Set form values
-      setValue('ctaText', bannerData.ctaText || '');
-      setValue('ctaLink', bannerData.ctaLink || '');
-      
-      // Format dates for input[type="date"]
-      if (bannerData.startDate) {
-        const startDate = new Date(bannerData.startDate).toISOString().split('T')[0];
-        setValue('startDate', startDate);
-      }
-      if (bannerData.endDate) {
-        const endDate = new Date(bannerData.endDate).toISOString().split('T')[0];
-        setValue('endDate', endDate);
-      }
+      setValue('label', bannerData.label || '');
+      setValue('title', bannerData.title || '');
+      setValue('description', bannerData.description || '');
 
       // Set existing image
       if (bannerData.image) {
         setExistingImage(bannerData.image);
+        setImagePreview(bannerData.image); // Initial preview from existing
       }
 
       setLoading(false);
@@ -131,55 +139,60 @@ function EditBannerPage() {
       };
       reader.readAsDataURL(file);
     } else {
-      setImagePreview(null);
+      setImagePreview(existingImage || null); // Revert to existing if cleared
       setValue('image', null);
     }
   };
 
   const onSubmit = async (data) => {
     try {
+      // Reset messages and progress
       setSubmitError('');
       setSubmitSuccess('');
       setUploadProgress(0);
 
-      // Create FormData for file upload
+      // Create FormData
       const formData = new FormData();
-      
-      // Only append fields if they have values
-      if (data.ctaText) formData.append('ctaText', data.ctaText);
-      if (data.ctaLink) formData.append('ctaLink', data.ctaLink);
-      if (data.startDate) formData.append('startDate', data.startDate);
-      if (data.endDate) formData.append('endDate', data.endDate);
 
-      // Add new image if selected
-      if (data.image && data.image.length > 0) {
+      // Append text fields (title is required; others optional)
+      formData.append('title', data.title || '');
+      formData.append('label', data.label || '');
+      formData.append('description', data.description || '');
+
+      // Append image only if new one selected (optional)
+      if (data.image?.length > 0) {
         formData.append('image', data.image[0]);
       }
 
-      // Make API call with progress tracking
+      // API call with progress
       const response = await axiosInstance.put(`/admin/banners/${bannerId}`, formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
         onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
           setUploadProgress(progress);
         },
       });
 
-      // Handle successful request
-      toast.success(response.data.message || 'Banner updated successfully!');
-      setSubmitSuccess('Banner updated successfully!');
+      // Success
+      const successMessage = response.data?.message || 'Banner updated successfully!';
+      setSubmitSuccess(successMessage);
+      toast.success(successMessage);
+
+      // Reset form and preview
+      reset();
+      setImagePreview(null);
       setUploadProgress(0);
 
-      // Clear success message after 5 seconds
+      // Clear success message after 5s
       setTimeout(() => setSubmitSuccess(''), 5000);
 
-      // Navigate back to banner list after 2 seconds
-      setTimeout(() => {
-        router.push('/admin/banners');
-      }, 2000);
+      // Navigate to banner list after 2s
+      setTimeout(() => router.push('/admin/banners'), 2000);
     } catch (error) {
       console.error('Error updating banner:', error);
       setUploadProgress(0);
@@ -192,10 +205,15 @@ function EditBannerPage() {
   };
 
   const handleCancel = () => {
+    reset();
+    setImagePreview(existingImage || null);
+    setSubmitError('');
+    setSubmitSuccess('');
+    setUploadProgress(0);
     router.push('/admin/banners');
   };
 
-  const removeNewImage = () => {
+  const removeImage = () => {
     setImagePreview(null);
     setValue('image', null);
     const fileInput = document.getElementById('image');
@@ -203,9 +221,6 @@ function EditBannerPage() {
       fileInput.value = '';
     }
   };
-
-  // Get today's date in YYYY-MM-DD format for min date
-  const today = new Date().toISOString().split('T')[0];
 
   if (loading) {
     return (
@@ -221,7 +236,6 @@ function EditBannerPage() {
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -241,7 +255,6 @@ function EditBannerPage() {
           </div>
         </div>
 
-        {/* Success/Error Messages */}
         {submitSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
@@ -260,21 +273,18 @@ function EditBannerPage() {
           </div>
         )}
 
-        {/* Edit Form */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="space-y-6">
-              {/* Banner Image Upload */}
+            <div className="mb-4 space-y-6">
               <div>
                 <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
                   Banner Image
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
                   Upload a new banner image (optional). Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
-                  Leave empty to keep the existing image.
+                  Recommended dimensions: 1920x600px for best results. Leave empty to keep existing.
                 </p>
 
-                {/* File Input */}
                 <div className="space-y-4">
                   <input
                     type="file"
@@ -298,7 +308,6 @@ function EditBannerPage() {
                     </p>
                   )}
 
-                  {/* Upload Progress */}
                   {uploadProgress > 0 && uploadProgress < 100 && (
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -309,47 +318,34 @@ function EditBannerPage() {
                     </div>
                   )}
 
-                  {/* New Image Preview */}
-                  {imagePreview && (
+                  {(imagePreview || existingImage) && (
                     <div className="relative inline-block w-full">
-                      <div className="border-2 border-dashed border-primary-300 rounded-lg p-4">
-                        <p className="text-sm text-primary-600 font-medium mb-2">New Image:</p>
+                      <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
                         <img
-                          src={imagePreview}
-                          alt="New banner preview"
+                          src={imagePreview || existingImage}
+                          alt="Banner preview"
                           className="w-full max-h-64 object-cover rounded-lg"
                         />
                       </div>
-                      <button
-                        type="button"
-                        onClick={removeNewImage}
-                        className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
-                        title="Remove new image"
-                        aria-label="Remove new image"
-                      >
-                        <Icon icon="mdi:close" className="w-5 h-5" />
-                      </button>
+                      {watchedImage && watchedImage.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={removeImage}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg"
+                          title="Remove image"
+                          aria-label="Remove uploaded image"
+                        >
+                          <Icon icon="mdi:close" className="w-5 h-5" />
+                        </button>
+                      )}
                     </div>
                   )}
 
-                  {/* Existing Image */}
-                  {!imagePreview && existingImage && (
-                    <div className="border-2 border-gray-300 rounded-lg p-4">
-                      <p className="text-sm text-gray-600 font-medium mb-2">Current Image:</p>
-                      <img
-                        src={existingImage}
-                        alt="Current banner"
-                        className="w-full max-h-64 object-cover rounded-lg"
-                      />
-                    </div>
-                  )}
-
-                  {/* Upload Area when no image */}
                   {!imagePreview && !existingImage && (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-primary-400 transition-colors">
                       <Icon icon="mdi:cloud-upload" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600 font-medium mb-2">
-                        Click "Choose File" above to upload your banner
+                        No image uploaded. Upload to add one.
                       </p>
                       <p className="text-gray-500 text-sm">
                         Recommended size: 1920x600px | Max file size: 2MB
@@ -359,153 +355,71 @@ function EditBannerPage() {
                 </div>
               </div>
 
-              {/* CTA Text - COMMENTED */}
-              {/* <div>
-                <label htmlFor="ctaText" className="block text-sm font-medium text-gray-700 mb-2">
-                  Call-to-Action Text
+              {/* Label */}
+              <div>
+                <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-1">
+                  Label
                 </label>
                 <input
-                  id="ctaText"
                   type="text"
-                  {...register('ctaText')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.ctaText ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="e.g., Shop Now, Learn More, Get Started"
-                  aria-invalid={errors.ctaText ? 'true' : 'false'}
+                  id="label"
+                  {...register('label')}
+                  placeholder="Optional label (e.g., New Arrival)"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
-                {errors.ctaText && (
-                  <p className="mt-1 text-sm text-red-600" role="alert">
-                    {errors.ctaText.message}
-                  </p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  This text will appear on the banner button
-                </p>
-              </div> */}
+              </div>
 
-              {/* CTA Link - COMMENTED */}
-              {/* <div>
-                <label htmlFor="ctaLink" className="block text-sm font-medium text-gray-700 mb-2">
-                  Call-to-Action Link
+              {/* Title */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
                 </label>
                 <input
-                  id="ctaLink"
-                  type="url"
-                  {...register('ctaLink')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.ctaLink ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="https://example.com/your-page"
-                  aria-invalid={errors.ctaLink ? 'true' : 'false'}
+                  type="text"
+                  id="title"
+                  {...register('title')}
+                  placeholder="Banner title"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
                 />
-                {errors.ctaLink && (
-                  <p className="mt-1 text-sm text-red-600" role="alert">
-                    {errors.ctaLink.message}
-                  </p>
+                {errors.title && (
+                  <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>
                 )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Where users will be redirected when they click the banner
-                </p>
-              </div> */}
-
-              {/* Date Range - COMMENTED */}
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="startDate"
-                      type="date"
-                      {...register('startDate')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        errors.startDate ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      aria-invalid={errors.startDate ? 'true' : 'false'}
-                    />
-                    <Icon 
-                      icon="mdi:calendar" 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
-                    />
-                  </div>
-                  {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600" role="alert">
-                      {errors.startDate.message}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-gray-500">
-                    When the banner should start showing
-                  </p>
-                </div>
-
-                <div>
-                  <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="endDate"
-                      type="date"
-                      {...register('endDate')}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        errors.endDate ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      aria-invalid={errors.endDate ? 'true' : 'false'}
-                    />
-                    <Icon 
-                      icon="mdi:calendar" 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
-                    />
-                  </div>
-                  {errors.endDate && (
-                    <p className="mt-1 text-sm text-red-600" role="alert">
-                      {errors.endDate.message}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-gray-500">
-                    When the banner should stop showing
-                  </p>
-                </div>
-              </div> */}
-
-              {/* Info Box */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <Icon icon="mdi:information" className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Update Guidelines:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700">
-                      <li>Upload a new image only if you want to replace the existing one</li>
-                      <li>All fields are optional - only update what you need to change</li>
-                      <li>The existing image will be kept if you don't upload a new one</li>
-                    </ul>
-                  </div>
-                </div>
               </div>
 
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-6 border-t">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Cancel banner update"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting || uploadProgress > 0}
-                  className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  aria-label="Update banner"
-                >
-                  {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
-                  {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Update Banner'}
-                </button>
+              {/* Description */}
+              <div className='mb-4'>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  {...register('description')}
+                  placeholder="Optional banner description"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                  rows={3}
+                ></textarea>
               </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+                className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Cancel banner update"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || uploadProgress > 0 || !isValid}
+                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                aria-label="Update banner"
+              >
+                {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
+                {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Update Banner'}
+              </button>
             </div>
           </div>
         </form>
@@ -514,4 +428,4 @@ function EditBannerPage() {
   );
 }
 
-export default EditBannerPage
+export default EditBannerPage;

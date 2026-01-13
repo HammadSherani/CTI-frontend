@@ -151,7 +151,7 @@ function LowerHeader() {
     { label: "Repairmans", icon: "mdi:map-marker", path: "/repairmans", isVisible: true },
     { label: "Refurbished Products", icon: "mdi:store", path: "/repair-shops", isVisible: true },
     { label: "New Products", icon: "mdi:flash", path: "/quick-service", badge: "New", isVisible: true },
-    { label: "Academy", icon: "mdi:tag", path: "/deals", isVisible: true },
+    { label: "Academy", icon: "mdi:tag", path: "/academy", isVisible: true },
     { label: "Contact Us", icon: "mdi:phone", path: "/contact", isVisible: true },
     { label: "About Us", icon: "mdi:account-group-outline", path: "/about-us", isVisible: true },
   ];

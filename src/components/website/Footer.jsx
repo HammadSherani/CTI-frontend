@@ -1,40 +1,252 @@
 'use client';
 
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { Icon } from '@iconify/react';
-import { useState, useEffect } from 'react';
 
-const tags = [
-  'iPhone 16', 'iPhone 16 Plus', 'iPhone 16 Pro', 'iPhone 16 Pro Max', 'iPhone 16e', 'Dyson Süpürge', 'Stanley Termos', 'Koltuk Takımı', 'Kurutma Makinesi', 'Playstation 5',
-  'Kuzine Soba', 'Aura Cleanmax', 'Arçelik Bulaşık Makinesi', 'Pandora', 'Zara', 'Sweatshirt', 'Philips Airfryer', 'Decathlon', 'IKEA', 'Siemens Bulaşık Makinesi', 'Gant',
-  'Under Armour', 'iPhone 15', 'Baget Yüzük', 'Adidas Samba', 'Makyaj Seti', 'Bargello', 'Cep Telefonu', 'UGG', 'Nike Air Force',
+
+
+const popularBrands = [
+  ['Watsons', 'Stradivarius', 'Puma', 'Apple', 'Birkenstock', 'Nivea'],
+  ['Samsung', 'New Balance', 'Arçelik', 'Skechers', 'Mavi'],
+  ['Bershka', 'Dyson', 'Koton', 'IKEA', 'Karaca'],
+  ['MacBook', 'iPhone 16', 'iPhone 15 Pro Max', 'Apple Watch'],
+  ['Nike Air Max', 'Dyson Airwrap', 'Coffee World'],
+  ['Rolex', 'Lacoste', 'Apple AirPods', 'Network'],
 ];
 
-export function InterestTags() {
+const footerLinks = {
+  about: [
+    { text: 'Who We Are', href: '#' },
+    { text: 'Careers', href: '#' },
+    { text: 'Sustainability', href: '#' },
+    { text: 'Contact', href: '#' },
+    { text: 'Security at CTI', href: '#' },
+    { text: 'Product Recall', href: '#' },
+  ],
+  campaigns: [
+    { text: 'Campaigns', href: '#' },
+    { text: 'Shopping Credit', href: '#' },
+    { text: 'Elite Membership', href: '#' },
+    { text: 'Gift Ideas', href: '#' },
+  ],
+  seller: [
+    { text: 'Sell on CTI', href: '#' },
+    { text: 'Basic Concepts', href: '#' },
+    { text: 'CTI Academy', href: '/academy' },
+  ],
+  help: [
+    { text: 'Frequently Asked Questions', href: '#' },
+    { text: 'Live Support / Assistant', href: '#' },
+    { text: 'How to Return', href: '#' },
+    { text: 'Transaction Guide', href: '#' },
+  ],
+};
+
+const subFooterLinks = [
+  { text: 'Cookie Preferences', href: '#' },
+  { text: 'Privacy Policy', href: '#' },
+  { text: 'DSM Group', href: '#' }, // Company page if available
+  { text: 'Terms of Use', href: '#' },
+];
+
+/* =======================
+   SCROLL TO TOP
+======================= */
+
+const ScrollToTopButton = () => {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const toggleVisibility = () =>
+      setIsVisible(window.pageYOffset > 300);
+
+    window.addEventListener('scroll', toggleVisibility);
+    return () =>
+      window.removeEventListener('scroll', toggleVisibility);
+  }, []);
+
   return (
-    <div className="py-8">
-      <div className="max-w-7xl mx-auto">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">Bunlar da İlginizi Çekebilir</h2>
-        <div className="flex flex-wrap gap-3">
-          {tags.map((tag, index) => (
-            <a
-              key={index}
-              href="#"
-              className="px-4 py-2 bg-white text-gray-700 rounded-full border border-slate-200 text-sm hover:bg-gray-200 transition-colors"
-            >
-              {tag}
-            </a>
-          ))}
-        </div>
-      </div>
-    </div>
+    <button
+      onClick={() =>
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+      }
+      className={`${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      } fixed bottom-8 right-8 z-50 bg-orange-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-opacity`}
+    >
+      <Icon icon="mdi:chevron-up" className="w-6 h-6" />
+    </button>
   );
 };
 
+/* =======================
+   BRANDS
+======================= */
 
+export const Brands = () => (
+  <div className="max-w-7xl mx-auto py-8">
+    <h2 className="text-xl font-semibold text-gray-800 mb-6">
+      Popular Brands & Stores
+    </h2>
+    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 text-sm text-gray-600">
+      {popularBrands.map((col, i) => (
+        <div key={i} className="space-y-2">
+          {col.map((brand, j) => {
+            const searchQuery = encodeURIComponent(brand);
+            return (
+              <Link
+                key={j}
+                href={`/sr?q=${searchQuery}`}
+                className="block hover:underline"
+              >
+                {brand}
+              </Link>
+            );
+          })}
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
+/* =======================
+   FOOTER
+======================= */
 
+export function BottomFooter() {
+  return (
+    <>
+      <footer className="bg-white border-t border-gray-200">
+        <div className="bg-gray-50 border-t border-gray-200">
+          <div className="max-w-7xl mx-auto py-10">
 
+            {/* Top Footer */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
+
+              {/* Logo */}
+              <div className="space-y-4">
+                <Image src="/assets/logo/logo.png" alt="Logo" width={128} height={32} />
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {footerLinks.about.map(({ text, href }) => (
+                    <li key={text}>
+                      <Link href={href} className="hover:underline">
+                        {text}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Campaigns */}
+              <FooterColumn title="Campaigns" links={footerLinks.campaigns} />
+
+              {/* Seller */}
+              <FooterColumn title="Seller" links={footerLinks.seller} />
+
+              <FooterColumn title="Help" links={footerLinks.help} />
+
+              {/* Social */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-800">
+                  Change Country
+                </h3>
+                <select className="w-full p-2 border rounded-md text-sm">
+                  <option>Select Country</option>
+                </select>
+
+                <h3 className="font-semibold text-gray-800 pt-4">
+                  Social Media
+                </h3>
+                <div className="flex gap-4 text-gray-600">
+                  <SocialIcon icon="mdi:facebook" href="#" />
+                  <SocialIcon icon="mdi:instagram" href="#" />
+                  <SocialIcon icon="mdi:youtube" href="#" />
+                  <SocialIcon icon="pajamas:x" href="#" />
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-10 mt-10 border-t">
+
+              <FooterImage
+                title="Security Certificates"
+                images={['footer1.png', 'footer2.png', 'footer3.png', 'footer4.png']}
+              />
+
+              <FooterImage
+                title="Secure Shopping"
+                images={['footer.png']}
+                large
+              />
+
+              <AppLinks />
+            </div>
+          </div>
+        </div>
+
+        {/* Sub Footer */}
+        <div className="bg-gray-800 text-gray-400 text-sm">
+          <div className="max-w-7xl mx-auto py-3 flex flex-col md:flex-row justify-between items-center">
+            <p>
+              ©2025 DSM Group Consulting Communication and Sales Trade Inc.
+              All Rights Reserved.
+            </p>
+            <div className="flex gap-4 mt-2 md:mt-0">
+              {subFooterLinks.map(({ text, href }) => (
+                <Link key={text} href={href} className="hover:text-white">
+                  {text}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      <ScrollToTopButton />
+    </>
+  );
+}
+
+const FooterColumn = ({ title, links }) => (
+  <div className="space-y-4">
+    <h3 className="font-semibold text-gray-800">{title}</h3>
+    <ul className="space-y-2 text-sm text-gray-600">
+      {links.map(({ text, href }) => (
+        <li key={text}>
+          <Link href={href} className="hover:underline">
+            {text}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  </div>
+);
+
+const SocialIcon = ({ icon, href }) => (
+  <Link href={href} target="_blank" rel="noopener noreferrer">
+    <Icon icon={icon} className="w-6 h-6" />
+  </Link>
+);
+
+const FooterImage = ({ title, images, large }) => (
+  <div className="space-y-3">
+    <h3 className="font-semibold text-gray-800">{title}</h3>
+    <div className="flex gap-2">
+      {images.map(img => (
+        <Image
+          key={img}
+          src={`/assets/logo/${img}`}
+          alt={title}
+          width={large ? 160 : 32}
+          height={large ? 100 : 30}
+        />
+      ))}
+    </div>
+  </div>
+);
 
 export function ContentSection() {
   return (
@@ -56,212 +268,44 @@ export function ContentSection() {
   );
 };
 
-
-// Data for Links
-const popularBrands = [
-  ['Watsons', 'Stradivarius', 'Queenna', 'Puma', 'Apple', 'Birkenstock', 'Nivea', 'Madame Coco', 'Defacto', 'TeknoSA', 'Bosch'],
-  ['English Home', 'The North Face', 'Samsung', 'New Balance', 'Oppo', 'Arçelik', 'Skechers', 'Penti & Bear', 'Mavi', 'Farmasi', 'Cat'],
-  ['Bershka', 'Baymen', 'Lumberjack', 'Denimood', 'Huawei', 'Dyson', 'Popüler Sayfalar', 'Koton', 'Helly Hansen', 'Karaca', 'Trendyol Japan'],
-  ['primarytooth Kulaklık', 'MacBook', 'iPhone 15', 'iPhone 16 Pro Max', 'iPhone 16', 'MacBook', 'Trendyol Greek', 'Trendyol English', 'Trendyol Deutsch', 'Trendyol Turkish'],
-  ['iPhone', 'Nike Air Max', 'iPhone 15 Pro', 'Bulak Mağazası', 'Kahve Dünyası', 'Dyson Airwrap', 'Trendyol Romania', 'Trendyol Hungary', 'Trendyol Poland', 'Trendyol Arabic'],
-  ['Samsung Cep Telefonu', 'Rolex Süper', 'Rolex İkonik', 'iPhone 15 Pro Max', 'Apple Watch Series 9', 'Lacoste', 'Apple AirPods', 'Trendyol Czech', 'Trendyol Ukraine', 'Network']
-];
-
-const footerLinks = {
-  about: ['Biz Kimiz', 'Kariyer', 'Sürdürülebilirlik', 'İletişim', 'Trendyol\'da Güvenlik', 'Ürün Geri Çağırma'],
-  campaigns: ['Kampanyalar', 'Alışveriş Kredisi', 'Elite Üyelik', 'Hediye Fikirleri'],
-  seller: ['Trendyol\'da Satış Yap', 'Temel Kavramlar', 'Trendyol Akademi'],
-  help: ['Sıkça Sorulan Sorular', 'Canlı Yardım / Asistan', 'Nasıl İade Edebilirim', 'İşlem Rehberi'],
-};
-
-const subFooterLinks = ['Çerez Tercihleri', 'KVKK ve Gizlilik Politikası', 'DSM Grup', 'Kullanım Koşulları'];
-
-// ScrollToTopButton Component
-const ScrollToTopButton = () => {
-  const [isVisible, setIsVisible] = useState(false);
-
-  useEffect(() => {
-    const toggleVisibility = () => {
-      if (window.pageYOffset > 300) {
-        setIsVisible(true);
-      } else {
-        setIsVisible(false);
-      }
-    };
-
-    window.addEventListener('scroll', toggleVisibility);
-
-    return () => window.removeEventListener('scroll', toggleVisibility);
-  }, []);
-
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth',
-    });
-  };
-
-  return (
-    <button
-      onClick={scrollToTop}
-      className={`${isVisible ? 'opacity-100' : 'opacity-0'
-        } fixed bottom-8 right-8 z-50 bg-orange-500 text-white rounded-full w-10 h-10 flex items-center justify-center shadow-lg transition-opacity duration-300`}
-    >
-      <Icon icon="mdi:chevron-up" className="w-6 h-6" />
-    </button>
-  );
-};
-
-
-export const Brands = () => {
-  return (
-    <div className="max-w-7xl mx-auto py-8">
-      <h2 className="text-xl font-semibold text-gray-800 mb-6">Popüler Marka ve Mağazalar</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-x-4 gap-y-2 text-sm text-gray-600">
-        {popularBrands.map((col, colIndex) => (
-          <div key={colIndex} className="space-y-3">
-            {col.map((link, linkIndex) => (
-              <a key={linkIndex} href="#" className="block hover:underline">{link}</a>
-            ))}
-          </div>
-        ))}
-      </div>
+const AppLinks = () => (
+  <div className="space-y-3">
+    <h3 className="font-semibold text-gray-800">
+      Mobile Applications
+    </h3>
+    <div className="flex flex-wrap gap-3">
+      <StoreButton 
+        img="foot3.png" 
+        title="App Store" 
+        subtitle="Download on the" 
+        href="#"
+      />
+      <StoreButton 
+        img="foot2.png" 
+        title="Google Play" 
+        subtitle="Get it on" 
+        href="#"
+      />
+      <StoreButton 
+        img="foot1.png" 
+        title="AppGallery" 
+        subtitle="Discover on" 
+        href="#"
+      />
     </div>
-  )
-}
+  </div>
+);
 
-// Main Footer Component
-export function BottomFooter() {
-  return (
-    <>
-      <footer className="bg-white border-t border-gray-200">
-        {/* Popular Brands Section */}
-
-
-        <div className="bg-gray-50 border-t border-gray-200">
-          <div className="max-w-7xl mx-auto py-10">
-            {/* Main Footer Links */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-8">
-              {/* Column 1 */}
-              <div className="space-y-4">
-                <Image src="/assets/logo/logo.png" alt="Logo" width={128} height={32} />
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {footerLinks.about.map(link => <li key={link}><a href="#" className="hover:underline">{link}</a></li>)}
-                </ul>
-              </div>
-              {/* Column 2 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">Kampanyalar</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {footerLinks.campaigns.map(link => <li key={link}><a href="#" className="hover:underline">{link}</a></li>)}
-                </ul>
-              </div>
-              {/* Column 3 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">Satıcı</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {footerLinks.seller.map(link => <li key={link}><a href="#" className="hover:underline">{link}</a></li>)}
-                </ul>
-              </div>
-              {/* Column 4 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">Yardım</h3>
-                <ul className="space-y-2 text-sm text-gray-600">
-                  {footerLinks.help.map(link => <li key={link}><a href="#" className="hover:underline">{link}</a></li>)}
-                </ul>
-              </div>
-              {/* Column 5 */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-800">Ülke Değiştir</h3>
-                <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
-                  <option>Ülke Seç</option>
-                </select>
-                <h3 className="font-semibold text-gray-800 pt-4">Sosyal Medya</h3>
-                <div className="flex space-x-4 text-gray-600">
-                  <a href="#" aria-label="Facebook"><Icon icon="mdi:facebook" className="w-6 h-6" /></a>
-                  <a href="#" aria-label="Instagram"><Icon icon="mdi:instagram" className="w-6 h-6" /></a>
-                  <a href="#" aria-label="YouTube"><Icon icon="mdi:youtube" className="w-6 h-6" /></a>
-                  <a href="#" aria-label="X"><Icon icon="pajamas:x" className="w-5 h-5" /></a>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Row with App Links */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pt-10 mt-10 border-t border-gray-200">
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-800">Güvenlik Sertifikası</h3>
-                <div className="flex space-x-2">
-                  <Image src="/assets/logo/footer1.png" alt="Security Certificate" width={32} height={30} />
-                  <Image src="/assets/logo/footer2.png" alt="Security Certificate" width={32} height={30} />
-                  <Image src="/assets/logo/footer3.png" alt="Security Certificate" width={32} height={30} />
-                  <Image src="/assets/logo/footer4.png" alt="Security Certificate" width={32} height={30} />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-800">Güvenli Alışveriş</h3>
-                <div className="flex space-x-2">
-                  <Image src="/assets/logo/footer.png" alt="Secure Shopping" width={160} height={100} />
-                </div>
-              </div>
-              <div className="space-y-3">
-                <h3 className="font-semibold text-gray-800">Mobil Uygulamalar</h3>
-                <div className="flex flex-wrap gap-3">
-                  <a href="#" className="flex items-center gap-3 bg-gray-900 text-white p-2 rounded-lg">
-                    <Image src="/assets/logo/foot3.png" alt="App Store" width={24} height={24} />
-                    <div>
-                      <p className="text-xs">App Store'dan</p>
-                      <p className="text-sm font-semibold">indirin</p>
-                    </div>
-                  </a>
-                  <a href="#" className="flex items-center gap-3 bg-gray-900 text-white p-2 rounded-lg">
-                    <Image src="/assets/logo/foot2.png" alt="Google Play" width={24} height={24} />
-                    <div>
-                      <p className="text-xs">Google Play</p>
-                      <p className="text-sm font-semibold">'DEN ALIN</p>
-                    </div>
-                  </a>
-                  <a href="#" className="flex items-center gap-3 bg-gray-900 text-white p-2 rounded-lg">
-                    <Image src="/assets/logo/foot1.png" alt="AppGallery" width={24} height={24} />
-                    <div>
-                      <p className="text-xs">AppGallery</p>
-                      <p className="text-sm font-semibold">ile KESFEDIN</p>
-                    </div>
-                  </a>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Sub-Footer */}
-        <div className="bg-gray-800 text-gray-400 text-sm">
-          <div className="max-w-7xl mx-auto py-3 flex flex-col md:flex-row justify-between items-center">
-            <p>©2025 DSM Grup Danimanlik Iletiim ve Sati Tic. A.S. Her Hakki Saklidir.</p>
-            <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 mt-2 md:mt-0">
-              {subFooterLinks.map(link => <a key={link} href="#" className="hover:text-white">{link}</a>)}
-            </div>
-          </div>
-        </div>
-      </footer>
-      <ScrollToTopButton />
-    </>
-  );
-};
-
-import React from 'react'
-
-function Footer() {
-  return (
+const StoreButton = ({ img, title, subtitle, href }) => (
+  <Link href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-900 text-white p-2 rounded-lg">
+    <Image src={`/assets/logo/${img}`} alt={title} width={24} height={24} />
     <div>
-      {/* <InterestTags /> */}
-      {/* <ContentSection /> */}
-      <BottomFooter />
+      <p className="text-xs">{subtitle}</p>
+      <p className="text-sm font-semibold">{title}</p>
     </div>
-  )
+  </Link>
+);
+
+export default function Footer() {
+  return <BottomFooter />;
 }
-
-export default Footer
-
-
-
-

@@ -10,7 +10,7 @@ import PromotionalBanners from '@/components/website/home/promotionsBanner'
 import OurPartners from '@/components/website/home/ourPartners'
 import OurProcess from '@/components/website/home/ourProcess'
 import BottomPromoImages from '@/components/website/home/bottomPromoImages'
-import { Brands, ContentSection, InterestTags } from '@/components/website/Footer'
+import {  ContentSection } from '@/components/website/Footer'
 import Loader from '@/components/Loader';
 import FilterBar from '@/components/website/FilterBar';
 import OurServices from '@/components/website/home/ourServices';

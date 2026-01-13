@@ -110,6 +110,11 @@ function AdminBannersPage() {
         });
     };
 
+    const truncateText = (text, maxLength = 50) => {
+        if (!text || text.length <= maxLength) return text;
+        return text.substring(0, maxLength) + '...';
+    };
+
     const renderPagination = () => {
         if (pagination.totalPages <= 1) return null;
 
@@ -248,7 +253,7 @@ function AdminBannersPage() {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Search by CTA text..."
+                                    placeholder="Search by title or label..."
                                     value={searchTerm}
                                     onChange={(e) => {
                                         setSearchTerm(e.target.value);
@@ -311,13 +316,13 @@ function AdminBannersPage() {
                                                 Image
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                CTA Text
+                                                Label
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                CTA Link
+                                                Title
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Duration
+                                                Description
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
@@ -335,7 +340,7 @@ function AdminBannersPage() {
                                                         {banner.image ? (
                                                             <img 
                                                                 src={banner.image} 
-                                                                alt={banner.ctaText || 'Banner'}
+                                                                alt={banner.title || 'Banner'}
                                                                 className="w-full h-full object-cover"
                                                                 onError={(e) => {
                                                                     e.target.style.display = 'none';
@@ -356,38 +361,17 @@ function AdminBannersPage() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-medium text-gray-900">
-                                                        {banner.ctaText || 'No CTA Text'}
+                                                        {banner.label || 'No Label'}
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-4">
+                                                    <div className="text-sm font-medium text-gray-900">
+                                                        {banner.title || 'No Title'}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm text-gray-500">
-                                                        {banner.ctaLink ? (
-                                                            <a 
-                                                                href={banner.ctaLink} 
-                                                                target="_blank" 
-                                                                rel="noopener noreferrer"
-                                                                className="text-primary-600 hover:text-primary-900 flex items-center"
-                                                            >
-                                                                <span className="truncate max-w-xs">
-                                                                    {banner.ctaLink}
-                                                                </span>
-                                                                <Icon icon="mdi:open-in-new" className="w-4 h-4 ml-1" />
-                                                            </a>
-                                                        ) : (
-                                                            'No Link'
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm text-gray-900">
-                                                        <div className="flex items-center text-xs text-gray-500">
-                                                            <Icon icon="mdi:calendar-start" className="w-4 h-4 mr-1" />
-                                                            {formatDate(banner.startDate)}
-                                                        </div>
-                                                        <div className="flex items-center text-xs text-gray-500 mt-1">
-                                                            <Icon icon="mdi:calendar-end" className="w-4 h-4 mr-1" />
-                                                            {formatDate(banner.endDate)}
-                                                        </div>
+                                                        {truncateText(banner.description) || 'No Description'}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">

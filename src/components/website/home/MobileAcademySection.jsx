@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 function FreelancerSupportAcademySection() {
     return (
         <section className="relative bg-primary-50/70 py-24 px-6 overflow-hidden">
@@ -29,7 +31,7 @@ function FreelancerSupportAcademySection() {
                 {/* CTA Buttons */}
                 <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
                     <button className="group cursor-pointer relative bg-primary-500 text-white font-semibold px-8 py-4 rounded-md  hover:shadow-primary-600/50 transition-all duration-300 hover:scale-105">
-                        <span className="relative z-10">Try CTI Academy</span>
+                        <Link href={'/academy'} className="relative z-10">Try CTI Academy</Link>
                         {/* <div className="absolute inset-0 bg-gradient-to-r from-primary-600 to-primary-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl"></div> */}
                     </button>
 

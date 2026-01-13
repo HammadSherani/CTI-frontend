@@ -10,7 +10,6 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 
-// Validation schema - Only image is required, no validation for optional fields
 const bannerSchema = yup.object().shape({
   image: yup
     .mixed()
@@ -23,9 +22,25 @@ const bannerSchema = yup.object().shape({
     .test('fileSize', 'Image size must be less than 2MB', (value) => {
       if (!value || value.length === 0) return false;
       const file = value[0];
-      return file && file.size <= 2 * 1024 * 1024; // 2MB
+      return file && file.size <= 2 * 1024 * 1024;
     }),
+
+  label: yup
+    .string()
+    .trim()
+    .optional(),
+
+  title: yup
+    .string()
+    .trim()
+    .required('Title is required'),
+
+  description: yup
+    .string()
+    .trim()
+    .optional(),
 });
+
 
 function CreateBanner() {
   const [submitError, setSubmitError] = useState('');
@@ -50,6 +65,9 @@ function CreateBanner() {
       startDate: '',
       endDate: '',
       image: null,
+      label: '',
+      title: '',
+      description: '',
     },
   });
 
@@ -85,52 +103,60 @@ function CreateBanner() {
 
   const onSubmit = async (data) => {
     try {
+      // Reset messages and progress
       setSubmitError('');
       setSubmitSuccess('');
       setUploadProgress(0);
 
-      // Create FormData for file upload
+      // Create FormData
       const formData = new FormData();
-      
-      // Only append fields if they have values
-      if (data.ctaText) formData.append('ctaText', data.ctaText);
-      if (data.ctaLink) formData.append('ctaLink', data.ctaLink);
-      if (data.startDate) formData.append('startDate', data.startDate);
-      if (data.endDate) formData.append('endDate', data.endDate);
 
-      // Add image (required)
-      if (data.image && data.image.length > 0) {
+      // Append text fields (title is required; others optional)
+      formData.append('title', data.title || '');  // Always append (required)
+      formData.append('label', data.label || '');  // Optional
+      formData.append('description', data.description || '');  // Optional
+
+      // Append optional CTA/date fields
+      ['ctaText', 'ctaLink', 'startDate', 'endDate'].forEach((field) => {
+        if (data[field]) formData.append(field, data[field]);
+      });
+
+      // Append image (required)
+      if (data.image?.length > 0) {
         formData.append('image', data.image[0]);
+      } else {
+        throw new Error('Please select an image to upload.');
       }
 
-      // Make API call with progress tracking
+      // API call with progress
       const response = await axiosInstance.post('/admin/banners', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
         },
         onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          const progress = Math.round(
+            (progressEvent.loaded * 100) / progressEvent.total
+          );
           setUploadProgress(progress);
         },
       });
 
-      // Handle successful request
-      toast.success(response.data.message || 'Banner created successfully!');
-      setSubmitSuccess('Banner created successfully!');
+      // Success
+      const successMessage = response.data?.message || 'Banner created successfully!';
+      setSubmitSuccess(successMessage);
+      toast.success(successMessage);
 
       // Reset form and preview
       reset();
       setImagePreview(null);
       setUploadProgress(0);
 
-      // Clear success message after 5 seconds
+      // Clear success message after 5s
       setTimeout(() => setSubmitSuccess(''), 5000);
 
-      // Navigate back to banner list after 2 seconds
-      setTimeout(() => {
-        router.push('/admin/banners');
-      }, 2000);
+      // Navigate to banner list after 2s
+      setTimeout(() => router.push('/admin/banners'), 2000);
     } catch (error) {
       console.error('Error creating banner:', error);
       setUploadProgress(0);
@@ -141,6 +167,7 @@ function CreateBanner() {
       toast.error(errorMessage);
     }
   };
+
 
   const handleCancel = () => {
     reset();
@@ -160,13 +187,11 @@ function CreateBanner() {
     }
   };
 
-  // Get today's date in YYYY-MM-DD format for min date
   const today = new Date().toISOString().split('T')[0];
 
   return (
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -186,7 +211,6 @@ function CreateBanner() {
           </div>
         </div>
 
-        {/* Success/Error Messages */}
         {submitSuccess && (
           <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
             <div className="flex items-center">
@@ -205,11 +229,9 @@ function CreateBanner() {
           </div>
         )}
 
-        {/* Create Form */}
         <form onSubmit={handleSubmit(onSubmit)}>
           <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="space-y-6">
-              {/* Banner Image Upload */}
+            <div className="mb-4 space-y-6">
               <div>
                 <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
                   Banner Image *
@@ -219,7 +241,6 @@ function CreateBanner() {
                   Recommended dimensions: 1920x600px for best results.
                 </p>
 
-                {/* File Input */}
                 <div className="space-y-4">
                   <input
                     type="file"
@@ -243,7 +264,6 @@ function CreateBanner() {
                     </p>
                   )}
 
-                  {/* Upload Progress */}
                   {uploadProgress > 0 && uploadProgress < 100 && (
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
@@ -254,7 +274,6 @@ function CreateBanner() {
                     </div>
                   )}
 
-                  {/* Image Preview */}
                   {imagePreview && (
                     <div className="relative inline-block w-full">
                       <div className="border-2 border-dashed border-gray-300 rounded-lg p-4">
@@ -276,7 +295,6 @@ function CreateBanner() {
                     </div>
                   )}
 
-                  {/* Upload Area when no image */}
                   {!imagePreview && (
                     <div className="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center hover:border-primary-400 transition-colors">
                       <Icon icon="mdi:cloud-upload" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
@@ -291,137 +309,9 @@ function CreateBanner() {
                 </div>
               </div>
 
-              {/* CTA Text - COMMENTED */}
-              {/* <div>
-                <label htmlFor="ctaText" className="block text-sm font-medium text-gray-700 mb-2">
-                  Call-to-Action Text
-                </label>
-                <input
-                  id="ctaText"
-                  type="text"
-                  {...register('ctaText')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.ctaText ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="e.g., Shop Now, Learn More, Get Started"
-                  aria-invalid={errors.ctaText ? 'true' : 'false'}
-                />
-                {errors.ctaText && (
-                  <p className="mt-1 text-sm text-red-600" role="alert">
-                    {errors.ctaText.message}
-                  </p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  This text will appear on the banner button
-                </p>
-              </div> */}
 
-              {/* CTA Link - COMMENTED */}
-              {/* <div>
-                <label htmlFor="ctaLink" className="block text-sm font-medium text-gray-700 mb-2">
-                  Call-to-Action Link
-                </label>
-                <input
-                  id="ctaLink"
-                  type="url"
-                  {...register('ctaLink')}
-                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.ctaLink ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="https://example.com/your-page"
-                  aria-invalid={errors.ctaLink ? 'true' : 'false'}
-                />
-                {errors.ctaLink && (
-                  <p className="mt-1 text-sm text-red-600" role="alert">
-                    {errors.ctaLink.message}
-                  </p>
-                )}
-                <p className="mt-1 text-sm text-gray-500">
-                  Where users will be redirected when they click the banner
-                </p>
-              </div> */}
 
-              {/* Date Range - COMMENTED */}
-              {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="startDate"
-                      type="date"
-                      {...register('startDate')}
-                      min={today}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        errors.startDate ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      aria-invalid={errors.startDate ? 'true' : 'false'}
-                    />
-                    <Icon 
-                      icon="mdi:calendar" 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
-                    />
-                  </div>
-                  {errors.startDate && (
-                    <p className="mt-1 text-sm text-red-600" role="alert">
-                      {errors.startDate.message}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-gray-500">
-                    When the banner should start showing
-                  </p>
-                </div>
-
-                <div>
-                  <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-2">
-                    End Date
-                  </label>
-                  <div className="relative">
-                    <input
-                      id="endDate"
-                      type="date"
-                      {...register('endDate')}
-                      min={today}
-                      className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                        errors.endDate ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                      aria-invalid={errors.endDate ? 'true' : 'false'}
-                    />
-                    <Icon 
-                      icon="mdi:calendar" 
-                      className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" 
-                    />
-                  </div>
-                  {errors.endDate && (
-                    <p className="mt-1 text-sm text-red-600" role="alert">
-                      {errors.endDate.message}
-                    </p>
-                  )}
-                  <p className="mt-1 text-sm text-gray-500">
-                    When the banner should stop showing
-                  </p>
-                </div>
-              </div> */}
-
-              {/* Info Box - COMMENTED */}
-              {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <div className="flex items-start">
-                  <Icon icon="mdi:information" className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
-                  <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Banner Display Guidelines:</p>
-                    <ul className="list-disc list-inside space-y-1 text-blue-700">
-                      <li>The banner will be automatically displayed between the start and end dates</li>
-                      <li>You can activate/deactivate the banner manually from the banners list</li>
-                      <li>Make sure your image is optimized for web to ensure fast loading</li>
-                      <li>Use high-quality images for better visual appeal</li>
-                    </ul>
-                  </div>
-                </div>
-              </div> */}
-
-              {/* Submit Buttons */}
-              <div className="flex justify-end gap-3 pt-6 border-t">
+              {/* <div className="flex justify-end gap-3 pt-6 border-t">
                 <button
                   type="button"
                   onClick={handleCancel}
@@ -440,7 +330,77 @@ function CreateBanner() {
                   {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
                   {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Create Banner'}
                 </button>
+              </div> */}
+            </div>
+
+            <div className="space-y-4">
+
+              {/* Label */}
+              <div>
+                <label htmlFor="label" className="block text-sm font-medium text-gray-700 mb-1">
+                  Label
+                </label>
+                <input
+                  type="text"
+                  id="label"
+                  {...register('label')}
+                  placeholder="Optional label (e.g., New Arrival)"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                />
               </div>
+
+              {/* Title */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  {...register('title')}
+                  placeholder="Banner title"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                />
+                {errors.title && (
+                  <p className="text-sm text-red-600 mt-1">{errors.title.message}</p>
+                )}
+              </div>
+
+              {/* Description */}
+              <div className='mb-4'>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  {...register('description')}
+                  placeholder="Optional banner description"
+                  className="block w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-primary-600"
+                  rows={3}
+                ></textarea>
+              </div>
+
+            </div>
+
+            <div className="flex justify-end gap-3 pt-6 border-t">
+              <button
+                type="button"
+                onClick={handleCancel}
+                disabled={isSubmitting}
+                className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                aria-label="Cancel banner creation"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting || uploadProgress > 0 || !isValid}
+                className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                aria-label="Create banner"
+              >
+                {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
+                {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Create Banner'}
+              </button>
             </div>
           </div>
         </form>
