@@ -453,8 +453,8 @@ const MyJobsPage = () => {
             <div className="border-b border-gray-200">
               <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
                 {[
-                  { id: 'open', label: 'Open Jobs', count: tabCounts.open },
-                  { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
+                  // { id: 'open', label: 'Open Jobs', count: tabCounts.open },
+                  // { id: 'completed', label: 'Completed Jobs', count: tabCounts.completed },
                 ].map((tab) => (
                   <button
                     key={tab.id}

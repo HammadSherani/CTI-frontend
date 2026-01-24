@@ -34,7 +34,7 @@ const footerLinks = {
   seller: [
     { text: 'Sell on CTI', href: '#' },
     { text: 'Basic Concepts', href: '#' },
-    { text: 'CTI Academy', href: '/academy' },
+    { text: 'CTI Academy', href: '/academy', target: '_blank' },
   ],
   help: [
     { text: 'Frequently Asked Questions', href: '#' },
@@ -214,9 +214,9 @@ const FooterColumn = ({ title, links }) => (
   <div className="space-y-4">
     <h3 className="font-semibold text-gray-800">{title}</h3>
     <ul className="space-y-2 text-sm text-gray-600">
-      {links.map(({ text, href }) => (
+      {links.map(({ text, href, target }) => (
         <li key={text}>
-          <Link href={href} className="hover:underline">
+          <Link href={href} className="hover:underline" target={target}>
             {text}
           </Link>
         </li>

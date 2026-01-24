@@ -1,11 +1,11 @@
 import React from 'react'
 
-function Academy() {
+function page() {
   return (
     <div>
-      Academy
+      academy page
     </div>
   )
 }
 
-export default Academy
+export default page
