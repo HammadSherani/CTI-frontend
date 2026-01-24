@@ -228,9 +228,9 @@ function Testimonials() {
 
         .swiper-button-next:hover,
         .swiper-button-prev:hover {
-          background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
+          background: linear-gradient(135deg, #d6811a 0%, #e08414 100%);
           color: white !important;
-          box-shadow: 0 8px 20px rgba(13, 148, 136, 0.3);
+          box-shadow: 0 8px 20px rgba(204, 132, 16, 0.3);
           transform: scale(1.05);
         }
       `}</style>
