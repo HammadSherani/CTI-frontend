@@ -274,68 +274,55 @@ function TopRepairman() {
         >
           {repairmen.map((repairman) => (
             <SwiperSlide key={repairman.id}>
-              <motion.div 
-                className='bg-white rounded-xl overflow-hidden transition-shadow duration-300 border border-gray-100'
+              <motion.div
+                className='bg-white rounded-2xl overflow-hidden transition-shadow transform hover:-translate-y-1 hover:shadow-xl border border-gray-100'
                 variants={cardVariants}
               >
-                <div className='relative h-52 w-full object-contain p-2 '>
-                  <motion.img
+                <div className='relative h-52 w-full bg-gray-100'>
+                  <img
                     src={repairman.image}
                     alt={repairman.name}
-                    className='w-full h-full rounded-md '
-                    // whileHover={{ scale: 1.02 }}
+                    className='w-full h-full object-cover'
                   />
-                  <div className='absolute top-4 right-4 bg-yellow-400 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-1'>
-                    <span>⭐</span>
-                    <span>{repairman.rating}</span>
+
+                  {/* Rating badge */}
+                  <div className='absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 shadow'>
+                    <svg className='w-4 h-4' viewBox='0 0 20 20' fill='currentColor'>
+                      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
+                    </svg>
+                    <span className='text-sm font-medium'>{repairman.rating}</span>
+                  </div>
+
+                  {/* Avatar overlapping image */}
+                  <div className='absolute -bottom-6 left-6 border-4 border-white rounded-full w-16 h-16 overflow-hidden shadow-lg'>
+                    <img src={repairman.image} alt={repairman.name} className='w-full h-full object-cover' />
                   </div>
                 </div>
 
-                <div className='p-6'>
-                  <motion.h3 
-                    className='text-xl font-bold text-gray-800 mb-2'
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
-                  >
-                    {repairman.name}
-                  </motion.h3>
-                  
-                  <motion.p 
-                    className='text-primary-600 font-semibold mb-3'
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.2 }}
-                  >
-                    {repairman.specialty}
-                  </motion.p>
+                <div className='p-6 pt-8'>
+                  <div className='flex items-center justify-between mb-2'>
+                    <div>
+                      <h3 className='text-lg font-semibold text-gray-900'>{repairman.name}</h3>
+                      <p className='text-sm text-primary-600 font-medium'>{repairman.specialty}</p>
+                    </div>
+                    <div className='text-right'>
+                      <p className='text-sm text-gray-500'>{repairman.reviews} reviews</p>
+                      <p className='text-xs text-gray-400'>{repairman.experience}</p>
+                    </div>
+                  </div>
 
-                  <motion.div 
-                    className='flex items-center justify-between text-sm text-gray-600 mb-4'
-                    whileInView={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.4, delay: 0.3 }}
-                  >
-                    <span className='flex items-center gap-1'>
-                      <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-                        <path d='M10 12a2 2 0 100-4 2 2 0 000 4z'/>
-                        <path fillRule='evenodd' d='M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z' clipRule='evenodd'/>
+                  <div className='flex items-center gap-3 mt-4'>
+                    <button
+                      className='flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-2 rounded-full shadow-md hover:opacity-95 transition'
+                    >
+                      Book Now
+                    </button>
+                    <button className='w-12 h-12 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:shadow-md'>
+                      <svg className='w-5 h-5 text-primary-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 8l7.89 4.26a2 2 0 001.85 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
                       </svg>
-                      {repairman.reviews} reviews
-                    </span>
-                    <span className='flex items-center gap-1'>
-                      <svg className='w-4 h-4' fill='currentColor' viewBox='0 0 20 20'>
-                        <path fillRule='evenodd' d='M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z' clipRule='evenodd'/>
-                      </svg>
-                      {repairman.experience}
-                    </span>
-                  </motion.div>
-
-                  <motion.button 
-                    className='w-full bg-primary-50 hover:bg-primary-100 text-primary-500 font-semibold py-3 rounded-full transition-colors duration-200' /* Changed to rounded-full */
-                    variants={buttonVariants}
-                    whileHover="hover"
-                    whileTap="tap"
-                  >
-                    Book Now
-                  </motion.button>
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             </SwiperSlide>

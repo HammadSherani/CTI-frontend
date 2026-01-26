@@ -9,39 +9,9 @@ import { Navigation, Pagination, Autoplay } from "swiper/modules";
 import "swiper/css";
 import "swiper/css/navigation";
 import "swiper/css/pagination";
+import { useSelector } from "react-redux";
 
-const testimonials = [
-  {
-    name: "Tarun Singh Verma",
-    location: "New Delhi",
-    image: "https://randomuser.me/api/portraits/men/44.jpg",
-    text: "Sold off my phone very easily and got the payment on the spot. Best experience so far.",
-  },
-  {
-    name: "Karan Sharma",
-    location: "Delhi NCR",
-    image: "https://randomuser.me/api/portraits/men/32.jpg",
-    text: "Well trained staff. Overall a positive experience in selling my phone at Cashify.",
-  },
-  {
-    name: "Abhiyash",
-    location: "New Delhi",
-    image: "https://randomuser.me/api/portraits/men/68.jpg",
-    text: "No complaints, sold my phone very easily here. Definitely worth a try.",
-  },
-  {
-    name: "Vinit Kumar",
-    location: "New Delhi",
-    image: "https://randomuser.me/api/portraits/men/62.jpg",
-    text: "Payment was very instant and the whole process was quick. Will recommend it.",
-  },
-  {
-    name: "Vinit Kumar",
-    location: "New Delhi",
-    image: "https://randomuser.me/api/portraits/men/62.jpg",
-    text: "Payment was very instant and the whole process was quick. Will recommend it.",
-  },
-];
+// Testimonials are provided by redux `reviews` (see below). Static demo data removed.
 
 const cardVariants = {
   hidden: { opacity: 0, y: 40, scale: 0.95 },
@@ -53,7 +23,19 @@ const cardVariants = {
   },
 };
 
+
+
 function Testimonials() {
+    const { reviews } = useSelector((state) => state.home || {});
+
+    // derive visible reviews: accept array or single object; show only public + approved
+    const items = React.useMemo(() => {
+      if (!reviews) return [];
+      const list = Array.isArray(reviews) ? reviews : [reviews];
+      return list.filter((r) => r.isPublic !== false && (r.moderationStatus || '').toLowerCase() === 'approved');
+    }, [reviews]);
+
+    console.log(items, 'visible reviews');
   return (
     <section className="relative py-20 md:py-24 bg-primary-400 overflow-hidden">
       <div className="absolute top-20 -left-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
@@ -131,7 +113,7 @@ function Testimonials() {
           navigation={true}
           className="!pb-10 md:!pb-12"
         >
-          {testimonials.map((item, index) => (
+          {items.map((item, index) => (
             <SwiperSlide key={index}>
               <motion.div
                 variants={cardVariants}
@@ -150,19 +132,27 @@ function Testimonials() {
 
                 {/* Review Text */}
                 <p className="text-white/90 mb-6 flex-grow text-sm leading-relaxed font-medium text-center">
-                  "{item.text}"
+                  "{item.reviewText || item.text || ''}"
                 </p>
 
                 {/* Author */}
                 <div className="flex flex-col items-center gap-3 mt-auto">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-12 h-12 rounded-full object-cover border-2 border-primary-400/50"
-                  />
+                  {
+                    (() => {
+                      const name = item.customerName || 'Customer Name';
+                      const avatar = item.customerAvatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0D9488&color=fff`;
+                      return (
+                        <img
+                          src={avatar}
+                          alt={name}
+                          className="w-12 h-12 rounded-full object-cover border-2 border-primary-400/50"
+                        />
+                      );
+                    })()
+                  }
                   <div className="text-center">
-                    <h4 className="font-bold text-white text-sm">{item.name}</h4>
-                    <p className="text-primary-900 text-xs">{item.location}</p>
+                    <h4 className="font-bold text-white text-sm">{item.customerName ||   'Customer Name'}</h4>
+                    <p className="text-primary-900 text-xs">{new Date(item.createdAt || item.updatedAt || Date.now()).toLocaleDateString()}</p>
                   </div>
                 </div>
               </motion.div>

@@ -1,70 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import sellPhone from '../../../../public/assets/services/8.webp'
-import buyGadgets from '../../../../public/assets/services/4.webp'
-import buyPhone from '../../../../public/assets/services/7.webp'
-import buyLaptop from '../../../../public/assets/services/1.webp'
-import repairPhone from '../../../../public/assets/services/6.webp'
-import repairLaptop from '../../../../public/assets/services/2.webp'
-import newPhone from '../../../../public/assets/services/5.webp'
-import newStore from '../../../../public/assets/services/3.webp'
-import newWatched from '../../../../public/assets/services/11.webp'
-import recycle from '../../../../public/assets/services/10.webp'
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
 
 function OurServices() {
-  const services = [
-    {
-      name: 'Sell Phone',
-      image: sellPhone,
-      alt: 'Sell Phone'
-    },
-    {
-      name: 'Buy Gadgets',
-      image: buyGadgets,
-      alt: 'Buy Gadgets'
-    },
-    {
-      name: 'Buy Phone',
-      image: buyPhone,
-      alt: 'Buy Phone'
-    },
-    {
-      name: 'Buy Laptops',
-      image: buyLaptop,
-      alt: 'Buy Laptops'
-    },
-    {
-      name: 'Repair Phone',
-      image: repairPhone,
-      alt: 'Repair Phone'
-    },
-    {
-      name: 'Repair Laptop',
-      image: repairLaptop,
-      alt: 'Repair Laptop'
-    },
-    {
-      name: 'Find New Phone',
-      image: newPhone,
-      alt: 'Find New Phone'
-    },
-    {
-      name: 'Nearby Stores',
-      image: newStore,
-      alt: 'Nearby Stores'
-    },
-    {
-      name: 'Buy Smartwatches',
-      image: newWatched,
-      alt: 'Buy Smartwatches'
-    },
-    {
-      name: 'Recycle',
-      image: recycle,
-      alt: 'Recycle'
-    }
-  ];
+ 
 
   // Animation variants
   const containerVariants = {
@@ -90,6 +30,21 @@ function OurServices() {
     },
   };
 
+    const { services } = useSelector((state) => state.home || {});
+
+    const [loading, setLoading] = React.useState(true);
+
+    React.useEffect(() => {
+      if (services === undefined) setLoading(true);
+      else setLoading(false);
+    }, [services]);
+
+    const activeServices = React.useMemo(() => {
+      if (!services) return [];
+      if (Array.isArray(services)) return services.filter((s) => s.isActive !== false);
+      return services.isActive === false ? [] : [services];
+    }, [services]);
+
   return (
     <div className="max-w-7xl mx-auto rounded-xl">
       <motion.h2 
@@ -101,45 +56,51 @@ function OurServices() {
       >
         Our Services
       </motion.h2>
-      <motion.div 
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-8 gap-x-4 gap-y-5"
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.1 }}
-        variants={containerVariants}
-      >
-        {services.map((service, index) => (
-          <motion.div
-            key={index}
-            className="bg-primary-100/20 rounded-lg shadow-xs overflow-hidden hover:shadow-sm user-select-none transition-shadow duration-300 text-center p-4"
-            variants={itemVariants}
-            whileHover={{ scale: 1.02, y: -2 }}
-            transition={{ type: 'spring', stiffness: 300 }}
-          >
+      {loading ? (
+        <div className="py-8 text-center text-gray-500">Loading services...</div>
+      ) : activeServices.length === 0 ? (
+        <div className="py-8 text-center text-gray-500">No services available.</div>
+      ) : (
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-5"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.1 }}
+          variants={containerVariants}
+        >
+          {activeServices.map((service) => (
             <motion.div
-              initial={{ scale: 0.95 }}
-              whileInView={{ scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 }}
+              key={service._id || service.id}
+              className="bg-primary-100/20 rounded-lg shadow-xs overflow-hidden hover:shadow-sm user-select-none transition-shadow duration-300 text-center p-4"
+              variants={itemVariants}
+              whileHover={{ scale: 1.02, y: -2 }}
+              transition={{ type: 'spring', stiffness: 300 }}
             >
-              <Image
-                src={service.image}
-                alt={service.alt}
-                className="w-full h-24 object-cover mb-4 rounded"
-                height={1000}
-                width={1000}
-              />
+              <motion.div
+                initial={{ scale: 0.95 }}
+                whileInView={{ scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.1 }}
+              >
+                <Image
+                  src={service.icon}
+                  alt={service.name}
+                  className="w-full h-24 object-cover mb-4 rounded"
+                  height={200}
+                  width={200}
+                />
+              </motion.div>
+              <motion.p
+                className="text-gray-700 font-medium text-sm user-select-none"
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.3, delay: 0.2 }}
+              >
+                {service.name}
+              </motion.p>
             </motion.div>
-            <motion.p 
-              className="text-gray-700 font-medium text-sm user-select-none"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              transition={{ duration: 0.3, delay: 0.2 }}
-            >
-              {service.name}
-            </motion.p>
-          </motion.div>
-        ))}
-      </motion.div>
+          ))}
+        </motion.div>
+      )}
     </div>
   );
 }

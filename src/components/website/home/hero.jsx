@@ -1,4 +1,4 @@
-'use client';
+"use client";
 import React, { useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
@@ -7,27 +7,10 @@ import { motion } from 'framer-motion';
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/effect-fade';
-import image from '../../../../public/assets/blog/blog1.jpg';
-import imageTwo from '../../../../public/assets/blog/blog2.jpg';
 import Image from 'next/image';
+import { useSelector } from 'react-redux';
 
-const slides = [
-  {
-    title: 'Build Fast Web Apps',
-    description: 'Responsive UI/UX that works perfectly on all devices. Responsive UI/UX that works perfectly on all devices. Responsive UI/UX that works perfectly on all devices.',
-    image: image,
-  },
-  {
-    title: 'Mobile Friendly Design',
-    description: 'Responsive UI/UX that works perfectly on all devices. Responsive UI/UX that works perfectly on all devices. Responsive UI/UX that works perfectly on all devices.',
-    image: imageTwo,
-  },
-  // {
-  //   title: 'High Performance',
-  //   description: 'Optimized code for speed, SEO, and best user experience.',
-  //   image: 'https://www.freepik.com/free-photos-vectors/technician-banner',
-  // },
-];
+// heroSlides will come from redux (state.home.heroSlides). It may be an array or a single object.
 
 const textVariants = {
   hidden: { 
@@ -63,8 +46,41 @@ const imageVariants = {
 const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {  
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const { heroSlides } = useSelector((state) => state.home || {});
+
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (heroSlides === undefined) setLoading(true);
+    else setLoading(false);
+  }, [heroSlides]);
+
+  const slides = React.useMemo(() => {
+    if (!heroSlides) return [];
+    if (Array.isArray(heroSlides)) return heroSlides.filter((s) => s.isActive !== false);
+    return heroSlides.isActive === false ? [] : [heroSlides];
+  }, [heroSlides]);
+
   return (
     <section className="relative h-[500px] max-w-7xl mx-auto py-7">
+      {loading ? (
+        <div className="h-[420px] flex items-center justify-center">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full border-4 border-primary-600 border-t-transparent animate-spin" />
+            <p className="text-gray-600">Loading slides...</p>
+          </div>
+        </div>
+      ) : slides.length === 0 ? (
+        <div className="h-[420px] flex items-center justify-center">
+          <div className="text-center">
+            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-4 w-24 h-24 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M16 3v4M8 3v4m-5 4h18" />
+            </svg>
+            <h3 className="text-xl font-semibold mb-2">No slides found</h3>
+            <p className="text-gray-600">There are no active hero slides to display right now.</p>
+          </div>
+        </div>
+      ) : (
       <Swiper
         modules={[Autoplay, Pagination, EffectFade]}
         effect="fade"
@@ -80,7 +96,7 @@ const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {
         className="h-full overflow-hidden"
       >
         {slides.map((slide, index) => (
-          <SwiperSlide key={index}>
+          <SwiperSlide key={slide.id || slide._id || index}>
             <div className="h-full flex flex-col md:flex-row items-center bg-primary-100/30 overflow-hidden rounded-3xl">
 
               <motion.div
@@ -90,7 +106,7 @@ const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {
                 animate={activeIndex === index ? 'visible' : 'hidden'}
               >
                 <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                  {slide.title}
+                  {slide.title || slide.label}
                 </h1>
                 <p className="text-gray-600 text-base md:text-lg mb-6">
                   {slide.description}
@@ -108,10 +124,10 @@ const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {
               >
                 <Image
                   src={slide.image}
-                  alt={slide.title}
-                  width={5000}
-                  height={5000}
-                  className="h-auto object-cover w-full "
+                  alt={slide.title || slide.label || 'hero image'}
+                  width={1600}
+                  height={900}
+                  className="h-auto object-cover w-full"
                 />
               </motion.div>
 
@@ -119,6 +135,7 @@ const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {
           </SwiperSlide>
         ))}
       </Swiper>
+      )}
 
       <style jsx>{`
        
