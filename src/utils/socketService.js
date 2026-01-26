@@ -391,9 +391,9 @@ class SocketService {
 
   addListener(callback) {
     this.listeners.push(callback);
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== callback);
-    };
+    // return () => {
+    //   this.listeners = this.listeners.filter(l => l !== callback);
+    // };
   }
 
   notifyListeners(event, data) {
