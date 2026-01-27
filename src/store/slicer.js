@@ -1,6 +1,6 @@
 import { createSlice } from "@reduxjs/toolkit";
 
-export const baseUrl = "http://192.168.1.30:5000/api";
+export const baseUrl = process.env.NEXT_PUBLIC_API_URL;
 
 
 export const getConfig = () => ({
