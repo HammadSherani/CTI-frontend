@@ -1,15 +1,59 @@
+import Image from 'next/image';
 import React from 'react';
 
 function About() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header Section */}
-      <header className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-16">
+      {/* <header className="bg-gradient-to-r from-primary-600 to-primary-700 text-white py-16">
         <div className="container mx-auto px-4 text-center max-w-4xl">
           <h1 className="text-4xl md:text-5xl font-bold mb-4">About Us</h1>
           <p className="text-lg md:text-xl opacity-90">Discover the story behind our passion for innovation, excellence, and making a difference in the world.</p>
         </div>
-      </header>
+      </header> */}
+
+
+<section className="relative  overflow-hidden bg-gradient-to-r from-primary-600 to-primary-700 text-white">
+  <div className="container mx-auto px-6 pt-10 ">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+
+      {/* Left Content */}
+      <div className="max-w-xl">
+        <span className="inline-block mb-4 text-sm font-semibold uppercase tracking-widest text-white/80">
+          Sustainability & Innovation
+        </span>
+
+        <h1 className="text-4xl md:text-5xl xl:text-6xl font-extrabold leading-tight mb-6">
+          Reuse & Reduce
+        </h1>
+
+        <h2 className="text-2xl font-semibold mb-6 text-white/95">
+          Our grandparents lived a sustainable life — long before sustainability was even a concept.
+        </h2>
+
+        <p className="text-base md:text-lg leading-relaxed text-white/90">
+          Let’s mindfully bring sustainable choices back into our modern lifestyle, 
+          starting  future.
+        </p>
+
+      </div>
+
+      {/* Right Image */}
+      <div className="relative flex justify-center lg:justify-end">
+        <Image
+          src="/assets/about/1.avif"
+          width={700}
+          height={500}
+          alt="Sustainable living"
+          className="w-full max-w-lg rounded-xl object-cover"
+          priority
+        />
+      </div>
+
+    </div>
+  </div>
+</section>
+
 
       {/* Our Story Section */}
       <section className="py-16 bg-white">
