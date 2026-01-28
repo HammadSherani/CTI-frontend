@@ -240,7 +240,7 @@ const MyOffersPage = () => {
 
   // Calculate counts properly - excluding in_progress from all counts
   const getTabCounts = () => {
-    if (!offers?.offers) return { all: 0, pending: 0, accepted: 0, rejected: 0, expired: 0 };
+    if (!offers?.offers) return { all: 0, pending: 0, accepted: 0, rejected: 0, expired: 0, wirhdrawn: 0 };
 
     const allOffers = offers.offers.filter(offer => offer.status !== 'in_progress'); // Filter out in_progress
     const counts = {
@@ -249,6 +249,7 @@ const MyOffersPage = () => {
       accepted: allOffers.filter(offer => offer.status === 'accepted').length,
       rejected: allOffers.filter(offer => offer.status === 'rejected').length,
       expired: allOffers.filter(offer => offer.isExpired).length,
+      withdrawn: allOffers.filter(offer => offer.status === 'withdrawn').length,
     };
 
     return counts;
@@ -336,6 +337,7 @@ const MyOffersPage = () => {
                 { id: 'accepted', label: 'Accepted' },
                 { id: 'rejected', label: 'Rejected' },
                 { id: 'expired', label: 'Expired' },
+                { id: 'withdrawn', label: 'Withdrawn' },
               ].map((tab) => (
                 <button
                   key={tab.id}

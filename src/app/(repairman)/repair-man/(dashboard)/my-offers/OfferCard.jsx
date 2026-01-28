@@ -27,7 +27,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
             case 'under_review': return 'bg-yellow-100 text-yellow-800';
             case 'accepted': return 'bg-green-100 text-green-800';
             case 'rejected': return 'bg-red-100 text-red-800';
-            case 'withdrawn': return 'bg-gray-100 text-gray-800';
+            case 'withdrawn': return 'bg-orange-100 text-gray-800';
             case 'expired': return 'bg-red-100 text-red-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -180,9 +180,9 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                             )}
                         </button> */}
 
-                        <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                        {/* <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
                             Message Client
-                        </button>
+                        </button> */}
                     </>
                 )}
                 {(offer.status === 'rejected' || offer.status === 'withdrawn' || offer.isExpired) && (
@@ -190,9 +190,9 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                         <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
                             View Details
                         </button>
-                        <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
+                        {/* <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
                             Find Similar Jobs
-                        </button>
+                        </button> */}
                     </>
                 )}
             </div>

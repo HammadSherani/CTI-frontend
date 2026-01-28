@@ -98,15 +98,16 @@ export default function TeamSection() {
             1024: { slidesPerView: 3 },
             1280: { slidesPerView: 4 },
           }}
+          className="!py-3"
         >
           {team.map((member) => (
             <SwiperSlide key={member.id}>
               <motion.div
                 variants={item}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true }}
-                whileHover={{ y: -8 }}
+                // initial="hidden"
+                // whileInView="show"
+                // viewport={{ once: true }}
+                // whileHover={{ y: -8 }}
                 className="bg-white rounded-2xl shadow-md overflow-hidden"
               >
                 <img

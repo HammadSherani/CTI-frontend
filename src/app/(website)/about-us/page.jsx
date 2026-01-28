@@ -329,7 +329,7 @@ Adding “right way” to business for the planet and the people who live on it.
 
  
        {/* Section 4 - OUR PRINCIPLES */}
-      <section className="relative w-full py-20 mb-10 bg-gray-900 text-white">
+      <section className="relative w-full py-20  bg-gray-900 text-white">
         <div className="container mx-auto px-6">
           <motion.div 
             className="text-center mb-16"
