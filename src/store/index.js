@@ -12,7 +12,6 @@ const store = configureStore({
   },
 });
 
-// Development mein store expose karo
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   window.store = store;
 }
