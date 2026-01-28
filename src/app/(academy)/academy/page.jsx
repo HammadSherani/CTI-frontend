@@ -4,6 +4,7 @@ import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAcademicData, fetchCategory } from '@/store/academy';
 import { useSearchParams, useRouter } from 'next/navigation';
+import SmallLoader from '@/components/SmallLoader';
 
 
 
@@ -85,7 +86,7 @@ const TrendyolAcademy = () => {
 
 
   const dispatch=useDispatch()
-  const {academicCategories,academicData} = useSelector(state => state.academy);
+  const { academicCategories, academicData, isLoading, isError } = useSelector(state => state.academy);
 
   const [page,setPage]=useState(1);
   const [limit,setLimit]=useState(10);
@@ -170,9 +171,10 @@ const TrendyolAcademy = () => {
                   params.set('page', '1');
                   router?.push?.(`/academy?${params.toString()}`)
                 }}
-                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 transition-all duration-300 text-gray-700 font-medium bg-white cursor-pointer"
+                disabled={!Array.isArray(academicCategories)}
+                className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-orange-500 focus:outline-none focus:ring-2 focus:ring-orange-200 transition-all duration-300 text-gray-700 font-medium bg-white cursor-pointer disabled:opacity-70"
               >
-                <option value="all">All Categories</option>
+                <option value="all">{Array.isArray(academicCategories) ? 'All Categories' : 'Loading categories...'}</option>
                 {Array.isArray(academicCategories) && academicCategories.map(cat => (
                   <option key={cat._id} value={cat._id}>{cat.title}</option>
                 ))}
@@ -183,74 +185,81 @@ const TrendyolAcademy = () => {
         </div>
 
         {/* Course Grid (from API) */}
-        {(() => {
-          const raw = academicData?.data || academicData?.docs || academicData?.items || academicData || [];
-          const list = Array.isArray(raw) ? raw : (raw?.docs ?? raw?.data ?? []);
+        <div className="mb-8 container mx-auto px-6 py-4">
+          {isLoading ? (
+            <SmallLoader loading={true} text="Loading courses..." />
+          ) : (() => {
+            const raw = academicData?.data || academicData?.docs || academicData?.items || academicData || [];
+            const list = Array.isArray(raw) ? raw : (raw?.docs ?? raw?.data ?? []);
 
-          const courses = (list || []).map((it) => ({
-            id: it._id || it.id,
-            title: it.title || it.name || 'Untitled',
-            instructor: it.instructor || it.author || it.owner || 'Unknown',
-            rating: it.rating ?? 4.5,
-            views: it.views ?? it.viewCount ?? 0,
-            image: it.image || it.thumbnail || '/assets/logo/trendyol.png',
-            color: 'blue',
-            badge: it.badge || it.type || 'Video',
-          }));
+            const courses = (list || []).map((it) => ({
+              id: it._id || it.id,
+              title: it.title || it.name || 'Untitled',
+              instructor: it.instructor || it.author || it.owner || 'Unknown',
+              rating: it.rating ?? 4.5,
+              views: it.views ?? it.viewCount ?? 0,
+              image: it.image || it.thumbnail || '/assets/logo/trendyol.png',
+              color: 'blue',
+              badge: it.badge || it.type || 'Video',
+            }));
 
-          return (
-            <div className="mb-8 container mx-auto px-6 py-4">
-              {/** Group courses by category id and show category header */}
-              {(() => {
-                const byCat = {};
-                const getCatId = (it) => {
-                  if (!it) return 'uncategorized';
-                  if (typeof it.category === 'string') return it.category;
-                  if (it.category && typeof it.category === 'object') return it.category._id || it.category.id;
-                  return it.categoryId || it.category_id || it.cat || 'uncategorized';
-                };
+            const byCat = {};
+            const getCatId = (it) => {
+              if (!it) return 'uncategorized';
+              if (typeof it.category === 'string') return it.category;
+              if (it.category && typeof it.category === 'object') return it.category._id || it.category.id;
+              return it.categoryId || it.category_id || it.cat || 'uncategorized';
+            };
 
-                courses.forEach((c, idx) => {
-                  // attempt to find raw item from academicData matching id to extract category
-                  const raw = (Array.isArray(academicData?.docs) ? academicData.docs : Array.isArray(academicData) ? academicData : [])
-                    .find(r => (r._id || r.id) === c.id) || {};
-                  const catId = getCatId(raw);
-                  if (!byCat[catId]) byCat[catId] = { title: null, items: [] };
-                  // resolve category title from academicCategories
-                  const catObj = Array.isArray(academicCategories) && academicCategories.find(ac => ac._id === catId);
-                  byCat[catId].title = catObj ? catObj.title : (raw.category?.title || raw.categoryName || 'General');
-                  byCat[catId].items.push({ ...c, content: raw.content || raw.description || raw.body || '' });
-                });
+            const rawItems = Array.isArray(academicData?.docs) ? academicData.docs : (Array.isArray(academicData) ? academicData : list);
 
-                const entries = Object.entries(byCat);
-                if (entries.length === 0) return (
-                  <div className="col-span-full text-center py-20">
-                    <div className="inline-block p-8 bg-white rounded-2xl shadow-lg">
-                      <Icon icon="lucide:search" width={64} className="mx-auto mb-4 text-gray-300" />
-                      <h3 className="text-2xl font-bold text-gray-800 mb-2">No courses found</h3>
-                      <p className="text-gray-600">Try selecting another category or change page</p>
+            courses.forEach((c) => {
+              const matchedRaw = (rawItems || []).find(r => (r._id || r.id) === c.id) || {};
+              const catId = getCatId(matchedRaw);
+              if (!byCat[catId]) byCat[catId] = { title: null, items: [] };
+              const catObj = Array.isArray(academicCategories) && academicCategories.find(ac => ac._id === catId);
+              byCat[catId].title = catObj ? catObj.title : (matchedRaw.category?.title || matchedRaw.categoryName || 'General');
+              byCat[catId].items.push({ ...c, content: matchedRaw.content || matchedRaw.description || matchedRaw.body || '' });
+            });
+
+            const entries = Object.entries(byCat);
+
+            if (entries.length === 0) {
+              return (
+                <div className="col-span-full text-center py-20">
+                  <div className="inline-block p-8 bg-white rounded-2xl shadow-lg">
+                    <Icon icon="lucide:search" width={64} className="mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">No courses found</h3>
+                    <p className="text-gray-600 mb-4">Try selecting another category or change page</p>
+                    <div className="flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => fetchAcademy()}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-lg shadow hover:bg-orange-600"
+                      >
+                        Retry
+                      </button>
                     </div>
                   </div>
-                );
+                </div>
+              );
+            }
 
-                return entries.map(([catId, obj]) => (
-                  <div key={catId} className="mb-8">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-xl font-bold text-gray-800">{obj.title || 'General'}</h3>
+            return entries.map(([catId, obj]) => (
+              <div key={catId} className="mb-8">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold text-gray-800">{obj.title || 'General'}</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {obj.items.map(course => (
+                    <div key={course.id}>
+                      <CourseCard course={course} />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                      {obj.items.map(course => (
-                        <div key={course.id}>
-                          <CourseCard course={course} />
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ));
-              })()}
-            </div>
-          );
-        })()}
+                  ))}
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
 
         {/* Pagination - moved to bottom */}
         <div className="container mx-auto px-6 py-4">

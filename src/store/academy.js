@@ -27,7 +27,7 @@ export const fetchAcademicData = createAsyncThunk(
       const params = { page, limit };
       if (search) params.search = search;
       const response = await axiosInstance.get(
-        `${baseUrl}/academic/category/${categoryId}`,
+        `${baseUrl}${GET_ACADEMY_BY_CATEGORYID_API}/${categoryId}`,
         {
           params,
           ...getConfig(),
