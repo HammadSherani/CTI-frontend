@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchCourseDetails as fetchCourseDetailsAction } from '@/store/academy'
 import Image from 'next/image'
+import SmallLoader from '@/components/SmallLoader'
 
 export default function CoursePage() {
   const params = useParams()
@@ -48,7 +49,7 @@ export default function CoursePage() {
       </button>
 
       {loading ? (
-        <div className="text-center py-20">Loading course...</div>
+        <SmallLoader loading={true} text="Initializing Academy..." />
       ) : course ? (
         <article className="bg-white rounded-xl shadow-md overflow-hidden">
           <div className="md:flex">

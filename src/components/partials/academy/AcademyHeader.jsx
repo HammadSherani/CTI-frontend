@@ -26,8 +26,10 @@ export default function AcademyHeader() {
   // debounce search and update URL
   useEffect(() => {
     const t = setTimeout(() => {
+      // only navigate when there's an actual search term
+      if (!searchTerm || !searchTerm.trim()) return;
       const params = new URLSearchParams();
-      if (searchTerm) params.set('search', searchTerm);
+      params.set('search', searchTerm.trim());
       // reset to first page when searching
       params.set('page', '1');
       router.push(`/academy/academy-listing?${params.toString()}`)
@@ -68,7 +70,7 @@ export default function AcademyHeader() {
         <div className="flex items-center gap-8">
           
           {/* Logo */}
-          <div onClick={() => router.push("/")} className="leading-tight">
+          <div onClick={() => router.push("/")} className="leading-tight cursor-pointer">
             <Image src={logo} alt="logo" width={1000} height={1000} className='h-16 w-auto' />
             {/* <p className="text-sm text-orange-500">akademi</p> */}
           </div>
@@ -95,7 +97,7 @@ export default function AcademyHeader() {
                         const params = new URLSearchParams();
                         params.set('categoryId', cat._id)
                         params.set('page', '1')
-                        router.push(`/academy/?${params.toString()}`)
+                        router.push(`/academy/academy-listing?${params.toString()}`)
                         setOpen(false)
                       }}
                       className="flex items-center gap-3 px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer rounded"
