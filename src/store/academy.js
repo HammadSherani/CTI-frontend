@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/config/axiosInstance";
 import { baseUrl, getConfig } from "./slicer";
-import { GET_ACADEMIC_CATEGORYID_API, GET_ACADEMY_BY_CATEGORYID_API, HOMEPAGE_API } from "./apiRoutes";
+import { GET_ACADEMIC_CATEGORYID_API, GET_ACADEMY_BY_CATEGORYID_API, GET_COURSE_DETAILS_API, HOMEPAGE_API } from "./apiRoutes";
 import handleError from "@/helper/handleError";
 
 export const fetchCategory= createAsyncThunk(
@@ -45,6 +45,22 @@ export const fetchAcademicData = createAsyncThunk(
 );
 
 
+export const fetchCourseDetails= createAsyncThunk(
+  "Academy/courseDetails",
+  async ( slug , { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.get(baseUrl + GET_COURSE_DETAILS_API + `/${slug}`,  getConfig());
+      return response.data;
+    } catch (err) {
+      handleError(err);
+      const payload = err?.response?.data || err?.message || "Something went wrong";
+      return rejectWithValue(payload);
+    }
+  }
+);
+
+
+
 const initialState = {
   data: null,
   isLoading: false,
@@ -52,6 +68,7 @@ const initialState = {
   isSuccess: false,
   academicCategories: null,
   academicData: null,
+  courseDetails:null
 };
 
 const academySlice = createSlice({
@@ -91,7 +108,23 @@ const academySlice = createSlice({
         state.isError = true;
         state.isSuccess = false;
       });
-  },
+        builder
+      .addCase(fetchCourseDetails.pending, (state) => {
+        state.isLoading = true;
+        state.isError = false;
+        state.isSuccess = false;
+      })
+      .addCase(fetchCourseDetails.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.isSuccess = true;
+        state.courseDetails = action.payload.data;
+      })
+      .addCase(fetchCourseDetails.rejected, (state, action) => {
+        state.isLoading = false;
+        state.isError = true;
+        state.isSuccess = false;
+      });
+    }
 });
 
 export default academySlice.reducer;

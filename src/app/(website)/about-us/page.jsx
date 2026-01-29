@@ -6,7 +6,6 @@ import { Icon } from '@iconify/react';
 import History from '@/components/website/about/history';
 import SolutionSection from '@/components/website/about/solution';
 import TeamSection from '@/components/website/about/teamMembers';
-import CreativeMarquee from '@/components/website/about/marque';
 
 function About() {
   const marqueeText = "BUY. REPAIR. SELL. REFURBISH. REUSE. REPEAT.";
@@ -34,12 +33,6 @@ function About() {
     }
   ];
 
-  const team = [
-    { name: 'Alex aeyn', role: 'Founder & CEO', bio: 'Leads vision and strategy.',img:"placeholder" },
-    { name: 'Hew Pwej', role: 'Head of Operations', bio: 'Runs operations and logistics.', img:"placeholder" },
-    { name: 'Mes opem', role: 'Lead Engineer', bio: 'Builds products and platforms.', img:"placeholder" },
-    { name: 'Weruy Owls', role: 'Head of Product', bio: 'Shapes product & UX.', img:"placeholder" }
-  ];
 
   const principles = [
     {
