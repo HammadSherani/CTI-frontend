@@ -11,7 +11,10 @@ function SideLinkPage() {
     { label: "Privacy Policy", href: "/privacy-policy", icon: "solar:lock-keyhole-minimalistic-linear" },
     { label: "Terms & Conditions", href: "/terms-and-conditions", icon: "solar:document-text-linear" },
     { label: "Refund Policy", href: "/refund-policy", icon: "solar:wallet-money-linear" },
-    { label: "Contact Us", href: "/contact-us", icon: "solar:chat-line-linear" },
+    { label: "How to Return", href: "/how-to-return", icon: "solar:chat-line-linear" },
+    { label: "E waste policy", href: "/e-waste-policy", icon: "solar:chat-line-linear" },
+    { label: "Live Support", href: "/live-support", icon: "fluent:person-support-28-regular" },
+
   ];
 
   return (
@@ -28,7 +31,7 @@ function SideLinkPage() {
             <li key={link.href}>
               <Link
                 href={link.href}
-                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`flex items-center gap-3 px-4 py-2 rounded-lg text-lg font-medium transition-all duration-200 ${
                   isActive
                     ? "bg-primary-600 text-white shadow-md"
                     : "text-gray-700 hover:bg-primary-50 hover:text-primary-700"

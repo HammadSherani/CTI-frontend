@@ -1,149 +1,132 @@
 "use client";
 
-import SideLinkPage from "@/components/website/SideLinkPage";
 import React from "react";
 
 function RefundPolicy() {
-    return (
-        <div className="min-h-screen bg-gray-50 grid grid-cols-3 px-12 py-8">
-            <div className="col-span-2 sm:px-6 lg:px-8 py-4">
-                <div className="mb-8">
-                    <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                        İade ve Geri Ödeme Politikası
-                    </h1>
-                    <div className="w-24 h-1 bg-primary-600 mb-3"></div>
-                    <p className="text-gray-600">
-                        Bu sayfa, ürünlerinizin iadesi ve geri ödemeler ile ilgili kuralları, koşulları ve süreci açıklamaktadır.
-                    </p>
-                </div>
+  const sections = [
+    {
+      title: "Refund Eligibility",
+      content: (
+        <>
+          <p>
+            Refunds are processed when a service or product fails to meet the
+            description, when a repair cannot be completed due to our error,
+            or when a transaction is cancelled within the permitted cancellation
+            window. Eligibility is determined after inspection and verification.
+          </p>
+          <p className="mt-2">
+            Examples that may qualify: device returned in the same condition as
+            provided for repair but issue persists due to a manufacturing defect
+            or a service not provided as described in the order.
+          </p>
+        </>
+      ),
+    },
+    {
+      title: "Cancellation & Modifications",
+      content: (
+        <>
+          <p>
+            You may cancel or request a modification to a booked service within
+            the timeframe specified at checkout. Cancellation rules depend on
+            the service type and the stage of the fulfillment process.
+          </p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li>Free cancellation window: up to 2 hours before technician visit.</li>
+            <li>Late cancellation: partial refund minus processing fees may apply.</li>
+            <li>Modifications may be accepted subject to technician availability.</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      title: "Non-Refundable Services and Exceptions",
+      content: (
+        <>
+          <p>
+            Certain charges are non-refundable. This includes diagnostic fees
+            when you decline a repair after inspection, custom-ordered parts,
+            and services explicitly marked as non-refundable at purchase.
+          </p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li>Diagnostic or inspection fees when repair is declined.</li>
+            <li>Consumables and parts damaged by user misuse after repair.</li>
+            <li>Fees for services performed correctly and as described.</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      title: "How to Request a Refund",
+      content: (
+        <>
+          <p>
+            To request a refund, contact our support team at refunds@cti.com
+            with the subject line "Refund Request" and include the following:
+          </p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li>Order ID and date of purchase or service.</li>
+            <li>Clear description of the issue and the reason for refund.</li>
+            <li>Photos or evidence where applicable.</li>
+            <li>Preferred resolution (refund, replacement, or repair).</li>
+          </ul>
+        </>
+      ),
+    },
+    {
+      title: "Processing Time and Refund Method",
+      content: (
+        <>
+          <p>
+            Approved refunds are processed to the original payment method. The
+            time to reflect in your account may vary by payment provider and
+            bank.
+          </p>
+          <ul className="list-disc ml-6 mt-2 space-y-1">
+            <li>Processing time: typically 7–10 business days after approval.</li>
+            <li>Refunds to wallets or third-party gateways may follow their own timelines.</li>
+            <li>Where original payment is not available, we will offer an alternative method.</li>
+          </ul>
+        </>
+      ),
+    },
+  ];
 
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-8 rounded-r-lg">
-                    <h2 className="text-lg font-semibold text-yellow-800 mb-2">Önemli Uyarı</h2>
-                    <p className="text-sm text-yellow-700 leading-relaxed">
-                        Bu politika örnek amaçlıdır. İade ve geri ödeme koşulları şirketinize ve sektöre göre değişiklik gösterebilir. İçeriği kendi şartlarınıza uyarlayınız.
-                    </p>
-                </div>
+  return (
+    <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 min-h-[60vh]">
+      <div className="prose prose-blue max-w-none">
+        <h1 className="text-3xl font-bold text-gray-900 mb-8 border-b pb-4">
+          Refund Policy
+        </h1>
+        
+        <p className="text-gray-600 mb-8 italic">
+          Last Updated: January 2026
+        </p>
 
-                {/* Genel Koşullar */}
-                <section className="mb-12">
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-4 border-b border-gray-200 pb-2">
-                        Genel Koşullar
-                    </h2>
-                    <p className="text-gray-700 mb-4 leading-relaxed">
-                        Ürün iadesi ve geri ödemeler, yalnızca belirlenen şartlar altında kabul edilir. Lütfen siparişiniz öncesinde bu koşulları okuyunuz.
-                    </p>
-                    <div className="bg-primary-50 p-4 rounded-lg mb-4">
-                        <p className="text-sm font-medium text-primary-800 mb-2">İpucu:</p>
-                        <p className="text-sm text-primary-700">
-                            İade ve geri ödeme politikasını hazırlarken, tüketici hakları ve yerel yasal düzenlemelere uyduğunuzdan emin olun.
-                        </p>
-                    </div>
-                </section>
-
-                {/* İade ve Geri Ödeme Bölümleri */}
-                <section className="mb-12 space-y-8">
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                            İade Koşulları
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed">
-                            Ürünler, teslimat tarihinden itibaren 14 gün içinde iade edilebilir. Ürünler kullanılmamış ve orijinal ambalajında olmalıdır. Aksi durumlarda iade kabul edilmez.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                            Geri Ödeme Süreci
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed">
-                            İade edilen ürünler onaylandıktan sonra geri ödeme işlemi başlatılır. Geri ödeme, ödemenin yapıldığı yöntemle gerçekleştirilir ve genellikle 5–10 iş günü sürer.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                            İstisnai Durumlar
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed mb-4">
-                            Aşağıdaki durumlarda iade ve geri ödeme yapılamaz:
-                        </p>
-                        <ul className="list-disc list-inside space-y-2 text-gray-700">
-                            <li>Kullanılmış veya hasarlı ürünler</li>
-                            <li>İade süresi geçmiş ürünler</li>
-                            <li>Özel sipariş veya kişiselleştirilmiş ürünler</li>
-                        </ul>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                            İade İletişim
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed">
-                            İade veya geri ödeme talebinizi <strong>[Şirket E-posta Adresi]</strong> üzerinden iletebilirsiniz. Talebiniz alındıktan sonra size gerekli talimatlar gönderilecektir.
-                        </p>
-                    </div>
-
-                    <div>
-                        <h3 className="text-xl font-semibold text-gray-900 mb-3 flex items-center">
-                            <span className="w-2 h-2 bg-primary-600 rounded-full mr-3"></span>
-                            Politika Değişiklikleri
-                        </h3>
-                        <p className="text-gray-700 leading-relaxed">
-                            Şirketimiz, iade ve geri ödeme politikasını dilediği zaman güncelleyebilir. Politika değişiklikleri sitede yayınlandığı anda geçerlidir.
-                        </p>
-                    </div>
-                </section>
-
-                {/* İletişim */}
-                <section className="">
-                    <h2 className="text-2xl font-semibold text-gray-900 mb-4">İletişim Bilgileri</h2>
-                    <p className="text-gray-700 mb-6 leading-relaxed">
-                        İade ve geri ödemelerle ilgili sorularınız için <strong>[Şirket E-posta Adresi]</strong> adresine e-posta gönderebilirsiniz.
-                    </p>
-                    <div className="grid md:grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <ul className="space-y-2 text-gray-700">
-                                <li className="flex items-center">
-                                    <span className="font-semibold text-gray-900 w-32">Şirket Adı:</span>
-                                    <span>[Şirket Adı]</span>
-                                </li>
-                                <li className="flex items-center">
-                                    <span className="font-semibold text-gray-900 w-32">Adres:</span>
-                                    <span>[Şirket Adresi]</span>
-                                </li>
-                            </ul>
-                        </div>
-                        <div>
-                            <ul className="space-y-2 text-gray-700">
-                                <li className="flex items-center">
-                                    <span className="font-semibold text-gray-900 w-32">E-posta:</span>
-                                    <span>[Şirket E-posta Adresi]</span>
-                                </li>
-                                <li className="flex items-center">
-                                    <span className="font-semibold text-gray-900 w-32">Tel:</span>
-                                    <span>[Şirket Telefon Numarası]</span>
-                                </li>
-                                <li className="flex items-center">
-                                    <span className="font-semibold text-gray-900 w-32">Faks:</span>
-                                    <span>[Şirket Faks Numarası]</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Footer Notu */}
-                <div className="mt-12 text-center text-sm text-gray-500">
-                    <p>Son güncelleme: 11 Kasım 2025</p>
-                </div>
-            </div>
-            <SideLinkPage />
+        <div className="space-y-10">
+          {sections.map((section, index) => (
+            <section key={index}>
+              <h2 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-primary-100 text-primary-600 text-sm">
+                  {index + 1}
+                </span>
+                {section.title}
+              </h2>
+              <div className="text-gray-600 leading-relaxed ml-10">
+                {section.content}
+              </div>
+            </section>
+          ))}
         </div>
-    );
+
+        <div className="mt-12 p-6 bg-primary-50 rounded-lg border border-primary-100 text-center">
+            <p className="text-primary-800">
+                Need more help? Our support team is available at <span className="font-bold">support@cti.com</span>
+            </p>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default RefundPolicy;
