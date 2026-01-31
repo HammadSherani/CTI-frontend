@@ -14,11 +14,13 @@ function Header() {
   const catalogDropdownRef = useRef(null);
   const usersDropdownRef = useRef(null);        // Renamed for clarity
   const partsDropdownRef = useRef(null);
-  
+  const academyDropdownRef = useRef(null);
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // User profile dropdown
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
   const [isPartsDropdownOpen, setIsPartsDropdownOpen] = useState(false);
+  const [isAcademyDropdownOpen, setIsAcademyDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -29,10 +31,10 @@ function Header() {
 
   const primaryNavLinks = [
     { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
-    
-    { 
-      name: "Catalog", 
-      path: "#", 
+
+    {
+      name: "Catalog",
+      path: "#",
       icon: "mdi:folder-outline",
       hasSubmenu: true,
       submenu: [
@@ -57,9 +59,9 @@ function Header() {
       ]
     },
 
-    { 
-      name: "Users", 
-      path: "#", 
+    {
+      name: "Users",
+      path: "#",
       icon: "mdi:account-multiple-outline", // Better icon for user management
       hasSubmenu: true,
       submenu: [
@@ -80,11 +82,11 @@ function Header() {
           ]
         }
       ]
-    },  
+    },
 
-    { 
-      name: "Parts Management", 
-      path: "#", 
+    {
+      name: "Parts Management",
+      path: "#",
       icon: "mdi:package-variant",
       hasSubmenu: true,
       submenu: [
@@ -101,6 +103,22 @@ function Header() {
             { name: "Parts Orders", icon: "mdi:cart-outline", path: "/admin/parts/parts-orders" },
           ]
         }
+      ]
+    }, 
+     {
+      name: "Academy",
+      path: "#",
+      icon: "mdi:school-outline",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Academy",
+          items: [
+            { name: "Academy Categories", icon: "mdi:shape-outline", path: "/admin/academy/academy-categories" },
+            { name: "Ace Management", icon: "mdi:warehouse", path: "/admin/academy/ace-management" },
+          ]
+        },
+  
       ]
     },
   ];
@@ -142,6 +160,7 @@ function Header() {
     setIsCatalogDropdownOpen(false);
     setIsUsersDropdownOpen(false);
     setIsPartsDropdownOpen(false);
+    setIsAcademyDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -149,7 +168,7 @@ function Header() {
   };
 
   const isSubmenuActive = (submenu) => {
-    return submenu?.some(group => 
+    return submenu?.some(group =>
       group.items?.some(item => isActiveLink(item.path))
     );
   };
@@ -162,15 +181,15 @@ function Header() {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
               ${(isSubmenuActive(link.submenu) || dropdownOpen)
-                ? 'text-primary-600 bg-primary-50' 
+                ? 'text-primary-600 bg-primary-50'
                 : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
               }`}
           >
             <Icon icon={link.icon} className="w-4 h-4" />
             {link.name}
-            <Icon 
-              icon="mdi:chevron-down" 
-              className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} 
+            <Icon
+              icon="mdi:chevron-down"
+              className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
             />
             {isSubmenuActive(link.submenu) && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />
@@ -218,8 +237,8 @@ function Header() {
         key={link.name}
         href={link.path}
         className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
-          ${isActiveLink(link.path) 
-            ? 'text-primary-600 bg-primary-50' 
+          ${isActiveLink(link.path)
+            ? 'text-primary-600 bg-primary-50'
             : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
           }`}
       >
@@ -237,20 +256,22 @@ function Header() {
       <div className="container mx-auto py-1 flex items-center justify-between">
         <div className="flex items-center gap-8">
           <Link href="/admin/dashboard" className="flex-shrink-0">
-            <Image 
-              src={logo} 
-              alt="RepairHub Logo" 
-              width={80} 
-              height={40} 
-              className="w-20 h-auto object-contain hover:opacity-80 transition-opacity" 
+            <Image
+              src={logo}
+              alt="RepairHub Logo"
+              width={80}
+              height={40}
+              className="w-20 h-auto object-contain hover:opacity-80 transition-opacity"
               priority
             />
           </Link>
-          
+
           <nav className="hidden lg:flex items-center gap-1">
             {primaryNavLinks.map((link) => {
               if (link.name === "Catalog") {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
+                } else if (link.name === "Academy") {
+                  return renderNavLink(link, isAcademyDropdownOpen, setIsAcademyDropdownOpen, academyDropdownRef);
               } else if (link.name === "Users") {
                 return renderNavLink(link, isUsersDropdownOpen, setIsUsersDropdownOpen, usersDropdownRef);
               } else if (link.name === "Parts Management") {
@@ -282,9 +303,9 @@ function Header() {
               <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
             </div>
 
-            <Icon 
-              icon="mdi:chevron-down" 
-              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+            <Icon
+              icon="mdi:chevron-down"
+              className={`w-4 h-4 text-gray-500 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
             />
           </button>
 
@@ -314,8 +335,8 @@ function Header() {
                       href={link.path}
                       onClick={() => link.isLogout && handleLogout()}
                       className={`flex items-center gap-3 px-4 py-3 text-sm transition-colors
-                        ${link.isLogout 
-                          ? 'text-red-600 hover:bg-red-50' 
+                        ${link.isLogout
+                          ? 'text-red-600 hover:bg-red-50'
                           : 'text-gray-700 hover:bg-gray-50'
                         }`}
                     >
