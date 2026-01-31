@@ -187,7 +187,7 @@ function EditAcademyCategory() {
 
       // Navigate back to category list after 2 seconds
       setTimeout(() => {
-        router.push('/admin/academic-category');
+        router.push('/admin/academy/academy-categories');
       }, 2000);
     } catch (error) {
       console.error('Error updating category:', error);
