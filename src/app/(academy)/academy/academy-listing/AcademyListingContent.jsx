@@ -12,16 +12,7 @@ import SmallLoader from '@/components/SmallLoader';
 const CourseCard = ({ course }) => {
     const router = useRouter();
 
-    const getGradient = (color = 'blue') => {
-        const map = {
-            blue: 'from-blue-600/90 to-indigo-700/90',
-            teal: 'from-teal-600/90 to-cyan-700/90',
-            orange: 'from-orange-600/90 to-amber-700/90',
-            purple: 'from-purple-600/90 to-violet-700/90',
-            rose: 'from-rose-600/90 to-pink-700/90',
-        };
-        return map[color] || 'from-indigo-600/90 to-purple-700/90';
-    };
+
 
     return (
         <motion.div
@@ -36,7 +27,7 @@ const CourseCard = ({ course }) => {
                 onClick={() => router.push(`/academy/academy-listing/${course.slug}`)}
                 className="relative h-52 sm:h-56 cursor-pointer overflow-hidden"
             >
-                <div className={`absolute inset-0 bg-gradient-to-br ${getGradient(course.color)} z-10 opacity-75 group-hover:opacity-85 transition-opacity duration-500`} />
+                <div className={`absolute inset-0  transition-opacity duration-500`} />
 
                 <img
                     src={course.image}
