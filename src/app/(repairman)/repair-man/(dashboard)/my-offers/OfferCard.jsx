@@ -80,8 +80,8 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                     </div>
                 </div>
                 <div className="text-right">
-                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(offer.isExpired ? 'expired' : offer.status)}`}>
-                        {offer.isExpired ? 'Expired' : offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
+                    <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(offer.status)}`}>
+                        {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
                     </span>
                 </div>
             </div>
