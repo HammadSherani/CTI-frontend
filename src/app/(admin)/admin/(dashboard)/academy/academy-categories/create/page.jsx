@@ -153,7 +153,7 @@ function CreatePartsCategory() {
     setSubmitError('');
     setSubmitSuccess('');
     setUploadProgress(0);
-    router.push('/admin/parts/parts-categories');
+    router.push('/admin/academy/academy-categories');
   };
 
   const removeIcon = () => {
@@ -181,8 +181,8 @@ function CreatePartsCategory() {
                 <Icon icon="mdi:arrow-left" className="w-6 h-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Parts Category</h1>
-                <p className="text-gray-600 mt-1">Add a new category for organizing your parts inventory</p>
+                <h1 className="text-3xl font-bold text-gray-900">Create New Academy Category</h1>
+                <p className="text-gray-600 mt-1">Add a new category for organizing your academy inventory</p>
               </div>
             </div>
           </div>

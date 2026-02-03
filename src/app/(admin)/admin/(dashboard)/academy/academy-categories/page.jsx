@@ -481,7 +481,7 @@ function AcademyCategoryPage() {
                                         </p>
                                         {(!searchTerm && filterActive === 'all' && filterFeatured === 'all') && (
                                             <Link
-                                                href="/admin/parts/parts-categories/create"
+                                                href="/admin/academy/academy-categories/create"
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 mt-4"
                                             >
                                                 <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
