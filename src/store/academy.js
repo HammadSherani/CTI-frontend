@@ -2,7 +2,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/config/axiosInstance";
 import { baseUrl, getConfig } from "./slicer";
-import { GET_ACADEMIC_CATEGORYID_API, GET_ACADEMY_BY_CATEGORYID_API, GET_COURSE_DETAILS_API, HOMEPAGE_API } from "./apiRoutes";
+import { GET_ACADEMIC_CATEGORYID_API, GET_ACADEMY_CONTENT_API, GET_CONTENT_DETAILS_API, } from "./apiRoutes";
 import handleError from "@/helper/handleError";
 
 export const fetchCategory= createAsyncThunk(
@@ -27,7 +27,7 @@ export const fetchAcademicData = createAsyncThunk(
       const params = { page, limit };
       if (search) params.search = search;
       const response = await axiosInstance.get(
-        `${baseUrl}${GET_ACADEMY_BY_CATEGORYID_API}/${categoryId}`,
+        `${baseUrl}${GET_ACADEMY_CONTENT_API}/${categoryId}`,
         {
           params,
           ...getConfig(),
@@ -49,7 +49,7 @@ export const fetchCourseDetails= createAsyncThunk(
   "Academy/courseDetails",
   async ( slug , { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get(baseUrl + GET_COURSE_DETAILS_API + `/${slug}`,  getConfig());
+      const response = await axiosInstance.get(baseUrl + GET_CONTENT_DETAILS_API + `/${slug}`,  getConfig());
       return response.data;
     } catch (err) {
       handleError(err);

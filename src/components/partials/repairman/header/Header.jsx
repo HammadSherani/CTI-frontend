@@ -39,6 +39,7 @@ function Header() {
     { name: "Earnings", path: "/repair-man/earning", icon: "mdi:star-outline" },
     // { name: "Disputes", path: "/repair-man/disputes", icon: "mdi:star-outline" },
     { name: "Parts Order", path: "/repair-man/parts-order", icon: "mdi:star-outline" },
+    { name: "Ads", path: "/repair-man/ads", icon: "mdi:advertisements" },
   ];
 
   const dropdownLinks = [

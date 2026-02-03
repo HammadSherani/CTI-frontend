@@ -12,6 +12,8 @@ function AcademyCategoryPage() {
     const [categories, setCategories] = useState([]);
     const [filteredCategories, setFilteredCategories] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [loadingIds, setLoadingIds] = useState({});
+    const [deletingIds, setDeletingIds] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
     const [filterActive, setFilterActive] = useState('all');
@@ -85,28 +87,77 @@ function AcademyCategoryPage() {
     };
 
     const handleDelete = async (categoryId) => {
-        if (window.confirm('Are you sure you want to delete this category?')) {
-            try {
-                const res = await axiosInstance.delete(`/admin/academic-category/${categoryId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                toast.success(res.data.message || 'Category deleted successfully!');
-                setSubmitSuccess('Category deleted successfully!');
-                setTimeout(() => setSubmitSuccess(''), 3000);
-                fetchCategories();
-            } catch (error) {
-                console.error('Delete error:', error);
-                setSubmitError('Failed to delete category. Please try again.');
-                toast.error('Failed to delete category');
+        if (!window.confirm('Are you sure you want to delete this category?')) return;
+
+        // capture original item and index for possible revert
+        const originalIndex = categories.findIndex(c => c._id === categoryId);
+        const originalItem = categories[originalIndex];
+
+        // set deleting flag for this item
+        setDeletingIds(prev => ({ ...prev, [categoryId]: true }));
+
+        // Optimistically remove item from UI
+        setCategories(prev => prev.filter(c => c._id !== categoryId));
+        setFilteredCategories(prev => prev.filter(c => c._id !== categoryId));
+
+        // Adjust pagination total count locally
+        setPagination(prev => ({ ...prev, totalItems: Math.max(0, (prev.totalItems || 0) - 1) }));
+
+        try {
+            const res = await axiosInstance.delete(`/admin/academic-category/${categoryId}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            toast.success(res.data.message || 'Category deleted successfully!');
+            setSubmitSuccess('Category deleted successfully!');
+            setTimeout(() => setSubmitSuccess(''), 3000);
+
+            // If removal left the page empty and we are beyond page 1, load previous page
+            const remainingOnPage = filteredCategories.length - 1;
+            if (remainingOnPage <= 0 && pagination.currentPage > 1) {
+                setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }));
+                // fetchCategories will run via effect
             }
+        } catch (error) {
+            console.error('Delete error:', error);
+            // revert UI on failure
+            setCategories(prev => {
+                const copy = [...prev];
+                copy.splice(originalIndex, 0, originalItem);
+                return copy;
+            });
+            setFilteredCategories(prev => {
+                const copy = [...prev];
+                copy.splice(originalIndex, 0, originalItem);
+                return copy;
+            });
+            setPagination(prev => ({ ...prev, totalItems: (prev.totalItems || 0) + 1 }));
+
+            setSubmitError('Failed to delete category. Please try again.');
+            toast.error('Failed to delete category');
+        } finally {
+            setDeletingIds(prev => {
+                const copy = { ...prev };
+                delete copy[categoryId];
+                return copy;
+            });
         }
     };
 
     const toggleActive = async (categoryId) => {
+        const category = categories.find(c => c._id === categoryId);
+        if (!category) return;
+
+        // per-item loading
+        setLoadingIds(prev => ({ ...prev, [categoryId]: true }));
+
+        // optimistic UI toggle
+        setCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: !c.isActive } : c));
+        setFilteredCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: !c.isActive } : c));
+
         try {
-            const category = categories.find(c => c._id === categoryId);
             const res = await axiosInstance.patch(`/admin/academic-category/status/${categoryId}`,
                 { isActive: !category.isActive },
                 {
@@ -116,11 +167,20 @@ function AcademyCategoryPage() {
                 }
             );
             toast.success(res.data.message || 'Category status updated!');
-            fetchCategories(pagination.currentPage, debouncedSearch);
         } catch (error) {
             console.error('Toggle active error:', error);
+            // revert on failure
+            setCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: category.isActive } : c));
+            setFilteredCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: category.isActive } : c));
+
             setSubmitError('Failed to update category status. Please try again.');
             toast.error('Failed to update category status');
+        } finally {
+            setLoadingIds(prev => {
+                const copy = { ...prev };
+                delete copy[categoryId];
+                return copy;
+            });
         }
     };
 
@@ -348,20 +408,27 @@ function AcademyCategoryPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <button
-                                                        onClick={() => toggleActive(category._id)}
-                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            category.isActive
-                                                                ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                                                                : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                                        } transition-colors`}
-                                                    >
-                                                        <Icon
-                                                            icon={category.isActive ? 'mdi:eye' : 'mdi:eye-off'}
-                                                            className="w-3 h-3 mr-1"
-                                                        />
-                                                        {category.isActive ? 'Active' : 'Inactive'}
-                                                    </button>
+                                                    {(() => {
+                                                        const isUpdating = !!loadingIds[category._id];
+                                                        return (
+                                                            <button
+                                                                onClick={() => !isUpdating && toggleActive(category._id)}
+                                                                disabled={isUpdating}
+                                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                                    category.isActive
+                                                                        ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
+                                                                        : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
+                                                                } transition-colors`}
+                                                            >
+                                                                {isUpdating ? (
+                                                                    <Icon icon="mdi:loading" className="w-3 h-3 mr-1 animate-spin" />
+                                                                ) : (
+                                                                    <Icon icon={category.isActive ? 'mdi:eye' : 'mdi:eye-off'} className="w-3 h-3 mr-1" />
+                                                                )}
+                                                                {category.isActive ? 'Active' : 'Inactive'}
+                                                            </button>
+                                                        );
+                                                    })()}
                                                 </td>
                                            
                                                 <td className="px-6 py-4 whitespace-nowrap">
@@ -378,13 +445,23 @@ function AcademyCategoryPage() {
                                                         >
                                                             <Icon icon="mdi:pencil" className="w-5 h-5" />
                                                         </Link>
-                                                        <button
-                                                            onClick={() => handleDelete(category._id)}
-                                                            className="text-red-600 hover:text-red-900 transition-colors"
-                                                            title="Delete category"
-                                                        >
-                                                            <Icon icon="mdi:trash-can" className="w-5 h-5" />
-                                                        </button>
+                                                        {(() => {
+                                                            const isDeleting = !!deletingIds[category._id];
+                                                            return (
+                                                                <button
+                                                                    onClick={() => !isDeleting && handleDelete(category._id)}
+                                                                    disabled={isDeleting}
+                                                                    className={`text-red-600 ${isDeleting ? 'opacity-80 cursor-not-allowed' : 'hover:text-red-900'} transition-colors`}
+                                                                    title="Delete category"
+                                                                >
+                                                                    {isDeleting ? (
+                                                                        <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />
+                                                                    ) : (
+                                                                        <Icon icon="mdi:trash-can" className="w-5 h-5" />
+                                                                    )}
+                                                                </button>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 </td>
                                             </tr>

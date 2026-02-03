@@ -79,6 +79,7 @@ function Header() {
             { name: "Job Board", icon: "mdi:briefcase-outline", path: "/admin/job-board" },
             { name: "Ratings & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
             { name: "Disputes", icon: "mdi:gavel", path: "/admin/disputes" },
+            { name: "Advertisment", icon: "mdi:advertisement", path: "/admin/advertisement" },
           ]
         }
       ]

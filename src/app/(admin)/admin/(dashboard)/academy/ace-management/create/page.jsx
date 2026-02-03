@@ -60,10 +60,10 @@ function AcademyContentCreate() {
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [videoPreviews, setVideoPreviews] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
+    const [videoPreviews, setVideoPreviews] = useState([]);
   
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
@@ -259,7 +259,7 @@ function AcademyContentCreate() {
 
       // Navigate back to academy list after 2 seconds
       setTimeout(() => {
-        router.push('/admin/academy');
+        router.push('/admin/academy/ace-management');
       }, 2000);
     } catch (error) {
       console.error('Error creating part:', error);
@@ -473,39 +473,69 @@ function AcademyContentCreate() {
 
 
             {/* Videos Upload */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Icon icon="mdi:image-multiple" className="w-6 h-6 text-primary-600" />
-                Videos
-              </h2>
-              <p className="text-sm text-gray-500 mb-4">
-                Upload videos of the part. You can upload up to 1 videos. Supported formats: MP4, AVI, MOV. Max size: 50MB per video.
-              </p>
-
-              <input
-                type="file"
-                id="videos"
-                accept="video/*"
-                onChange={handleVideoChange}
-                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 mb-4"
-              />
-
-              {errors.videos && (
-                <p className="text-sm text-red-600 mb-4">{errors.videos.message}</p>
-              )}
-
-              {/* Upload Progress */}
-              {uploadProgress > 0 && uploadProgress < 100 && (
-                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
-                  <div
-                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-              )}
-
+                 {/* Videos Upload */}
+                      <div className="bg-white rounded-lg shadow-sm p-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                          <Icon icon="mdi:video" className="w-6 h-6 text-primary-600" />
+                          Course Video
+                        </h2>
+                        <p className="text-sm text-gray-500 mb-4">
+                          Upload a video for the course. Supported formats: MP4, AVI, MOV. Max size: 50MB.
+                        </p>
+                        
+                        <input
+                          type="file"
+                          id="videos"
+                          accept="video/*"
+                          onChange={handleVideoChange}
+                          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 mb-4"
+                        />
+                        
+                        {errors.videos && (
+                          <p className="text-sm text-red-600 mb-4">{errors.videos.message}</p>
+                        )}
           
-            </div>
+                        {/* Upload Progress */}
+                        {uploadProgress > 0 && uploadProgress < 100 && (
+                          <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                            <div
+                              className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                              style={{ width: `${uploadProgress}%` }}
+                            ></div>
+                          </div>
+                        )}
+          
+                        {/* Video Previews */}
+                        {videoPreviews.length > 0 ? (
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {videoPreviews.map((preview) => (
+                              <div key={preview.id} className="relative group">
+                                <div className="border-2 border-dashed border-gray-300 rounded-lg p-2 aspect-video">
+                                  <video
+                                    src={preview.url}
+                                    className="w-full h-full object-cover rounded-lg"
+                                    controls
+                                  />
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => removeVideo(preview.id)}
+                                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                                  title="Remove video"
+                                >
+                                  <Icon icon="mdi:close" className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                            <Icon icon="mdi:video" className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                            <p className="text-gray-600 font-medium mb-1">No videos uploaded yet</p>
+                            <p className="text-gray-500 text-sm">Click "Choose File" above to upload a video</p>
+                          </div>
+                        )}
+                      </div>
 
         
 

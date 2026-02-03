@@ -42,6 +42,7 @@ function AcademyContentEdit() {
   const [categories, setCategories] = useState([]);
   const [loadingCategories, setLoadingCategories] = useState(false);
   const [loadingContent, setLoadingContent] = useState(false);
+  const [acedmicData,setAcedmicData]=useState()
 
   const params = useParams();
   const slug = params?.id;
@@ -68,11 +69,11 @@ function AcademyContentEdit() {
   // Fetch categories and content on mount
   useEffect(() => {
     const loadData = async () => {
-      // First fetch categories
-      await fetchCategories();
+      // First fetch categories and get them back synchronously
+      const fetchedCategories = await fetchCategories();
       // Then fetch content (so category can be matched)
       if (slug) {
-        await fetchAcademyContent();
+        await fetchAcademyContent(fetchedCategories);
       }
     };
     
@@ -85,17 +86,20 @@ function AcademyContentEdit() {
       const response = await axiosInstance.get(`/admin/academic-category`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setCategories(response.data.data || []);
+      const cats = response.data.data || [];
+      setCategories(cats);
+      return cats;
     } catch (error) {
       console.error('Error fetching categories:', error);
       toast.error('Failed to load categories');
+      return [];
     } finally {
       setLoadingCategories(false);
     }
   };
 
         console.log(categories,"categors")
-  const fetchAcademyContent = async () => {
+  const fetchAcademyContent = async (existingCategories = []) => {
     try {
       setLoadingContent(true);
       const response = await axiosInstance.get(`/admin/academic-content/${slug}`, {
@@ -105,15 +109,17 @@ function AcademyContentEdit() {
       
       if (data) {
         console.log('Fetched content data:', data);
+        setAcedmicData(data);
         
         // Populate form fields
         setValue('title', data.title || '');
         
         // Set category - handle both string ID and object
-        const categoryValue = data.categoryId?._id || '';
+        const categoryValue = data.categoryId || '';
         console.log('Category value to set:', categoryValue);
-        console.log('Available categories:', categories);
-        
+        console.log('Available categories (from fetch):', existingCategories.length ? existingCategories : categories);
+
+        // Ensure we set the value after categories are available. Prefer the passed-in existingCategories.
         setValue('category', categoryValue);
         
         setValue('description', data.description || '');
@@ -283,7 +289,6 @@ function AcademyContentEdit() {
 
       // Create FormData for file upload
       const formData = new FormData();
-      
       // Append text fields
       formData.append('title', data.title || '');
       formData.append('categoryId', data.category || '');
@@ -300,7 +305,7 @@ function AcademyContentEdit() {
       }
 
       const response = await axiosInstance.put(
-        `/admin/academic-content/${slug}`, 
+        `/admin/academic-content/${acedmicData._id}`, 
         formData, 
         {
           headers: {
