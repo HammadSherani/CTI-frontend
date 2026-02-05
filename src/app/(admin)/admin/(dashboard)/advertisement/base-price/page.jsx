@@ -63,7 +63,7 @@ function AdvertisementBasePrice() {
       if (editingId) {
         // Update existing price
         const res = await axiosInstance.put(
-          `/admin/advertise-base/update-base/${editingId}`, 
+          `/admin/advertisements/update-base/${editingId}`, 
           payload, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -77,7 +77,7 @@ function AdvertisementBasePrice() {
       } else {
         // Create new price
         const res = await axiosInstance.post(
-          '/admin/advertise-base/create-base', 
+          '/admin/advertisements/create-base', 
           payload, 
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -118,7 +118,7 @@ function AdvertisementBasePrice() {
     const fetchPrices = async () => {
       setLoadingPrices(true);
       try {
-        const res = await axiosInstance.get('/admin/advertise-base/fetch-base', {
+        const res = await axiosInstance.get('/admin/advertisements/fetch/base', {
           headers: { Authorization: `Bearer ${token}` }
         });
         const data = res.data?.data || res.data || [];
@@ -150,7 +150,7 @@ function AdvertisementBasePrice() {
     setBasePrices(prev => prev.filter(p => p._id !== id));
     
     try {
-      await axiosInstance.delete(`/admin/advertise-base/delete-base/${id}`, {
+      await axiosInstance.delete(`/admin/advertisements/delete-base/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Base price deleted successfully');
