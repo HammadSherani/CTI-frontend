@@ -8,16 +8,20 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import { useRouter } from 'next/navigation';
+import useDebounce from '@/hooks/useDebounce'; // Adjust the import path as needed
 
 function Ads() {
     const router = useRouter();
     const [ads, setAds] = useState([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const debouncedSearch = useDebounce(searchTerm, 500);
     const [filterStatus, setFilterStatus] = useState('');
     const [filterType, setFilterType] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [selectedAd, setSelectedAd] = useState(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
     const [totalCounts, setTotalCounts] = useState({
         pending: 0,
         approve: 0,
@@ -25,7 +29,6 @@ function Ads() {
         block: 0
     });
     const [pagination, setPagination] = useState({
-        currentPage: 1,
         totalPages: 1,
         totalItems: 0,
         itemsPerPage: 10
@@ -33,14 +36,15 @@ function Ads() {
     
     const { token } = useSelector((state) => state.auth);
 
-
-
+    // Reset to page 1 when debounced search or filters change
     useEffect(() => {
-        const timer = setTimeout(() => {
-            fetchAds();
-        }, 300);
-        return () => clearTimeout(timer);
-    }, [searchTerm, filterStatus, filterType, pagination.currentPage]);
+        setCurrentPage(1);
+    }, [debouncedSearch, filterStatus, filterType]);
+
+    // Fetch ads when debounced search, filters, or page change
+    useEffect(() => {
+        fetchAds();
+    }, [debouncedSearch, filterStatus, filterType, currentPage]);
 
     const fetchAds = async () => {
         try {
@@ -48,11 +52,11 @@ function Ads() {
             
             // Build query params
             const params = new URLSearchParams();
-            params.append('page', pagination.currentPage);
+            params.append('page', currentPage);
             params.append('limit', 10);
             
-            if (searchTerm) {
-                params.append('search', searchTerm);
+            if (debouncedSearch) {
+                params.append('search', debouncedSearch);
             }
             if (filterType) {
                 params.append('type', filterType);
@@ -74,33 +78,68 @@ function Ads() {
                 suspended: 0,
                 block: 0
             });
-            setPagination(data.pagination || {
-                currentPage: 1,
-                totalPages: 1,
-                totalItems: 0,
-                itemsPerPage: 10
+            setPagination({
+                totalPages: data.pagination?.totalPages || 1,
+                totalItems: data.pagination?.totalItems || 0,
+                itemsPerPage: data.pagination?.itemsPerPage || 10
             });
-            setLoading(false);
         } catch (error) {
             handleError(error);
             setAds([]);
+        } finally {
             setLoading(false);
         }
     };
 
     const handleDeleteAd = async () => {
+        if (!selectedAd) return;
+
         try {
-            await axiosInstance.delete(`/advertisement/${selectedAd._id}`, {
+            setIsDeleting(true);
+
+            // Optimistic update
+            const deletedStatus = selectedAd.status;
+            const updatedAds = ads.filter(a => a._id !== selectedAd._id);
+            setAds(updatedAds);
+
+            // Update totalCounts
+            let statusKey = deletedStatus;
+            if (statusKey === 'approved') statusKey = 'approve';
+            const newTotalCounts = { ...totalCounts };
+            if (newTotalCounts.hasOwnProperty(statusKey)) {
+                newTotalCounts[statusKey] = Math.max(0, newTotalCounts[statusKey] - 1);
+            }
+            setTotalCounts(newTotalCounts);
+
+            // Update pagination
+            const newTotalItems = pagination.totalItems - 1;
+            const newTotalPages = Math.ceil(newTotalItems / pagination.itemsPerPage);
+            setPagination({
+                ...pagination,
+                totalItems: newTotalItems,
+                totalPages: newTotalPages
+            });
+
+            // If page is now empty and not first page, go to previous
+            if (updatedAds.length === 0 && currentPage > 1) {
+                setCurrentPage(currentPage - 1);
+            }
+
+            // Perform actual delete
+            await axiosInstance.delete(`/repairman/advertisements/delete/${selectedAd._id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
             toast.success('Advertisement deleted successfully');
+        } catch (error) {
+            // Revert on error by refetching
+            toast.error('Failed to delete advertisement');
+            handleError(error);
+            fetchAds();
+        } finally {
+            setIsDeleting(false);
             setShowDeleteModal(false);
             setSelectedAd(null);
-            fetchAds();
-        } catch (error) {
-            handleError(error);
-            toast.error('Failed to delete advertisement');
         }
     };
 
@@ -109,7 +148,9 @@ function Ads() {
             'pending': 'bg-yellow-100 text-yellow-800',
             'approved': 'bg-green-100 text-green-800',
             'rejected': 'bg-red-100 text-red-800',
-            'expired': 'bg-gray-100 text-gray-800'
+            'expired': 'bg-gray-100 text-gray-800',
+            'suspended': 'bg-orange-100 text-orange-800',
+            'block': 'bg-red-100 text-red-800'
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -145,6 +186,38 @@ function Ads() {
         rejected: (totalCounts.block || 0) + (totalCounts.suspended || 0)
     };
 
+    const renderSkeletonRows = () => {
+        return Array.from({ length: 5 }).map((_, index) => (
+            <tr key={index} className="hover:bg-gray-50">
+                <td className="px-6 py-4">
+                    <div className="h-16 w-16 bg-gray-200 rounded-lg animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse"></div>
+                </td>
+                <td className="px-6 py-4">
+                    <div className="flex gap-2">
+                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
+                    </div>
+                </td>
+            </tr>
+        ));
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 p-6">
             <div className="max-w-7xl mx-auto">
@@ -175,7 +248,7 @@ function Ads() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Ads</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : stats.total}
+                                    {stats.total}
                                 </p>
                             </div>
                         </div>
@@ -189,7 +262,7 @@ function Ads() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Approved</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : stats.approved}
+                                    {stats.approved}
                                 </p>
                             </div>
                         </div>
@@ -203,7 +276,7 @@ function Ads() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Pending</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : stats.pending}
+                                    {stats.pending}
                                 </p>
                             </div>
                         </div>
@@ -217,7 +290,7 @@ function Ads() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Rejected</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : stats.rejected}
+                                    {stats.rejected}
                                 </p>
                             </div>
                         </div>
@@ -272,260 +345,255 @@ function Ads() {
 
                 {/* Ads Table */}
                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <div className="text-center">
-                                <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-                                <p className="text-gray-600">Loading advertisements...</p>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Image
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Type
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Title/Name
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Description
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Duration
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Actions
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {loading ? (
+                                    renderSkeletonRows()
+                                ) : (
+                                    ads.map((ad) => (
+                                        <tr key={ad._id} className="hover:bg-gray-50">
+                                            {/* Image */}
+                                            <td className="px-6 py-4">
+                                                <div className="flex-shrink-0 h-16 w-16">
+                                                    {ad.type === 'service' && ad.image ? (
+                                                        <img
+                                                            src={ad.image}
+                                                            alt={ad.title || 'Service'}
+                                                            className="h-16 w-16 rounded-lg object-cover border-2 border-gray-200"
+                                                        />
+                                                    ) : ad.type === 'profile' ? (
+                                                        <img
+                                                            src={ad.user_id?.repairmanProfile?.profilePhoto}
+                                                            alt={ad.user_id?.repairmanProfile?.fullName || 'profile'}
+                                                            className="h-16 w-16 rounded-lg object-cover border-2 border-gray-200"
+                                                        />
+                                                    ) : (
+                                                        <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center">
+                                                            <Icon icon="mdi:image" className="w-8 h-8 text-gray-400" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* Type */}
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                    ad.type === 'service' 
+                                                        ? 'bg-blue-100 text-blue-800' 
+                                                        : 'bg-purple-100 text-purple-800'
+                                                }`}>
+                                                    <Icon 
+                                                        icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'} 
+                                                        className="w-3 h-3 mr-1" 
+                                                    />
+                                                    {ad.type === 'service' ? 'Service' : 'Profile'}
+                                                </span>
+                                            </td>
+
+                                            {/* Title/Name */}
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm">
+                                                    <div className="font-medium text-gray-900">
+                                                        {ad.type === 'service' 
+                                                            ? (ad.title || 'Untitled Service')
+                                                            : ad.user_id?.repairmanProfile?.fullName || 'Unnamed Profile'}
+                                                    </div>
+                                                    {ad.type === 'service' && ad.city?.name && (
+                                                        <div className="text-gray-500 text-xs flex items-center mt-1">
+                                                            <Icon icon="mdi:map-marker" className="w-3 h-3 mr-1" />
+                                                            {ad.city.name}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
+
+                                            {/* Description */}
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm text-gray-600 max-w-xs">
+                                                    {truncateText(ad.description||ad.user_id?.repairmanProfile?.description)}
+                                                </div>
+                                            </td>
+
+                                            {/* Duration */}
+                                            <td className="px-6 py-4">
+                                                <div className="text-sm">
+                                                    <div className="font-medium text-gray-900 flex items-center">
+                                                        <Icon icon="mdi:calendar-clock" className="w-4 h-4 mr-1 text-gray-400" />
+                                                        {ad.duration?.totalDays || 0} days
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 mt-1">
+                                                        {formatDate(ad.duration?.startDate)} - {formatDate(ad.duration?.endDate)}
+                                                    </div>
+                                                    <div className="text-xs font-medium text-primary-600 mt-1">
+                                                        {getCurrencySymbol(ad.currency)}{ad.budget?.totalPrice || 0}
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            {/* Status */}
+                                            <td className="px-6 py-4">
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ad.status)}`}>
+                                                    {ad.status === 'approved' && <Icon icon="mdi:check-circle" className="w-3 h-3 mr-1" />}
+                                                    {ad.status === 'pending' && <Icon icon="mdi:clock-outline" className="w-3 h-3 mr-1" />}
+                                                    {ad.status === 'rejected' && <Icon icon="mdi:close-circle" className="w-3 h-3 mr-1" />}
+                                                    {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
+                                                </span>
+                                            </td>
+
+                                            {/* Actions */}
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => router.push(`/repair-man/ads/${ad._id}`)}
+                                                        className="text-primary-600 hover:text-primary-900 transition-colors"
+                                                        title="View Details"
+                                                    >
+                                                        <Icon icon="mdi:eye" className="w-5 h-5" />
+                                                    </button>
+
+                                                    {ad.status !== 'approved' && ad.status !== 'suspended' && (
+                                                        <button
+                                                            onClick={() => router.push(`/repair-man/ads/edit/${ad._id}`)}
+                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                            title="Edit"
+                                                        >
+                                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
+                                                        </button>
+                                                    )}
+
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedAd(ad);
+                                                            setShowDeleteModal(true);
+                                                        }}
+                                                        className="text-red-600 hover:text-red-900 transition-colors"
+                                                        title="Delete"
+                                                    >
+                                                        <Icon icon="mdi:delete" className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {!loading && ads.length === 0 && (
+                        <div className="text-center py-12">
+                            <Icon icon="mdi:chart-line-variant" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No advertisements found</h3>
+                            <p className="text-gray-500 mb-4">
+                                {searchTerm || filterStatus || filterType
+                                    ? 'Try adjusting your filters.'
+                                    : 'Create your first advertisement to get started.'
+                                }
+                            </p>
+                            {!searchTerm && !filterStatus && !filterType && (
+                                <Link
+                                    href="/repair-man/ads/create"
+                                    className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
+                                >
+                                    <Icon icon="mdi:plus" className="w-5 h-5" />
+                                    Create Advertisement
+                                </Link>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Pagination */}
+                    {!loading && ads.length > 0 && pagination.totalPages > 1 && (
+                        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                            <div className="text-sm text-gray-700">
+                                Showing <span className="font-medium">{((currentPage - 1) * pagination.itemsPerPage) + 1}</span> to{' '}
+                                <span className="font-medium">
+                                    {Math.min(currentPage * pagination.itemsPerPage, pagination.totalItems)}
+                                </span> of{' '}
+                                <span className="font-medium">{pagination.totalItems}</span> results
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Icon icon="mdi:chevron-left" className="w-5 h-5" />
+                                </button>
+                                
+                                {[...Array(pagination.totalPages)].map((_, idx) => {
+                                    const pageNum = idx + 1;
+                                    // Show first, last, current, and pages around current
+                                    if (
+                                        pageNum === 1 ||
+                                        pageNum === pagination.totalPages ||
+                                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                                    ) {
+                                        return (
+                                            <button
+                                                key={pageNum}
+                                                onClick={() => setCurrentPage(pageNum)}
+                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${
+                                                    currentPage === pageNum
+                                                        ? 'bg-primary-600 text-white border-primary-600'
+                                                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+                                                }`}
+                                            >
+                                                {pageNum}
+                                            </button>
+                                        );
+                                    } else if (
+                                        pageNum === currentPage - 2 ||
+                                        pageNum === currentPage + 2
+                                    ) {
+                                        return <span key={pageNum} className="px-2 text-gray-500">...</span>;
+                                    }
+                                    return null;
+                                })}
+
+                                <button
+                                    onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
+                                    disabled={currentPage === pagination.totalPages}
+                                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <Icon icon="mdi:chevron-right" className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
-                    ) : (
-                        <>
-                            <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Image
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Type
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Title/Name
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Description
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Duration
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Actions
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {ads?.map((ad) => (
-                                            <tr key={ad._id} className="hover:bg-gray-50">
-                                                {/* Image */}
-                                                <td className="px-6 py-4">
-                                                    <div className="flex-shrink-0 h-16 w-16">
-                                                        {ad.type === 'service' && ad.image ? (
-                                                            <img
-                                                                src={ad.image}
-                                                                alt={ad.title || 'Service'}
-                                                                className="h-16 w-16 rounded-lg object-cover border-2 border-gray-200"
-                                                            />
-                                                        ) : ad.type === 'profile' ? (
-                                                            <div className="h-16 w-16 rounded-full bg-primary-100 flex items-center justify-center">
-                                                                <Icon icon="mdi:account" className="w-8 h-8 text-primary-600" />
-                                                            </div>
-                                                        ) : (
-                                                            <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                                                                <Icon icon="mdi:image" className="w-8 h-8 text-gray-400" />
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-
-                                                {/* Type */}
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        ad.type === 'service' 
-                                                            ? 'bg-blue-100 text-blue-800' 
-                                                            : 'bg-purple-100 text-purple-800'
-                                                    }`}>
-                                                        <Icon 
-                                                            icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'} 
-                                                            className="w-3 h-3 mr-1" 
-                                                        />
-                                                        {ad.type === 'service' ? 'Service' : 'Profile'}
-                                                    </span>
-                                                </td>
-
-                                                {/* Title/Name */}
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm">
-                                                        <div className="font-medium text-gray-900">
-                                                            {ad.type === 'service' 
-                                                                ? (ad.title || 'Untitled Service')
-                                                                : 'Profile Advertisement'}
-                                                        </div>
-                                                        {ad.type === 'service' && ad.city?.name && (
-                                                            <div className="text-gray-500 text-xs flex items-center mt-1">
-                                                                <Icon icon="mdi:map-marker" className="w-3 h-3 mr-1" />
-                                                                {ad.city.name}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-
-                                                {/* Description */}
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-600 max-w-xs">
-                                                        {truncateText(ad.description)}
-                                                    </div>
-                                                </td>
-
-                                                {/* Duration */}
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm">
-                                                        <div className="font-medium text-gray-900 flex items-center">
-                                                            <Icon icon="mdi:calendar-clock" className="w-4 h-4 mr-1 text-gray-400" />
-                                                            {ad.duration?.totalDays || 0} days
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 mt-1">
-                                                            {formatDate(ad.duration?.startDate)} - {formatDate(ad.duration?.endDate)}
-                                                        </div>
-                                                        <div className="text-xs font-medium text-primary-600 mt-1">
-                                                            {getCurrencySymbol(ad.currency)}{ad.budget?.totalPrice || 0}
-                                                        </div>
-                                                    </div>
-                                                </td>
-
-                                                {/* Status */}
-                                                <td className="px-6 py-4">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ad.status)}`}>
-                                                        {ad.status === 'approved' && <Icon icon="mdi:check-circle" className="w-3 h-3 mr-1" />}
-                                                        {ad.status === 'pending' && <Icon icon="mdi:clock-outline" className="w-3 h-3 mr-1" />}
-                                                        {ad.status === 'rejected' && <Icon icon="mdi:close-circle" className="w-3 h-3 mr-1" />}
-                                                        {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
-                                                    </span>
-                                                </td>
-
-                                                {/* Actions */}
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <button
-                                                            onClick={() => router.push(`/repair-man/ads/${ad._id}`)}
-                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                            title="View Details"
-                                                        >
-                                                            <Icon icon="mdi:eye" className="w-5 h-5" />
-                                                        </button>
-
-                                                        {ad.status !== 'approved' && (
-                                                            <button
-                                                                onClick={() => router.push(`/repair-man/ads/edit/${ad._id}`)}
-                                                                className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                                title="Edit"
-                                                            >
-                                                                <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                                            </button>
-                                                        )}
-
-                                                        <button
-                                                            onClick={() => {
-                                                                setSelectedAd(ad);
-                                                                setShowDeleteModal(true);
-                                                            }}
-                                                            className="text-red-600 hover:text-red-900 transition-colors"
-                                                            title="Delete"
-                                                        >
-                                                            <Icon icon="mdi:delete" className="w-5 h-5" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-
-                                {!loading && ads.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <Icon icon="mdi:chart-line-variant" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No advertisements found</h3>
-                                        <p className="text-gray-500 mb-4">
-                                            {searchTerm || filterStatus || filterType
-                                                ? 'Try adjusting your filters.'
-                                                : 'Create your first advertisement to get started.'
-                                            }
-                                        </p>
-                                        {!searchTerm && !filterStatus && !filterType && (
-                                            <Link
-                                                href="/repair-man/ads/create"
-                                                className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                            >
-                                                <Icon icon="mdi:plus" className="w-5 h-5" />
-                                                Create Advertisement
-                                            </Link>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Pagination */}
-                            {!loading && ads.length > 0 && pagination.totalPages > 1 && (
-                                <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                                    <div className="text-sm text-gray-700">
-                                        Showing <span className="font-medium">{((pagination.currentPage - 1) * pagination.itemsPerPage) + 1}</span> to{' '}
-                                        <span className="font-medium">
-                                            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)}
-                                        </span> of{' '}
-                                        <span className="font-medium">{pagination.totalItems}</span> results
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.max(1, prev.currentPage - 1) }))}
-                                            disabled={pagination.currentPage === 1}
-                                            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Icon icon="mdi:chevron-left" className="w-5 h-5" />
-                                        </button>
-                                        
-                                        {[...Array(pagination.totalPages)].map((_, idx) => {
-                                            const pageNum = idx + 1;
-                                            // Show first, last, current, and pages around current
-                                            if (
-                                                pageNum === 1 ||
-                                                pageNum === pagination.totalPages ||
-                                                (pageNum >= pagination.currentPage - 1 && pageNum <= pagination.currentPage + 1)
-                                            ) {
-                                                return (
-                                                    <button
-                                                        key={pageNum}
-                                                        onClick={() => setPagination(prev => ({ ...prev, currentPage: pageNum }))}
-                                                        className={`px-3 py-1 border rounded-md text-sm font-medium ${
-                                                            pagination.currentPage === pageNum
-                                                                ? 'bg-primary-600 text-white border-primary-600'
-                                                                : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                        }`}
-                                                    >
-                                                        {pageNum}
-                                                    </button>
-                                                );
-                                            } else if (
-                                                pageNum === pagination.currentPage - 2 ||
-                                                pageNum === pagination.currentPage + 2
-                                            ) {
-                                                return <span key={pageNum} className="px-2 text-gray-500">...</span>;
-                                            }
-                                            return null;
-                                        })}
-
-                                        <button
-                                            onClick={() => setPagination(prev => ({ ...prev, currentPage: Math.min(prev.totalPages, prev.currentPage + 1) }))}
-                                            disabled={pagination.currentPage === pagination.totalPages}
-                                            className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                        >
-                                            <Icon icon="mdi:chevron-right" className="w-5 h-5" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </>
                     )}
                 </div>
             </div>
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-gray-100 rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                                 <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-600" />
@@ -562,10 +630,11 @@ function Ads() {
                                 Cancel
                             </button>
                             <button
+                                disabled={isDeleting}
                                 onClick={handleDeleteAd}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
                             >
-                                Delete
+                                {isDeleting ? "Deleting..." : "Delete"}
                             </button>
                         </div>
                     </div>
@@ -576,4 +645,3 @@ function Ads() {
 }
 
 export default Ads;
-                 

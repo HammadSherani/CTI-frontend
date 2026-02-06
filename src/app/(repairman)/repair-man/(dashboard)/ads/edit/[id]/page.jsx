@@ -10,6 +10,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
+import { set } from 'date-fns';
 
 // Validation schema
 const editAdSchema = yup.object().shape({
@@ -56,60 +57,12 @@ function EditAdvertisement() {
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [loadingAd, setLoadingAd] = useState(true);
   const [loadingBase, setLoadingBase] = useState(false);
-  const [adminBasePrices, setBasePrices] = useState([
-    { currency: 'USD', price: 1 },
-    { currency: 'PKR', price: 280 },
-    { currency: 'EUR', price: 0.92 },
-  ]);
+  const [adminBasePrices, setBasePrices] = useState([]);
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [currentAd, setCurrentAd] = useState(null);
 
-  // Static ads data for demo
-  const staticAds = [
-    {
-      _id: '1',
-      type: 'service',
-      title: 'Professional iPhone Screen Repair',
-      description: 'Expert iPhone screen repair service with genuine parts and 6 months warranty. Fast turnaround time.',
-      image: 'https://images.unsplash.com/photo-1621768216002-5ac171876625?w=400',
-      city: { _id: '1', name: 'Karachi' },
-      status: 'approved',
-      totalDays: 30,
-      startDate: '2026-02-01',
-      endDate: '2026-03-03',
-      currency: 'USD',
-      total: 30,
-    },
-    {
-      _id: '2',
-      type: 'profile',
-      profileId: {
-        _id: '692a33bab9c59b58cd33b0bb',
-        name: 'Hammad',
-      },
-      status: 'pending',
-      totalDays: 15,
-      startDate: '2026-02-05',
-      endDate: '2026-02-20',
-      currency: 'PKR',
-      total: 4200,
-    },
-    {
-      _id: '3',
-      type: 'service',
-      title: 'Samsung Galaxy Repair Services',
-      description: 'Complete Samsung repair solutions including screen, battery, and motherboard repairs.',
-      image: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400',
-      city: { _id: '2', name: 'Lahore' },
-      status: 'rejected',
-      totalDays: 7,
-      startDate: '2026-01-20',
-      endDate: '2026-01-27',
-      currency: 'USD',
-      total: 7,
-    },
-  ];
+
 
   const {
     register,
@@ -122,13 +75,13 @@ function EditAdvertisement() {
   } = useForm({
     resolver: yupResolver(editAdSchema),
     defaultValues: {
-      type: 'service',
+      type: '',
       title: '',
       description: '',
       totalDays: 1,
       startDate: '',
       city: '',
-      currency: 'USD',
+      currency: '',
     },
   });
 
@@ -147,41 +100,54 @@ function EditAdvertisement() {
   const fetchAdDetails = async () => {
     try {
       setLoadingAd(true);
-      // TODO: Replace with actual API call
-      // const { data } = await axiosInstance.get(`/advertisement/${id}`, {
-      //     headers: { 'Authorization': `Bearer ${token}` }
-      // });
-
-      // For now, using static data
-      setTimeout(() => {
-        const foundAd = staticAds.find(ad => ad._id === id);
-        if (foundAd) {
-          setCurrentAd(foundAd);
+      const { data } = await axiosInstance.get(`/repairman/advertisements/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
+   setCurrentAd(data.data);
           
-          // Set form values
-          setValue('type', foundAd.type);
-          setValue('totalDays', foundAd.totalDays);
-          setValue('startDate', foundAd.startDate);
-          setValue('currency', foundAd.currency);
+        
           
-          if (foundAd.type === 'service') {
-            setValue('title', foundAd.title);
-            setValue('description', foundAd.description);
-            setValue('city', foundAd.city?._id || '');
-            setImagePreview(foundAd.image);
-          }
-        } else {
-          toast.error('Advertisement not found');
-          router.push('/repair-man/ads');
-        }
-        setLoadingAd(false);
-      }, 500);
     } catch (error) {
       handleError(error);
       setLoadingAd(false);
-      router.push('/repair-man/ads');
+      // router.push('/repair-man/ads');
+    }finally {
+      setLoadingAd(false);
     }
   };
+
+ useEffect(() => {
+  if (currentAd) {
+    setValue('type', currentAd.type);
+    setValue('totalDays', currentAd.duration?.totalDays || 1);
+    setValue('currency', currentAd.currency || 'PKR');
+    
+    // Format and set start date properly
+    if (currentAd.duration?.startDate) {
+      const startDate = new Date(currentAd.duration.startDate);
+      const formattedStartDate = startDate.toISOString().split('T')[0];
+      setValue('startDate', formattedStartDate);
+    }
+    
+    // Set calculated end date
+    if (currentAd.duration?.endDate) {
+      const endDate = new Date(currentAd.duration.endDate);
+      const formattedEndDate = endDate.toISOString().split('T')[0];
+      setCalculatedEndDate(formattedEndDate);
+    }
+    
+    // Set calculated price
+    setCalculatedPrice(currentAd.budget?.totalPrice || 0);
+    
+    // Set service-specific fields
+    if (currentAd.type === 'service') {
+      setValue('title', currentAd.title || '');
+      setValue('description', currentAd.description || '');
+      setValue('city', currentAd.city?._id || '');
+      setImagePreview(currentAd.image || null);
+    }
+  }
+}, [currentAd, setValue]);
 
   const fetchCities = async () => {
     try {
@@ -201,7 +167,7 @@ function EditAdvertisement() {
   const fetchBasePrice = async () => {
     try {
       setLoadingBase(true);
-      const response = await axiosInstance.get('/advertise-base/fetch-base', {
+      const response = await axiosInstance.get('/repairman/advertisements/fetch/base', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setBasePrices(response.data.data || []);
@@ -212,7 +178,8 @@ function EditAdvertisement() {
       setLoadingBase(false);
     }
   };
-
+console.log('Admin Base Prices:', adminBasePrices);
+console.log('currentAd:', currentAd);
   // Calculate end date based on start date and total days
   useEffect(() => {
     if (watchStartDate && watchTotalDays) {
@@ -225,13 +192,12 @@ function EditAdvertisement() {
     }
   }, [watchStartDate, watchTotalDays]);
 
-  // Calculate price based on days and currency
   useEffect(() => {
     const days = parseInt(watchTotalDays);
     if (days && !isNaN(days) && days > 0 && watchCurrency && adminBasePrices.length > 0) {
       const basePrice = adminBasePrices.find(p => p.currency === watchCurrency);
-      if (basePrice && basePrice.price) {
-        const total = basePrice.price * days;
+      if (basePrice && basePrice.basePrice) {
+        const total = basePrice.basePrice * days;
         setCalculatedPrice(total);
       } else {
         setCalculatedPrice(0);
@@ -240,6 +206,8 @@ function EditAdvertisement() {
       setCalculatedPrice(0);
     }
   }, [watchTotalDays, watchCurrency, adminBasePrices]);
+
+
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -274,15 +242,14 @@ function EditAdvertisement() {
       formData.append('endDate', calculatedEndDate);
       formData.append('totalDays', data.totalDays);
       formData.append('currency', data.currency);
-      formData.append('total', calculatedPrice);
+      formData.append('totalPrice', calculatedPrice);
 
-      // TODO: Replace with actual API call
-      // const res = await axiosInstance.put(`/advertisement/${id}`, formData, {
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //     'Content-Type': 'multipart/form-data',
-      //   },
-      // });
+      const res = await axiosInstance.put(`/repairman/advertisements/${id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       toast.success('Advertisement updated successfully!');
       router.push('/repair-man/ads');
@@ -603,7 +570,7 @@ function EditAdvertisement() {
                     </div>
                     <p className="text-xs text-gray-600 mt-1">
                       {getCurrencySymbol(watchCurrency)}
-                      {(adminBasePrices.find(p => p.currency === watchCurrency)?.price || 0).toFixed(2)} per day × {watchTotalDays} days
+                      {(adminBasePrices.find(p => p.currency === watchCurrency)?.basePrice || 0).toFixed(2)} per day × {watchTotalDays} days
                     </p>
                   </div>
                   <Icon icon="mdi:calculator" className="w-12 h-12 text-primary-600 opacity-50" />

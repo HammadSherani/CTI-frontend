@@ -8,7 +8,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import Link from 'next/link';
-import useDebounce from '@/hooks/useDebounce';
+
 function ViewAdvertisement() {
     const router = useRouter();
     const params = useParams();
@@ -17,23 +17,22 @@ function ViewAdvertisement() {
     const [loading, setLoading] = useState(true);
     const { token } = useSelector((state) => state.auth);
 
-useDebounce
+
     useEffect(() => {
         fetchAdDetails();
     }, [id]);
 
-
     const fetchAdDetails = async () => {
         try {
             setLoading(true);
-            const { data } = await axiosInstance.get(`/repairman/advertisements/${id}`, {
+            const { data } = await axiosInstance.get(`/admin/advertisements/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             setAd(data?.data);
         } catch (error) {
             handleError(error);
             setLoading(false);
-            router.push('/repair-man/ads');
+            router.push('/admin/advertisement');
         }
         finally {
             setLoading(false);
@@ -97,7 +96,7 @@ useDebounce
                 <div className="text-center">
                     <Icon icon="mdi:alert-circle" className="w-12 h-12 text-red-600 mx-auto mb-4" />
                     <p className="text-gray-600">Advertisement not found</p>
-                    <Link href="/repair-man/ads" className="text-primary-600 hover:underline mt-4 inline-block">
+                    <Link href="/admin/advertisement" className="text-primary-600 hover:underline mt-4 inline-block">
                         Back to Ads
                     </Link>
                 </div>
@@ -124,66 +123,11 @@ useDebounce
                                 <p className="text-gray-600 mt-1">View complete information about this advertisement</p>
                             </div>
                         </div>
-                        <div className="flex gap-3">
-                            {ad.status !== 'approved' && (
-                                <Link
-                                    href={`/repair-man/ads/edit/${ad._id}`}
-                                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                                >
-                                    <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                    Edit
-                                </Link>
-                            )}
-                        </div>
+                     
                     </div>
                 </div>
 
-                {/* Status Banner */}
-                <div className={`rounded-lg p-4 mb-6 ${
-                    ad.status === 'approved' ? 'bg-green-50 border-l-4 border-green-500' :
-                    ad.status === 'pending' ? 'bg-yellow-50 border-l-4 border-yellow-500' :
-                    'bg-red-50 border-l-4 border-red-500'
-                }`}>
-                    <div className="flex items-center">
-                        <Icon 
-                            icon={
-                                ad.status === 'approved' ? 'mdi:check-circle' :
-                                ad.status === 'pending' ? 'mdi:clock-outline' :
-                                'mdi:close-circle'
-                            } 
-                            className={`w-6 h-6 mr-3 ${
-                                ad.status === 'approved' ? 'text-green-600' :
-                                ad.status === 'pending' ? 'text-yellow-600' :
-                                'text-red-600'
-                            }`}
-                        />
-                        <div className="flex-1">
-                            <h3 className={`font-semibold ${
-                                ad.status === 'approved' ? 'text-green-900' :
-                                ad.status === 'pending' ? 'text-yellow-900' :
-                                'text-red-900'
-                            }`}>
-                                {ad.status === 'approved' ? 'Advertisement Approved' :
-                                 ad.status === 'pending' ? 'Pending Review' :
-                                 'Advertisement Rejected'}
-                            </h3>
-                            <p className={`text-sm ${
-                                ad.status === 'approved' ? 'text-green-700' :
-                                ad.status === 'pending' ? 'text-yellow-700' :
-                                'text-red-700'
-                            }`}>
-                                {ad.status === 'approved' ? `Approved on by  administrator.` :
-                                 ad.status === 'pending' ? 'Your advertisement is under review. You will be notified once it is approved.' :
-                                 `Rejected on  by  administrator.`}
-                            </p>
-                            {/* {ad.status === 'rejected' && ad.rejectionReason && (
-                                <p className="text-sm text-red-800 mt-2 font-medium">
-                                    Reason: {ad.rejectionReason}
-                                </p>
-                            )} */}
-                        </div>
-                    </div>
-                </div>
+                
 
                 {/* Main Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
