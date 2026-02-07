@@ -117,6 +117,7 @@ function EditAdvertisement() {
   };
 
  useEffect(() => {
+  console.log('Current Ad Data:', currentAd);
   if (currentAd) {
     setValue('type', currentAd.type);
     setValue('totalDays', currentAd.duration?.totalDays || 1);
@@ -235,7 +236,7 @@ console.log('currentAd:', currentAd);
         }
       } else {
         formData.append('type', 'profile');
-        formData.append('profileId', currentAd?.profileId?._id);
+        formData.append('profileId', currentAd?.user.id?._id);
       }
       
       formData.append('startDate', data.startDate);

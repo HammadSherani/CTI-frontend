@@ -147,7 +147,7 @@ function Ads() {
         const colors = {
             'pending': 'bg-yellow-100 text-yellow-800',
             'approved': 'bg-green-100 text-green-800',
-            'rejected': 'bg-red-100 text-red-800',
+            'suspended': 'bg-red-100 text-red-800',
             'expired': 'bg-gray-100 text-gray-800',
             'suspended': 'bg-orange-100 text-orange-800',
             'block': 'bg-red-100 text-red-800'
@@ -183,7 +183,7 @@ function Ads() {
         total: pagination.totalItems,
         approved: totalCounts.approve || 0,
         pending: totalCounts.pending || 0,
-        rejected: (totalCounts.block || 0) + (totalCounts.suspended || 0)
+        suspended: totalCounts.suspended || 0
     };
 
     const renderSkeletonRows = () => {
@@ -288,9 +288,9 @@ function Ads() {
                                 <Icon icon="mdi:close-circle" className="w-8 h-8 text-red-600" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Rejected</p>
+                                <p className="text-sm font-medium text-gray-500">Suspended</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {stats.rejected}
+                                    {stats.suspended}
                                 </p>
                             </div>
                         </div>
@@ -337,7 +337,7 @@ function Ads() {
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
                                 <option value="approved">Approved</option>
-                                <option value="rejected">Rejected</option>
+                                <option value="suspended">suspended</option>
                             </select>
                         </div>
                     </div>
@@ -461,7 +461,7 @@ function Ads() {
                                                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ad.status)}`}>
                                                     {ad.status === 'approved' && <Icon icon="mdi:check-circle" className="w-3 h-3 mr-1" />}
                                                     {ad.status === 'pending' && <Icon icon="mdi:clock-outline" className="w-3 h-3 mr-1" />}
-                                                    {ad.status === 'rejected' && <Icon icon="mdi:close-circle" className="w-3 h-3 mr-1" />}
+                                                    {ad.status === 'suspended' && <Icon icon="mdi:close-circle" className="w-3 h-3 mr-1" />}
                                                     {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
                                                 </span>
                                             </td>
