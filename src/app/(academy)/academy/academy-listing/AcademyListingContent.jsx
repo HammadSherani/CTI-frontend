@@ -91,9 +91,7 @@ const CourseCard = ({ course }) => {
     );
 };
 
-// ────────────────────────────────────────────────
-//  Main Component
-// ────────────────────────────────────────────────
+
 const AcademyListingContent = () => {
     const dispatch = useDispatch();
     const router = useRouter();

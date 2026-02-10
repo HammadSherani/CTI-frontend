@@ -395,7 +395,7 @@ function PaymentPage() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium text-gray-900">
-                    {getCurrencySymbol(adData.currency)}{adData.total}
+                    {getCurrencySymbol(adData.currencyCode)}{adData.totalPrice}
                   </span>
                 </div>
                 <div className="flex items-center justify-between">
@@ -411,7 +411,7 @@ function PaymentPage() {
                   <span className="text-sm font-medium text-gray-700">Total Amount</span>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-gray-900">
-                      {getCurrencySymbol(adData.currency)}{adData.totalPrice
+                      {getCurrencySymbol(adData.currencyCode)}{adData.totalPrice
 }
                     </p>
                     <p className="text-xs text-gray-600">{adData.currency}</p>

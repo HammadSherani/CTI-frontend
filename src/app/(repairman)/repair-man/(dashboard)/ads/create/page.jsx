@@ -12,6 +12,14 @@ import { useSelector } from 'react-redux';
 import ServiceSelectionModal from '@/components/partials/repairman/ServiceSelectionModal';
 import handleError from '@/helper/handleError';
 
+const getMinDate = () => {
+  const d = new Date();
+  d.setDate(d.getDate() + 3); // today + 3
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD (local)
+};
+
+
+
 // Validation schema
 const createAdSchema = yup.object().shape({
   type: yup.string().required('Ad type is required'),
@@ -47,10 +55,15 @@ const createAdSchema = yup.object().shape({
     .max(365, 'Maximum 365 days'),
   startDate: yup
     .date()
-    .required('Start date is required')
-    .min(new Date(), 'Start date cannot be in the past'),
-  currency: yup.string().required('Currency is required'),
+    .transform((value, originalValue) => (originalValue === '' ? null : value))
+    .nullable()
+    // .required('Start date is required')
+    .min(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), 'Start date must be at least 2 days from today'),
 });
+
+
+
+
 
 function CreateAdvertisement() {
   const router = useRouter();
@@ -58,7 +71,6 @@ function CreateAdvertisement() {
   const [imagePreview, setImagePreview] = useState(null);
   const [calculatedEndDate, setCalculatedEndDate] = useState(null);
   const [calculatedPrice, setCalculatedPrice] = useState(0);
-  const [selectedCurrency, setSelectedCurrency] = useState('USD');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [loadingBase, setLoadingBase] = useState(false);
   const [adminBasePrices, setBasePrices] = useState([]);
@@ -87,7 +99,7 @@ function CreateAdvertisement() {
       totalDays: 1,
       startDate: '',
       city: '',
-      currency: 'USD',
+      currency: '',
     },
   });
 
@@ -112,9 +124,10 @@ function CreateAdvertisement() {
   useEffect(() => {
     const days = parseInt(watchTotalDays);
     if (days && !isNaN(days) && days > 0 && watchCurrency && adminBasePrices.length > 0) {
-      const basePrice = adminBasePrices.find(p => p.currency === watchCurrency);
-      if (basePrice && basePrice.basePrice) {
-        const total = basePrice.basePrice * days;
+      // watchCurrency holds the _id of the selected base price entry
+      const baseEntry = adminBasePrices.find(p => p._id === watchCurrency);
+      if (baseEntry && typeof baseEntry.basePrice === 'number') {
+        const total = baseEntry.basePrice * days;
         setCalculatedPrice(total);
       } else {
         setCalculatedPrice(0);
@@ -195,7 +208,12 @@ function CreateAdvertisement() {
         const response = await axiosInstance.get('/repairman/advertisements/fetch/base', {
           headers: { Authorization: `Bearer ${token}` }
         });
-        setBasePrices(response.data.data || []);
+        const list = response.data.data || [];
+        setBasePrices(list);
+        // set default currency to first entry if not set
+        if (list.length > 0) {
+          setValue('currency', list[0]._id);
+        }
       } catch (error) {
         console.error('Error fetching base:', error);
         toast.error('Failed to load base prices');
@@ -221,6 +239,7 @@ function CreateAdvertisement() {
       setValue('totalDays', 1);
       setValue('startDate', '');
       setValue('currency', 'USD');
+      setValue("currencyId","")
       setCalculatedEndDate(null);
       setCalculatedPrice(0);
       // Fetch profile data
@@ -285,7 +304,9 @@ function CreateAdvertisement() {
         startDate: data.startDate,
         endDate: calculatedEndDate,
         totalDays: data.totalDays,
-        currency: data.currency,
+        currencyId: data.currency,
+        currencyCode: (adminBasePrices.find(p => p._id === data.currency)?.currency) || null,
+        currencyBasePrice: (adminBasePrices.find(p => p._id === data.currency)?.basePrice) || 0,
         totalPrice: calculatedPrice,
       };
 
@@ -666,32 +687,43 @@ function CreateAdvertisement() {
                     errors.currency ? 'border-red-500' : 'border-gray-300'
                   }`}
                 >
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="PKR">PKR - Pakistani Rupee</option>
-                  <option value="EUR">EUR - Euro</option>
+                  <option value="">Select currency</option>
+                  {adminBasePrices.map((val) => (
+                    <option key={val._id} value={val._id}>{val.currency}</option>
+                  ))}
+             
                 </select>
                 {errors.currency && (
                   <p className="mt-1 text-sm text-red-600">{errors.currency.message}</p>
                 )}
               </div>
 
-              <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
-                </label>
-                <input
-                  id="startDate"
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  {...register('startDate')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.startDate ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.startDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-                )}
-              </div>
+      <div>
+  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
+    Start Date *
+  </label>
+
+  <input
+    id="startDate"
+    type="date"
+    min={getMinDate()}
+  value={getMinDate()}
+    {...register('startDate')}
+    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+      errors.startDate ? 'border-red-500' : 'border-gray-300'
+    }`}
+  />
+
+  {/* Tagline / Helper Message */}
+  <p className="mt-1 text-sm text-gray-500">
+    Please select a date at least <strong>2 days after today</strong>.
+  </p>
+
+  {errors.startDate && (
+    <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
+  )}
+</div>
+
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -714,13 +746,21 @@ function CreateAdvertisement() {
                     <p className="text-sm text-gray-600 mb-1">Total Cost</p>
                     <div className="flex items-baseline gap-2">
                       <span className="text-3xl font-bold text-gray-900">
-                        {getCurrencySymbol(watchCurrency)}{(calculatedPrice || 0).toFixed(2)}
+                        {(() => {
+                          const entry = adminBasePrices.find(p => p._id === watchCurrency);
+                          const code = entry?.currency || '';
+                          return `${getCurrencySymbol(code)}${(calculatedPrice || 0).toFixed(2)}`;
+                        })()}
                       </span>
-                      <span className="text-sm text-gray-600">{watchCurrency}</span>
+                      <span className="text-sm text-gray-600">{(() => adminBasePrices.find(p => p._id === watchCurrency)?.currency || '' )()}</span>
                     </div>
                     <p className="text-xs text-gray-600 mt-1">
-                      {getCurrencySymbol(watchCurrency)}
-                      {(adminBasePrices.find(p => p.currency === watchCurrency)?.price || 0).toFixed(2)} per day × {watchTotalDays} days
+                      {(() => {
+                        const entry = adminBasePrices.find(p => p._id === watchCurrency);
+                        const code = entry?.currency || '';
+                        const perDay = entry?.basePrice ?? 0;
+                        return `${getCurrencySymbol(code)}${perDay.toFixed(2)} per day × ${watchTotalDays} days`;
+                      })()}
                     </p>
                   </div>
                   <Icon icon="mdi:calculator" className="w-12 h-12 text-primary-600 opacity-50" />

@@ -477,7 +477,7 @@ function Ads() {
                                                         <Icon icon="mdi:eye" className="w-5 h-5" />
                                                     </button>
 
-                                                    {ad.status !== 'approved' && ad.status !== 'suspended' && (
+                                                    {ad.type !== 'profile' && ad.status !== 'approved' && ad.status !== 'suspended' && (
                                                         <button
                                                             onClick={() => router.push(`/repair-man/ads/edit/${ad._id}`)}
                                                             className="text-blue-600 hover:text-blue-900 transition-colors"
@@ -592,8 +592,8 @@ function Ads() {
 
             {/* Delete Confirmation Modal */}
             {showDeleteModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-lg p-6 w-full max-w-md">
+                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
                         <div className="flex items-center gap-4 mb-4">
                             <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
                                 <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-600" />

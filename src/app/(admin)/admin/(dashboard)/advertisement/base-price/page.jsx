@@ -173,8 +173,6 @@ function AdvertisementBasePrice() {
       USD: '$',
       EUR: '€',
       PKR: '₨',
-      GBP: '£',
-      JPY: '¥',
     };
     return symbols[currency] || currency;
   };

@@ -576,11 +576,11 @@ useDebounce
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-gray-600">Total Cost</span>
                                         <span className="text-2xl font-bold text-primary-600">
-                                            {getCurrencySymbol(ad?.currency)}{ad.budget?.totalPrice}
+                                            {getCurrencySymbol(ad?.budget.currencyCode)}{ad.budget?.totalPrice}
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-600">
-                                        {getCurrencySymbol(ad.currency)}{(ad.budget?.totalPrice / ad.duration?.totalDays).toFixed(2)} per day
+                                        {getCurrencySymbol(ad.budget.currencyCode)}{(ad.budget?.totalPrice / ad.duration?.totalDays).toFixed(2)} per day
                                     </div>
                                 </div>
 

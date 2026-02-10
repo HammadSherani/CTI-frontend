@@ -26,13 +26,15 @@ export default function AcademyHeader() {
   // debounce search and update URL
   useEffect(() => {
     const t = setTimeout(() => {
-      // only navigate when there's an actual search term
-      if (!searchTerm || !searchTerm.trim()) return;
       const params = new URLSearchParams();
-      params.set('search', searchTerm.trim());
-      // reset to first page when searching
+      const term = searchTerm ? searchTerm.trim() : '';
+      // set search only when there's a term, otherwise omit it (clears param)
+      if (term) params.set('search', term);
+      // reset to first page when searching or clearing
       params.set('page', '1');
-      router.push(`/academy/academy-listing?${params.toString()}`)
+      const qs = params.toString();
+      const url = qs ? `/academy/academy-listing?${qs}` : `/academy/academy-listing`;
+      router.push(url);
     }, 500)
     return () => clearTimeout(t)
   }, [searchTerm, router])

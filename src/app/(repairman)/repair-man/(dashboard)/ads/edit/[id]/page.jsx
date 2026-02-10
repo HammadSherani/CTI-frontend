@@ -11,6 +11,7 @@ import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
 import { set } from 'date-fns';
+import ServiceSelectionModal from '@/components/partials/repairman/ServiceSelectionModal';
 
 // Validation schema
 const editAdSchema = yup.object().shape({
@@ -31,20 +32,10 @@ const editAdSchema = yup.object().shape({
     then: (schema) => schema.required('City is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-  // Common fields
-  totalDays: yup
-    .number()
-    .typeError('Days must be a number')
-    .required('Total days is required')
-    .positive('Days must be greater than zero')
-    .integer('Days must be a whole number')
-    .min(1, 'Minimum 1 day')
-    .max(365, 'Maximum 365 days'),
-  startDate: yup
-    .date()
-    .required('Start date is required')
-    .min(new Date(), 'Start date cannot be in the past'),
+
+
   currency: yup.string().required('Currency is required'),
+
 });
 
 function EditAdvertisement() {
@@ -61,7 +52,10 @@ function EditAdvertisement() {
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [currentAd, setCurrentAd] = useState(null);
-
+  const [services, setServices] = useState([]);
+  const [loadingServices, setLoadingServices] = useState(false);
+  const [selectedServices, setSelectedServices] = useState([]);
+  const [showServiceModal, setShowServiceModal] = useState(false);
 
 
   const {
@@ -82,6 +76,7 @@ function EditAdvertisement() {
       startDate: '',
       city: '',
       currency: '',
+      selectedService: ''
     },
   });
 
@@ -95,6 +90,7 @@ function EditAdvertisement() {
     fetchAdDetails();
     fetchCities();
     fetchBasePrice();
+    fetchServices()
   }, [id]);
 
   const fetchAdDetails = async () => {
@@ -120,8 +116,8 @@ function EditAdvertisement() {
   console.log('Current Ad Data:', currentAd);
   if (currentAd) {
     setValue('type', currentAd.type);
-    setValue('totalDays', currentAd.duration?.totalDays || 1);
-    setValue('currency', currentAd.currency || 'PKR');
+    setValue('totalDays', currentAd.duration?.totalDays || 0);
+    setValue('currency', currentAd.budget?.currencyCode || 'PKR');
     
     // Format and set start date properly
     if (currentAd.duration?.startDate) {
@@ -146,6 +142,8 @@ function EditAdvertisement() {
       setValue('description', currentAd.description || '');
       setValue('city', currentAd.city?._id || '');
       setImagePreview(currentAd.image || null);
+      // populate selected services so user can see/edit them
+      setSelectedServices(Array.isArray(currentAd.serviceList) ? currentAd.serviceList : []);
     }
   }
 }, [currentAd, setValue]);
@@ -164,7 +162,21 @@ function EditAdvertisement() {
       setLoadingCities(false);
     }
   };
-
+      const fetchServices = async () => {
+      try {
+        setLoadingServices(true)
+        const { data } = await axiosInstance.get(`/repairman/services`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+            }
+          })
+          setServices(data?.data || [])
+        } catch (error) {
+          handleError(error)
+        } finally {
+          setLoadingServices(false)
+        }
+      }
   const fetchBasePrice = async () => {
     try {
       setLoadingBase(true);
@@ -222,6 +234,18 @@ console.log('currentAd:', currentAd);
     }
   };
 
+  const handleSelectService = (service) => {
+    setSelectedServices(prev => {
+      const exists = prev.some(s => s._id === service._id);
+      if (exists) return prev.filter(s => s._id !== service._id);
+      return [...prev, service];
+    });
+  };
+
+  const handleRemoveService = (serviceId) => {
+    setSelectedServices(prev => prev.filter(s => s._id !== serviceId));
+  };
+
   const onSubmit = async (data) => {
     try {
       const formData = new FormData();
@@ -234,6 +258,14 @@ console.log('currentAd:', currentAd);
         if (data.image) {
           formData.append('image', data.image);
         }
+        // include selected services ids
+        if(selectedServices.length === 0){
+          toast.error('Please select at least one service to proceed');
+          return;
+        }
+        try {
+          formData.append('serviceList', JSON.stringify(selectedServices.map(s => s._id)));
+        } catch (e) {}
       } else {
         formData.append('type', 'profile');
         formData.append('profileId', currentAd?.user.id?._id);
@@ -262,15 +294,21 @@ console.log('currentAd:', currentAd);
       toast.error(errorMessage);
     }
   };
+  // const handleSelectService = (service) => {
+  //   setSelectedServices(prev => {
+  //     const isSelected = prev.some(s => s._id === service._id);
+  //     if (isSelected) {
+  //       return prev.filter(s => s._id !== service._id);
+  //     } else {
+  //       return [...prev, service];
+  //     }
+  //   });
+  // };
 
-  const getCurrencySymbol = (currency) => {
-    const symbols = {
-      USD: '$',
-      EUR: '€',
-      PKR: '₨',
-    };
-    return symbols[currency] || currency;
-  };
+  //  const handleRemoveService = (serviceId) => {
+  //   setSelectedServices(prev => prev.filter(s => s._id !== serviceId));
+  // };
+  
 
   if (loadingAd) {
     return (
@@ -466,6 +504,78 @@ console.log('currentAd:', currentAd);
                   </div>
                   <p className="mt-2 text-xs text-gray-500">Leave blank to keep current image</p>
                 </div>
+
+
+     <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Service List (Optional)
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => setShowServiceModal(true)}
+                      className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
+                    >
+                      <Icon icon="mdi:plus-circle" className="w-4 h-4" />
+                      Add Services
+                    </button>
+                  </div>
+                  
+                  {selectedServices.length > 0 ? (
+                    <div className="space-y-2">
+                      {selectedServices.map((service) => (
+                        <div
+                          key={service._id}
+                          className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
+                        >
+                          <div className="flex-1">
+                            <h4 className="text-sm font-medium text-gray-900">{service.title}</h4>
+                            <div className="flex items-center gap-3 mt-1">
+                              {service.deviceInfo?.brandId && (
+                                <span className="text-xs text-gray-600">
+                                  {service.deviceInfo.brandId.name}
+                                </span>
+                              )}
+                              {service.deviceInfo?.modelId && (
+                                <span className="text-xs text-gray-500">
+                                  {service.deviceInfo.modelId.name}
+                                </span>
+                              )}
+                              {service.pricing && (
+                                <span className="text-xs font-semibold text-green-600">
+                                  {service.pricing.currency} {service.pricing.total}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveService(service._id)}
+                            className="text-red-600 hover:text-red-700 ml-3"
+                          >
+                            <Icon icon="mdi:close-circle" className="w-5 h-5" />
+                          </button>
+                        </div>
+                      ))}
+                      <p className="text-xs text-gray-500 mt-2">
+                        {selectedServices.length} service(s) selected
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+                      <Icon icon="mdi:format-list-bulleted" className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-sm text-gray-600 mb-2">No services selected</p>
+                      <button
+                        type="button"
+                        onClick={() => setShowServiceModal(true)}
+                        className="text-primary-600 hover:text-primary-700 text-sm font-medium"
+                      >
+                        Select from your services
+                      </button>
+                    </div>
+                  )}
+                </div>
+
               </div>
             </div>
           )}
@@ -480,105 +590,7 @@ console.log('currentAd:', currentAd);
                 <p className="text-sm text-gray-600 mt-1">Profile details cannot be changed</p>
               </div>
             </div>
-          )}
-
-          {/* Ad Duration & Pricing */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">Duration & Pricing</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="totalDays" className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Days *
-                </label>
-                <input
-                  id="totalDays"
-                  type="number"
-                  min="1"
-                  max="365"
-                  {...register('totalDays')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.totalDays ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Number of days"
-                />
-                {errors.totalDays && (
-                  <p className="mt-1 text-sm text-red-600">{errors.totalDays.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency *
-                </label>
-                <select
-                  id="currency"
-                  {...register('currency')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.currency ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="USD">USD - US Dollar</option>
-                  <option value="PKR">PKR - Pakistani Rupee</option>
-                  <option value="EUR">EUR - Euro</option>
-                </select>
-                {errors.currency && (
-                  <p className="mt-1 text-sm text-red-600">{errors.currency.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
-                </label>
-                <input
-                  id="startDate"
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  {...register('startDate')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.startDate ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                />
-                {errors.startDate && (
-                  <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date (Auto-calculated)
-                </label>
-                <input
-                  type="text"
-                  value={calculatedEndDate || 'Select start date and days'}
-                  disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                />
-              </div>
-            </div>
-
-            {/* Price Summary */}
-            {watchTotalDays > 0 && calculatedPrice >= 0 && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border border-primary-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Total Cost</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900">
-                        {getCurrencySymbol(watchCurrency)}{(calculatedPrice || 0).toFixed(2)}
-                      </span>
-                      <span className="text-sm text-gray-600">{watchCurrency}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {getCurrencySymbol(watchCurrency)}
-                      {(adminBasePrices.find(p => p.currency === watchCurrency)?.basePrice || 0).toFixed(2)} per day × {watchTotalDays} days
-                    </p>
-                  </div>
-                  <Icon icon="mdi:calculator" className="w-12 h-12 text-primary-600 opacity-50" />
-                </div>
-              </div>
-            )}
-          </div>
+          )}    
 
           {/* Submit Buttons */}
           <div className="flex items-center justify-end gap-4 bg-white rounded-lg shadow-sm p-6">
@@ -601,6 +613,14 @@ console.log('currentAd:', currentAd);
           </div>
         </form>
       </div>
+       <ServiceSelectionModal
+          isOpen={showServiceModal}
+          onClose={() => setShowServiceModal(false)}
+          services={services}
+          selectedServices={selectedServices}
+          onSelectService={handleSelectService}
+          loading={loadingServices}
+        />
     </div>
   );
 }
