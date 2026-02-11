@@ -15,7 +15,7 @@ import handleError from '@/helper/handleError';
 // Helper for date restriction
 const getMinDate = () => {
   const d = new Date();
-  d.setDate(d.getDate() + 2); // Today + 2 days minimum
+  d.setDate(d.getDate() + 3); // Except Today + Count 2 days = Minimum Start Date
   return d.toLocaleDateString('en-CA'); // YYYY-MM-DD format
 };
 

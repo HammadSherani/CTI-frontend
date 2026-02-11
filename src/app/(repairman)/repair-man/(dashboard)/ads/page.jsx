@@ -19,6 +19,8 @@ function Ads() {
     const [filterStatus, setFilterStatus] = useState('');
     const [filterType, setFilterType] = useState('');
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+    const [isRescheduling, setIsRescheduling] = useState(false);
     const [selectedAd, setSelectedAd] = useState(null);
     const [isDeleting, setIsDeleting] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -33,7 +35,7 @@ function Ads() {
         totalItems: 0,
         itemsPerPage: 10
     });
-    
+
     const { token } = useSelector((state) => state.auth);
 
     // Reset to page 1 when debounced search or filters change
@@ -49,12 +51,12 @@ function Ads() {
     const fetchAds = async () => {
         try {
             setLoading(true);
-            
+
             // Build query params
             const params = new URLSearchParams();
             params.append('page', currentPage);
             params.append('limit', 10);
-            
+
             if (debouncedSearch) {
                 params.append('search', debouncedSearch);
             }
@@ -68,9 +70,9 @@ function Ads() {
             const { data } = await axiosInstance.get(`/repairman/advertisements?${params.toString()}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
+
             console.log(data, "Fetched advertisements");
-            
+
             setAds(data.advertisements || []);
             setTotalCounts(data.totalCounts || {
                 pending: 0,
@@ -129,7 +131,7 @@ function Ads() {
             await axiosInstance.delete(`/repairman/advertisements/delete/${selectedAd._id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            
+
             toast.success('Advertisement deleted successfully');
         } catch (error) {
             // Revert on error by refetching
@@ -142,6 +144,38 @@ function Ads() {
             setSelectedAd(null);
         }
     };
+
+
+    
+    const handleRescheduleAd = async () => {
+    if (!selectedAd) return;
+
+    try {
+        setIsRescheduling(true);
+
+        await axiosInstance.post(
+            `/repairman/advertisements/${selectedAd._id}`,
+            {}, // body (empty)
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+
+        toast.success('Advertisement Rescheduled successfully');
+        fetchAds();
+    } catch (error) {
+        toast.error('Failed to reschedule advertisement');
+        handleError(error);
+        fetchAds();
+    } finally {
+        setIsRescheduling(false);
+        setShowRescheduleModal(false);
+        setSelectedAd(null);
+    }
+};
+
 
     const getStatusColor = (status) => {
         const colors = {
@@ -403,14 +437,13 @@ function Ads() {
 
                                             {/* Type */}
                                             <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    ad.type === 'service' 
-                                                        ? 'bg-blue-100 text-blue-800' 
+                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ad.type === 'service'
+                                                        ? 'bg-blue-100 text-blue-800'
                                                         : 'bg-purple-100 text-purple-800'
-                                                }`}>
-                                                    <Icon 
-                                                        icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'} 
-                                                        className="w-3 h-3 mr-1" 
+                                                    }`}>
+                                                    <Icon
+                                                        icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'}
+                                                        className="w-3 h-3 mr-1"
                                                     />
                                                     {ad.type === 'service' ? 'Service' : 'Profile'}
                                                 </span>
@@ -420,7 +453,7 @@ function Ads() {
                                             <td className="px-6 py-4">
                                                 <div className="text-sm">
                                                     <div className="font-medium text-gray-900">
-                                                        {ad.type === 'service' 
+                                                        {ad.type === 'service'
                                                             ? (ad.title || 'Untitled Service')
                                                             : ad.user_id?.repairmanProfile?.fullName || 'Unnamed Profile'}
                                                     </div>
@@ -436,7 +469,7 @@ function Ads() {
                                             {/* Description */}
                                             <td className="px-6 py-4">
                                                 <div className="text-sm text-gray-600 max-w-xs">
-                                                    {truncateText(ad.description||ad.user_id?.repairmanProfile?.description)}
+                                                    {truncateText(ad.description || ad.user_id?.repairmanProfile?.description)}
                                                 </div>
                                             </td>
 
@@ -477,7 +510,7 @@ function Ads() {
                                                         <Icon icon="mdi:eye" className="w-5 h-5" />
                                                     </button>
 
-                                                    {ad.type !== 'profile' && ad.status !== 'approved' && ad.status !== 'suspended' && (
+                                                    {ad.type !== 'profile' && ad.status == 'pending' && (
                                                         <button
                                                             onClick={() => router.push(`/repair-man/ads/edit/${ad._id}`)}
                                                             className="text-blue-600 hover:text-blue-900 transition-colors"
@@ -486,6 +519,34 @@ function Ads() {
                                                             <Icon icon="mdi:pencil" className="w-5 h-5" />
                                                         </button>
                                                     )}
+                                                    {ad.status === 'suspended' && (
+                                                        <button
+                                                            onClick={() => router.push(`/repair-man/ads/suspend/${ad._id}`)}
+                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
+                                                            title="Suspend"
+                                                        >
+
+                                                            <Icon icon="fluent:text-change-reject-20-regular" className="w-5 h-5" />
+                                                        </button>
+                                                    )}
+
+  {ad.status === 'disabled' && (
+                                                       
+                                                    <button
+                                                        onClick={() => {
+                                                            setSelectedAd(ad);
+                                                            setShowRescheduleModal(true);
+                                                        }}
+                                                        className="text-red-600 hover:text-red-900 transition-colors"
+                                                        title="Reschedule"
+                                                    >
+                                                        <Icon icon="tabler:clock" className="w-5 h-5" />
+                                                    </button>
+                                                    )}
+
+
+
+
 
                                                     <button
                                                         onClick={() => {
@@ -546,7 +607,7 @@ function Ads() {
                                 >
                                     <Icon icon="mdi:chevron-left" className="w-5 h-5" />
                                 </button>
-                                
+
                                 {[...Array(pagination.totalPages)].map((_, idx) => {
                                     const pageNum = idx + 1;
                                     // Show first, last, current, and pages around current
@@ -559,11 +620,10 @@ function Ads() {
                                             <button
                                                 key={pageNum}
                                                 onClick={() => setCurrentPage(pageNum)}
-                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${
-                                                    currentPage === pageNum
+                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${currentPage === pageNum
                                                         ? 'bg-primary-600 text-white border-primary-600'
                                                         : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                }`}
+                                                    }`}
                                             >
                                                 {pageNum}
                                             </button>
@@ -608,7 +668,7 @@ function Ads() {
                             <div className="mb-4 p-4 bg-gray-50 rounded-lg">
                                 <p className="text-sm text-gray-700">
                                     <span className="font-medium">
-                                        {selectedAd.type === 'service' 
+                                        {selectedAd.type === 'service'
                                             ? (selectedAd.title || 'Untitled Service')
                                             : 'Profile Advertisement'}
                                     </span>
@@ -640,6 +700,64 @@ function Ads() {
                     </div>
                 </div>
             )}
+
+
+
+
+  {/* Resheule Confirmation Modal */}
+            {showRescheduleModal && (
+                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
+                        <div className="flex items-center gap-4 mb-4">
+                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                                <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Reschedule Advertisement</h3>
+                                <p className="text-sm text-gray-600">Are you sure you want to reschedule this ad?</p>
+                            </div>
+                        </div>
+
+                        {selectedAd && (
+                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                                <p className="text-sm text-gray-700">
+                                    <span className="font-medium">
+                                        {selectedAd.type === 'service'
+                                            ? (selectedAd.title || 'Untitled Service')
+                                            : 'Profile Advertisement'}
+                                    </span>
+                                </p>
+                                <p className="text-xs text-gray-500 mt-1">
+                                    This action cannot be undone.
+                                </p>
+                            </div>
+                        )}
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowRescheduleModal(false);
+                                    setSelectedAd(null);
+                                }}
+                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                disabled={isRescheduling}
+                                onClick={handleRescheduleAd}
+                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                            >
+                                {isRescheduling ? "Rescheduling..." : "Reschedule"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
+
+
         </div>
     );
 }
