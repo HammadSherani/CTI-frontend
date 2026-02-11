@@ -12,18 +12,16 @@ import { useSelector } from 'react-redux';
 import ServiceSelectionModal from '@/components/partials/repairman/ServiceSelectionModal';
 import handleError from '@/helper/handleError';
 
+// Helper for date restriction
 const getMinDate = () => {
   const d = new Date();
-  d.setDate(d.getDate() + 3); // today + 3
-  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD (local)
+  d.setDate(d.getDate() + 2); // Today + 2 days minimum
+  return d.toLocaleDateString('en-CA'); // YYYY-MM-DD format
 };
-
-
 
 // Validation schema
 const createAdSchema = yup.object().shape({
   type: yup.string().required('Ad type is required'),
-  // Service fields (conditional)
   title: yup.string().when('type', {
     is: 'service',
     then: (schema) => schema.required('Title is required'),
@@ -44,7 +42,6 @@ const createAdSchema = yup.object().shape({
     then: (schema) => schema.required('Image is required'),
     otherwise: (schema) => schema.notRequired(),
   }),
-  // Common fields
   totalDays: yup
     .number()
     .typeError('Days must be a number')
@@ -57,21 +54,20 @@ const createAdSchema = yup.object().shape({
     .date()
     .transform((value, originalValue) => (originalValue === '' ? null : value))
     .nullable()
-    // .required('Start date is required')
-    .min(new Date(Date.now() + 2 * 24 * 60 * 60 * 1000), 'Start date must be at least 2 days from today'),
+    .required('Start date is required')
+    .min(new Date(new Date().setHours(0, 0, 0, 0) + 2 * 24 * 60 * 60 * 1000), 'Start date must be at least 2 days from today'),
+  currency: yup.string().required('Currency is required'),
 });
-
-
-
-
 
 function CreateAdvertisement() {
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
+
+  // State Management
   const [imagePreview, setImagePreview] = useState(null);
   const [calculatedEndDate, setCalculatedEndDate] = useState(null);
   const [calculatedPrice, setCalculatedPrice] = useState(0);
-  const [loadingProfile, setLoadingProfile] = useState(false);
+  const [loadingPrice, setLoadingPrice] = useState(false);
   const [loadingBase, setLoadingBase] = useState(false);
   const [adminBasePrices, setBasePrices] = useState([]);
   const [cities, setCities] = useState([]);
@@ -80,8 +76,9 @@ function CreateAdvertisement() {
   const [loadingServices, setLoadingServices] = useState(false);
   const [selectedServices, setSelectedServices] = useState([]);
   const [showServiceModal, setShowServiceModal] = useState(false);
-  const [serviceSearch, setServiceSearch] = useState('');
-  const [servicePage, setServicePage] = useState(1);
+  const [userProfileData, setUserProfileData] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -97,9 +94,9 @@ function CreateAdvertisement() {
       title: '',
       description: '',
       totalDays: 1,
-      startDate: '',
+      startDate: getMinDate(),
       city: '',
-      currency: '',
+      currency: localStorage.getItem('user-currency'),
     },
   });
 
@@ -108,205 +105,195 @@ function CreateAdvertisement() {
   const watchStartDate = watch('startDate');
   const watchCurrency = watch('currency');
 
-  // Calculate end date based on start date and total days
-  useEffect(() => {
-    if (watchStartDate && watchTotalDays) {
-      const start = new Date(watchStartDate);
-      const end = new Date(start);
-      end.setDate(start.getDate() + parseInt(watchTotalDays));
-      setCalculatedEndDate(end.toISOString().split('T')[0]);
-    } else {
-      setCalculatedEndDate(null);
-    }
-  }, [watchStartDate, watchTotalDays]);
+  // --- API CALLS ---
 
-  // Calculate price based on days and currency
+  const fetchProfileData = async () => {
+    try {
+      setIsLoadingProfile(true);
+      const { data } = await axiosInstance.get(`/repairman/profile`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUserProfileData(data?.data?.user);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      setLoadingServices(true);
+      const { data } = await axiosInstance.get(`/repairman/services`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setServices(data?.data || []);
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setLoadingServices(false);
+    }
+  };
+
+  const fetchCities = async () => {
+    try {
+      setLoadingCities(true);
+      const response = await axiosInstance.get('/public/cities', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCities(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching cities:', error);
+    } finally {
+      setLoadingCities(false);
+    }
+  };
+
+  const fetchBasePrice = async () => {
+    try {
+      setLoadingBase(true);
+      const response = await axiosInstance.get('/repairman/advertisements/fetch/base', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const list = response.data.data || [];
+      setBasePrices(list);
+      // Auto-set default currency from base prices
+      // if (list.length > 0 && !watchCurrency) {
+      //   setValue('currency', list[0]._id);
+      // }
+    } catch (error) {
+      toast.error('Failed to load base prices');
+    } finally {
+      setLoadingBase(false);
+    }
+  };
+
+  const selectedCurrency = localStorage.getItem('user-currency');
+
+  const currency = JSON.parse(selectedCurrency);
+
+  // --- DYNAMIC CALCULATIONS ---
+
+  // Calculate Price from Backend & End Date Local
   useEffect(() => {
-    const days = parseInt(watchTotalDays);
-    if (days && !isNaN(days) && days > 0 && watchCurrency && adminBasePrices.length > 0) {
-      // watchCurrency holds the _id of the selected base price entry
-      const baseEntry = adminBasePrices.find(p => p._id === watchCurrency);
-      if (baseEntry && typeof baseEntry.basePrice === 'number') {
-        const total = baseEntry.basePrice * days;
-        setCalculatedPrice(total);
+    const updateCalculations = async () => {
+      // 1. Calculate End Date
+      if (watchStartDate && watchTotalDays > 0) {
+        const start = new Date(watchStartDate);
+        const end = new Date(start);
+        end.setDate(start.getDate() + parseInt(watchTotalDays));
+        setCalculatedEndDate(end.toLocaleDateString('en-CA'));
+      }
+
+      // 2. Fetch Calculated Price from Backend
+      // const selectedCurrencyObj = adminBasePrices.find(p => p._id === watchCurrency);
+
+
+
+      if (watchTotalDays > 0) {
+        try {
+          setLoadingPrice(true);
+          const { data } = await axiosInstance.get(
+            `/repairman/advertisements/calculate-price?days=${watchTotalDays}&userCurrency=${currency?.code}`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          if (data.success) {
+            setCalculatedPrice(data.data.totalPrice);
+          }
+        } catch (error) {
+          console.error("Price fetch error:", error);
+          setCalculatedPrice(0);
+        } finally {
+          setLoadingPrice(false);
+        }
       } else {
         setCalculatedPrice(0);
       }
-    } else {
-      setCalculatedPrice(0);
-    }
-  }, [watchTotalDays, watchCurrency, adminBasePrices]);
-
-
-    // Fetch cities
-    useEffect(() => {
-      fetchCities();
-      fetchBasePrice();
-      fetchServices();
-    }, []);
-  
-
-    const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-    const [userProfileData, setUserProfileData] = useState(null)
-    console.log(userProfileData,"userProfileData")
-
-
-    const fetchProfileData = async () => {
-      try {
-        setIsLoadingProfile(true)
-        const { data } = await axiosInstance.get(`/repairman/profile`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-            }
-          })
-          setUserProfileData(data?.data?.user)
-        } catch (error) {
-          handleError(error)
-        } finally {
-          setIsLoadingProfile(false)
-        }
-      }
-
-      const fetchServices = async () => {
-      try {
-        setLoadingServices(true)
-        const { data } = await axiosInstance.get(`/repairman/services`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-            }
-          })
-          setServices(data?.data || [])
-        } catch (error) {
-          handleError(error)
-        } finally {
-          setLoadingServices(false)
-        }
-      }
-         
-      console.log(services,"services")
-  
-    const fetchCities = async () => {
-      try {
-        setLoadingCities(true);
-        const response = await axiosInstance.get('/public/cities', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        setCities(response.data.data || []);
-      } catch (error) {
-        console.error('Error fetching cities:', error);
-        toast.error('Failed to load cities');
-      } finally {
-         setLoadingCities(false);
-      }
     };
 
+    const timeoutId = setTimeout(updateCalculations, 500);
+    return () => clearTimeout(timeoutId);
+  }, [watchTotalDays, watchStartDate, adminBasePrices, token, setValue]);
 
-    
-    const fetchBasePrice = async () => {
-      try {
-        setLoadingBase(true);
-        const response = await axiosInstance.get('/repairman/advertisements/fetch/base', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const list = response.data.data || [];
-        setBasePrices(list);
-        // set default currency to first entry if not set
-        if (list.length > 0) {
-          setValue('currency', list[0]._id);
-        }
-      } catch (error) {
-        console.error('Error fetching base:', error);
-        toast.error('Failed to load base prices');
-      } finally {
-        setLoadingBase(false);
-      }
-    };
+  // Initial Fetches
+  useEffect(() => {
+    fetchCities();
+    fetchBasePrice();
+    fetchServices();
+  }, []);
 
-    console.log(adminBasePrices,"adminBasePrices")
-
-
-  // Reset form fields when type changes
+  // Handle Ad Type Change
   useEffect(() => {
     if (watchType === 'profile') {
-      // Clear service-specific fields
       setValue('title', '');
       setValue('description', '');
       setValue('city', '');
       setValue('image', null);
       setImagePreview(null);
       setSelectedServices([]);
-      // Reset common fields
-      setValue('totalDays', 1);
-      setValue('startDate', '');
-      setValue('currency', 'USD');
-      setValue("currencyId","")
-      setCalculatedEndDate(null);
-      setCalculatedPrice(0);
-      // Fetch profile data
       fetchProfileData();
     } else {
-      // Clear profile data
       setUserProfileData(null);
-      setSelectedServices([]);
-      // Reset common fields
-      setValue('totalDays', 1);
-      setValue('startDate', '');
-      setValue('currency', 'USD');
-      setCalculatedEndDate(null);
-      setCalculatedPrice(0);
     }
   }, [watchType]);
+
+  // --- HANDLERS ---
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setValue('image', file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleSelectService = (service) => {
     setSelectedServices(prev => {
       const isSelected = prev.some(s => s._id === service._id);
-      if (isSelected) {
-        return prev.filter(s => s._id !== service._id);
-      } else {
-        return [...prev, service];
-      }
+      return isSelected ? prev.filter(s => s._id !== service._id) : [...prev, service];
     });
   };
 
   const handleRemoveService = (serviceId) => {
     setSelectedServices(prev => prev.filter(s => s._id !== serviceId));
   };
+
+  const getCurrencySymbol = () => {
+  // 1. Local storage se pura object uthayein
+  const saved = localStorage.getItem("user-currency");
   
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setValue('image', file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result);
-      };
-      reader.readAsDataURL(file);
+  if (saved) {
+    const currencyObj = JSON.parse(saved);
+      return currencyObj.symbol;
     }
-  };
+
+};
 
   const onSubmit = async (data) => {
     try {
-      // Convert image to base64 if present
       let imageBase64 = null;
-      if (data.image) {
-        const file = data.image;
+      if (data.image && data.image instanceof File) {
         const reader = new FileReader();
         imageBase64 = await new Promise((resolve, reject) => {
           reader.onloadend = () => resolve(reader.result);
           reader.onerror = reject;
-          reader.readAsDataURL(file);
+          reader.readAsDataURL(data.image);
         });
       }
 
-      // Prepare ad data
+      const selectedCurrencyObj = adminBasePrices.find(p => p._id === data.currency);
+
       const adData = {
         type: data.type,
         startDate: data.startDate,
         endDate: calculatedEndDate,
         totalDays: data.totalDays,
         currencyId: data.currency,
-        currencyCode: (adminBasePrices.find(p => p._id === data.currency)?.currency) || null,
-        currencyBasePrice: (adminBasePrices.find(p => p._id === data.currency)?.basePrice) || 0,
+        currencyCode: selectedCurrencyObj?.currency,
+        currencyBasePrice: selectedCurrencyObj?.basePrice || 0,
         totalPrice: calculatedPrice,
       };
 
@@ -314,29 +301,18 @@ function CreateAdvertisement() {
         adData.title = data.title;
         adData.description = data.description;
         adData.city = data.city;
-        adData.image = imageBase64; // Store base64 encoded image
+        adData.image = imageBase64;
         adData.serviceList = selectedServices.map(s => s._id);
       } else {
         adData.profileId = userProfileData?._id;
       }
 
-      // Store in sessionStorage
       sessionStorage.setItem('pendingAdData', JSON.stringify(adData));
-
-      // Navigate to payment page
       router.push('/repair-man/ads/payment');
     } catch (error) {
-      console.error('Error preparing ad data:', error);
+      console.error('Submission Error:', error);
       toast.error('Failed to process ad data');
     }
-  };
-  const getCurrencySymbol = (currency) => {
-    const symbols = {
-      USD: '$',
-      EUR: '€',
-      PKR: '₨',
-    };
-    return symbols[currency] || currency;
   };
 
   return (
@@ -348,7 +324,7 @@ function CreateAdvertisement() {
             <button
               onClick={() => router.back()}
               className="text-gray-500 hover:text-gray-700 transition-colors"
-              title="Go back"
+              type="button"
             >
               <Icon icon="mdi:arrow-left" className="w-6 h-6" />
             </button>
@@ -364,23 +340,10 @@ function CreateAdvertisement() {
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Advertisement Type</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <label
-                className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  watchType === 'service'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  value="service"
-                  {...register('type')}
-                  className="sr-only"
-                />
+              <label className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${watchType === 'service' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" value="service" {...register('type')} className="sr-only" />
                 <div className="flex items-center gap-3 w-full">
-                  <div className={`p-3 rounded-lg ${
-                    watchType === 'service' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={`p-3 rounded-lg ${watchType === 'service' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     <Icon icon="mdi:briefcase" className="w-6 h-6" />
                   </div>
                   <div>
@@ -388,28 +351,13 @@ function CreateAdvertisement() {
                     <p className="text-sm text-gray-600">Promote a specific service</p>
                   </div>
                 </div>
-                {watchType === 'service' && (
-                  <Icon icon="mdi:check-circle" className="w-6 h-6 text-primary-600 absolute top-4 right-4" />
-                )}
+                {watchType === 'service' && <Icon icon="mdi:check-circle" className="w-6 h-6 text-primary-600 absolute top-4 right-4" />}
               </label>
 
-              <label
-                className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
-                  watchType === 'profile'
-                    ? 'border-primary-600 bg-primary-50'
-                    : 'border-gray-200 hover:border-gray-300'
-                }`}
-              >
-                <input
-                  type="radio"
-                  value="profile"
-                  {...register('type')}
-                  className="sr-only"
-                />
+              <label className={`relative flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${watchType === 'profile' ? 'border-primary-600 bg-primary-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" value="profile" {...register('type')} className="sr-only" />
                 <div className="flex items-center gap-3 w-full">
-                  <div className={`p-3 rounded-lg ${
-                    watchType === 'profile' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'
-                  }`}>
+                  <div className={`p-3 rounded-lg ${watchType === 'profile' ? 'bg-primary-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                     <Icon icon="mdi:account" className="w-6 h-6" />
                   </div>
                   <div>
@@ -417,380 +365,157 @@ function CreateAdvertisement() {
                     <p className="text-sm text-gray-600">Promote your profile</p>
                   </div>
                 </div>
-                {watchType === 'profile' && (
-                  <Icon icon="mdi:check-circle" className="w-6 h-6 text-primary-600 absolute top-4 right-4" />
-                )}
+                {watchType === 'profile' && <Icon icon="mdi:check-circle" className="w-6 h-6 text-primary-600 absolute top-4 right-4" />}
               </label>
             </div>
-            {errors.type && (
-              <p className="mt-2 text-sm text-red-600">{errors.type.message}</p>
-            )}
           </div>
 
-          {/* Profile Display (when type is 'profile') */}
+          {/* Profile Display Section */}
           {watchType === 'profile' && (
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Profile</h2>
-              {loadingProfile ? (
-                <div className="flex items-center justify-center py-8">
-                  <Icon icon="mdi:loading" className="w-8 h-8 animate-spin text-primary-600" />
-                </div>
+              {isLoadingProfile ? (
+                <div className="flex justify-center py-8"><Icon icon="mdi:loading" className="w-8 h-8 animate-spin text-primary-600" /></div>
               ) : userProfileData ? (
                 <div className="space-y-4">
                   <div className="flex items-center gap-4">
-                    {userProfileData.repairmanProfile?.profilePhoto ? (
-                      <img
-                        src={userProfileData.repairmanProfile.profilePhoto}
-                        alt="Profile"
-                        className="w-20 h-20 rounded-full object-cover border-2 border-gray-200"
-                      />
-                    ) : (
-                      <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center">
-                        <Icon icon="mdi:account" className="w-10 h-10 text-primary-600" />
-                      </div>
-                    )}
+                    <img src={userProfileData.repairmanProfile?.profilePhoto || '/default-avatar.png'} alt="Profile" className="w-20 h-20 rounded-full object-cover border-2 border-gray-200" />
                     <div>
                       <h3 className="text-lg font-semibold text-gray-900">{userProfileData.name}</h3>
                       <p className="text-sm text-gray-600">{userProfileData.email}</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                    <div>
-                      <p className="text-sm text-gray-600">Profile ID</p>
-                      <p className="font-medium text-gray-900">{userProfileData._id}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Phone</p>
-                      <p className="font-medium text-gray-900">{userProfileData.phone}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">City</p>
-                      <p className="font-medium text-gray-900">{userProfileData.city?.name || userProfileData.city || 'N/A'}</p>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t text-sm">
+                    <div><p className="text-gray-500">Phone</p><p className="font-medium">{userProfileData.phone}</p></div>
+                    <div><p className="text-gray-500">City</p><p className="font-medium">{userProfileData.city?.name || userProfileData.city || 'N/A'}</p></div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Icon icon="mdi:alert-circle" className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-                  <p className="text-gray-600">Unable to load profile</p>
-                </div>
+                <p className="text-center text-gray-500">Profile data not found.</p>
               )}
             </div>
           )}
 
-          {/* Service Details (when type is 'service') */}
+          {/* Service Details Section */}
           {watchType === 'service' && (
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 space-y-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4">Service Details</h2>
-              <div className="space-y-6">
-                <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
-                    Service Title *
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    {...register('title')}
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                      errors.title ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="e.g., Professional Web Development Services"
-                  />
-                  {errors.title && (
-                    <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Service Title *</label>
+                <input {...register('title')} className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${errors.title ? 'border-red-500' : 'border-gray-300'}`} placeholder="e.g., Professional Web Development" />
+                {errors.title && <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>}
+              </div>
 
-                <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
-                    Description *
-                  </label>
-                  <textarea
-                    id="description"
-                    {...register('description')}
-                    rows="5"
-                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                      errors.description ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    placeholder="Describe your service in detail..."
-                  />
-                  {errors.description && (
-                    <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
-                  )}
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description *</label>
+                <textarea {...register('description')} rows="5" className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 outline-none ${errors.description ? 'border-red-500' : 'border-gray-300'}`} placeholder="Describe your service..." />
+                {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>}
+              </div>
 
-                {/* City */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-2">
-                    City *
-                  </label>
-                  <select
-                    id="city"
-                    {...register('city')}
-                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                      errors.city ? 'border-red-500' : 'border-gray-300'
-                    }`}
-                    disabled={loadingCities}
-                  >
+                  <label className="block text-sm font-medium text-gray-700 mb-2">City *</label>
+                  <select {...register('city')} className={`w-full px-4 py-2 border rounded-lg outline-none ${errors.city ? 'border-red-500' : 'border-gray-300'}`}>
                     <option value="">Select City</option>
-                    {cities.map(city => (
-                      <option key={city._id} value={city._id}>{city.name}</option>
-                    ))}
+                    {cities.map(city => <option key={city._id} value={city._id}>{city.name}</option>)}
                   </select>
-                  {errors.city && (
-                    <p className="mt-1 text-sm text-red-600">{errors.city.message}</p>
-                  )}
                 </div>
-
                 <div>
-                  <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-2">
-                    Service Image *
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Image *</label>
                   <div className="flex items-center gap-4">
-                    {imagePreview && (
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-32 h-32 rounded-lg object-cover border-2 border-gray-200"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-primary-500 transition-colors">
-                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                          <Icon icon="mdi:cloud-upload" className="w-10 h-10 text-gray-400 mb-2" />
-                          <p className="text-sm text-gray-600">
-                            <span className="font-semibold">Click to upload</span> or drag and drop
-                          </p>
-                          <p className="text-xs text-gray-500">PNG, JPG, JPEG (MAX. 5MB)</p>
-                        </div>
-                        <input
-                          id="image"
-                          type="file"
-                          accept="image/*"
-                          onChange={handleImageChange}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                  </div>
-                  {errors.image && (
-                    <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>
-                  )}
-                </div>
-
-                {/* Service List Selection */}
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Service List (Optional)
+                    {imagePreview && <img src={imagePreview} className="w-16 h-16 rounded-lg object-cover" alt="Preview" />}
+                    <label className="flex-1 border-2 border-dashed border-gray-300 rounded-lg p-2 text-center cursor-pointer hover:border-primary-500">
+                      <span className="text-xs text-gray-500">Click to upload</span>
+                      <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowServiceModal(true)}
-                      className="text-primary-600 hover:text-primary-700 text-sm font-medium flex items-center gap-1"
-                    >
-                      <Icon icon="mdi:plus-circle" className="w-4 h-4" />
-                      Add Services
-                    </button>
                   </div>
-                  
-                  {selectedServices.length > 0 ? (
-                    <div className="space-y-2">
-                      {selectedServices.map((service) => (
-                        <div
-                          key={service._id}
-                          className="flex items-center justify-between p-3 bg-gray-50 border border-gray-200 rounded-lg"
-                        >
-                          <div className="flex-1">
-                            <h4 className="text-sm font-medium text-gray-900">{service.title}</h4>
-                            <div className="flex items-center gap-3 mt-1">
-                              {service.deviceInfo?.brandId && (
-                                <span className="text-xs text-gray-600">
-                                  {service.deviceInfo.brandId.name}
-                                </span>
-                              )}
-                              {service.deviceInfo?.modelId && (
-                                <span className="text-xs text-gray-500">
-                                  {service.deviceInfo.modelId.name}
-                                </span>
-                              )}
-                              {service.pricing && (
-                                <span className="text-xs font-semibold text-green-600">
-                                  {service.pricing.currency} {service.pricing.total}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveService(service._id)}
-                            className="text-red-600 hover:text-red-700 ml-3"
-                          >
-                            <Icon icon="mdi:close-circle" className="w-5 h-5" />
-                          </button>
-                        </div>
-                      ))}
-                      <p className="text-xs text-gray-500 mt-2">
-                        {selectedServices.length} service(s) selected
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                      <Icon icon="mdi:format-list-bulleted" className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-600 mb-2">No services selected</p>
-                      <button
-                        type="button"
-                        onClick={() => setShowServiceModal(true)}
-                        className="text-primary-600 hover:text-primary-700 text-sm font-medium"
-                      >
-                        Select from your services
-                      </button>
-                    </div>
-                  )}
+                  {errors.image && <p className="mt-1 text-sm text-red-600">{errors.image.message}</p>}
                 </div>
+              </div>
+
+              {/* Service Selection List */}
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-sm font-medium text-gray-700">Included Services</label>
+                  <button type="button" onClick={() => setShowServiceModal(true)} className="text-primary-600 text-sm font-medium flex items-center gap-1">
+                    <Icon icon="mdi:plus-circle" /> Add Services
+                  </button>
+                </div>
+                {selectedServices.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedServices.map(service => (
+                      <div key={service._id} className="flex justify-between items-center p-3 bg-gray-50 border rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium">{service.title}</p>
+                          <p className="text-xs text-green-600 font-semibold">{service.pricing?.currency} {service.pricing?.total}</p>
+                        </div>
+                        <button type="button" onClick={() => handleRemoveService(service._id)} className="text-red-500"><Icon icon="mdi:close-circle" className="w-5 h-5" /></button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center text-gray-400 text-sm">No services selected</div>
+                )}
               </div>
             </div>
           )}
 
-          {/* Ad Duration & Pricing */}
+          {/* Duration & Pricing Section */}
           <div className="bg-white rounded-lg shadow-sm p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Duration & Pricing</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="totalDays" className="block text-sm font-medium text-gray-700 mb-2">
-                  Total Days *
-                </label>
-                <input
-                  id="totalDays"
-                  type="number"
-                  min="1"
-                  max="365"
-                  {...register('totalDays')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.totalDays ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                  placeholder="Number of days"
-                />
-                {errors.totalDays && (
-                  <p className="mt-1 text-sm text-red-600">{errors.totalDays.message}</p>
-                )}
+                <label className="block text-sm font-medium text-gray-700 mb-2">Total Days *</label>
+                <input type="number" {...register('totalDays')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none" />
+                {errors.totalDays && <p className="text-red-600 text-xs mt-1">{errors.totalDays.message}</p>}
               </div>
 
               <div>
-                <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
-                  Currency *
-                </label>
-                <select
-                  id="currency"
-                  {...register('currency')}
-                  className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-                    errors.currency ? 'border-red-500' : 'border-gray-300'
-                  }`}
-                >
-                  <option value="">Select currency</option>
-                  {adminBasePrices.map((val) => (
-                    <option key={val._id} value={val._id}>{val.currency}</option>
-                  ))}
-             
+                <label className="block text-sm font-medium text-gray-700 mb-2">Currency *</label>
+                <select {...register('currency')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none">
+                  <option value="">Select Currency</option>
+                  {adminBasePrices.map(p => <option key={p._id} value={p._id}>{p.currency}</option>)}
                 </select>
-                {errors.currency && (
-                  <p className="mt-1 text-sm text-red-600">{errors.currency.message}</p>
-                )}
               </div>
 
-      <div>
-  <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-2">
-    Start Date *
-  </label>
-
-  <input
-    id="startDate"
-    type="date"
-    min={getMinDate()}
-  value={getMinDate()}
-    {...register('startDate')}
-    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
-      errors.startDate ? 'border-red-500' : 'border-gray-300'
-    }`}
-  />
-
-  {/* Tagline / Helper Message */}
-  <p className="mt-1 text-sm text-gray-500">
-    Please select a date at least <strong>2 days after today</strong>.
-  </p>
-
-  {errors.startDate && (
-    <p className="mt-1 text-sm text-red-600">{errors.startDate.message}</p>
-  )}
-</div>
-
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+                <input type="date" min={getMinDate()} {...register('startDate')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none" />
+                {errors.startDate && <p className="text-red-600 text-xs mt-1">{errors.startDate.message}</p>}
+              </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  End Date (Auto-calculated)
-                </label>
-                <input
-                  type="text"
-                  value={calculatedEndDate || 'Select start date and days'}
-                  disabled
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-700"
-                />
+                <label className="block text-sm font-medium text-gray-700 mb-2">End Date (Auto)</label>
+                <input type="text" value={calculatedEndDate || 'Select date/days'} disabled className="w-full px-4 py-2 bg-gray-50 border rounded-lg text-gray-500" />
               </div>
             </div>
 
-            {/* Price Summary */}
-            {watchTotalDays > 0 && calculatedPrice >= 0 && (
-              <div className="mt-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border border-primary-200">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Total Cost</p>
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-gray-900">
-                        {(() => {
-                          const entry = adminBasePrices.find(p => p._id === watchCurrency);
-                          const code = entry?.currency || '';
-                          return `${getCurrencySymbol(code)}${(calculatedPrice || 0).toFixed(2)}`;
-                        })()}
-                      </span>
-                      <span className="text-sm text-gray-600">{(() => adminBasePrices.find(p => p._id === watchCurrency)?.currency || '' )()}</span>
-                    </div>
-                    <p className="text-xs text-gray-600 mt-1">
-                      {(() => {
-                        const entry = adminBasePrices.find(p => p._id === watchCurrency);
-                        const code = entry?.currency || '';
-                        const perDay = entry?.basePrice ?? 0;
-                        return `${getCurrencySymbol(code)}${perDay.toFixed(2)} per day × ${watchTotalDays} days`;
-                      })()}
-                    </p>
-                  </div>
-                  <Icon icon="mdi:calculator" className="w-12 h-12 text-primary-600 opacity-50" />
+            <div className="mt-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border border-primary-200 flex justify-between items-center">
+              <div>
+                <p className="text-sm text-gray-600">Total Advertisement Cost</p>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold text-gray-900">
+                    {getCurrencySymbol()}
+                    {calculatedPrice.toFixed(2)}
+                  </span>
+                  <span className="text-sm font-medium text-gray-500">{adminBasePrices.find(p => p.defaultCurrency === currency.defaultCurrency)}</span>
                 </div>
               </div>
-            )}
+              {loadingPrice ? <Icon icon="mdi:loading" className="w-10 h-10 animate-spin text-primary-400" /> : <Icon icon="mdi:calculator" className="w-10 h-10 text-primary-600 opacity-20" />}
+            </div>
           </div>
 
-          {/* Submit Button */}
+          {/* Form Actions */}
           <div className="flex items-center justify-end gap-4 bg-white rounded-lg shadow-sm p-6">
-            <button
-              type="button"
-              onClick={() => router.back()}
-              disabled={isSubmitting}
-              className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
+            <button type="button" onClick={() => router.back()} disabled={isSubmitting} className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors">Cancel</button>
+            <button type="submit" disabled={isSubmitting || loadingPrice} className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors flex items-center gap-2">
               {isSubmitting && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
               Create Advertisement
             </button>
           </div>
         </form>
 
-        {/* Service Selection Modal */}
+        {/* Modal */}
         <ServiceSelectionModal
           isOpen={showServiceModal}
           onClose={() => setShowServiceModal(false)}

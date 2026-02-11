@@ -10,6 +10,7 @@ import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import NotificationPanel from '../NotificationPanel';
 import useNotifications from '@/hooks/useNotifications';
+import CurrencySelector from '@/components/CurrencySelector';
 // import socketService from '@/utils/socketService';
 // import { useNotifications } from '@/hooks/useNotifications';
 
@@ -142,6 +143,8 @@ function Header() {
                   </div>
                 )}
               </button>
+
+              <CurrencySelector />
 
               
 
