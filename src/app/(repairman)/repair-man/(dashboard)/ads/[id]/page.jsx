@@ -65,7 +65,7 @@ useDebounce
     const getCurrencySymbol = (currency) => {
         const symbols = {
             USD: '$',
-            EUR: '€',
+            TRY: '₺',
             PKR: '₨',
         };
         return symbols[currency] || currency;

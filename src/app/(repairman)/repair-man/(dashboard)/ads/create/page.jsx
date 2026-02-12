@@ -11,7 +11,7 @@ import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 import ServiceSelectionModal from '@/components/partials/repairman/ServiceSelectionModal';
 import handleError from '@/helper/handleError';
-
+import {useLocalStorage} from "@/hooks/useLocalStorage";
 // Helper for date restriction
 const getMinDate = () => {
   const d = new Date();
@@ -56,7 +56,6 @@ const createAdSchema = yup.object().shape({
     .nullable()
     .required('Start date is required')
     .min(new Date(new Date().setHours(0, 0, 0, 0) + 2 * 24 * 60 * 60 * 1000), 'Start date must be at least 2 days from today'),
-  currency: yup.string().required('Currency is required'),
 });
 
 function CreateAdvertisement() {
@@ -68,8 +67,6 @@ function CreateAdvertisement() {
   const [calculatedEndDate, setCalculatedEndDate] = useState(null);
   const [calculatedPrice, setCalculatedPrice] = useState(0);
   const [loadingPrice, setLoadingPrice] = useState(false);
-  const [loadingBase, setLoadingBase] = useState(false);
-  const [adminBasePrices, setBasePrices] = useState([]);
   const [cities, setCities] = useState([]);
   const [loadingCities, setLoadingCities] = useState(false);
   const [services, setServices] = useState([]);
@@ -96,14 +93,12 @@ function CreateAdvertisement() {
       totalDays: 1,
       startDate: getMinDate(),
       city: '',
-      currency: localStorage.getItem('user-currency'),
     },
   });
 
   const watchType = watch('type');
   const watchTotalDays = watch('totalDays');
   const watchStartDate = watch('startDate');
-  const watchCurrency = watch('currency');
 
   // --- API CALLS ---
 
@@ -149,35 +144,13 @@ function CreateAdvertisement() {
     }
   };
 
-  const fetchBasePrice = async () => {
-    try {
-      setLoadingBase(true);
-      const response = await axiosInstance.get('/repairman/advertisements/fetch/base', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const list = response.data.data || [];
-      setBasePrices(list);
-      // Auto-set default currency from base prices
-      // if (list.length > 0 && !watchCurrency) {
-      //   setValue('currency', list[0]._id);
-      // }
-    } catch (error) {
-      toast.error('Failed to load base prices');
-    } finally {
-      setLoadingBase(false);
-    }
-  };
-
-  const selectedCurrency = localStorage.getItem('user-currency');
-
-  const currency = JSON.parse(selectedCurrency);
-
+const userCurrency = useLocalStorage('user-currency');
+console.log(" Currency Object:", userCurrency);
   // --- DYNAMIC CALCULATIONS ---
 
   // Calculate Price from Backend & End Date Local
-  useEffect(() => {
-    const updateCalculations = async () => {
-      // 1. Calculate End Date
+useEffect(() => {
+  const updateCalculations = async () => {
       if (watchStartDate && watchTotalDays > 0) {
         const start = new Date(watchStartDate);
         const end = new Date(start);
@@ -185,41 +158,40 @@ function CreateAdvertisement() {
         setCalculatedEndDate(end.toLocaleDateString('en-CA'));
       }
 
-      // 2. Fetch Calculated Price from Backend
-      // const selectedCurrencyObj = adminBasePrices.find(p => p._id === watchCurrency);
-
-
-
-      if (watchTotalDays > 0) {
-        try {
-          setLoadingPrice(true);
-          const { data } = await axiosInstance.get(
-            `/repairman/advertisements/calculate-price?days=${watchTotalDays}&userCurrency=${currency?.code}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-
-          if (data.success) {
-            setCalculatedPrice(data.data.totalPrice);
+    if (watchTotalDays > 0 && userCurrency?.code) {
+      try {
+        setLoadingPrice(true);
+        const { data } = await axiosInstance.get(
+          `/repairman/advertisements/calculate-price`,
+          {
+            params: {
+              days: watchTotalDays,
+              userCurrency: userCurrency.code,     // ← correct
+            },
+            headers: { Authorization: `Bearer ${token}` },
           }
-        } catch (error) {
-          console.error("Price fetch error:", error);
-          setCalculatedPrice(0);
-        } finally {
-          setLoadingPrice(false);
+        );
+
+        if (data.success) {
+          setCalculatedPrice(data.data.totalPrice || 0);
         }
-      } else {
+      } catch (error) {
+        console.error("Price fetch error:", error);
         setCalculatedPrice(0);
+      } finally {
+        setLoadingPrice(false);
       }
-    };
+    } else {
+      setCalculatedPrice(0);
+    }
+  };
 
-    const timeoutId = setTimeout(updateCalculations, 500);
-    return () => clearTimeout(timeoutId);
-  }, [watchTotalDays, watchStartDate, adminBasePrices, token, setValue]);
-
+  const timeoutId = setTimeout(updateCalculations, 500);
+  return () => clearTimeout(timeoutId);
+}, [watchTotalDays, watchStartDate, token, userCurrency?.code]);
   // Initial Fetches
   useEffect(() => {
     fetchCities();
-    fetchBasePrice();
     fetchServices();
   }, []);
 
@@ -261,16 +233,15 @@ function CreateAdvertisement() {
     setSelectedServices(prev => prev.filter(s => s._id !== serviceId));
   };
 
-  const getCurrencySymbol = () => {
-  // 1. Local storage se pura object uthayein
-  const saved = localStorage.getItem("user-currency");
-  
-  if (saved) {
-    const currencyObj = JSON.parse(saved);
-      return currencyObj.symbol;
-    }
-
-};
+ const getCurrencySymbol = () => {
+  return userCurrency?.symbol || "$"; 
+ }
+useEffect(() => {
+  if (!userCurrency) {
+    toast.warn("Please select a currency. Currency not found.");
+    // or redirect to settings page
+  }
+}, [userCurrency]);
 
   const onSubmit = async (data) => {
     try {
@@ -284,16 +255,12 @@ function CreateAdvertisement() {
         });
       }
 
-      const selectedCurrencyObj = adminBasePrices.find(p => p._id === data.currency);
-
       const adData = {
         type: data.type,
         startDate: data.startDate,
         endDate: calculatedEndDate,
         totalDays: data.totalDays,
-        currencyId: data.currency,
-        currencyCode: selectedCurrencyObj?.currency,
-        currencyBasePrice: selectedCurrencyObj?.basePrice || 0,
+        currencyCode: userCurrency?.code,
         totalPrice: calculatedPrice,
       };
 
@@ -466,17 +433,19 @@ function CreateAdvertisement() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Total Days *</label>
-                <input type="number" {...register('totalDays')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none" />
+                <input type="number" min="1" 
+      max="100" 
+      step="1"
+      onKeyDown={(e) => {
+        // Prevent 'e', '+', '-', '.' 
+        if (e.key === 'e' || e.key === '+' || e.key === '-' || e.key === '.') {
+          e.preventDefault();
+        }}}
+
+      {...register('totalDays')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none" />
                 {errors.totalDays && <p className="text-red-600 text-xs mt-1">{errors.totalDays.message}</p>}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Currency *</label>
-                <select {...register('currency')} className="w-full px-4 py-2 border rounded-lg border-gray-300 outline-none">
-                  <option value="">Select Currency</option>
-                  {adminBasePrices.map(p => <option key={p._id} value={p._id}>{p.currency}</option>)}
-                </select>
-              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
@@ -498,7 +467,7 @@ function CreateAdvertisement() {
                     {getCurrencySymbol()}
                     {calculatedPrice.toFixed(2)}
                   </span>
-                  <span className="text-sm font-medium text-gray-500">{adminBasePrices.find(p => p.defaultCurrency === currency.defaultCurrency)}</span>
+                  <span className="text-sm font-medium text-gray-500">{calculatedPrice.totalPrice}</span>
                 </div>
               </div>
               {loadingPrice ? <Icon icon="mdi:loading" className="w-10 h-10 animate-spin text-primary-400" /> : <Icon icon="mdi:calculator" className="w-10 h-10 text-primary-600 opacity-20" />}

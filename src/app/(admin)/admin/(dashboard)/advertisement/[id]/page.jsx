@@ -60,11 +60,10 @@ function ViewAdvertisement() {
             minute: '2-digit'
         });
     };
-
-    const getCurrencySymbol = (currency) => {
+   const getCurrencySymbol = (currency) => {
         const symbols = {
             USD: '$',
-            EUR: '€',
+            TRY: '₺',
             PKR: '₨',
         };
         return symbols[currency] || currency;
@@ -516,18 +515,17 @@ function ViewAdvertisement() {
                         <div className="bg-white rounded-lg shadow-sm p-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Duration & Pricing</h3>
                             <div className="space-y-4">
-                                <div className="bg-primary-50 p-4 rounded-lg">
+                                   <div className="bg-primary-50 p-4 rounded-lg">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-gray-600">Total Cost</span>
                                         <span className="text-2xl font-bold text-primary-600">
-                                            {getCurrencySymbol(ad?.currency)}{ad.budget?.totalPrice}
+                                            {getCurrencySymbol(ad?.budget.currencyCode)}{ad.budget?.totalPrice}
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-600">
-                                        {getCurrencySymbol(ad.currency)}{(ad.budget?.totalPrice / ad.duration?.totalDays).toFixed(2)} per day
+                                        {getCurrencySymbol(ad.budget.currencyCode)}{(ad.budget?.totalPrice / ad.duration?.totalDays).toFixed(2)} per day
                                     </div>
                                 </div>
-
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Duration</label>
                                     <p className="text-gray-900 mt-1 font-semibold flex items-center">
