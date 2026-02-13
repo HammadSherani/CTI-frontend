@@ -93,7 +93,7 @@ const MyJobsPage = () => {
     return 'low';
   };
 
-  const formatCurrency = (amount, currency = 'TRY') => {
+  const formatCurrency = (amount, currency="s") => {
     return `${currency} ${amount.toLocaleString()}`;
   };
 
@@ -184,7 +184,7 @@ const MyJobsPage = () => {
                   </h3>
                   <div className="text-sm text-gray-700 mb-2">
                     <span className="font-bold">Budget Range</span> -
-                    <span className="ml-1">Est. Budget: {formatCurrency(job.budget?.min)} - {formatCurrency(job.budget?.max)}</span>
+                      <span className="ml-1">Est. Budget: {formatCurrency(job.budget?.min, job.budget?.currency)} - {formatCurrency(job.budget?.max, job.budget?.currency)}</span>
                   </div>
                 </div>
               </div>

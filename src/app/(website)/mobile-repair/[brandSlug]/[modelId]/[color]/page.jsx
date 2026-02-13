@@ -5,7 +5,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, usePathname } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import Image from 'next/image';
 import { useSelector } from 'react-redux';
@@ -84,6 +84,10 @@ const StepIndicator = ({ currentStep, steps }) => {
 };
 
 const CreateRepairJobForm = () => {
+  const pathname = usePathname();
+  const STORAGE_KEY = `repair_form_${pathname}`;
+  const STEP_KEY = `repair_step_${pathname}`;
+
   const [currentStep, setCurrentStep] = useState(1);
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
@@ -150,6 +154,67 @@ const CreateRepairJobForm = () => {
 
   const selectedServices = watch('selectedServices');
   const coordinates = watch('location.coordinates');
+
+  // Load saved form data and step from sessionStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedFormData = sessionStorage.getItem(STORAGE_KEY);
+      const savedStep = sessionStorage.getItem(STEP_KEY);
+
+      if (savedFormData) {
+        try {
+          const parsedData = JSON.parse(savedFormData);
+          reset(parsedData);
+        } catch (error) {
+          console.error('Error parsing saved form data:', error);
+        }
+      }
+
+      if (savedStep) {
+        setCurrentStep(parseInt(savedStep, 10));
+      }
+    }
+  }, [reset]);
+
+  // Save form data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const subscription = watch((formData) => {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      });
+
+      return () => subscription.unsubscribe();
+    }
+  }, [watch]);
+
+  // Save current step to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(STEP_KEY, currentStep.toString());
+    }
+  }, [currentStep]);
+
+  // Clear sessionStorage when navigating away from this page
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // This will be called when the page is being unloaded
+      // But we want to keep data on refresh, so we do nothing here
+    };
+
+    const handleRouteChange = () => {
+      // Clear data when route changes
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STEP_KEY);
+      }
+    };
+
+    // Listen for route changes (Next.js specific)
+    // This clears data when user navigates to a different page
+    return () => {
+      handleRouteChange();
+    };
+  }, [pathname]);
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
@@ -278,6 +343,9 @@ const CreateRepairJobForm = () => {
 
       if (response.data.success) {
         toast.success(response.data.message);
+        // Clear sessionStorage after successful submission
+        sessionStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STEP_KEY);
         router.push('/my-account');
         setIsTermsAgreed(false);
       }

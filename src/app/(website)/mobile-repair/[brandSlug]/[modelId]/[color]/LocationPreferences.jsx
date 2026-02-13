@@ -1,6 +1,8 @@
 import { Icon } from "@iconify/react";
 import { useState, useEffect } from "react";
 import axiosInstance from "@/config/axiosInstance";
+import { usePathname } from "next/navigation";
+
 const servicePreferences = [
   { value: 'pickup', label: 'Pickup & Delivery', icon: 'mdi:truck-delivery' },
   { value: 'drop-off', label: 'On-site Repair', icon: 'mdi:home-repair' },
@@ -11,7 +13,11 @@ export const LocationPreferences = ({
   control,
   errors,
   setValue,
+  watch,
 }) => {
+  const pathname = usePathname();
+  const DROPDOWN_STORAGE_KEY = `location_dropdowns_${pathname}`;
+
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
@@ -23,37 +29,79 @@ export const LocationPreferences = ({
   const [apiError, setApiError] = useState('');
   const [selectedCountry, setSelectedCountry] = useState('');
   const [selectedState, setSelectedState] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Watch form values
+  const formCountry = watch('location.country');
+  const formState = watch('location.state');
+
+  // Load saved dropdown data from sessionStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedData = sessionStorage.getItem(DROPDOWN_STORAGE_KEY);
+      if (savedData) {
+        try {
+          const { savedCountries, savedStates, savedCities, savedCountryId, savedStateId } = JSON.parse(savedData);
+          
+          if (savedCountries) setCountries(savedCountries);
+          if (savedStates) setStates(savedStates);
+          if (savedCities) setCities(savedCities);
+          if (savedCountryId) setSelectedCountry(savedCountryId);
+          if (savedStateId) setSelectedState(savedStateId);
+        } catch (error) {
+          console.error('Error parsing saved dropdown data:', error);
+        }
+      }
+    }
+    setIsInitialized(true);
+  }, []);
+
+  // Save dropdown data to sessionStorage whenever it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isInitialized) {
+      const dataToSave = {
+        savedCountries: countries,
+        savedStates: states,
+        savedCities: cities,
+        savedCountryId: selectedCountry,
+        savedStateId: selectedState,
+      };
+      sessionStorage.setItem(DROPDOWN_STORAGE_KEY, JSON.stringify(dataToSave));
+    }
+  }, [countries, states, cities, selectedCountry, selectedState, isInitialized]);
 
   // Fetch Countries on component mount
   useEffect(() => {
-    fetchCountries();
+    if (countries.length === 0) {
+      fetchCountries();
+    }
   }, []);
 
-  // Fetch States when country changes
+  // Sync selectedCountry with form value and fetch states
   useEffect(() => {
-    if (selectedCountry) {
-      fetchStates(selectedCountry);
+    if (formCountry && formCountry !== selectedCountry) {
+      setSelectedCountry(formCountry);
+      if (!states.length || selectedCountry !== formCountry) {
+        fetchStates(formCountry);
+      }
+    } else if (!formCountry) {
       setStates([]);
       setCities([]);
       setSelectedState('');
-      setValue('location.state', '');
-      setValue('location.city', '');
-    } else {
-      setStates([]);
-      setCities([]);
     }
-  }, [selectedCountry]);
+  }, [formCountry]);
 
-  // Fetch Cities when state changes
+  // Sync selectedState with form value and fetch cities
   useEffect(() => {
-    if (selectedState) {
-      fetchCities(selectedState);
-      setCities([]);
-      setValue('location.city', '');
-    } else {
+    if (formState && formState !== selectedState) {
+      setSelectedState(formState);
+      if (!cities.length || selectedState !== formState) {
+        fetchCities(formState);
+      }
+    } else if (!formState) {
       setCities([]);
     }
-  }, [selectedState]);
+  }, [formState]);
 
   const fetchCountries = async () => {
     setLoading(prev => ({ ...prev, countries: true }));
@@ -97,6 +145,29 @@ export const LocationPreferences = ({
     }
   };
 
+  const handleCountryChange = (countryId) => {
+    setSelectedCountry(countryId);
+    setValue('location.country', countryId);
+    setValue('location.state', '');
+    setValue('location.city', '');
+    setStates([]);
+    setCities([]);
+    setSelectedState('');
+    if (countryId) {
+      fetchStates(countryId);
+    }
+  };
+
+  const handleStateChange = (stateId) => {
+    setSelectedState(stateId);
+    setValue('location.state', stateId);
+    setValue('location.city', '');
+    setCities([]);
+    if (stateId) {
+      fetchCities(stateId);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* API Error Message */}
@@ -124,8 +195,7 @@ export const LocationPreferences = ({
                 {...field}
                 disabled={loading.countries}
                 onChange={(e) => {
-                  field.onChange(e);
-                  setSelectedCountry(e.target.value);
+                  handleCountryChange(e.target.value);
                 }}
                 className={`w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                   errors.location?.country ? 'border-red-300' : 'border-gray-300'
@@ -135,7 +205,7 @@ export const LocationPreferences = ({
                   {loading.countries ? 'Loading countries...' : 'Select Country'}
                 </option>
                 {countries.map((country) => (
-                  <option key={country.id} value={country._id}>
+                  <option key={country._id} value={country._id}>
                     {country.name}
                   </option>
                 ))}
@@ -161,8 +231,7 @@ export const LocationPreferences = ({
                 {...field}
                 disabled={!selectedCountry || loading.states}
                 onChange={(e) => {
-                  field.onChange(e);
-                  setSelectedState(e.target.value);
+                  handleStateChange(e.target.value);
                 }}
                 className={`w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${
                   errors.location?.state ? 'border-red-300' : 'border-gray-300'
@@ -172,7 +241,7 @@ export const LocationPreferences = ({
                   {loading.states ? 'Loading states...' : 'Select State'}
                 </option>
                 {states.map((state) => (
-                  <option key={state.id} value={state._id}>
+                  <option key={state._id} value={state._id}>
                     {state.name}
                   </option>
                 ))}
@@ -255,29 +324,15 @@ export const LocationPreferences = ({
                 <label className="block text-sm font-medium text-gray-700 mb-1">ZIP Code (Optional)</label>
                 <input
                   {...field}
-                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  type="number"
                   placeholder="Enter ZIP code"
                   className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
             )}
           />
-
-          {/* <Controller
-            name="location.district"
-            control={control}
-            render={({ field }) => (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">District (Optional)</label>
-                <input
-                  {...field}
-                  type="text"
-                  placeholder="Enter district"
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-                />
-              </div>
-            )}
-          /> */}
         </div>
       </div>
 

@@ -1099,13 +1099,20 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 Phone Number <span className="text-red-500">*</span>
                                             </label>
                                             <input
-                                                type="tel"
-                                                id="phone"
-                                                {...registerUser('phone')}
-                                                placeholder="+90 555 123 4567"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${userErrors.phone ? 'border-red-500' : 'border-gray-200'
-                                                    }`}
-                                            />
+  type="text"
+  id="phone"
+  {...registerUser('phone', {
+    onChange: (e) => {
+      e.target.value = e.target.value.replace(/[^0-9]/g, "");
+    }
+  })}
+  inputMode="numeric"
+  placeholder="+90 555 123 4567"
+  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
+    userErrors.phone ? 'border-red-500' : 'border-gray-200'
+  }`}
+/>
+
                                             {userErrors.phone && (
                                                 <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
                                                     <Icon icon="lucide:alert-circle" className="w-4 h-4" />
@@ -1113,27 +1120,43 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 </p>
                                             )}
                                         </div>
+<div>
+  <label
+    htmlFor="identityNumber"
+    className="block text-sm font-semibold text-gray-700 mb-2"
+  >
+    Identity Number <span className="text-red-500">*</span>
+  </label>
 
-                                        <div>
-                                            <label htmlFor="identityNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Identity Number <span className="text-red-500">*</span>
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="identityNumber"
-                                                {...registerUser('identityNumber')}
-                                                placeholder="12345678901"
-                                                maxLength="11"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${userErrors.identityNumber ? 'border-red-500' : 'border-gray-200'
-                                                    }`}
-                                            />
-                                            {userErrors.identityNumber && (
-                                                <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-                                                    <Icon icon="lucide:alert-circle" className="w-4 h-4" />
-                                                    {userErrors.identityNumber.message}
-                                                </p>
-                                            )}
-                                        </div>
+  <input
+    type="text"
+    id="identityNumber"
+    inputMode="numeric"
+    maxLength={11}
+    placeholder="12345678901"
+    {...registerUser('identityNumber', {
+      required: 'Identity Number is required',
+      onChange: (e) => {
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+      },
+      pattern: {
+        value: /^[0-9]{11}$/,
+        message: 'Identity Number must be exactly 11 digits',
+      },
+    })}
+    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
+      userErrors.identityNumber ? 'border-red-500' : 'border-gray-200'
+    }`}
+  />
+
+  {userErrors.identityNumber && (
+    <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+      <Icon icon="lucide:alert-circle" className="w-4 h-4" />
+      {userErrors.identityNumber.message}
+    </p>
+  )}
+</div>
+
                                     </div>
 
                                     {/* City & Country */}

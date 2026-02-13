@@ -186,22 +186,22 @@ function JobDetailPage() {
                   <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Device Information</h3>
                     <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                        <div>
-                          <span className="font-medium text-gray-900">Brand:</span>
+                      <div className="grid grid-cols-2 md:grid-cols-4  gap-4 text-sm">
+                        <div className="flex gap-1 flex-wrap">
+                          <span className="font-medium text-gray-900">Brand{" "}:</span>
                           <p className="text-gray-600">{job?.deviceInfo.brand}</p>
                         </div>
-                        <div>
+                        <div className="flex gap-1 flex-wrap">
                           <span className="font-medium text-gray-900">Model:</span>
                           <p className="text-gray-600">{job?.deviceInfo.model}</p>
                         </div>
                         {job?.deviceInfo.color && (
-                          <div>
+                          <div className="flex gap-1 flex-wrap">
                             <span className="font-medium text-gray-900">Color:</span>
                             <p className="text-gray-600 capitalize">{job?.deviceInfo.color}</p>
                           </div>
                         )}
-                        <div>
+                        <div className="flex gap-1 flex-wrap">
                           <span className="font-medium text-gray-900">Warranty:</span>
                           <p className="text-gray-600 capitalize">{job?.deviceInfo.warrantyStatus}</p>
                         </div>
@@ -286,19 +286,19 @@ function JobDetailPage() {
                   <div className="border-t border-gray-200 pt-6">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4">Activity on this job</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                      <div>
+                      <div className="flex gap-1 flex-wrap">
                         <p className="font-medium text-gray-900">Total Offers:</p>
                         <p className="text-gray-600">{job.offers.length}</p>
                       </div>
-                      <div>
+                      <div className='flex gap-1 flex-wrap'>
                         <p className="font-medium text-gray-900">Max Offers:</p>
                         <p className="text-gray-600">{job?.maxOffers}</p>
                       </div>
-                      <div>
+                      <div className='flex gap-1 flex-wrap'>
                         <p className="font-medium text-gray-900">View Count:</p>
                         <p className="text-gray-600">{job?.viewCount}</p>
                       </div>
-                      <div>
+                      <div className='flex gap-1 flex-wrap'>
                         <p className="font-medium text-gray-900">Status:</p>
                         <p className="text-gray-600 capitalize">{job?.status}</p>
                       </div>
