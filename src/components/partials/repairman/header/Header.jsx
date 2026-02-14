@@ -87,7 +87,7 @@ function Header() {
   }, []);
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+    <header className=" border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
       <div className="container mx-auto py-1 flex items-center justify-between">
         {/* Logo and Navigation */}
         <div className="flex items-center gap-8">
@@ -125,14 +125,14 @@ function Header() {
         </div>
 
         {/* Right Side - Notifications + Profile */}
-        <div className="flex items-center gap-2">
+        <div className="flex justify-center items-center gap-2">
           {/* <Icon icon="fluent:chat-24-regular" width="24" height="24" /> */}
           {/* Notification Bell - Only show for repairmen */}
           {user?.role === 'repairman' && (
             <div className="relative" ref={notificationRef}>
               <button
                 onClick={toggleNotifications}
-                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
+                className="relative p-2 top-2 gap-6 text-gray-600  hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors"
                 aria-label="Notifications"
               >
                 <Icon icon="mdi:bell-outline" className="w-6 h-6" />
@@ -144,18 +144,17 @@ function Header() {
                 )}
               </button>
 
-              <CurrencySelector />
 
-              
+              <CurrencySelector />              
 
               {showNotifications && (
                 <NotificationPanel 
-                  isOpen={showNotifications}
-                  onClose={() => setShowNotifications(false)}
-                  userToken={token}
+                isOpen={showNotifications}
+                onClose={() => setShowNotifications(false)}
+                userToken={token}
                 />
               )}
-            </div>
+              </div>
           )}
 
           

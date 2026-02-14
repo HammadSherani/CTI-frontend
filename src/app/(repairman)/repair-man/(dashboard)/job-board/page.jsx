@@ -362,7 +362,7 @@ const MyJobsPage = () => {
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
-          <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 flex flex-col sm:flex-row gap-4 items-center">
+          <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 items-center">
             <div className="relative flex-1 w-full col-span-2">
               <input
                 type="text"
