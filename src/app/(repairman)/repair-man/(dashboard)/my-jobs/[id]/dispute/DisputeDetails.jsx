@@ -620,7 +620,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
             </div>
 
             {/* Job Details Card */}
-            {job && Object.keys(job).length > 0 && (
+            {job && job.length > 0 && (
                 <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
                     <div className="bg-primary-50 border-b border-primary-200 px-6 py-4">
                         <h3 className="text-xl font-bold text-primary-900">Related Job Details</h3>

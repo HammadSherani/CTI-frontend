@@ -136,7 +136,7 @@ const ServiceDetails = ({
   job
 }) => {
   const isQuotation = orderType === ORDER_TYPES.QUOTATION;
-
+  console.log(services, "services")
   return (
     <div className="bg-primary-50 rounded-xl p-6 mb-8 text-left">
       <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -145,7 +145,10 @@ const ServiceDetails = ({
       </h3>
       <div className="space-y-2 text-sm text-gray-700">
         <p><strong>Device:</strong> {deviceBrand} {deviceModel}</p>
-        <p><strong>Service:</strong> {services}</p>
+        <p>
+          <strong>Service:</strong>{" "}
+          {services.map(service => service.name).join(", ")}
+        </p>
         <p><strong>Repairman:</strong> {repairmanProfile?.name} ({repairmanProfile?.shopName})</p>
         <p><strong>Contact:</strong> {repairmanProfile?.mobileNumber || repairmanProfile?.phone}</p>
 
@@ -376,7 +379,7 @@ function OrderConfirmation() {
         : job.deviceInfo.model,
       services: isQuotation
         ? (quotation.deviceInfo?.repairServices?.join(', ') || 'N/A')
-        : job.services.join(', ')
+        : job.services
     };
   }, [orderData, orderType]);
 
@@ -398,6 +401,10 @@ function OrderConfirmation() {
     deviceModel,
     services
   } = orderDetails;
+
+
+  console.log("services ->", services);
+
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
