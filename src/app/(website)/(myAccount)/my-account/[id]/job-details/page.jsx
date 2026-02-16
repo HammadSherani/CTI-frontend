@@ -203,7 +203,7 @@ function JobDetails() {
 
     const currentStatus = useMemo(() => {
         if (dataType === 'job_posting') {
-            return booking?.status;
+            return job?.status;
         } else if (dataType === 'quotation_booking') {
             return booking?.status;
         }
@@ -252,6 +252,7 @@ function JobDetails() {
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">{deviceTitle}</h1>
                         <div className="flex items-center gap-4">
+                            {console.log('Current Status:', currentStatus)}
                             <StatusBadge status={currentStatus} />
 
                             {dataType === 'job_posting' && job?.urgency && (

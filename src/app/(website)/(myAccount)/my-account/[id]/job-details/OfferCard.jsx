@@ -109,7 +109,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                     <div className="flex flex-wrap gap-3 mb-5">
                         <RatingStars rating={offer.repairmanId?.repairmanProfile?.rating} />
                         <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full">
-                            🔧 {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
+                             {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
                         </span>
                         <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
                             ✅ {offer.experience?.successRate || 0}% success

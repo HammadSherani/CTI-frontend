@@ -171,12 +171,12 @@ const RepairJobCard = ({ job }) => {
           </div>
         </div>
       )}
-
+{console.log(job,"job in card")}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-xs text-gray-500">
-          {(job?.bookingStatus) && (
+          {(job?.status) && (
             <span className="inline-block bg-primary-100 text-primary-800 font-medium px-3 py-1 rounded-full capitalize">
-              {job?.bookingStatus}
+              {job?.status}
             </span>
           )}
 
@@ -213,7 +213,7 @@ const RepairJobCard = ({ job }) => {
         )}
       </div>
 
-      {job.bookingStatus === "delivered" && (
+      {job.status === "delivered" && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-sm text-blue-800 leading-relaxed">
             Your repairman has delivered the device. Please review the device carefully and, if everything is satisfactory,
@@ -226,7 +226,7 @@ const RepairJobCard = ({ job }) => {
       )}
 
 
-      {job.bookingStatus === "closed" && (
+      {job.status === "closed" && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
           <p className="text-sm text-green-800 leading-relaxed">
             This job has been <span className="font-semibold">successfully closed</span>.
@@ -764,6 +764,7 @@ export default function MyAccountPage() {
     setCurrentPage(1);
   }, [searchTerm, activeTab, filterPriority]);
 
+  console.log(jobs,"my jobs")
   const tabs = [
     { id: 'all', label: 'All Jobs', icon: 'mdi:view-list' },
     { id: 'open', label: 'Open', icon: 'mdi:clock-outline' },
@@ -783,32 +784,32 @@ export default function MyAccountPage() {
 
       booked: jobs.filter(job =>
         // job.status === 'booked' 
-        job.bookingStatus === 'confirmed' ||
-        job.bookingStatus === 'repairman_notified' ||
-        job.bookingStatus === 'scheduled'
+        job.status === 'confirmed' ||
+        job.status === 'repairman_notified' ||
+        job.status === 'scheduled'
       ).length,
 
       in_progress: jobs.filter(job =>
         job.status === 'in_progress' ||
-        job.bookingStatus === 'in_progress' ||
-        job.bookingStatus === 'parts_needed' ||
-        job.bookingStatus === 'quality_check'
+        job.status === 'in_progress' ||
+        job.status === 'parts_needed' ||
+        job.status === 'quality_check'
       ).length,
 
       completed: jobs.filter(job =>
         job.status === 'completed' ||
         job.status === 'delivered' ||
-        job.bookingStatus === 'delivered' ||
-        job.bookingStatus === 'closed' ||
-        job.bookingStatus === 'completed'
+        job.status === 'delivered' ||
+        job.status === 'closed' ||
+        job.status === 'completed'
       ).length,
 
       disputed: jobs.filter(job =>
         job.status === 'disputed' ||
-        job.bookingStatus === 'disputed'
+        job.status === 'disputed'
       ).length,
 
-      review: jobs.filter(job => job.bookingStatus === 'delivered').length
+      review: jobs.filter(job => job.status === 'delivered').length
     };
   };
 
@@ -840,32 +841,32 @@ export default function MyAccountPage() {
       matchesStatus = true;
     } else if (activeTab === 'booked') {
       matchesStatus = job?.status === 'booked' ||
-        job?.bookingStatus === 'confirmed' ||
-        job?.bookingStatus === 'repairman_notified' ||
-        job?.bookingStatus === 'scheduled';
+        job?.status === 'confirmed' ||
+        job?.status === 'repairman_notified' ||
+        job?.status === 'scheduled';
     } else if (activeTab === 'in_progress') {
       matchesStatus = job?.status === 'in_progress' ||
-        job?.bookingStatus === 'in_progress' ||
-        job?.bookingStatus === 'parts_needed' ||
-        job?.bookingStatus === 'quality_check';
+        job?.status === 'in_progress' ||
+        job?.status === 'parts_needed' ||
+        job?.status === 'quality_check';
     } else if (activeTab === 'completed') {
       matchesStatus = job?.status === 'completed' || job?.status === 'delivered' ||
-        job?.bookingStatus === 'completed' || job?.bookingStatus === 'delivered' || job?.bookingStatus === 'closed';
+        job?.status === 'completed' || job?.status === 'delivered' || job?.status === 'closed';
     } else if (activeTab === 'disputed') {
       matchesStatus = job?.status === 'disputed' ||
-        job?.bookingStatus === 'disputed';
+        job?.status === 'disputed';
     } else {
       matchesStatus = job?.status === activeTab;
     }
 
     return matchesSearch && matchesStatus;
   });
-
+ console.log(filteredJobs,"filtered jobs")  
   const totalPages = Math.ceil(filteredJobs.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentJobs = filteredJobs.slice(startIndex, endIndex);
-
+console.log(currentJobs,"current jobs")
   const handlePageChange = (page) => {
     setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: 'smooth' });
