@@ -1,20 +1,32 @@
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import React, { useState } from 'react'
+import React, { useState } from 'react';
+import { Icon } from '@iconify/react';           // ← Add this import
 
 const RatingStars = ({ rating = 0, size = "text-lg" }) => {
+    const filled = Math.floor(rating);
+    const hasHalf = rating % 1 >= 0.5;
+
     return (
         <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                    key={star}
-                    className={`${size} ${star <= Math.floor(rating) ? 'text-yellow-400' : 'text-gray-300'}`}
-                    aria-label={`Star ${star}`}
-                >
-                    {star <= Math.floor(rating) ? '★' : '☆'}
-                </span>
-            ))}
+            {[1, 2, 3, 4, 5].map((star) => {
+                let icon = 'solar:star-outline'; // empty
+                if (star <= filled) {
+                    icon = 'solar:star-bold';           // fully filled
+                } else if (star === filled + 1 && hasHalf) {
+                    icon = 'solar:star-half-bold';      // half (if you want half-star support)
+                }
+
+                return (
+                    <Icon
+                        key={star}
+                        icon={icon}
+                        className={`${size} ${star <= rating ? 'text-yellow-400' : 'text-gray-300'}`}
+                        aria-label={`Star ${star}`}
+                    />
+                );
+            })}
             <span className="ml-1 text-sm font-medium text-gray-600">
                 {rating > 0 ? rating.toFixed(1) : 'New'}
             </span>
@@ -24,7 +36,6 @@ const RatingStars = ({ rating = 0, size = "text-lg" }) => {
 
 const ExpandableDescription = ({ description, maxLength = 150 }) => {
     const [isExpanded, setIsExpanded] = useState(false);
-
     if (!description) return <p className="text-gray-500 text-sm">No description provided.</p>;
 
     const shouldTruncate = description.length > maxLength;
@@ -51,7 +62,6 @@ const ExpandableDescription = ({ description, maxLength = 150 }) => {
 const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferId, job }) => {
     const currencySymbol = offer.pricing?.currency === 'TRY' ? '₺' : '₹';
     const isThisOfferSubmitting = isSubmitting && submittingOfferId === offer._id;
-
     const isBooked = job?.status === 'booked' || job?.status === 'in_progress' || job?.status === 'completed' || job?.status === 'accepted' || job?.status === 'expired';
     const isDisabled = isBooked || isSubmitting || isThisOfferSubmitting;
 
@@ -98,9 +108,12 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             <span className="text-gray-500 text-sm hidden sm:inline">
                                 @{offer.repairmanId?.repairmanProfile?.shopName || `shop${index + 1}`}
                             </span>
+
+                            {/* Verified badge - using shield-check icon */}
                             <div className="w-5 h-5 bg-primary-500 rounded-full flex items-center justify-center flex-shrink-0" aria-label="Verified Professional">
-                                <span className="text-white text-xs">✓</span>
+                                <Icon icon="solar:verified-check-bold" className="text-white text-xs" />
                             </div>
+
                             <StatusBadge status={offer.status} />
                         </div>
                     </div>
@@ -108,21 +121,27 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                     {/* Rating and Stats */}
                     <div className="flex flex-wrap gap-3 mb-5">
                         <RatingStars rating={offer.repairmanId?.repairmanProfile?.rating} />
-                        <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full">
-                             {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
+
+                        <span className="bg-orange-100 text-orange-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Icon icon="solar:briefcase-bold" className="text-orange-600" width={14} />
+                            {offer.repairmanId?.repairmanProfile?.totalJobs || 0} jobs
                         </span>
-                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full">
-                            ✅ {offer.experience?.successRate || 0}% success
+
+                        <span className="bg-green-100 text-green-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Icon icon="solar:check-circle-bold" className="text-green-600" width={14} />
+                            {offer.experience?.successRate || 0}% success
                         </span>
-                        <span className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full">
-                            📍 {offer.locationContext?.distance?.toFixed(1) || 'N/A'} km
-                        </span>
-                        <div className="flex items-center gap-1 hidden md:block">
-                            <span className="text-xs">🇵🇰</span>
+                        {/* <span className="bg-primary-100 text-primary-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                            <Icon icon="solar:map-point-bold" className="text-primary-600" width={14} />
+                            {offer.locationContext?.distance?.toFixed(1) || 'N/A'} km
+                            </span> */}
+
+                            {console.log('reparimen:', offer.repairmanId)}
+                        <span className="bg-gray-100 text-green-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
                             <span className="text-sm text-gray-600">
-                                {offer.repairmanId?.repairmanProfile?.city || 'Pakistan'}
+                                {offer.repairmanId?.repairmanProfile?.city || ''}
                             </span>
-                        </div>
+                        </span>
                     </div>
 
                     {/* Service Info */}
@@ -130,26 +149,32 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         <div className="text-base font-semibold text-gray-800">
                             {offer.repairmanId?.repairmanProfile?.shopName || 'Repair Service'} - {offer.experience?.similarRepairs || 0} similar repairs
                         </div>
-
                         <div className="flex flex-wrap gap-2">
                             {offer.serviceOptions?.pickupAvailable && (
-                                <span className="bg-primary-50 text-primary-700 text-xs px-3 py-1.5 rounded-full border border-primary-200">
-                                    🚗 Pickup Available ({currencySymbol}{offer.serviceOptions.pickupCharge})
+                                <span className="bg-primary-50 text-primary-700 text-xs px-3 py-1.5 rounded-full border border-primary-200 flex items-center gap-1">
+                                    <Icon icon="solar:car-bold" width={14} />
+                                    Pickup Available ({currencySymbol}{offer.serviceOptions.pickupCharge})
                                 </span>
                             )}
+
                             {offer.serviceOptions?.homeService && (
-                                <span className="bg-green-50 text-green-700 text-xs px-3 py-1.5 rounded-full border border-green-200">
-                                    🏠 Home Service
+                                <span className="bg-green-50 text-green-700 text-xs px-3 py-1.5 rounded-full border border-green-200 flex items-center gap-1">
+                                    <Icon icon="solar:home-bold" width={14} />
+                                    Home Service
                                 </span>
                             )}
+
                             {offer.warranty?.duration && (
-                                <span className="bg-purple-50 text-purple-700 text-xs px-3 py-1.5 rounded-full border border-purple-200">
-                                    🛡️ {offer.warranty.duration} days warranty
+                                <span className="bg-purple-50 text-purple-700 text-xs px-3 py-1.5 rounded-full border border-purple-200 flex items-center gap-1">
+                                    <Icon icon="solar:shield-check-bold" width={14} />
+                                    {offer.warranty.duration} days warranty
                                 </span>
                             )}
+
                             {offer.pricing?.partsQuality && (
-                                <span className="bg-yellow-50 text-yellow-700 text-xs px-3 py-1.5 rounded-full border border-yellow-200">
-                                    🔧 {offer.pricing.partsQuality.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())} parts
+                                <span className="bg-yellow-50 text-yellow-700 text-xs px-3 py-1.5 rounded-full border border-yellow-200 flex items-center gap-1">
+                                    <Icon icon="solar:tools-bold" width={14} />
+                                    {offer.pricing.partsQuality.replace('-', ' ').replace(/\b\w/g, (c) => c.toUpperCase())} parts
                                 </span>
                             )}
                         </div>
@@ -174,31 +199,37 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                                     : 'Available now'}
                             </span>
                         </div>
+
                         {offer.serviceOptions?.dropOffLocation && (
                             <div className="flex items-start gap-2">
                                 <span className="font-semibold text-gray-800 min-w-[80px]">Drop-off:</span>
-                                <span className="text-gray-900">📍 {offer.serviceOptions.dropOffLocation}</span>
+                                <span className="text-gray-900 flex items-center gap-1">
+                                    {offer.serviceOptions.dropOffLocation}
+                                </span>
                             </div>
                         )}
+
                         <div className="flex items-center gap-2">
                             <span className="font-semibold text-gray-800 min-w-[80px]">Estimated Time:</span>
-                            <span className="text-gray-900">{offer.estimatedTime?.value || 'N/A'} {offer.estimatedTime?.unit || 'hours'}</span>
+                            <span className="text-gray-900">
+                                {offer.estimatedTime?.value || 'N/A'} {offer.estimatedTime?.unit || 'hours'}
+                            </span>
                         </div>
                     </div>
 
-                    {/* Required Parts - Moved here, above Action Buttons */}
+                    {/* Required Parts */}
                     {offer.requiredParts && offer.requiredParts.length > 0 && (
                         <div className="mb-6 pt-3 border-t border-gray-200">
                             <h5 className="font-bold text-sm mb-3 text-gray-800">Required Parts</h5>
-                            <div className="space-y-3 max-h-48 overflow-y-auto grid md:grid-cols-2  grid-cols-2 gap-3">
+                            <div className="space-y-3 max-h-48 overflow-y-auto grid md:grid-cols-2 grid-cols-2 gap-3">
                                 {offer.requiredParts.map((part) => (
                                     <div key={part.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-                                        <Image 
-                                            src={part?.images[0] || '/placeholder-image.jpg'} 
-                                            alt={part.name} 
-                                            height={48} 
-                                            width={48} 
-                                            className="h-12 w-12 object-cover rounded-md flex-shrink-0" 
+                                        <Image
+                                            src={part?.images[0] || '/placeholder-image.jpg'}
+                                            alt={part.name}
+                                            height={48}
+                                            width={48}
+                                            className="h-12 w-12 object-cover rounded-md flex-shrink-0"
                                             onError={(e) => { e.target.src = '/placeholder-image.jpg'; }}
                                         />
                                         <div className="flex-1 min-w-0">
@@ -223,7 +254,7 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                     <div className="flex flex-wrap gap-3 items-center pt-2 border-t border-gray-200">
                         {offer.status !== 'in_progress' && onAcceptOffer && (
                             <button
-                                onClick={() => handleAcceptOffer()}
+                                onClick={handleAcceptOffer}
                                 disabled={isDisabled}
                                 className={getButtonClasses()}
                                 aria-label={`Accept offer from ${label}`}
@@ -248,21 +279,14 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             </div>
                         )}
 
-                        <button
-                            className="text-red-500 text-sm hover:text-red-700 hover:underline transition-colors duration-200"
-                            disabled={isSubmitting}
-                        >
-                            Report Bid
-                        </button>
+                      
                     </div>
                 </div>
 
                 {/* Right Section - Price Breakdown */}
                 <div className="lg:w-80 h-fit bg-gradient-to-b from-gray-50 to-white rounded-xl p-5 border border-gray-200 shadow-inner">
                     <h4 className="font-bold text-gray-900 mb-4 text-base">Price Breakdown</h4>
-
                     <div className="space-y-3 text-sm">
-                        {/* Base Price */}
                         <div className="flex justify-between items-center py-1">
                             <span className="text-gray-600">Labor Cost</span>
                             <span className="font-semibold text-gray-900">
@@ -270,7 +294,6 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             </span>
                         </div>
 
-                        {/* Parts Price */}
                         {partsPrice > 0 && (
                             <div className="flex justify-between items-center py-1">
                                 <span className="text-gray-600">Parts Cost</span>
@@ -282,7 +305,6 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
                         <div className="border-t border-gray-300 pt-2"></div>
 
-                        {/* Subtotal */}
                         <div className="flex justify-between items-center py-1">
                             <span className="text-gray-700 font-semibold">Subtotal</span>
                             <span className="font-bold text-gray-900">
@@ -290,11 +312,10 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                             </span>
                         </div>
 
-                        {/* Pickup Charge (if applicable) */}
                         {pickupCharge > 0 && (
                             <div className="flex justify-between items-center py-1 text-primary-600 bg-primary-50 rounded-lg px-2">
                                 <span className="flex items-center gap-1">
-                                    <span>🚗</span>
+                                    <Icon icon="solar:car-bold" width={16} />
                                     <span>Pickup Charge</span>
                                 </span>
                                 <span className="font-semibold">
@@ -305,7 +326,6 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
                         <div className="border-t border-gray-300 pt-2"></div>
 
-                        {/* Total */}
                         <div className="flex justify-between items-center py-2 bg-primary-50 rounded-lg px-3">
                             <span className="text-gray-900 font-bold text-base">Total Amount</span>
                             <span className="text-2xl font-extrabold text-primary-600">
@@ -314,11 +334,10 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                         </div>
                     </div>
 
-                    {/* Additional Info */}
                     {offer.warranty?.duration && (
                         <div className="mt-4 pt-3 border-t border-gray-300">
                             <div className="flex items-center gap-2 text-sm text-gray-700">
-                                <span>🛡️</span>
+                                <Icon icon="solar:shield-check-bold" width={16} />
                                 <span className="font-medium">{offer.warranty.duration} days warranty included</span>
                             </div>
                         </div>
@@ -329,4 +348,4 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
     );
 };
 
-export default OfferCard
+export default OfferCard;

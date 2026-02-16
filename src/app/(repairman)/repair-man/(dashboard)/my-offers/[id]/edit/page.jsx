@@ -18,7 +18,6 @@ function EditOfferPage() {
         // Pricing
         basePrice: '',
         partsEstimate: '',
-        partsQuality: 'original',
         
         // Time
         estimatedTime: '',
@@ -347,27 +346,7 @@ function EditOfferPage() {
                     </div>
                 )}
 
-                {/* Current vs New Comparison */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-6 mb-6 text-white">
-                    <h3 className="text-xl font-bold mb-4 flex items-center">
-                        <Icon icon="heroicons:arrows-right-left" className="w-6 h-6 mr-2" />
-                        Price Comparison
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                            <p className="text-sm opacity-90 mb-1">Current Total</p>
-                            <p className="text-2xl font-bold">{data.pricing?.totalPrice?.toLocaleString()} TRY</p>
-                        </div>
-                        <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                            <p className="text-sm opacity-90 mb-1">New Total (Base + Parts)</p>
-                            <p className="text-2xl font-bold">{totalPrice.toLocaleString()} TRY</p>
-                        </div>
-                        <div className="bg-white/20 rounded-lg p-4 backdrop-blur-sm">
-                            <p className="text-sm opacity-90 mb-1">With All Services</p>
-                            <p className="text-2xl font-bold">{totalWithServices.toLocaleString()} TRY</p>
-                        </div>
-                    </div>
-                </div>
+  
 
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Pricing Section */}
@@ -379,7 +358,7 @@ function EditOfferPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    Base Labor Price (TRY) *
+                                    Base Service Price **
                                 </label>
                                 <input
                                     type="number"
@@ -401,7 +380,7 @@ function EditOfferPage() {
                                 )}
                             </div>
 
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     Parts Estimate (TRY)
                                 </label>
@@ -415,9 +394,9 @@ function EditOfferPage() {
                                     disabled={updating}
                                     placeholder="e.g., 3000"
                                 />
-                            </div>
+                            </div> */}
 
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     Parts Quality
                                 </label>
@@ -432,9 +411,9 @@ function EditOfferPage() {
                                         <option key={opt.value} value={opt.value}>{opt.label}</option>
                                     ))}
                                 </select>
-                            </div>
+                            </div> */}
 
-                            <div>
+                            {/* <div>
                                 <label className="block text-sm font-bold text-gray-700 mb-2">
                                     New Total Quote
                                 </label>
@@ -443,7 +422,7 @@ function EditOfferPage() {
                                         {totalPrice.toLocaleString()} TRY
                                     </p>
                                 </div>
-                            </div>
+                            </div> */}
                         </div>
                     </div>
 
@@ -589,20 +568,7 @@ function EditOfferPage() {
                                 />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-gray-700 mb-2">
-                                    Warranty Terms & Conditions
-                                </label>
-                                <textarea
-                                    name="warranty.terms"
-                                    value={formData.warranty.terms}
-                                    onChange={handleInputChange}
-                                    rows="3"
-                                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg"
-                                    placeholder="Any specific terms, conditions, or exclusions..."
-                                    disabled={updating}
-                                />
-                            </div>
+                          
                         </div>
                     </div>
 
@@ -794,39 +760,7 @@ function EditOfferPage() {
                         )}
                     </div>
 
-                    {/* Modification Reason - CRITICAL */}
-                    <div className="bg-gradient-to-br from-red-50 to-orange-50 border-4 border-red-400 rounded-xl shadow-lg p-6">
-                        <div className="flex items-start mb-4">
-                            <div className="bg-red-500 rounded-full p-2 mr-3">
-                                <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-white" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-2xl font-bold text-red-900 mb-1">
-                                    Modification Reason Required *
-                                </h3>
-                                <p className="text-sm text-red-700">
-                                    Please explain why you're modifying this offer. This helps build trust with the customer.
-                                </p>
-                            </div>
-                        </div>
-                        <textarea
-                            name="modificationReason"
-                            value={formData.modificationReason}
-                            onChange={handleInputChange}
-                            rows="5"
-                            className={`w-full px-4 py-3 border-3 rounded-lg focus:ring-4 focus:ring-red-500 transition ${
-                                errors.modificationReason ? 'border-red-600 bg-red-100' : 'border-red-300 bg-white'
-                            }`}
-                            placeholder="Examples:&#10;• Updated pricing due to parts availability check&#10;• Adjusted timeline based on current workload&#10;• Changed service options to better meet customer needs&#10;• Corrected initial estimate after reviewing requirements"
-                            disabled={updating}
-                        />
-                        {errors.modificationReason && (
-                            <div className="flex items-center mt-2 bg-red-100 border border-red-400 rounded p-2">
-                                <Icon icon="heroicons:x-circle" className="w-5 h-5 text-red-700 mr-2 flex-shrink-0" />
-                                <p className="text-red-800 text-sm font-bold">{errors.modificationReason}</p>
-                            </div>
-                        )}
-                    </div>
+                  
 
                     {/* Action Buttons */}
                     <div className="sticky bottom-4 bg-white rounded-xl shadow-2xl p-4 border-2 border-gray-200">

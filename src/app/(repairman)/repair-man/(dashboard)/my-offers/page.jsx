@@ -168,9 +168,10 @@ const MyOffersPage = () => {
     // Client-side filtering for Search and Urgency
     const filteredOffers = useMemo(() => {
         if (!offersData?.offers) return [];
-
+        
         return offersData.offers.filter((offer) => {
-            // Safety: Filter out in_progress
+            if (!offer.jobId) return false;
+
             if (offer.status === 'in_progress') return false;
 
             const jobTitle = `${offer.jobId?.deviceInfo?.brand || ''} ${offer.jobId?.deviceInfo?.model || ''}`;
@@ -297,6 +298,7 @@ const MyOffersPage = () => {
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 gap-6">
                                 {filteredOffers.map((offer) => (
+                                    console.log('offer:', offer),
                                     <OfferCard
                                         key={offer._id}
                                         offer={offer}
@@ -306,6 +308,8 @@ const MyOffersPage = () => {
                                     />
                                 ))}
                             </div>
+
+                            
 
                             {/* Pagination Section */}
                             {offersData?.pagination && (
