@@ -452,12 +452,20 @@ function JobBoardPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
+                                        {console.log(jobs,"jobsss")}
+                                        {jobs?.length === 0 && (
+                                            <tr>
+                                                <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
+                                                    No jobs available
+                                                </td>
+                                            </tr>
+                                        )}
                                         {jobs?.map((job) => (
                                             <tr key={job._id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col">
                                                         <span className="text-sm font-medium text-gray-900">
-                                                            {job.title || 'Untitled Job'}
+                                                            {job.deviceInfo?.brand} {job.deviceInfo?.model || 'Untitled Job'}
                                                         </span>
                                                         <span className="text-xs text-gray-500">
                                                             {formatDate(job.createdAt)}

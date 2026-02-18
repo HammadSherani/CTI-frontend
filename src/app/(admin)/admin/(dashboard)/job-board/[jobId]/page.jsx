@@ -288,10 +288,11 @@ function JobDetailsPage() {
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Job Info Card */}
+                        {console.log(job,"job details")}
                         <div className="bg-white rounded-lg shadow-sm p-6">
                             <div className="flex items-start justify-between mb-4">
                                 <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">{job.title || 'Untitled Job'}</h2>
+                                    <h2 className="text-2xl font-bold text-gray-900">{job.deviceInfo?.brand} {job.deviceInfo?.model || 'Untitled Job'}</h2>
                                     <p className="text-gray-500 mt-1">Job ID: {job._id}</p>
                                 </div>
                                 <div className="flex flex-col gap-2 items-end">
@@ -345,10 +346,7 @@ function JobDetailsPage() {
                                     <p className="text-sm text-gray-500">Color</p>
                                     <p className="font-medium text-gray-900">{job.deviceInfo?.color || 'N/A'}</p>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500">Purchase Year</p>
-                                    <p className="font-medium text-gray-900">{job.deviceInfo?.purchaseYear || 'N/A'}</p>
-                                </div>
+                               
                                 <div>
                                     <p className="text-sm text-gray-500">Warranty Status</p>
                                     <p className="font-medium text-gray-900">{job.deviceInfo?.warrantyStatus || 'N/A'}</p>

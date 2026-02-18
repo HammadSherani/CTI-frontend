@@ -92,6 +92,8 @@ export default function BidForm({
     const [selectedParts, setSelectedParts] = useState([]);
     const router = useRouter();
 
+    console.log('🔧 BidForm selectedParts:', selectedParts);
+
     const {
         control,
         handleSubmit,
@@ -126,20 +128,11 @@ export default function BidForm({
         }
     });
 
+    // Auto-update partsEstimate when selectedParts changes
     useEffect(() => {
-        const saved = localStorage.getItem(`selectedParts_job_${jobId}`);
-        if (saved) {
-            const parts = JSON.parse(saved);
-            setSelectedParts(parts);
-
-            const totalPartsPrice = parts.reduce((sum, part) => sum + (part.price || 0), 0);
-            setValue('partsEstimate', totalPartsPrice);
-            
-            if (parts.length > 0) {
-                setValue('isPartRequired', true);
-            }
-        }
-    }, [isOpen, setValue, jobId]);
+        const totalPrice = selectedParts.reduce((sum, part) => sum + (part.price || 0), 0);
+        setValue('partsEstimate', totalPrice);
+    }, [selectedParts, setValue]);
 
     const watchedValues = watch();
     const platformFeePercentage = 5;
@@ -167,7 +160,7 @@ export default function BidForm({
         try {
             setIsSubmitting(true);
 
-            const partIds = selectedParts.map(part => part.id);
+            const partIds = selectedParts.map(part => part._id || part.id);
 
             const payload = {
                 jobId: jobId,
@@ -225,8 +218,7 @@ export default function BidForm({
             });
 
             toast.success(res.data.message);
-            localStorage.removeItem(`selectedParts_${jobId}`);
-            router.push('/repair-man/job-board');
+            router.push('/repair-man/my-offers');
 
         } catch (error) {
             handleError(error)
@@ -251,12 +243,8 @@ export default function BidForm({
     };
 
     const handleRemovePart = (partId) => {
-        const updatedParts = selectedParts.filter(p => p.id !== partId);
+        const updatedParts = selectedParts.filter(p => p._id !== partId && p.id !== partId);
         setSelectedParts(updatedParts);
-        localStorage.setItem(`selectedParts_${jobId}`, JSON.stringify(updatedParts));
-
-        const totalPartsPrice = updatedParts.reduce((sum, part) => sum + (part.price || 0), 0);
-        setValue('partsEstimate', totalPartsPrice);
         
         // Uncheck isPartRequired if no parts left
         if (updatedParts.length === 0) {
@@ -383,7 +371,6 @@ export default function BidForm({
                                                 if (!e.target.checked) {
                                                     // Clear parts when unchecked
                                                     setSelectedParts([]);
-                                                    localStorage.removeItem(`selectedParts_${jobId}`);
                                                     setValue('partsEstimate', 0);
                                                 }
                                             }}
@@ -418,11 +405,11 @@ export default function BidForm({
                                         <h6 className="text-sm font-semibold text-gray-900 mb-3">Selected Parts</h6>
                                         <div className="space-y-2">
                                             {selectedParts.map((part) => (
-                                                <div key={part.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                <div key={part._id || part.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                                                     <div className="flex-1">
                                                         <p className="text-sm font-medium text-gray-900">{part.name}</p>
                                                         <div className="flex items-center gap-3 mt-1">
-                                                            <span className="text-xs text-gray-600">{part.brand} • {part.model}</span>
+                                                            <span className="text-xs text-gray-600">{part.brand?.name || 'N/A'} • {part.model?.name || 'N/A'}</span>
                                                             <span className="text-xs text-gray-600">SKU: {part.sku}</span>
                                                             <span className="text-xs font-medium text-green-600">{part.partType}</span>
                                                         </div>
@@ -431,7 +418,7 @@ export default function BidForm({
                                                         <span className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</span>
                                                         <button
                                                             type="button"
-                                                            onClick={() => handleRemovePart(part.id)}
+                                                            onClick={() => handleRemovePart(part._id || part.id)}
                                                             className="text-red-500 hover:text-red-700 transition-colors"
                                                         >
                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -909,6 +896,8 @@ export default function BidForm({
                 isOpen={isOpen}
                 onClose={() => setIsOpen(!isOpen)}
                 jobId={jobId}
+                setPartsArray={setSelectedParts}
+                initialSelectedParts={selectedParts}
             />
         </div>
     );
