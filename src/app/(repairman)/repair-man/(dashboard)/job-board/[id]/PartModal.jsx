@@ -4,29 +4,11 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { useSelector } from "react-redux";
 
-function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow = false, setPartsArray  }) {
+function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow = false, setPartsArray, initialSelectedParts = [] }) {
     const [parts, setParts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
-    
-    const storageKey = useMemo(() => {
-        if (jobId) {
-            return `selectedParts_job_${jobId}`;
-        } else {
-            return 'selectedParts_quotation_chat_' + chatId;
-        }
-    }, [jobId, chatId]);
-
-
-    
-    
-    const [selectedParts, setSelectedParts] = useState(() => {
-        const saved = localStorage.getItem(storageKey);
-        return saved ? JSON.parse(saved) : [];
-    });
-
-    
-    console.log('selectedParts', selectedParts);
-    
+    const [selectedParts, setSelectedParts] = useState([]);
+    const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
     
     const [pagination, setPagination] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
@@ -53,20 +35,30 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
     const { token } = useSelector((state) => state.auth);
     const limit = 20;
 
+    // ✅ SYNC selectedParts to parent automatically whenever it changes
     useEffect(() => {
-        const saved = localStorage.getItem(storageKey);
-        const parsedSaved = saved ? JSON.parse(saved) : [];
-        setSelectedParts(parsedSaved);
         if (setPartsArray && typeof setPartsArray === 'function') {
-            setPartsArray(parsedSaved);
+            console.log('🔄 Syncing selectedParts to parent:', selectedParts);
+            setPartsArray(selectedParts);
         }
-    }, [storageKey]);
+    }, [selectedParts, setPartsArray]);
 
+    // Modal open/close - load initial parts once
     useEffect(() => {
         if (isOpen) {
             fetchFilterOptions();
             setCurrentPage(1);
             fetchParts();
+            
+            // ✅ Load initial selected parts only once when modal opens
+            if (!hasLoadedInitial && initialSelectedParts && initialSelectedParts.length > 0) {
+                console.log('📥 Loading initialSelectedParts on modal open:', initialSelectedParts.length, 'parts');
+                setSelectedParts([...initialSelectedParts]);
+                setHasLoadedInitial(true);
+            }
+        } else {
+            // Reset when modal closes
+            setHasLoadedInitial(false);
         }
     }, [isOpen, jobId, isQuotationFlow]);
 
@@ -181,12 +173,17 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
         return `₺${price?.toLocaleString()}`;
     };
 
+    // ✅ Updated handlePartSelect - using _id consistently
     const handlePartSelect = (part) => {
+        event.stopPropagation();
+        console.log('📦 Part selected:', part._id, part.name);
+        
         const selectedPartData = {
-            id: part._id,
+            _id: part._id,  // ✅ Using _id
+            id: part._id,   // ✅ Also keeping id for compatibility
             name: part.name,
-            brand: part.brand?.name,
-            model: part.model?.name,
+            brand: part.brand,  // ✅ Keep full brand object
+            model: part.model,  // ✅ Keep full model object
             category: part.category?.name,
             partType: part.partType,
             warranty: part.warranty,
@@ -196,45 +193,40 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
         };
 
         setSelectedParts(prev => {
-            const isAlreadySelected = prev.some(p => p.id === part._id);
+            const isAlreadySelected = prev.some(p => p._id === part._id);
 
             let updatedParts;
             if (isAlreadySelected) {
-                updatedParts = prev.filter(p => p.id !== part._id);
+                console.log('❌ Removing part:', part._id);
+                updatedParts = prev.filter(p => p._id !== part._id);
             } else {
+                console.log('✅ Adding part:', part._id);
                 updatedParts = [...prev, selectedPartData];
             }
 
-            localStorage.setItem(storageKey, JSON.stringify(updatedParts));
-            if (setPartsArray && typeof setPartsArray === 'function') {
-                setPartsArray(updatedParts);
-            }
+            console.log('📋 Updated parts in modal:', updatedParts);
             return updatedParts;
         });
     };
 
     const isPartSelected = (partId) => {
-        return selectedParts.some(p => p.id === partId);
-    };
-
-    const getSelectedParts = () => {
-        return selectedParts;
-    };
-
-    const clearSelectedParts = () => {
-        setSelectedParts([]);
-        localStorage.removeItem(storageKey);
-        if (setPartsArray && typeof setPartsArray === 'function') {
-            setPartsArray([]);
+        // Check by _id first
+        let isSelected = selectedParts.some(p => p._id === partId);
+        
+        // If not found and we have parts, also try to match by name + brand + model as fallback
+        if (!isSelected && selectedParts.length > 0 && parts.length > 0) {
+            const currentPart = parts.find(p => p._id === partId);
+            if (currentPart) {
+                isSelected = selectedParts.some(p => 
+                    p.name === currentPart.name && 
+                    p.brand?._id === currentPart.brand?._id && 
+                    p.model?._id === currentPart.model?._id
+                );
+            }
         }
+        
+        return isSelected;
     };
-
-    useEffect(() => {
-        if (onClose && typeof onClose === 'function') {
-            // You can pass selected parts to parent when closing
-            // This is handled by parent component
-        }
-    }, [selectedParts, onClose]);
 
     if (!isOpen) return null;
 
@@ -242,9 +234,9 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white relative rounded-2xl shadow-xl w-full max-w-7xl h-[90vh] overflow-hidden relative flex flex-col">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-7xl h-[95vh] overflow-hidden relative flex flex-col">
                 {/* Header */}
-                <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
+                <div className="flex-shrink-0 p-4 border-b border-gray-200 bg-gradient-to-r from-primary-50 to-white">
                     <div className="flex items-center justify-between">
                         <div>
                             <h2 className="text-xl font-bold text-gray-900">Available Parts</h2>
@@ -258,7 +250,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
                             </p>
                         </div>
                         <button
-                            className="text-gray-400 hover:text-gray-600 transition-colors"
+                            className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
                             onClick={onClose}
                         >
                             <Icon icon="lets-icons:close-round" width="28" height="28" />
@@ -266,7 +258,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
                     </div>
                 </div>
 
-                <div className="flex-1 flex overflow-hidden">
+                <div className="flex-1 flex overflow-hidden min-h-0">
                     {/* Sidebar Filters */}
                     <div className="w-64 border-r border-gray-200 bg-gray-50 overflow-y-auto p-4">
                         <div className="flex items-center justify-between mb-4">
@@ -579,9 +571,27 @@ function PartModal({ isOpen, onClose, children, jobId, chatId,  isQuotationFlow 
                     </div>
                 </div>
 
-                {/* <div className="fixed w-full bottom-0 left-0 bg-white border-t border py-4">
-                        this is fixed bar 
-                </div> */}
+                {/* Footer with Submit Button */}
+                <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 mt-auto">
+                    <div className="flex gap-3">
+                        <button
+                            onClick={onClose}
+                            type="button"
+                            className="flex-1 px-4 py-3 border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            onClick={onClose}
+                            type="button"
+                            disabled={selectedParts.length === 0}
+                            className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Icon icon="heroicons:check-circle" className="w-5 h-5" />
+                            Confirm ({selectedParts.length} parts)
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );

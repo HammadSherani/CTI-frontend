@@ -111,7 +111,7 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
                 <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
                     <div><span className="font-medium">{offer.estimatedTime?.value} {offer.estimatedTime?.unit}</span></div>
                     <div><span className="font-medium">{offer.warranty?.duration}d warranty</span></div>
-                    <div><span className="font-medium">{offer.locationContext?.distance?.toFixed(1)} km</span></div>
+                    {/* <div><span className="font-medium">{offer.locationContext?.distance?.toFixed(1)} km</span></div> */}
                 </div>
             </div>
 
