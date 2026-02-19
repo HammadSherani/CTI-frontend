@@ -776,6 +776,7 @@ export default function MyAccountPage() {
     { id: 'review', label: "Reviews", icon: 'mdi:check-circle' }
   ];
 
+  console.log(jobs,"jobsaaaa")
   const getJobCounts = () => {
     return {
       all: jobs.length,
@@ -786,7 +787,8 @@ export default function MyAccountPage() {
         // job.status === 'booked' 
         job.status === 'confirmed' ||
         job.status === 'repairman_notified' ||
-        job.status === 'scheduled'
+        job.status === 'scheduled'||
+        job.status === 'booked'
       ).length,
 
       in_progress: jobs.filter(job =>

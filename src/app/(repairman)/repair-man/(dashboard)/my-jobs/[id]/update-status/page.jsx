@@ -8,6 +8,8 @@ import { useParams, useRouter } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import DisputesModal from '@/components/partials/repairman/DisputesModal';
+import Chat from '@/components/chat/GlobalChat';
+import { useChat } from '@/hooks/useChat';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -19,11 +21,13 @@ function UpdateStatus() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [statusUpdateResult, setStatusUpdateResult] = useState(null);
-  
+  const [chatOpen, setChatOpen] = useState(false);
   const params = useParams();
   const router = useRouter();
   const id = params.id;
   const { token } = useSelector((state) => state.auth);
+
+  const { openChat ,selectChat} = useChat();
 
   const fetchJobDetails = async () => {
     try {
@@ -50,6 +54,13 @@ function UpdateStatus() {
   useEffect(() => {
     fetchJobDetails();
   }, [id]);
+
+  console.log(job,"job")
+
+  const handleOpenChat=()=>{
+  openChat();
+  // selectChat(id); 
+};
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
@@ -274,10 +285,9 @@ function UpdateStatus() {
                         </span>
                       )}
                       
-                      <span className="flex items-center capitalize">
-                        <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" />
-                        {bookingDetails.serviceType || 'N/A'}
-                      </span>
+                      {console.log('Booking Details:', bookingDetails)}
+                      {console.log('JOb Type:', jobInfo)}
+                   
                     </div>
                   </div>
                   <div className="text-right">
@@ -335,10 +345,7 @@ function UpdateStatus() {
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Booking Details</h4>
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Service Type:</span>
-                        <span className="font-medium capitalize">{bookingDetails.serviceType || 'N/A'}</span>
-                      </div>
+                     
                       
                       {/* 🔥 Scheduled Date - may not exist for quotations */}
                       {bookingDetails.scheduledDate ? (
@@ -520,8 +527,8 @@ function UpdateStatus() {
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
-                  {actions.canChat && (
-                    <button className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                   
+                    <button onClick={handleOpenChat} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                       <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
                       Chat with Customer
                       {communication.unreadCount > 0 && (
@@ -530,7 +537,6 @@ function UpdateStatus() {
                         </span>
                       )}
                     </button>
-                  )}
 
                   <button 
                     onClick={() => setIsModalOpen(!isModalOpen)} 
