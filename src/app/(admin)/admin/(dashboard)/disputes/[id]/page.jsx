@@ -864,7 +864,7 @@ function DisputesDetail() {
                   <div className="flex flex-wrap gap-2">
                     {dispute.jobId.services.map((service, index) => (
                       <span key={index} className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                        {service}
+                        {service?.name || service}
                       </span>
                     ))}
                   </div>
@@ -880,7 +880,7 @@ function DisputesDetail() {
                   </span>
                   <p className="text-gray-900">{dispute.jobId.location.address}</p>
                   <p className="text-xs text-gray-600 mt-1">
-                    {dispute.jobId.location.city}, {dispute.jobId.location.zipCode}
+                    {dispute.jobId.location?.city?.name || dispute.jobId.location.city}, {dispute.jobId.location.zipCode}
                   </p>
                 </div>
               )}

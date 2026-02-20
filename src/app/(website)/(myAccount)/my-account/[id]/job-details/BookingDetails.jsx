@@ -35,10 +35,7 @@ const BookingDetails = ({ booking, job, dataType }) => {
                             </div>
                         </div>
                         
-                        <div>
-                            <span className="text-sm font-medium text-gray-600">Service Type:</span>
-                            <p className="text-gray-800 capitalize">{booking.bookingDetails?.serviceType || 'N/A'}</p>
-                        </div>
+                        
 
                         {/* 🔥 Scheduled Date - may not exist for quotations */}
                         {booking.bookingDetails?.scheduledDate ? (

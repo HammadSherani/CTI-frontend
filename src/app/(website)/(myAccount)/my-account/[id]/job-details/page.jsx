@@ -75,7 +75,9 @@ function JobDetails() {
             const { type, job, booking, statistics, dispute, quotation, repairman } = res.data.data;
 
             setDataType(type);
-
+             console.log('Fetched data type:', type);
+                console.log('Fetched job data:', job);
+                console.log('Fetched booking data:', booking);
             if (type === 'job_posting') {
                 setJob(job);
                 setBooking(booking || null);
@@ -230,9 +232,9 @@ function JobDetails() {
         }
     };
 
-    // if (loading) {
-    //     return <LoadingSpinner />;
-    // }
+    if (loading) {
+        return <LoadingSpinner />;
+    }
 
     // if (!job && !booking) {
     //     return (
@@ -246,7 +248,7 @@ function JobDetails() {
     // }
 
     return (
-        <Loader loading={loading} >
+        // <Loader loading={loading} >
             <div className="max-w-6xl mx-auto p-6 bg-white my-4 rounded-lg">
                 <div className="flex items-center justify-between mb-6">
                     <div className="flex-1">
@@ -688,7 +690,7 @@ function JobDetails() {
                     <div className="bg-white border border-gray-200 rounded-lg p-8">
                         <BookingDetails booking={booking} job={job} />
 
-                        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">
                                 <h4 className="text-lg font-semibold text-gray-900">Communication</h4>
                                 <div className="space-y-2">
@@ -702,7 +704,7 @@ function JobDetails() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 ) : activeTab === 'disputes' && booking ? (
                     // 🔥 DISPUTES TAB
@@ -728,7 +730,7 @@ function JobDetails() {
                     job={job}
                 />
             </div>
-        </Loader>
+        // </Loader>
     );
 }
 

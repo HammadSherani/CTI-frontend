@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
-import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList } from '../store/chat';
+import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList, setCurrentUser } from '../store/chat';
 
 const SocketContext = createContext();
 
@@ -14,6 +14,15 @@ export const SocketProvider = ({ children }) => {
   const dispatch = useDispatch();
 
   useEffect(() => {
+    // Ensure chat slice knows about the authenticated user on load
+    if (user) {
+      try {
+        dispatch(setCurrentUser(user));
+      } catch (err) {
+        console.error('Failed to set chat current user:', err);
+      }
+    }
+
     if (token && user) {
       console.log('Connecting socket for user:', user.name);
 

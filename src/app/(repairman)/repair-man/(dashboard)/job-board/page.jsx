@@ -23,7 +23,9 @@ const MyJobsPage = () => {
   const [cities, setCities] = useState([]);
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-
+console.log('Selected State:', selectedState, 'Selected City:', selectedCity);
+console.log('States:', states);
+console.log('Cities:', cities);
   const { token } = useSelector((state) => state.auth);
   // const router = useRouter();
 
@@ -40,13 +42,14 @@ const MyJobsPage = () => {
       const params = new URLSearchParams();
 
       if (selectedState) {
-        params.append('state', selectedState);
+        params.append('state', selectedState._id);
       }
       if (selectedCity) {
         params.append('city', selectedCity);
       }
 
       const url = `/repairman/jobs?${params.toString()}`;
+      // const url = `/repairman/jobs`;
 
       const { data } = await axiosInstance.get(url, {
         headers: {
@@ -399,6 +402,7 @@ const MyJobsPage = () => {
             <select
               value={selectedState}
               onChange={(e) => handleStateChange(e.target.value)}
+              
               className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
               aria-label="Filter by state"
             >

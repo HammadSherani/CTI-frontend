@@ -16,6 +16,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
     const { token } = useSelector((state) => state.auth);
 
     if (!dispute) return null;
+    console.log(dispute,"dispure")
 
     // Auto scroll to bottom when new messages arrive
     useEffect(() => {
@@ -103,36 +104,21 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
         }
 
         setIsSendingMessage(true);
-
         try {
-            // If there's a message, send response
-            if (message.trim()) {
-                const { data } = await axiosInstance.post(
-                    `/disputes/${dispute._id}/response`,
-                    { message: message.trim() },
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
-
-                if (data.success) {
-                    toast.success('Response sent successfully');
-                    setMessage('');
-                }
-            }
+     if(!message.trim()) {
+        return
+     }
 
             // If there are files, upload evidence
             if (evidenceFiles.length > 0) {
                 const formData = new FormData();
                 evidenceFiles.forEach(file => {
+                    formData.append('message', message.trim());
                     formData.append('evidence', file);
                 });
 
                 const { data: evidenceData } = await axiosInstance.post(
-                    `/disputes/${dispute._id}/evidence`,
+                    `/disputes/${dispute._id}/response`,
                     formData,
                     {
                         headers: {
@@ -144,6 +130,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
 
                 if (evidenceData.success) {
                     toast.success('Evidence uploaded successfully');
+                    setMessage('');
                     setEvidenceFiles([]);
                 }
             }
@@ -464,6 +451,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                                                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                                                     <div className="flex items-center justify-between mb-2">
                                                         <div>
+                                                            
                                                             <p className="text-sm font-semibold text-gray-900 capitalize">
                                                                 {item.respondedBy?.userId?.name || 'Unknown User'}
                                                             </p>
@@ -746,9 +734,9 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                                     Service Location
                                 </h4>
                                 <p className="text-gray-600 text-sm">{jobInfo.location.address}</p>
-                                {jobInfo.location.city && (
+                                {jobInfo.location?.city && (
                                     <p className="text-xs text-gray-500 mt-1">
-                                        {jobInfo.location.city}, {jobInfo.location.zipCode}
+                                        {jobInfo.location?.city?.name || jobInfo.location.city}, {jobInfo.location.zipCode}
                                     </p>
                                 )}
                             </div>

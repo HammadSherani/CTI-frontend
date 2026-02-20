@@ -222,7 +222,7 @@ function JobDetailPage() {
                     {hasJobInfo && jobInfo.location?.city && (
                       <span className="flex items-center">
                         <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                        {jobInfo.location.city}
+                        {jobInfo.location?.city?.name || jobInfo.location.city}
                       </span>
                     )}
                     

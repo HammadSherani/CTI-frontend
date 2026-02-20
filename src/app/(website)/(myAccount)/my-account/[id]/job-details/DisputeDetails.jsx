@@ -23,7 +23,8 @@ const DisputeDetails = ({ dispute }) => {
     };
 
     const currencySymbol = '$';
-
+ 
+    console.log('Rendering DisputeDetails with dispute:', dispute);
     return (
         <div className="bg-primary-50 border border-primary-200 rounded-lg p-6">
             <div className='flex items-center justify-between mb-4'>

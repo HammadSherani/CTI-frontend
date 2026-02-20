@@ -474,6 +474,7 @@ const MyJobsPage = () => {
             </button>
           )}
 
+{console.log('Job eligible for chat:', job)}
           {job.canChat && status !== 'closed' && (
             <button
               onClick={() => handleMessageSend(job?.jobDetails?.customerId?._id)}

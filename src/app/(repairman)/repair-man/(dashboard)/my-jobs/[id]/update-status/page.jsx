@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import DisputesModal from '@/components/partials/repairman/DisputesModal';
 import Chat from '@/components/chat/GlobalChat';
 import { useChat } from '@/hooks/useChat';
+import { addChat } from '@/store/chat';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -56,11 +57,68 @@ function UpdateStatus() {
   }, [id]);
 
   console.log(job,"job")
+    const { user } = useSelector((state) => state.auth);
 
   const handleOpenChat=()=>{
   openChat();
   // selectChat(id); 
 };
+const custId= job?.jobInfo?.customerId._id;
+console.log("JobInfo",job?.jobInfo)
+console.log("Customer ID:", custId);
+console.log('Current User:', user);
+const [open,setIsOpen]=useState(false);
+ const handleMessageSend = async () => {
+    if (!user && !token) {
+      setIsOpen(true);
+      return;
+    }selectChat(id)
+
+    console.log(job,"job in chat")
+
+ console.log('Starting chat with user ID:', custId);
+    try {
+      const { data } = await axiosInstance.post(
+        `/chat/start`,
+        { repairmanId:custId },
+        // { repairmanId: user.id},
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+          },
+        }
+      );
+
+      console.log('Chat started, response:', data);
+      const newChat = {
+        id: data?.chat._id,
+        chatId: data?.chat._id,
+        name: data?.chat?.user?.name,
+        avatar: data?.chat?.user?.avatar,
+        userId: data?.chat?.user?._id,
+        lastMessage: '',
+        timestamp: new Date().toISOString(),
+        online: false
+      };
+
+      dispatch(addChat(newChat));
+      console.log('Chat added to list:', newChat);
+
+      openChat();
+
+      selectChat({
+        id: data?.chat._id,
+        name: data?.chat?.user?.name,
+        avatar: data?.chat?.user?.avatar,
+      });
+
+      console.log('Chat selected');
+
+    } catch (error) {
+      handleError(error);
+    }
+  };
+
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
@@ -528,7 +586,7 @@ function UpdateStatus() {
 
                 <div className="space-y-3">
                    
-                    <button onClick={handleOpenChat} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    <button onClick={()=>handleMessageSend()} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                       <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
                       Chat with Customer
                       {communication.unreadCount > 0 && (

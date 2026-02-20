@@ -36,7 +36,6 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
-
     const {
         register,
         handleSubmit,
@@ -101,34 +100,35 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
 
         try {
             // If there's a message, send response
-            if (message.trim()) {
-                const { data } = await axiosInstance.post(
-                    `/disputes/${dispute?._id}/response`,
-                    { message: message.trim() },
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${token}`,
-                            'Content-Type': 'application/json'
-                        }
-                    }
-                );
+            // if (message.trim()) {
+            //     const { data } = await axiosInstance.post(
+            //         `/disputes/${dispute?._id}/response`,
+            //         { message: message.trim() },
+            //         {
+            //             headers: {
+            //                 'Authorization': `Bearer ${token}`,
+            //                 'Content-Type': 'application/json'
+            //             }
+            //         }
+            //     );
 
-                if (data.success) {
-                    toast.success('Response sent successfully');
-                    setMessage('');
-                }
-            }
+            //     if (data.success) {
+            //         toast.success('Response sent successfully');
+            //         setMessage('');
+            //     }
+            // }
 
             // If there are files, upload evidence
             if (evidenceFiles.length > 0) {
                 const formData = new FormData();
+                formData.append("message",message.trim())
                 formData.append('bookingId', bookingId);
                 evidenceFiles.forEach(file => {
                     formData.append('evidence', file);
                 });
 
                 const { data: evidenceData } = await axiosInstance.post(
-                    `/disputes/${dispute?._id}/evidence`,
+                    `/disputes/${dispute?._id}/response`,
                     formData,
                     {
                         headers: {
@@ -256,6 +256,8 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                                 </div>
                             </div>
                         </div>
+
+                        {console.log('Dispute Responses:', dispute)}
 
                         {/* Responses and Evidence Files - Chronologically Merged */}
                         {[

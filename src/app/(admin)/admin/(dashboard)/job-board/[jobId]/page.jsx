@@ -395,6 +395,39 @@ function JobDetailsPage() {
                                                             Warranty: {offer.warranty?.duration} days
                                                         </span>
                                                     </div>
+
+                                                    {offer.requiredParts && offer.requiredParts.length > 0 && (
+                                                        <div className="mt-3 border-t pt-3">
+                                                            <h4 className="font-medium text-gray-900 mb-2">Required Parts</h4>
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                {offer.requiredParts.map((part, idx) => (
+                                                                    <div key={part._id || idx} className="flex items-center gap-3 p-2 border rounded-lg">
+                                                                        {typeof part !== 'string' && (part.images && part.images.length > 0) && (
+                                                                            <img src={part.images[0]} alt={part.name || 'part'} className="w-16 h-12 object-cover rounded" />
+                                                                        )}
+                                                                        <div className="flex-1">
+                                                                            <div className="flex justify-between items-start">
+                                                                                <p className="font-medium text-gray-900">{typeof part === 'string' ? part : (part.name || 'Part')}</p>
+                                                                                <p className="text-sm text-gray-600">{typeof part === 'string' ? '' : `${part.price || '-'} ${part.currency || offer.pricing?.currency || 'TRY'}`}</p>
+                                                                            </div>
+                                                                            {typeof part !== 'string' && part.description && (
+                                                                                <p className="text-xs text-gray-500">{part.description}</p>
+                                                                            )}
+                                                                            {typeof part !== 'string' && (
+                                                                                <div className="text-xs text-gray-500 mt-1">
+                                                                                    <span>Stock: {part.stock ?? 'N/A'}</span>
+                                                                                    <span className="mx-2">·</span>
+                                                                                    <span>Condition: {part.condition || 'N/A'}</span>
+                                                                                    <span className="mx-2">·</span>
+                                                                                    <span>Warranty: {part.warranty || 'N/A'}</span>
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -499,7 +532,7 @@ function JobDetailsPage() {
                             </h3>
                             <div className="space-y-2">
                                 <p className="text-sm text-gray-900">{job.location?.address || 'N/A'}</p>
-                                <p className="text-sm text-gray-600">{job.location?.city || 'N/A'}</p>
+                                <p className="text-sm text-gray-600">{job.location?.city?.name || job.location?.city || 'N/A'}</p>
                                 {job.location?.district && (
                                     <p className="text-sm text-gray-600">{job.location.district}</p>
                                 )}

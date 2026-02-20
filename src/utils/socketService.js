@@ -232,9 +232,9 @@ class SocketService {
     toast.success(
       <div className="notification-content">
         <div className="font-bold">New Job Available!</div>
-        <div className="text-sm">{jobData?.deviceInfo?.brand} {jobData?.deviceInfo?.model} - {jobData.services?.map((service) => service).join(', ')}</div>
+        <div className="text-sm">{jobData?.deviceInfo?.brand} {jobData?.deviceInfo?.model} - {jobData.services?.map((service) => (service?.name || service)).join(', ')}</div>
         <div className="text-xs text-gray-600">
-          Budget: {jobData.budget.min}-{jobData.budget.max} PKR | {jobData.location.city}
+          Budget: {jobData.budget.min}-{jobData.budget.max} PKR | {jobData.location?.city?.name || jobData.location?.city || 'N/A'}
         </div>
       </div>,
       {
