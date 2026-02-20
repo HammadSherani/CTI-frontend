@@ -259,7 +259,7 @@ function JobDetailsPage() {
                             <p className="text-gray-600 mt-1">Complete job information and timeline</p>
                         </div>
                     </div>
-                    <div className="flex gap-3">
+                    {/* <div className="flex gap-3">
                         {(job.status === 'open' || job.status === 'offers_received') && (
                             <button
                                 onClick={() => {
@@ -281,7 +281,7 @@ function JobDetailsPage() {
                                 Cancel Job
                             </button>
                         )}
-                    </div>
+                    </div> */}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

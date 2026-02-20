@@ -251,36 +251,59 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
                     )}
 
                     {/* Action Buttons */}
-                    <div className="flex flex-wrap gap-3 items-center pt-2 border-t border-gray-200">
-                        {offer.status !== 'in_progress' && onAcceptOffer && (
-                            <button
-                                onClick={handleAcceptOffer}
-                                disabled={isDisabled}
-                                className={getButtonClasses()}
-                                aria-label={`Accept offer from ${label}`}
-                            >
-                                {isThisOfferSubmitting ? (
-                                    <>
-                                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Booking...
-                                    </>
-                                ) : (
-                                    'Accept Offer'
-                                )}
-                            </button>
-                        )}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pt-4 border-t border-gray-100">
 
-                        {offer.status === 'in_progress' && (
-                            <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm font-semibold border border-yellow-200">
-                                Work in Progress
-                            </div>
-                        )}
+    {/* Left Side Actions */}
+    <div className="flex flex-wrap items-center gap-3">
 
-                      
-                    </div>
+        {offer.status !== 'in_progress' && onAcceptOffer && (
+            <button
+                onClick={handleAcceptOffer}
+                disabled={isDisabled}
+                className={`inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-sm
+                ${isDisabled 
+                    ? 'bg-gray-200 text-gray-500 cursor-not-allowed' 
+                    : 'bg-green-600 text-white hover:bg-green-700 hover:shadow-md active:scale-[0.98]'
+                }`}
+                aria-label={`Accept offer from ${label}`}
+            >
+                {isThisOfferSubmitting ? (
+                    <>
+                        <svg className="animate-spin w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Processing...
+                    </>
+                ) : (
+                    'Accept Offer'
+                )}
+            </button>
+        )}
+
+        {offer.status === 'in_progress' && (
+            <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-xl text-sm font-semibold border border-yellow-200 shadow-sm">
+                🚧 Work in Progress
+            </div>
+        )}
+    </div>
+
+    {/* Chat Button */}
+    <button
+        onClick={() => alert("chat")}
+        className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
+    >
+        <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
+        Chat with Customer
+        {/* {communication.unreadCount > 0 && (
+            <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                {communication.unreadCount}
+            </span>
+        )} */}
+    </button>
+
+</div>
+
                 </div>
 
                 {/* Right Section - Price Breakdown */}
