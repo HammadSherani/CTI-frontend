@@ -470,9 +470,9 @@ function JobBoardPage() {
                                                         <span className="text-xs text-gray-500">
                                                             {formatDate(job.createdAt)}
                                                         </span>
-                                                        <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
+                                                        {/* <span className={`mt-1 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getUrgencyColor(job.urgency)}`}>
                                                             {job.urgency?.toUpperCase()}
-                                                        </span>
+                                                        </span> */}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">

@@ -402,7 +402,7 @@ function PartsOrderPage() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-medium text-gray-900">
-                                                        {order.customerName}
+                                                        {order.customer.name}
                                                     </div>
                                                     <div className="text-sm text-gray-500">
                                                         {order.customerEmail}

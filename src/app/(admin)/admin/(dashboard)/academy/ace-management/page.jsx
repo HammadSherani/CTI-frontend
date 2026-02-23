@@ -10,8 +10,8 @@ import useDebounce from '@/hooks/useDebounce';
 import Image from 'next/image';
 
 function AcademyContentPage() {
-    const [categories, setCategories] = useState([]);
-    const [filteredCategories, setFilteredCategories] = useState([]);
+    const [content, setContent] = useState([]);
+    const [filteredcontent, setFilteredContent] = useState([]);
     const [loading, setLoading] = useState(false);
     const [loadingIds, setLoadingIds] = useState({});
     const [deletingIds, setDeletingIds] = useState({});
@@ -34,10 +34,10 @@ function AcademyContentPage() {
     });
 
     useEffect(() => {
-        fetchCategories(pagination.currentPage, debouncedSearch, filterActive);
+        fetchcontent(pagination.currentPage, debouncedSearch, filterActive);
     }, [debouncedSearch, pagination.currentPage, filterActive]);
 
-    const fetchCategories = async (page = 1, search = '', status = 'all') => {
+    const fetchcontent = async (page = 1, search = '', status = 'all') => {
         try {
             setLoading(true);
             const limit = 10;
@@ -56,8 +56,8 @@ function AcademyContentPage() {
             });
 
             const data = response.data.data || [];
-            setCategories(data);
-            setFilteredCategories(data);
+            setContent(data);
+            setFilteredContent(data);
             
             if (response.data.stats) {
                 setStats(response.data.stats);
@@ -67,30 +67,30 @@ function AcademyContentPage() {
                 setPagination(response.data.pagination);
             }
         } catch (error) {
-            console.error('Error fetching categories:', error);
-            setSubmitError('Failed to load categories');
-            toast.error('Failed to load categories');
+            console.error('Error fetching content:', error);
+            setSubmitError('Failed to load content');
+            toast.error('Failed to load content');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDelete = async (categoryId) => {
+    const handleDelete = async (contentId) => {
         if (!window.confirm('Are you sure you want to delete this content?')) return;
 
-        const originalIndex = categories.findIndex(c => c._id === categoryId);
-        const originalItem = categories[originalIndex];
+        const originalIndex = content.findIndex(c => c._id === contentId);
+        const originalItem = content[originalIndex];
 
         // set deleting flag for this item
-        setDeletingIds(prev => ({ ...prev, [categoryId]: true }));
+        setDeletingIds(prev => ({ ...prev, [contentId]: true }));
 
         // Optimistically remove from UI
-        setCategories(prev => prev.filter(c => c._id !== categoryId));
-        setFilteredCategories(prev => prev.filter(c => c._id !== categoryId));
+        setContent(prev => prev.filter(c => c._id !== contentId));
+        setFilteredContent(prev => prev.filter(c => c._id !== contentId));
         setPagination(prev => ({ ...prev, totalItems: Math.max(0, (prev.totalItems || 0) - 1) }));
 
         try {
-            const res = await axiosInstance.delete(`/admin/academic-content/${categoryId}`, {
+            const res = await axiosInstance.delete(`/admin/academic-content/${contentId}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -101,19 +101,19 @@ function AcademyContentPage() {
             setTimeout(() => setSubmitSuccess(''), 3000);
 
             // If current page became empty, go to previous page
-            const remainingOnPage = filteredCategories.length - 1;
+            const remainingOnPage = filteredcontent.length - 1;
             if (remainingOnPage <= 0 && pagination.currentPage > 1) {
                 setPagination(prev => ({ ...prev, currentPage: prev.currentPage - 1 }));
             }
         } catch (error) {
             console.error('Delete error:', error);
             // revert UI
-            setCategories(prev => {
+            setContent(prev => {
                 const copy = [...prev];
                 copy.splice(originalIndex, 0, originalItem);
                 return copy;
             });
-            setFilteredCategories(prev => {
+            setFilteredContent(prev => {
                 const copy = [...prev];
                 copy.splice(originalIndex, 0, originalItem);
                 return copy;
@@ -125,19 +125,19 @@ function AcademyContentPage() {
         } finally {
             setDeletingIds(prev => {
                 const copy = { ...prev };
-                delete copy[categoryId];
+                delete copy[contentId];
                 return copy;
             });
         }
     };
 
-    const toggleActive = async (categoryId, currentStatus) => {
+    const toggleActive = async (contentId, currentStatus) => {
         // Optimistic update: set loading for this item and toggle UI immediately
-        setLoadingIds(prev => ({ ...prev, [categoryId]: true }));
+        setLoadingIds(prev => ({ ...prev, [contentId]: true }));
 
-        // Optimistically update categories and filteredCategories
-        setCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: !currentStatus } : c));
-        setFilteredCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: !currentStatus } : c));
+        // Optimistically update content and filteredcontent
+        setContent(prev => prev.map(c => c._id === contentId ? { ...c, isActive: !currentStatus } : c));
+        setFilteredContent(prev => prev.map(c => c._id === contentId ? { ...c, isActive: !currentStatus } : c));
 
         // Update stats locally to avoid refetching whole list
         setStats(prevStats => {
@@ -148,7 +148,7 @@ function AcademyContentPage() {
 
         try {
             const res = await axiosInstance.patch(
-                `/admin/academic-content/status/${categoryId}`,
+                `/admin/academic-content/status/${contentId}`,
                 { isActive: !currentStatus },
                 {
                     headers: {
@@ -160,8 +160,8 @@ function AcademyContentPage() {
         } catch (error) {
             console.error('Toggle active error:', error);
             // Revert optimistic update on failure
-            setCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: currentStatus } : c));
-            setFilteredCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: currentStatus } : c));
+            setContent(prev => prev.map(c => c._id === contentId ? { ...c, isActive: currentStatus } : c));
+            setFilteredContent(prev => prev.map(c => c._id === contentId ? { ...c, isActive: currentStatus } : c));
             // Revert stats
             setStats(prevStats => {
                 const totalActive = !currentStatus ? Math.max(0, prevStats.totalActive - 1) : prevStats.totalActive + 1;
@@ -174,7 +174,7 @@ function AcademyContentPage() {
         } finally {
             setLoadingIds(prev => {
                 const copy = { ...prev };
-                delete copy[categoryId];
+                delete copy[contentId];
                 return copy;
             });
         }
@@ -307,7 +307,7 @@ function AcademyContentPage() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Active</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : categories.filter(cat => cat.isActive).length}
+                                    {loading ? '...' : content.filter(cat => cat.isActive).length}
                                 </p>
                             </div>
                         </div>
@@ -321,7 +321,7 @@ function AcademyContentPage() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Inactive</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : categories.filter(cat => !cat.isActive).length}
+                                    {loading ? '...' : content.filter(cat => !cat.isActive).length}
                                 </p>
                             </div>
                         </div>
@@ -416,14 +416,14 @@ function AcademyContentPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="bg-white divide-y divide-gray-200">
-                                        {filteredCategories.map((category) => (
-                                            <tr key={category._id} className="hover:bg-gray-50">
+                                        {filteredcontent.map((content) => (
+                                            <tr key={content._id} className="hover:bg-gray-50">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-lg overflow-hidden">
-                                                        {category.image && (category.image.startsWith('http') || category.image.startsWith('/')) ? (
+                                                        {content.image && (content.image.startsWith('http') || content.image.startsWith('/')) ? (
                                                             <Image
-                                                                src={category.image}
-                                                                alt={category.title}
+                                                                src={content.image}
+                                                                alt={content.title}
                                                                 width={64}
                                                                 height={64}
                                                                 className="w-full h-full object-cover"
@@ -442,27 +442,27 @@ function AcademyContentPage() {
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm font-medium text-gray-900 max-w-xs truncate">
-                                                        {category.title}
+                                                        {content.title}
                                                     </div>
                                                     <div className="text-xs text-gray-500">
-                                                        {category.slug}
+                                                        {content.slug}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="text-sm text-gray-600 max-w-md truncate">
-                                                        {category.description?.substring(0, 80)}
-                                                        {category.description?.length > 80 ? '...' : ''}
+                                                        {content.description?.substring(0, 30)}
+                                                        {content.description?.length > 80 ? '...' : ''}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     {(() => {
-                                                        const isUpdating = !!loadingIds[category._id];
+                                                        const isUpdating = !!loadingIds[content._id];
                                                         return (
                                                             <button
-                                                                onClick={() => !isUpdating && toggleActive(category._id, category.isActive)}
+                                                                onClick={() => !isUpdating && toggleActive(content._id, content.isActive)}
                                                                 disabled={isUpdating}
                                                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                                    category.isActive
+                                                                    content.isActive
                                                                         ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
                                                                         : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
                                                                 } transition-colors`}
@@ -470,33 +470,39 @@ function AcademyContentPage() {
                                                                 {isUpdating ? (
                                                                     <Icon icon="mdi:loading" className="w-3 h-3 mr-1 animate-spin" />
                                                                 ) : (
-                                                                    <Icon icon={category.isActive ? 'mdi:eye' : 'mdi:eye-off'} className="w-3 h-3 mr-1" />
+                                                                    <Icon icon={content.isActive ? 'mdi:eye' : 'mdi:eye-off'} className="w-3 h-3 mr-1" />
                                                                 )}
-                                                                {category.isActive ? 'Active' : 'Inactive'}
+                                                                {content.isActive ? 'Active' : 'Inactive'}
                                                             </button>
                                                         );
                                                     })()}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-500">
-                                                        {formatDate(category.createdAt)}
+                                                        {formatDate(content.createdAt)}
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-3">
-                                                       
                                                         <Link
-                                                            href={`/admin/academy/ace-management/${category.slug}/edit`}
+                                                            href={`/admin/academy/ace-management/${content.slug}`}
+                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
+                                                            title="View order details"
+                                                        >
+                                                            <Icon icon="mdi:eye" className="w-5 h-5" />
+                                                        </Link>
+                                                        <Link
+                                                            href={`/admin/academy/ace-management/${content.slug}/edit`}
                                                             className="text-primary-600 hover:text-primary-900 transition-colors"
                                                             title="Edit content"
                                                         >
                                                             <Icon icon="mdi:pencil" className="w-5 h-5" />
                                                         </Link>
                                                         {(() => {
-                                                            const isDeleting = !!deletingIds[category._id];
+                                                            const isDeleting = !!deletingIds[content._id];
                                                             return (
                                                                 <button
-                                                                    onClick={() => !isDeleting && handleDelete(category._id)}
+                                                                    onClick={() => !isDeleting && handleDelete(content._id)}
                                                                     disabled={isDeleting}
                                                                     className={`text-red-600 ${isDeleting ? 'opacity-80 cursor-not-allowed' : 'hover:text-red-900'} transition-colors`}
                                                                     title="Delete content"
@@ -516,7 +522,7 @@ function AcademyContentPage() {
                                     </tbody>
                                 </table>
 
-                                {!loading && filteredCategories.length === 0 && (
+                                {!loading && filteredcontent.length === 0 && (
                                     <div className="text-center py-12">
                                         <Icon icon="mdi:book-open-page-variant" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                                         <h3 className="text-lg font-medium text-gray-900 mb-2">No content found</h3>

@@ -146,7 +146,7 @@ function LowerHeader() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const dropdownRef = useRef(null);
-
+ const { token } = useSelector((state) => state.auth);
   const navItems = [
     { label: "Repairmans", icon: "mdi:map-marker", path: "/repairmans", isVisible: true },
     { label: "Refurbished Products", icon: "mdi:store", path: "/repair-shops", isVisible: true },
@@ -242,7 +242,7 @@ function LowerHeader() {
                 <li key={index}>
                   <Link
                     href={item.path}
-                    className="cursor-pointer hover:bg-gray-100/60 font-bold py-2 px-5 rounded-full hover:text-primary-600 transition-all duration-300 flex items-center gap-1 text-[15px] font-medium"
+                    className="cursor-pointer hover:bg-gray-100/60  py-2 px-5 rounded-full hover:text-primary-600 transition-all duration-300 flex items-center gap-1 text-[15px] font-medium"
                   >
                     <span className="font-bold">{item.label}</span>
 
@@ -253,7 +253,9 @@ function LowerHeader() {
 
 
           </div>
-          <div className="flex px-7 cursor-pointer text-primary-600 bg-gray-100 items-center gap-2 text-nowrap  py-2 rounded-full hover:bg-gray-200/90 transition-all duration-200">
+          {!token&&(
+
+            <div className="flex px-7 cursor-pointer text-primary-600 bg-gray-100 items-center gap-2 text-nowrap  py-2 rounded-full hover:bg-gray-200/90 transition-all duration-200">
             <button>
               <Link href={'/auth/register'}>
                 Get Started
@@ -261,6 +263,7 @@ function LowerHeader() {
             </button>
 
           </div>
+          )}
         </div>
 
         {isCategoryOpen && (

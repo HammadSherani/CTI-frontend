@@ -1,5 +1,4 @@
 "use client";
-
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useParams, useRouter } from 'next/navigation';
@@ -8,9 +7,9 @@ import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
-
+import Image from 'next/image';
 function PartOrderDetailPage() {
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState(null);
     const { token } = useSelector((state) => state.auth);
     const { id } = useParams();
@@ -45,10 +44,11 @@ function PartOrderDetailPage() {
         });
     };
 
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
+    const formatCurrency = (amount, currency = 'TRY') => {
+        return new Intl.NumberFormat('tr-TR', {
             style: 'currency',
-            currency: 'USD'
+            currency: currency,
+            minimumFractionDigits: 2
         }).format(amount || 0);
     };
 
@@ -59,7 +59,8 @@ function PartOrderDetailPage() {
             processing: 'bg-indigo-50 text-indigo-700 border border-indigo-200',
             shipped: 'bg-purple-50 text-purple-700 border border-purple-200',
             delivered: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
-            cancelled: 'bg-red-50 text-red-700 border border-red-200'
+            cancelled: 'bg-red-50 text-red-700 border border-red-200',
+            booked: 'bg-cyan-50 text-cyan-700 border border-cyan-200',
         };
         return map[status?.toLowerCase()] || 'bg-gray-50 text-gray-700 border border-gray-200';
     };
@@ -69,7 +70,6 @@ function PartOrderDetailPage() {
             pending: 'bg-amber-50 text-amber-700 border border-amber-200',
             paid: 'bg-emerald-50 text-emerald-700 border border-emerald-200',
             failed: 'bg-red-50 text-red-700 border border-red-200',
-            refunded: 'bg-gray-50 text-gray-700 border border-gray-200'
         };
         return map[status?.toLowerCase()] || 'bg-gray-50 text-gray-700 border border-gray-200';
     };
@@ -91,83 +91,123 @@ function PartOrderDetailPage() {
                 <div className="max-w-md w-full text-center bg-white rounded-xl shadow-sm p-8">
                     <Icon icon="mdi:alert-circle-outline" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Order Not Found</h3>
-                    <p className="text-gray-500 mb-6">The order you're looking for doesn't exist or has been removed.</p>
-                    <Link
-                        href="/admin/parts/parts-orders"
-                        className="inline-flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900"
-                    >
-                        <Icon icon="mdi:arrow-left" className="w-4 h-4" />
-                        Back to Orders
+                    <Link href="/admin/parts/parts-orders" className="text-primary-600 hover:underline">
+                        ← Back to Orders
                     </Link>
                 </div>
             </div>
         );
     }
 
+    const repairman = order.repairmanId?.repairmanProfile;
+    const job = order.job_id;
+    const device = job?.deviceInfo;
+    const selectedOffer = job?.offers?.find(o => o._id === job.selectedOffer) || job?.offers?.[0];
+
+    console.log("Order Details:", order);
     return (
         <div className="min-h-screen bg-gray-50 py-10">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py that-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header */}
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <Link
-                                href="/admin/parts/parts-orders"
-                                className="text-gray-500 hover:text-gray-700"
-                            >
+                            <Link href="/admin/parts/parts-orders" className="text-gray-500 hover:text-gray-700">
                                 <Icon icon="mdi:arrow-left" className="w-6 h-6" />
                             </Link>
                             <div>
-                                <h1 className="text-2xl font-bold text-gray-900">Order #{order.orderNumber}</h1>
-                                <p className="text-sm text-gray-500 mt-1">Created on {formatDate(order.createdAt)}</p>
+                                <h1 className="text-2xl font-bold text-gray-900">
+                                    Order #{order.orderNumber}
+                                </h1>
+                                <p className="text-sm text-gray-500 mt-1">
+                                    Created {formatDate(order.createdAt)} • Job #{job?._id?.slice(-6)}
+                                </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <span className={`px-3 py-1.5 text-xs font-semibold rounded-full ${getStatusBadge(order.orderStatus)}`}>
-                                {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getStatusBadge(order.orderStatus)}`}>
+                                {order.orderStatus.toUpperCase()}
                             </span>
-                            <Link
-                                href={`/admin/parts/parts-orders/${order._id}/edit`}
-                                className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-                            >
-                                <Icon icon="mdi:pencil" className="w-4 h-4" />
-                                Edit Order
-                            </Link>
+                            <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
+                                PAYMENT {order.paymentStatus.toUpperCase()}
+                            </span>
                         </div>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Main Content */}
+            
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Order Items */}
+
+                        {/* Job / Repair Information */}
+                        {job && (
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                    <Icon icon="mdi:tools" className="w-6 h-6 text-indigo-600" />
+                                    Repair Job Information
+                                </h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                                    <div>
+                                        <p className="text-gray-500">Device</p>
+                                        <p className="font-medium">{device?.brand} {device?.model} • {device?.color}</p>
+                                        <p className="text-gray-500 mt-3">Warranty Status</p>
+                                        <p className="font-medium">{device?.warrantyStatus}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-gray-500">Services Requested</p>
+                                        <p className="font-medium">
+                                            {job.services?.map(s => s.name).join(" + ") || "—"}
+                                        </p>
+                                        <p className="text-gray-500 mt-3">Urgency & Preference</p>
+                                        <p className="font-medium capitalize">
+                                            {job.urgency} • {job.servicePreference}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {job.description && (
+                                    <div className="mt-5 pt-5 border-t">
+                                        <p className="text-gray-500">Customer Description</p>
+                                        <p className="mt-1 text-gray-800">{job.description}</p>
+                                    </div>
+                                )}
+
+                                {selectedOffer?.description && (
+                                    <div className="mt-5 pt-5 border-t">
+                                        <p className="text-gray-500">Repairman Proposal</p>
+                                        <p className="mt-1 text-gray-800">{selectedOffer.description}</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Order Items (Parts) */}
                         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                             <div className="px-6 py-4 border-b border-gray-200">
-                                <h2 className="text-lg font-semibold text-gray-900">Order Items</h2>
+                                <h2 className="text-lg font-semibold text-gray-900">Parts Ordered</h2>
                             </div>
                             <div className="overflow-x-auto">
-                                <table className="w-full">
-                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                <table className="w-full min-w-[600px]">
+                                    <thead className="bg-gray-50 text-xs font-medium text-gray-500 uppercase">
                                         <tr>
-                                            <th className="px-6 py-3 text-left">Part</th>
-                                            <th className="px-6 py-3 text-left">SKU</th>
+                                            <th className="px-6 py-3 text-left">Part </th>
+                                            <th className="px-6 py-3 text-left">Part Name</th>
                                             <th className="px-6 py-3 text-left">Price</th>
-                                            <th className="px-6 py-3 text-left">Qty</th>
-                                            <th className="px-6 py-3 text-left">Discount</th>
-                                            <th className="px-6 py-3 text-left text-right">Subtotal</th>
+                                            <th className="px-6 py-3 text-center">Qty</th>
+                                            <th className="px-6 py-3 text-right">Subtotal</th>
                                         </tr>
                                     </thead>
-                                    <tbody className="divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-200 text-sm">
                                         {order.items?.map((item) => (
-                                            <tr key={item._id} className="text-sm">
-                                                <td className="px-6 py-4 font-medium text-gray-900">{item.partName}</td>
-                                                <td className="px-6 py-4 text-gray-600">{item.partSku}</td>
-                                                <td className="px-6 py-4 text-gray-900">{formatCurrency(item.price)}</td>
-                                                <td className="px-6 py-4 text-gray-900">{item.quantity}</td>
-                                                <td className="px-6 py-4 text-gray-600">
-                                                    {item.discount > 0 ? formatCurrency(item.discount) : '—'}
+                                            <tr key={item._id}>
+                                                {console.log(" Item:", item.part)}
+                                                <td className="px-6 py-4">
+                                                    <Image src={item.part.images[0] || '/placeholder-part.png'} alt={item.partName} width={40} height={40} className="w-10 h-10 object-cover rounded" />
                                                 </td>
-                                                <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                                                <td className="px-6 py-4 font-medium">{item.partName}</td>
+                                                <td className="px-6 py-4">{formatCurrency(item.price)}</td>
+                                                <td className="px-6 py-4 text-center">{item.quantity}</td>
+                                                <td className="px-6 py-4 text-right font-medium">
                                                     {formatCurrency(item.subtotal)}
                                                 </td>
                                             </tr>
@@ -177,151 +217,205 @@ function PartOrderDetailPage() {
                             </div>
 
                             {/* Totals */}
-                            <div className="bg-gray-50 px-6 py-5 border-t border-gray-200">
-                                <div className="max-w-xs ml-auto space-y-2 text-sm">
+                            <div className="bg-white px-6 py-5 border-t">
+                                <div className="max-w-xs ml-auto space-y-2.5 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Subtotal</span>
-                                        <span className="font-medium">{formatCurrency(order.subtotal)}</span>
+                                        <span>{formatCurrency(order.subtotal)}</span>
                                     </div>
-                                    {order.discount > 0 && (
-                                        <div className="flex justify-between text-red-600">
-                                            <span>Discount</span>
-                                            <span className="font-medium">−{formatCurrency(order.discount)}</span>
-                                        </div>
-                                    )}
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Tax</span>
-                                        <span className="font-medium">{formatCurrency(order.tax)}</span>
+                                        <span>{formatCurrency(order.tax)}</span>
                                     </div>
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Shipping</span>
-                                        <span className="font-medium">
-                                            {order.shippingCharges > 0 ? formatCurrency(order.shippingCharges) : 'Free'}
-                                        </span>
+                                        <span>{order.shippingCharges ? formatCurrency(order.shippingCharges) : 'Free'}</span>
                                     </div>
-                                    <div className="pt-3 border-t border-gray-300 flex justify-between text-base font-bold">
+                                    <div className="pt-3 border-t text-base font-bold flex justify-between">
                                         <span>Total</span>
-                                        <span>{formatCurrency(order.totalAmount)}</span>
+                                        <span className="text-lg">{formatCurrency(order.totalAmount, 'TRY')}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Order Notes */}
-                        {order.orderNotes && (
-                            <div className="bg-white rounded-xl shadow-sm p-6">
-                                <h3 className="text-lg font-semibold text-gray-900 mb-3">Order Notes</h3>
-                                <p className="text-gray-600 leading-relaxed">{order.orderNotes}</p>
-                            </div>
-                        )}
+                        {/* Warranty & Other */}
+                        <div className="bg-white rounded-xl shadow-sm p-6">
+                            <h3 className="text-lg font-semibold mb-4">Warranty & Notes</h3>
+                            <p><strong>Warranty:</strong> {order.warranty} days</p>
+                            {order.orderNotes && <p className="mt-3"><strong>Notes:</strong> {order.orderNotes}</p>}
+                        </div>
                     </div>
 
-                    {/* Sidebar */}
+                       {/* <div className="bg-white rounded-lg shadow-sm p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                                <Icon icon="mdi:timeline-clock" className="w-5 h-5" />
+                                Activity Timeline
+                            </h3>
+                            <div className="relative">
+                                {order?.activityLog && order.activityLog.length > 0 ? (
+                                    <div className="space-y-4">
+                                        {order.activityLog.map((activity, index) => (
+                                            <div key={index} className="relative pl-8 pb-4">
+                                                {index !== order.activityLog.length - 1 && (
+                                                    <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gray-200"></div>
+                                                )}
+                                                <div className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center ${getActionColor(activity.action)}`}>
+                                                    <Icon icon={getActionIcon(activity.action)} className="w-4 h-4" />
+                                                </div>
+                                                <div className="bg-gray-50 rounded-lg p-4">
+                                                    <div className="flex items-start justify-between mb-1">
+                                                        <p className="font-medium text-gray-900">
+                                                            {activity.action?.replace(/_/g, ' ').toUpperCase()}
+                                                        </p>
+                                                        <span className="text-xs text-gray-500">
+                                                            {formatDate(activity.timestamp)}
+                                                        </span>
+                                                    </div>
+                                                    {activity.performedBy && (
+                                                        <p className="text-sm text-gray-600">
+                                                            By: {activity.performedBy.name} ({activity.performedByRole})
+                                                        </p>
+                                                    )}
+                                                    {activity.previousStatus && activity.newStatus && (
+                                                        <p className="text-sm text-gray-600">
+                                                            Status changed from <span className="font-medium">{formatStatus(activity.previousStatus)}</span> to <span className="font-medium">{formatStatus(activity.newStatus)}</span>
+                                                        </p>
+                                                    )}
+                                                    {activity.reason && (
+                                                        <p className="text-sm text-gray-600 mt-1">
+                                                            Reason: {activity.reason}
+                                                        </p>
+                                                    )}
+                                                    {activity.details && Object.keys(activity.details).length > 0 && (
+                                                        <div className="mt-2 text-xs text-gray-500">
+                                                            {activity.details.repairmanName && (
+                                                                <p>Assigned to: {activity.details.repairmanName}</p>
+                                                            )}
+                                                            {activity.details.cancellationType && (
+                                                                <p>Type: {activity.details.cancellationType}</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-gray-500 text-center py-4">No activity recorded yet</p>
+                                )}
+                            </div>
+                        </div> */}
+
+
                     <div className="space-y-6">
+
                         {/* Customer */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <Icon icon="mdi:account" className="w-5 h-5 text-gray-500" />
-                                Customer Details
+                                Customer
                             </h3>
-                            <dl className="space-y-4 text-sm">
+                            <dl className="space-y-3 text-sm">
                                 <div>
                                     <dt className="text-gray-500">Name</dt>
-                                    <dd className="font-medium text-gray-900">{order.customer?.name || 'N/A'}</dd>
+                                    <dd className="font-medium">{order.job_id?.customerId?.name || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Email</dt>
-                                    <dd className="text-gray-900">{order.customer?.email || 'N/A'}</dd>
+                                    <dd>{order.job_id?.customerId?.email || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Phone</dt>
-                                    <dd className="text-gray-900">{order.customer?.phone || 'N/A'}</dd>
+                                    <dd>{order.job_id?.customerId?.phone || '—'}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-gray-500">Type</dt>
-                                    <dd className="text-gray-900">{order.customerType || 'N/A'}</dd>
+                                    <dt className="text-gray-500">Country</dt>
+                                    <dd>{order.job_id?.customerId?.address?.country || order.job_id?.customerId?.shippingAddress?.country || 'Turkey'}</dd>
                                 </div>
                             </dl>
                         </div>
 
-                        {/* Shipping */}
-                        <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                                <Icon icon="mdi:truck" className="w-5 h-5 text-gray-500" />
-                                Shipping Address
-                            </h3>
-                            <div className="text-sm text-gray-900 space-y-1">
-                                <p>{order.customer?.shippingAddress?.city || 'N/A'}</p>
-                                <p>{order.customer?.shippingAddress?.country || 'N/A'}</p>
+                        {/* Repairman */}
+                        {repairman && (
+                            <div className="bg-white rounded-xl shadow-sm p-6">
+                                <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                    <Icon icon="mdi:account-wrench" className="w-5 h-5 text-gray-500" />
+                                    Repairman
+                                </h3>
+                                <dl className="space-y-3 text-sm">
+                                    <div>
+                                        <dt className="text-gray-500">Name</dt>
+                                        <dd className="font-medium">{repairman.fullName || repairman.name || '—'}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-gray-500">Shop</dt>
+                                        <dd>{repairman.shopName || '—'}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-gray-500">City</dt>
+                                        <dd>{repairman.city} • {order.repairmanId?.country?.name}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-gray-500">Specialization</dt>
+                                        <dd>{repairman.specializations?.join(", ") || 'Mobile Phone Repair'}</dd>
+                                    </div>
+                                    <div>
+                                        <dt className="text-gray-500">Rating</dt>
+                                        <dd>{repairman.rating} ★ ({repairman.totalJobs} jobs)</dd>
+                                    </div>
+                                </dl>
                             </div>
-                            <div className="mt-4 pt-4 border-t border-gray-200">
-                                <dt className="text-xs text-gray-500 uppercase tracking-wider">Method</dt>
-                                <dd className="mt-1 font-medium text-gray-900">{order.shippingMethod || 'N/A'}</dd>
-                            </div>
-                        </div>
+                        )}
 
                         {/* Payment */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                                 <Icon icon="mdi:credit-card" className="w-5 h-5 text-gray-500" />
                                 Payment
                             </h3>
-                            <dl className="space-y-4 text-sm">
+                            <dl className="space-y-3 text-sm">
                                 <div>
                                     <dt className="text-gray-500">Method</dt>
-                                    <dd className="font-medium text-gray-900">{order.paymentMethod || 'N/A'}</dd>
+                                    <dd className="font-medium">{order.paymentMethod}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Status</dt>
                                     <dd>
-                                        <span className={`inline-block mt-1 px-3 py-1 text-xs font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
-                                            {order.paymentStatus}
+                                        <span className={`px-3 py-1 text-xs font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
+                                            {order.paymentStatus.toUpperCase()}
                                         </span>
                                     </dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Paid</dt>
-                                    <dd className="font-semibold text-emerald-600">{formatCurrency(order.paidAmount)}</dd>
+                                    <dd className="font-bold text-emerald-700">{formatCurrency(order.paidAmount)}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Remaining</dt>
-                                    <dd className="font-semibold text-red-600">
-                                        {order.remainingAmount > 0 ? formatCurrency(order.remainingAmount) : '$0.00'}
-                                    </dd>
+                                    <dd className="font-bold text-amber-700">{formatCurrency(order.remainingAmount)}</dd>
                                 </div>
-                                {order.paymentPercentage !== undefined && (
-                                    <div>
-                                        <dt className="text-gray-500 mb-2">Progress</dt>
-                                        <div className="w-full bg-gray-200 rounded-full h-2">
-                                            <div
-                                                className="bg-emerald-600 h-2 rounded-full transition-all"
-                                                style={{ width: `${order.paymentPercentage}%` }}
-                                            />
-                                        </div>
-                                        <p className="text-xs text-gray-600 mt-1">{order.paymentPercentage}% paid</p>
-                                    </div>
-                                )}
                             </dl>
                         </div>
 
-                        {/* Meta */}
+                        {/* Shipping & Misc */}
                         <div className="bg-white rounded-xl shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
-                                <Icon icon="mdi:information-outline" className="w-5 h-5 text-gray-500" />
-                                Order Info
+                            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                                <Icon icon="mdi:truck" className="w-5 h-5 text-gray-500" />
+                                Shipping & Misc
                             </h3>
-                            <dl className="space-y-4 text-sm">
+                            <dl className="space-y-3 text-sm">
                                 <div>
-                                    <dt className="text-gray-500">Source</dt>
-                                    <dd className="text-gray-900">{order.source || 'N/A'}</dd>
+                                    <dt className="text-gray-500">Method</dt>
+                                    <dd className="font-medium">{order.shippingMethod}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-gray-500">Age</dt>
-                                    <dd className="text-gray-900">{order.orderAge} day(s)</dd>
+                                    <dt className="text-gray-500">Address Country</dt>
+                                    <dd>{order.customer?.shippingAddress?.country || 'Turkey'}</dd>
                                 </div>
                                 <div>
-                                    <dt className="text-gray-500">Last Updated</dt>
-                                    <dd className="text-gray-900">{formatDate(order.updatedAt)}</dd>
+                                    <dt className="text-gray-500">Order Age</dt>
+                                    <dd>{order.orderAge} day(s)</dd>
                                 </div>
                             </dl>
                         </div>
