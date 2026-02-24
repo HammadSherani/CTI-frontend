@@ -13,6 +13,8 @@ function PartOrderDetailPage() {
     const [order, setOrder] = useState(null);
     const { token } = useSelector((state) => state.auth);
     const { id } = useParams();
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [actionLoading, setActionLoading] = useState(null); // 'status' | 'delete' | null
 
     useEffect(() => {
         fetchOrderById();
@@ -24,13 +26,41 @@ function PartOrderDetailPage() {
             const response = await axiosInstance.get(`/admin/parts-orders/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            setOrder(response.data.data || null);
+                setOrder(response.data.data || null);
         } catch (error) {
             handleError(error);
             toast.error("Failed to load order");
         } finally {
             setLoading(false);
         }
+    };
+
+    const getActionIcon = (action) => {
+        const icons = {
+            'pending': 'mdi:file-document-plus',
+            'confirmed': 'mdi:send',
+            'processing': 'mdi:email-receive',
+            'ready-for-pickup': 'mdi:check-circle',
+            'shipped': 'mdi:account-arrow-right',
+            'delivered': 'mdi:play-circle',
+            'cancelled': 'mdi:check-all',
+            'returned': 'mdi:close-circle',
+        };
+        return icons[action] || 'mdi:circle';
+    };
+
+     const getActionColor = (action) => {
+        const colors = {
+            'pending': 'text-primary-600 bg-primary-100',
+            'confirmed': 'text-green-600 bg-green-100',
+            'processing': 'text-purple-600 bg-purple-100',
+            'ready-for-pickup': 'text-yellow-600 bg-yellow-100',
+            'shipped': 'text-blue-600 bg-blue-100',
+            'delivered': 'text-emerald-600 bg-emerald-100',
+            'cancelled': 'text-red-600 bg-red-100',
+            'returned': 'text-orange-600 bg-orange-100',
+        };
+        return colors[action] || 'text-gray-600 bg-gray-100';
     };
 
     const formatDate = (dateString) => {
@@ -43,6 +73,11 @@ function PartOrderDetailPage() {
             minute: '2-digit'
         });
     };
+
+    const formatStatus = (status) => {
+        return status?.replace(/_/g, ' ').toUpperCase();
+    };
+    
 
     const formatCurrency = (amount, currency = 'TRY') => {
         return new Intl.NumberFormat('tr-TR', {
@@ -65,6 +100,64 @@ function PartOrderDetailPage() {
         return map[status?.toLowerCase()] || 'bg-gray-50 text-gray-700 border border-gray-200';
     };
 
+        const updateOrderStatus = async (orderId, newStatus) => {
+            console.log("Updating order status to:", newStatus);
+        try {
+            setActionLoading('status');
+
+            const res = await axiosInstance.put(
+                `/admin/parts-orders/${id}`,
+                { orderStatus: newStatus },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            toast.success(res.data.message || "Order status updated!");
+
+            // Update local order state and prepend activity log
+            setOrder(prev => {
+                if (!prev) return prev;
+                const previousStatus = prev.orderStatus;
+                const updated = { ...prev, orderStatus: newStatus };
+                const entry = {
+                    previousStatus,
+                    newStatus,
+                    changedBy: { name: 'Admin' },
+                    createdAt: new Date().toISOString()
+                };
+                updated.activityLog = [entry].concat(prev.activityLog || []);
+                return updated;
+            });
+
+        } catch (error) {
+            handleError(error);
+            toast.error("Failed to update order status");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+    const router = useRouter();
+
+    const handleDelete = async () => {
+        if (!window.confirm("Are you sure you want to delete this order? This action cannot be undone.")) return;
+
+        try {
+            setActionLoading('delete');
+
+            const res = await axiosInstance.delete(
+                `/admin/parts-orders/${id}`,
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+
+            toast.success(res.data.message || "Order deleted successfully!");
+            router.push('/admin/parts/parts-orders');
+
+        } catch (error) {
+            handleError(error);
+            toast.error("Failed to delete order");
+        } finally {
+            setActionLoading(null);
+        }
+    };
     const getPaymentBadge = (status) => {
         const map = {
             pending: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -104,7 +197,7 @@ function PartOrderDetailPage() {
     const device = job?.deviceInfo;
     const selectedOffer = job?.offers?.find(o => o._id === job.selectedOffer) || job?.offers?.[0];
 
-    console.log("Order Details:", order);
+    
     return (
         <div className="min-h-screen bg-gray-50 py-10">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -124,13 +217,51 @@ function PartOrderDetailPage() {
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getStatusBadge(order.orderStatus)}`}>
-                                {order.orderStatus.toUpperCase()}
-                            </span>
-                            <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
-                                PAYMENT {order.paymentStatus.toUpperCase()}
-                            </span>
+                        <div className="flex items-center gap-3">
+                            <div className="sm:w-48">
+                                <div className="relative">
+                                    <select
+                                        value={order.orderStatus}
+                                        onChange={(e) => updateOrderStatus(order._id, e.target.value)}
+                                        disabled={actionLoading === 'status' || actionLoading === 'delete'}
+                                        className={`block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-sm ${actionLoading === 'status' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                                    >
+                                        <option value="pending">Pending</option>
+                                        <option value="confirmed">Confirmed</option>
+                                        <option value="processing">Processing</option>
+                                        <option value="ready-for-pickup">Ready for Pickup</option>
+                                        <option value="shipped">Shipped</option>
+                                        <option value="delivered">Delivered</option>
+                                        <option value="cancelled">Cancelled</option>
+                                    </select>
+                                    {actionLoading === 'status' && (
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                            <Icon icon="mdi:loading" className="w-4 h-4 text-gray-500 animate-spin" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getStatusBadge(order.orderStatus)}`}>
+                                    {order.orderStatus.toUpperCase()}
+                                </span>
+                                <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
+                                    {order.paymentStatus.toUpperCase()}
+                                </span>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={actionLoading === 'delete'}
+                                    className={`inline-flex items-center px-3 py-2 border border-transparent rounded-md text-sm font-medium text-red-600 hover:bg-red-50 ${actionLoading === 'delete' ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                    title="Delete order"
+                                >
+                                    {actionLoading === 'delete' ? (
+                                        <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Icon icon="mdi:trash-can-outline" className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -245,68 +376,83 @@ function PartOrderDetailPage() {
                             <p><strong>Warranty:</strong> {order.warranty} days</p>
                             {order.orderNotes && <p className="mt-3"><strong>Notes:</strong> {order.orderNotes}</p>}
                         </div>
+
+
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+  
+  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+    <Icon icon="mdi:timeline-clock" className="w-5 h-5 text-primary-600" />
+    Activity Timeline
+  </h3>
+
+  <div className="relative">
+    
+    {/* 🔥 Continuous Vertical Line */}
+    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+                    {order?.activityLog && order.activityLog.length > 0 ? (
+  <div className="space-y-8">
+    {order.activityLog.map((activity, index) => (
+      <div key={index} className="relative pl-10">
+
+        {/* Continuous Line */}
+        <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+        {/* Dot */}
+        <div
+          className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center 
+          shadow-md ring-4 ring-white ${getActionColor(activity.newStatus)}`}
+        >
+          <Icon
+            icon={getActionIcon(activity.newStatus)}
+            className="w-4 h-4"
+          />
+        </div>
+
+        {/* Card */}
+        <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+
+          <div className="flex items-start justify-between mb-2">
+            <p className="font-semibold text-gray-900 text-sm tracking-wide">
+              {formatStatus(activity.newStatus)}
+            </p>
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              {formatDate(activity.createdAt)}
+            </span>
+          </div>
+
+          {activity.changedBy && (
+            <p className="text-sm text-gray-600">
+              By: {activity.changedBy.name} ({activity.changedBy.role})
+            </p>
+          )}
+
+          {activity.previousStatus && activity.newStatus && (
+            <p className="text-sm text-gray-600 mt-1">
+              Status changed from{" "}
+              <span className="font-medium text-gray-800">
+                {formatStatus(activity.previousStatus)}
+              </span>{" "}
+              to{" "}
+              <span className="font-medium text-gray-800">
+                {formatStatus(activity.newStatus)}
+              </span>
+            </p>
+          )}
+
+        </div>
+      </div>
+    ))}
+  </div>
+) : (
+  <p className="text-gray-500 text-center py-4">
+    No activity recorded yet
+  </p>
+)}
+
+</div>
+</div>
                     </div>
-
-                       {/* <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <Icon icon="mdi:timeline-clock" className="w-5 h-5" />
-                                Activity Timeline
-                            </h3>
-                            <div className="relative">
-                                {order?.activityLog && order.activityLog.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {order.activityLog.map((activity, index) => (
-                                            <div key={index} className="relative pl-8 pb-4">
-                                                {index !== order.activityLog.length - 1 && (
-                                                    <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gray-200"></div>
-                                                )}
-                                                <div className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center ${getActionColor(activity.action)}`}>
-                                                    <Icon icon={getActionIcon(activity.action)} className="w-4 h-4" />
-                                                </div>
-                                                <div className="bg-gray-50 rounded-lg p-4">
-                                                    <div className="flex items-start justify-between mb-1">
-                                                        <p className="font-medium text-gray-900">
-                                                            {activity.action?.replace(/_/g, ' ').toUpperCase()}
-                                                        </p>
-                                                        <span className="text-xs text-gray-500">
-                                                            {formatDate(activity.timestamp)}
-                                                        </span>
-                                                    </div>
-                                                    {activity.performedBy && (
-                                                        <p className="text-sm text-gray-600">
-                                                            By: {activity.performedBy.name} ({activity.performedByRole})
-                                                        </p>
-                                                    )}
-                                                    {activity.previousStatus && activity.newStatus && (
-                                                        <p className="text-sm text-gray-600">
-                                                            Status changed from <span className="font-medium">{formatStatus(activity.previousStatus)}</span> to <span className="font-medium">{formatStatus(activity.newStatus)}</span>
-                                                        </p>
-                                                    )}
-                                                    {activity.reason && (
-                                                        <p className="text-sm text-gray-600 mt-1">
-                                                            Reason: {activity.reason}
-                                                        </p>
-                                                    )}
-                                                    {activity.details && Object.keys(activity.details).length > 0 && (
-                                                        <div className="mt-2 text-xs text-gray-500">
-                                                            {activity.details.repairmanName && (
-                                                                <p>Assigned to: {activity.details.repairmanName}</p>
-                                                            )}
-                                                            {activity.details.cancellationType && (
-                                                                <p>Type: {activity.details.cancellationType}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-center py-4">No activity recorded yet</p>
-                                )}
-                            </div>
-                        </div> */}
-
 
                     <div className="space-y-6">
 
@@ -316,22 +462,23 @@ function PartOrderDetailPage() {
                                 <Icon icon="mdi:account" className="w-5 h-5 text-gray-500" />
                                 Customer
                             </h3>
+                            {console.log("Customer Info:", order)}
                             <dl className="space-y-3 text-sm">
                                 <div>
                                     <dt className="text-gray-500">Name</dt>
-                                    <dd className="font-medium">{order.job_id?.customerId?.name || '—'}</dd>
+                                    <dd className="font-medium">{order?.customer?.name || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Email</dt>
-                                    <dd>{order.job_id?.customerId?.email || '—'}</dd>
+                                    <dd>{order?.customer?.email || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Phone</dt>
-                                    <dd>{order.job_id?.customerId?.phone || '—'}</dd>
+                                    <dd>{order?.customer?.phone || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Country</dt>
-                                    <dd>{order.job_id?.customerId?.address?.country || order.job_id?.customerId?.shippingAddress?.country || 'Turkey'}</dd>
+                                    <dd>{order?.customer?.address?.country || order?.customer?.shippingAddress?.country || 'Turkey'}</dd>
                                 </div>
                             </dl>
                         </div>

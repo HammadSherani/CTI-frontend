@@ -439,65 +439,90 @@ function JobDetailsPage() {
                         </div>
 
                         {/* Activity Timeline */}
-                        <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                                <Icon icon="mdi:timeline-clock" className="w-5 h-5" />
-                                Activity Timeline
-                            </h3>
-                            <div className="relative">
-                                {job.activityLog && job.activityLog.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {job.activityLog.map((activity, index) => (
-                                            <div key={index} className="relative pl-8 pb-4">
-                                                {index !== job.activityLog.length - 1 && (
-                                                    <div className="absolute left-3 top-8 bottom-0 w-0.5 bg-gray-200"></div>
-                                                )}
-                                                <div className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center ${getActionColor(activity.action)}`}>
-                                                    <Icon icon={getActionIcon(activity.action)} className="w-4 h-4" />
-                                                </div>
-                                                <div className="bg-gray-50 rounded-lg p-4">
-                                                    <div className="flex items-start justify-between mb-1">
-                                                        <p className="font-medium text-gray-900">
-                                                            {activity.action?.replace(/_/g, ' ').toUpperCase()}
-                                                        </p>
-                                                        <span className="text-xs text-gray-500">
-                                                            {formatDate(activity.timestamp)}
-                                                        </span>
-                                                    </div>
-                                                    {activity.performedBy && (
-                                                        <p className="text-sm text-gray-600">
-                                                            By: {activity.performedBy.name} ({activity.performedByRole})
-                                                        </p>
-                                                    )}
-                                                    {activity.previousStatus && activity.newStatus && (
-                                                        <p className="text-sm text-gray-600">
-                                                            Status changed from <span className="font-medium">{formatStatus(activity.previousStatus)}</span> to <span className="font-medium">{formatStatus(activity.newStatus)}</span>
-                                                        </p>
-                                                    )}
-                                                    {activity.reason && (
-                                                        <p className="text-sm text-gray-600 mt-1">
-                                                            Reason: {activity.reason}
-                                                        </p>
-                                                    )}
-                                                    {activity.details && Object.keys(activity.details).length > 0 && (
-                                                        <div className="mt-2 text-xs text-gray-500">
-                                                            {activity.details.repairmanName && (
-                                                                <p>Assigned to: {activity.details.repairmanName}</p>
-                                                            )}
-                                                            {activity.details.cancellationType && (
-                                                                <p>Type: {activity.details.cancellationType}</p>
-                                                            )}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <p className="text-gray-500 text-center py-4">No activity recorded yet</p>
-                                )}
-                            </div>
-                        </div>
+                       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+  
+  <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+    <Icon icon="mdi:timeline-clock" className="w-5 h-5 text-primary-600" />
+    Activity Timeline
+  </h3>
+
+  <div className="relative">
+    
+    {/* 🔥 Continuous Vertical Line */}
+    <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+    {job.activityLog && job.activityLog.length > 0 ? (
+      <div className="space-y-8">
+        {job.activityLog.map((activity, index) => (
+          <div key={index} className="relative pl-10">
+
+            {/* Timeline Dot */}
+            <div
+              className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center 
+              shadow-md ring-4 ring-white ${getActionColor(activity.action)}`}
+            >
+              <Icon icon={getActionIcon(activity.action)} className="w-4 h-4" />
+            </div>
+
+            {/* Activity Card */}
+            <div className="bg-gray-50 hover:bg-gray-100 transition-all duration-200 rounded-xl p-4 border border-gray-100 shadow-sm">
+              
+              <div className="flex items-start justify-between mb-2">
+                <p className="font-semibold text-gray-900 text-sm tracking-wide">
+                  {activity.action?.replace(/_/g, ' ').toUpperCase()}
+                </p>
+                <span className="text-xs text-gray-500 whitespace-nowrap">
+                  {formatDate(activity.timestamp)}
+                </span>
+              </div>
+
+              {activity.performedBy && (
+                <p className="text-sm text-gray-600">
+                  By: {activity.performedBy.name} ({activity.performedByRole})
+                </p>
+              )}
+
+              {activity.previousStatus && activity.newStatus && (
+                <p className="text-sm text-gray-600">
+                  Status changed from{" "}
+                  <span className="font-medium text-gray-800">
+                    {formatStatus(activity.previousStatus)}
+                  </span>{" "}
+                  to{" "}
+                  <span className="font-medium text-gray-800">
+                    {formatStatus(activity.newStatus)}
+                  </span>
+                </p>
+              )}
+
+              {activity.reason && (
+                <p className="text-sm text-gray-600 mt-1">
+                  Reason: {activity.reason}
+                </p>
+              )}
+
+              {activity.details && Object.keys(activity.details).length > 0 && (
+                <div className="mt-3 text-xs text-gray-500 space-y-1">
+                  {activity.details.repairmanName && (
+                    <p>Assigned to: {activity.details.repairmanName}</p>
+                  )}
+                  {activity.details.cancellationType && (
+                    <p>Type: {activity.details.cancellationType}</p>
+                  )}
+                </div>
+              )}
+
+            </div>
+          </div>
+        ))}
+      </div>
+    ) : (
+      <p className="text-gray-500 text-center py-4">
+        No activity recorded yet
+      </p>
+    )}
+  </div>
+</div>
                     </div>
 
                     {/* Sidebar */}

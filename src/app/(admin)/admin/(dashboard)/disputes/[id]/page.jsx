@@ -14,6 +14,7 @@ function DisputesDetail() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [showResolutionModal, setShowResolutionModal] = useState(false)
+  const [activeTab, setActiveTab] = useState('chat')
   const [resolutionData, setResolutionData] = useState({
     resolutionType: '',
     refundAmount: 0,
@@ -171,6 +172,9 @@ function DisputesDetail() {
     return colors[type] || 'bg-gray-100 text-gray-800 border-gray-200'
   }
 
+  
+  const isValid=dispute?.status==="under_review" || dispute?.status==="resolved"
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -202,6 +206,10 @@ function DisputesDetail() {
   const currencySymbol = dispute.bookingId?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : '$'
   const totalAmount = dispute.bookingId?.bookingDetails?.pricing?.totalAmount || 0
 
+  const handleStatusChange=()=>{
+    toast.info('Status change functionality is not implemented in this demo')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -229,11 +237,24 @@ function DisputesDetail() {
               <p className="">Manage dispute status and resolution</p>
             </div>
            
+           <div className='flex gap-2'>
+            {console.log(dispute,"dispute")}
+            
+            <button disabled={isValid}   onClick={() => handleStatusChange('under_review')} className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm ${isValid ? 'opacity-50 cursor-not-allowed' : ''}`} >
+              Under Review
+            </button>
+            <button title='Add Resulation'  onClick={() => setShowResolutionModal(true)}
+                 className="ml-2 px-4 py-2 flex items-center bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm">
+                              <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
+
+              Add Resulation
+            </button>
+           </div>
+
+
           </div>
 
-         
-
-          {updating && (
+                   {updating && (
             <div className="mt-3 flex items-center justify-center text-primary-100">
               <Icon icon="heroicons:arrow-path" className="w-4 h-4 mr-2 animate-spin" />
               Updating status...
@@ -241,28 +262,9 @@ function DisputesDetail() {
           )}
         </div>
 
-        {/* Resolution Management Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-primary-50 to-primary-100 border-b border-primary-200 px-6 py-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xl font-bold text-primary-900 flex items-center">
-                <Icon icon="heroicons:clipboard-document-check" className="w-6 h-6 mr-2" />
-                Resolution Management
-              </h3>
-              {!dispute.resolution?.resolutionType && (
-                <button
-                  onClick={() => setShowResolutionModal(true)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm flex items-center"
-                >
-                  <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
-                  Apply Resolution
-                </button>
-              )}
-            </div>
-          </div>
-
+      
           <div className="p-6">
-            {dispute.resolution?.resolutionType ? (
+            {dispute.resolution?.resolutionType &&
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -319,27 +321,18 @@ function DisputesDetail() {
                   )}
                 </div>
               </div>
-            ) : (
-              <div className="text-center py-8">
-                <Icon icon="heroicons:clipboard-document-list" className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                <h4 className="text-lg font-semibold text-gray-900 mb-2">No Resolution Applied Yet</h4>
-                <p className="text-gray-500 mb-4">Click "Apply Resolution" to resolve this dispute</p>
-                <button
-                  onClick={() => setShowResolutionModal(true)}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium"
-                >
-                  Apply Resolution Now
-                </button>
-              </div>
-            )}
+            }
           </div>
         </div>
 
         {/* Resolution Modal */}
         {showResolutionModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div 
+    className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          >
             <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 flex items-center justify-between">
+              <div    onClick={(e) => e.stopPropagation()}
+              className="bg-gradient-to-r from-primary-600 to-primary-700 px-6 py-4 flex items-center justify-between">
                 <h3 className="text-xl font-bold text-white flex items-center">
                   <Icon icon="heroicons:clipboard-document-check" className="w-6 h-6 mr-2" />
                   Apply Resolution
@@ -514,13 +507,17 @@ function DisputesDetail() {
                     {formatCategory(dispute.category)}
                   </p>
                 </div>
+
+
+
+              
                 
-                <div>
+                {/* <div>
                   <span className="text-sm font-medium text-gray-500">Payment Status</span>
                   <span className="inline-block mt-1 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold border border-orange-200">
                     {dispute.paymentStatus?.replace('_', ' ').toUpperCase()}
                   </span>
-                </div>
+                </div> */}
 
                 <div>
                   <span className="text-sm font-medium text-gray-500">Escalated</span>
@@ -621,387 +618,384 @@ function DisputesDetail() {
           </div>
         </div>
 
-        {/* Chat Timeline Card */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-          <div className="bg-gradient-to-r from-primary-50 to-primary-100 border-b border-primary-200 px-6 py-4">
-            <h3 className="text-lg font-bold text-primary-900 flex items-center">
-              <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5 mr-2" />
-              Dispute Timeline
-              <span className="ml-auto text-sm font-normal text-primary-700">
-                {((dispute.responses?.length || 0) + (dispute.evidenceFiles?.length || 0))} total items
-              </span>
-            </h3>
+
+
+ <div className="bg-white rounded-2xl shadow-xl border border-gray-200 overflow-hidden mb-8">
+          {/* Tab Navigation */}
+          <div className="border-b border-gray-200 bg-gray-50/50">
+            <nav className="flex gap-1 p-2" aria-label="Tabs">
+              {[
+                { id: 'chat', label: 'chat', icon: 'heroicons:chat-bubble-left-right' },
+                { id: 'dispute', label: 'Dispute Details', icon: 'heroicons:exclamation-triangle' },
+                { id: 'job', label: 'Job Details', icon: 'heroicons:wrench-screwdriver' },
+                { id: 'booking', label: 'Booking Details', icon: 'heroicons:calendar' }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium rounded-xl transition-all ${
+                    activeTab === tab.id
+                      ? 'bg-primary-600 text-white shadow-lg shadow-primary-200'
+                      : 'text-gray-600 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon icon={tab.icon} className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </nav>
           </div>
 
-          {/* Messages Area */}
-          <div className="max-h-[600px] overflow-y-auto p-6 space-y-4 bg-gray-50">
-            {/* Initial Dispute Message */}
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
-              </div>
-              <div className="flex-1">
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <p className="text-sm font-semibold text-gray-900 capitalize">
-                        {dispute.raisedBy?.userId?.name}
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        {dispute.raisedBy?.userType} • Dispute Created
-                      </p>
+          {/* Tab Content */}
+          <div className="p-6">
+            {/* chat Tab */}
+            {activeTab === 'chat' && (
+              <div className="space-y-6">
+                {/* Initial Dispute Message */}
+                <div className="relative">
+                  <div className="absolute left-8 top-0 bottom-0 w-0.5 bg-gradient-to-b from-orange-300 to-primary-300"></div>
+                  
+                  <div className="relative flex gap-4 mb-6">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-200">
+                      <Icon icon="heroicons:exclamation-triangle" className="w-8 h-8 text-white" />
                     </div>
-                    <span className="text-xs text-gray-500">
-                      {formatDate(dispute.createdAt)}
-                    </span>
+                    <div className="flex-1 bg-gradient-to-r from-orange-50 to-amber-50 rounded-2xl p-5 border border-orange-200">
+                      <div className="flex items-center justify-between mb-3">
+                        <div>
+                          <h4 className="font-semibold text-gray-900">{dispute.raisedBy?.userId?.name}</h4>
+                          <p className="text-sm text-gray-500 flex items-center gap-2">
+                            <span className="capitalize">{dispute.raisedBy?.userType}</span>
+                            <span>•</span>
+                            <span>{formatFullDate(dispute.createdAt)}</span>
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 bg-orange-200 text-orange-800 rounded-full text-xs font-semibold">
+                          {formatCategory(dispute.category)}
+                        </span>
+                      </div>
+                      <p className="text-gray-700 leading-relaxed">{dispute.description}</p>
+                    </div>
                   </div>
-                  <div className="mb-2">
-                    <span className="inline-block px-2 py-1 bg-orange-100 text-orange-800 text-xs font-medium rounded">
-                      {dispute.category?.replace(/_/g, ' ').toUpperCase()}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-800">{dispute.description}</p>
+
+                  {/* Responses */}
+                  {dispute.responses?.map((response, index) => (
+                    <div key={index} className="relative flex gap-4 mb-6">
+                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-200">
+                        <Icon icon="heroicons:user" className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1 bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+                        <div className="flex items-center justify-between mb-3">
+                          <div>
+                            <h4 className="font-semibold text-gray-900">{response.respondedBy?.userId?.name}</h4>
+                            <p className="text-sm text-gray-500 flex items-center gap-2">
+                              <span className="capitalize">{response.respondedBy?.userType}</span>
+                              <span>•</span>
+                              <span>{formatFullDate(response.respondedAt)}</span>
+                            </p>
+                          </div>
+                        </div>
+                        <p className="text-gray-700 leading-relaxed">{response.message}</p>
+                        
+                        {response.evidenceFiles?.length > 0 && (
+                          <div className="mt-4">
+                            <p className="text-sm font-medium text-gray-700 mb-2">Evidence Files:</p>
+                            <div className="flex flex-wrap gap-3">
+                              {response.evidenceFiles.map((file, fileIndex) => (
+                                <a
+                                  key={fileIndex}
+                                  href={file.fileUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="group relative"
+                                >
+                                  {file.fileType === 'image' ? (
+                                    <div className="relative w-24 h-24 rounded-xl overflow-hidden border-2 border-gray-200 group-hover:border-primary-500 transition-all">
+                                      <img
+                                        src={file.fileUrl}
+                                        alt="Evidence"
+                                        className="w-full h-full object-cover"
+                                      />
+                                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Icon icon="heroicons:magnifying-glass" className="w-6 h-6 text-white" />
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="w-24 h-24 bg-gray-100 rounded-xl flex flex-col items-center justify-center border-2 border-gray-200 group-hover:border-primary-500 transition-all">
+                                      <Icon icon="heroicons:document" className="w-8 h-8 text-gray-400" />
+                                      <span className="text-xs text-gray-500 mt-1">View File</span>
+                                    </div>
+                                  )}
+                                </a>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            </div>
-
-            {/* Responses and Evidence Files - Chronologically Merged */}
-            {[
-              ...(dispute.responses || []).map(r => ({ ...r, type: 'response' })),
-              ...(dispute.evidenceFiles || []).map(e => ({ ...e, type: 'evidence' }))
-            ]
-              .sort((a, b) => {
-                const dateA = new Date(a.respondedAt || a.createdAt || a.uploadedAt)
-                const dateB = new Date(b.respondedAt || b.createdAt || b.uploadedAt)
-                return dateA - dateB
-              })
-              .map((item, index) => {
-                if (item.type === 'response') {
-                  return (
-                    <div key={`response-${index}`} className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Icon icon="heroicons:user" className="w-5 h-5 text-primary-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900 capitalize">
-                                {item.respondedBy?.userId?.name || 'Unknown User'}
-                              </p>
-                              <p className="text-xs text-gray-500 capitalize">
-                                {item.respondedBy?.userType || 'User'}
-                              </p>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {formatDate(item.respondedAt || item.createdAt)}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-800">{item.message}</p>
-                        </div>
-                      </div>
-                    </div>
-                  )
-                } else {
-                  // Evidence file
-                  return (
-                    <div key={`evidence-${index}`} className="flex items-start gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <Icon icon="heroicons:paper-clip" className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div>
-                              <p className="text-sm font-semibold text-gray-900">
-                                Evidence Uploaded
-                              </p>
-                              <p className="text-xs text-gray-500 capitalize">
-                                By {item.uploaderType} • {item.uploadedBy?.name || 'Unknown'}
-                              </p>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {formatDate(item.uploadedAt)}
-                            </span>
-                          </div>
-                          <a
-                            href={item.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
-                          >
-                            <Icon icon="heroicons:document" className="w-4 h-4" />
-                            View {item.fileType} file
-                            <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4" />
-                          </a>
-                          {item.fileType === 'image' && (
-                            <img
-                              src={item.fileUrl}
-                              alt="Evidence"
-                              className="mt-3 rounded-lg max-w-xs border border-blue-300"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                }
-              })}
-
-            {/* No messages yet */}
-            {(!dispute.responses || dispute.responses.length === 0) && 
-             (!dispute.evidenceFiles || dispute.evidenceFiles.length === 0) && (
-              <div className="text-center py-8">
-                <Icon icon="heroicons:chat-bubble-left-ellipsis" className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                <p className="text-gray-500">No responses or evidence files yet</p>
+                <div ref={messagesEndRef} />
               </div>
             )}
 
-            <div ref={messagesEndRef} />
-          </div>
+            {/* Dispute Details Tab */}
+            {activeTab === 'dispute' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Main Info Card */}
+                <div className="lg:col-span-2 space-y-6">
+                  <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                      <Icon icon="heroicons:information-circle" className="w-5 h-5 text-primary-600" />
+                      Dispute Information
+                    </h3>
+                    
+                    <div className="grid grid-cols-2 gap-6">
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Category</p>
+                        <p className="text-lg font-semibold text-gray-900">{formatCategory(dispute.category)}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Priority</p>
+                        <StatusBadge status={dispute.priority} />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Status</p>
+                        <StatusBadge status={dispute.status} />
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500 mb-1">Escalated</p>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-2.5 h-2.5 rounded-full ${dispute.isEscalated ? 'bg-red-500' : 'bg-green-500'}`}></div>
+                          <span>{dispute.isEscalated ? 'Yes' : 'No'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
 
-          {/* Admin Note */}
-          <div className="bg-primary-50 border-t border-primary-200 px-6 py-3">
-            <p className="text-xs text-primary-700 flex items-center">
-              <Icon icon="heroicons:information-circle" className="w-4 h-4 mr-1" />
-              Admin view - Read only. Use status buttons above to manage this dispute.
-            </p>
+                  {/* Deadlines */}
+                  {dispute.deadlines && (
+                    <div className="bg-gradient-to-br from-gray-50 to-white rounded-xl p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Icon icon="heroicons:clock" className="w-5 h-5 text-primary-600" />
+                        Deadlines
+                      </h3>
+                      <div className="grid grid-cols-2 gap-6">
+                        {dispute.deadlines.responseDeadline && (
+                          <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-200">
+                            <p className="text-xs text-yellow-800 font-semibold mb-1">Response Deadline</p>
+                            <p className="text-sm text-yellow-900">{formatFullDate(dispute.deadlines.responseDeadline)}</p>
+                          </div>
+                        )}
+                        {dispute.deadlines.resolutionDeadline && (
+                          <div className="bg-red-50 rounded-xl p-4 border border-red-200">
+                            <p className="text-xs text-red-800 font-semibold mb-1">Resolution Deadline</p>
+                            <p className="text-sm text-red-900">{formatFullDate(dispute.deadlines.resolutionDeadline)}</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Parties Card */}
+                <div className="space-y-6">
+                  <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
+                    <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center gap-2">
+                      <Icon icon="heroicons:user-circle" className="w-5 h-5" />
+                      Raised By
+                    </h3>
+                    <div className="space-y-3">
+                      <p className="font-semibold text-blue-900">{dispute.raisedBy?.userId?.name}</p>
+                      <p className="text-sm text-blue-800">{dispute.raisedBy?.userId?.email}</p>
+                      <p className="text-sm text-blue-800">{dispute.raisedBy?.userId?.phone}</p>
+                      <span className="inline-block px-3 py-1 bg-blue-200 text-blue-800 rounded-full text-xs font-medium">
+                        {dispute.raisedBy?.userType}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-red-50 to-white rounded-xl p-6 border border-red-200">
+                    <h3 className="text-lg font-semibold text-red-900 mb-4 flex items-center gap-2">
+                      <Icon icon="heroicons:user-circle" className="w-5 h-5" />
+                      Against
+                    </h3>
+                    <div className="space-y-3">
+                      <p className="font-semibold text-red-900">{dispute.againstUser?.userId?.name}</p>
+                      <p className="text-sm text-red-800">{dispute.againstUser?.userId?.email}</p>
+                      <p className="text-sm text-red-800">{dispute.againstUser?.userId?.phone}</p>
+                      <span className="inline-block px-3 py-1 bg-red-200 text-red-800 rounded-full text-xs font-medium">
+                        {dispute.againstUser?.userType}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Job Details Tab */}
+            {activeTab === 'job' && dispute.jobId && (
+              <div className="space-y-6">
+                {/* Device Info Card */}
+                <div className="bg-gradient-to-br from-primary-100 to-white rounded-xl p-6 border border-purple-200">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                    <Icon icon="heroicons:device-phone-mobile" className="w-5 h-5" />
+                    Device Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Brand</p>
+                      <p className="font-semibold">{dispute.jobId.deviceInfo?.brand || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Model</p>
+                      <p className="font-semibold">{dispute.jobId.deviceInfo?.model || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Color</p>
+                      <p className="font-semibold capitalize">{dispute.jobId.deviceInfo?.color || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Warranty</p>
+                      <p className="font-semibold capitalize">{dispute.jobId.deviceInfo?.warrantyStatus || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Services Card */}
+                {dispute.jobId.services && dispute.jobId.services.length > 0 && (
+                  <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-200">
+                    <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
+                      <Icon icon="heroicons:wrench" className="w-5 h-5" />
+                      Services Required
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {dispute.jobId.services.map((service, index) => (
+                        <span
+                          key={index}
+                          className="px-4 py-2 bg-white rounded-xl border border-green-200 text-green-800 font-medium"
+                        >
+                          {service.name || service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Job Description */}
+                {dispute.jobId.description && (
+                  <div className="bg-white rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Description</h3>
+                    <p className="text-gray-700 leading-relaxed">{dispute.jobId.description}</p>
+                  </div>
+                )}
+
+                {/* Location & Budget */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {dispute.jobId.location && (
+                    <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                        <Icon icon="heroicons:map-pin" className="w-5 h-5" />
+                        Location
+                      </h3>
+                      <p className="text-gray-900 font-medium">{dispute.jobId.location.address}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {dispute.jobId.location.city?.name || dispute.jobId.location.city}, {dispute.jobId.location.zipCode}
+                      </p>
+                    </div>
+                  )}
+
+                  {dispute.jobId.budget && (
+                    <div className="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-6 border border-yellow-200">
+                      <h3 className="text-lg font-semibold text-yellow-900 mb-3 flex items-center gap-2">
+                        <Icon icon="heroicons:currency-dollar" className="w-5 h-5" />
+                        Budget Range
+                      </h3>
+                      <p className="text-2xl font-bold text-yellow-900">
+                        {dispute.jobId.budget.currency} {dispute.jobId.budget.min} - {dispute.jobId.budget.max}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Booking Details Tab */}
+            {activeTab === 'booking' && dispute.bookingId && (
+              <div className="space-y-6">
+                {/* Pricing Card */}
+                <div className="bg-gradient-to-br from-primary-50 to-white rounded-xl p-6 border border-indigo-200">
+                  <h3 className="text-lg font-semibold text-indigo-900 mb-4 flex items-center gap-2">
+                    <Icon icon="heroicons:currency-dollar" className="w-5 h-5" />
+                    Pricing Breakdown
+                  </h3>
+                  
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b border-indigo-100">
+                      <span className="text-indigo-800">Base Price</span>
+                      <span className="font-semibold text-indigo-900">
+                        {currencySymbol}{dispute.bookingId.bookingDetails?.pricing?.basePrice}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-indigo-100">
+                      <span className="text-indigo-800">Parts Price</span>
+                      <span className="font-semibold text-indigo-900">
+                        {currencySymbol}{dispute.bookingId.bookingDetails?.pricing?.partsPrice || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-indigo-100">
+                      <span className="text-indigo-800">Service Charge</span>
+                      <span className="font-semibold text-indigo-900">
+                        {currencySymbol}{dispute.bookingId.bookingDetails?.pricing?.serviceCharge || 0}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center py-3">
+                      <span className="text-lg font-bold text-indigo-900">Total Amount</span>
+                      <span className="text-2xl font-bold text-indigo-600">
+                        {currencySymbol}{dispute.bookingId.bookingDetails?.pricing?.totalAmount}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Schedule & Warranty */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="bg-white rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <Icon icon="heroicons:calendar" className="w-5 h-5 text-primary-600" />
+                      Schedule
+                    </h3>
+                    {dispute.bookingId.bookingDetails?.scheduledDate && (
+                      <div className="space-y-2">
+                        <p className="text-sm text-gray-500">Scheduled Date</p>
+                        <p className="font-medium">{formatFullDate(dispute.bookingId.bookingDetails.scheduledDate)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {dispute.bookingId.bookingDetails?.warranty && (
+                    <div className="bg-white rounded-xl p-6 border border-gray-200">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                        <Icon icon="heroicons:shield-check" className="w-5 h-5 text-primary-600" />
+                        Warranty
+                      </h3>
+                      <p className="font-medium">{dispute.bookingId.bookingDetails.warranty.duration} days</p>
+                      <p className="text-sm text-gray-600 mt-1">{dispute.bookingId.bookingDetails.warranty.description}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Job Details Card */}
-        {dispute.jobId && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
-            <div className="bg-primary-50 border-b border-primary-200 px-6 py-4">
-              <h3 className="text-lg font-bold text-primary-900 flex items-center">
-                <Icon icon="heroicons:wrench-screwdriver" className="w-5 h-5 mr-2" />
-                Job Details
-              </h3>
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-4">
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Job ID</span>
-                    <p className="text-base text-gray-900 font-semibold mt-1">
-                      {dispute.jobId._id?.slice(-8).toUpperCase() || 'N/A'}
-                    </p>
-                  </div>
 
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Status</span>
-                    <div className="mt-1">
-                      <StatusBadge status={dispute.jobId.status} />
-                    </div>
-                  </div>
 
-                  {dispute.jobId.deviceInfo && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Device</span>
-                      <p className="text-base text-gray-900 mt-1">
-                        {dispute.jobId.deviceInfo.brand} - {dispute.jobId.deviceInfo.model}
-                      </p>
-                      <p className="text-xs text-gray-600 capitalize mt-1">
-                        Color: {dispute.jobId.deviceInfo.color} | Warranty: {dispute.jobId.deviceInfo.warrantyStatus}
-                      </p>
-                    </div>
-                  )}
 
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Urgency</span>
-                    <p className="text-base text-gray-900 capitalize mt-1">{dispute.jobId.urgency}</p>
-                  </div>
-                </div>
+   
+     
 
-                {/* Right Column */}
-                <div className="space-y-4">
-                  <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <span className="text-sm font-medium text-gray-700 flex items-center mb-2">
-                      <Icon icon="heroicons:user-circle" className="w-4 h-4 mr-1" />
-                      Customer
-                    </span>
-                    <p className="text-base text-gray-900 font-semibold">
-                      {dispute.jobId.customerId?.name || 'N/A'}
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">{dispute.jobId.customerId?.email}</p>
-                    <p className="text-xs text-gray-600">{dispute.jobId.customerId?.phone}</p>
-                  </div>
-
-                  <div>
-                    <span className="text-sm font-medium text-gray-500">Service Preference</span>
-                    <p className="text-base text-gray-900 capitalize mt-1">{dispute.jobId.servicePreference}</p>
-                  </div>
-
-                  {dispute.jobId.preferredTime && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Preferred Time</span>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {new Date(dispute.jobId.preferredTime).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric'
-                        })}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Job Description */}
-              {dispute.jobId.description && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-500">Description</span>
-                  <p className="text-gray-900 mt-2">{dispute.jobId.description}</p>
-                </div>
-              )}
-
-              {/* Services */}
-              {dispute.jobId.services && dispute.jobId.services.length > 0 && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-500 mb-3 block">Services</span>
-                  <div className="flex flex-wrap gap-2">
-                    {dispute.jobId.services.map((service, index) => (
-                      <span key={index} className="px-3 py-1 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
-                        {service?.name || service}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Location */}
-              {dispute.jobId.location && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-500 flex items-center mb-2">
-                    <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                    Location
-                  </span>
-                  <p className="text-gray-900">{dispute.jobId.location.address}</p>
-                  <p className="text-xs text-gray-600 mt-1">
-                    {dispute.jobId.location?.city?.name || dispute.jobId.location.city}, {dispute.jobId.location.zipCode}
-                  </p>
-                </div>
-              )}
-
-              {/* Budget */}
-              {dispute.jobId.budget && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-500">Budget Range</span>
-                  <p className="text-gray-900 mt-1 font-semibold">
-                    {dispute.jobId.budget.currency} {dispute.jobId.budget.min} - {dispute.jobId.budget.max}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Booking Details Card */}
-        {dispute.bookingId && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="bg-primary-50 border-b border-primary-200 px-6 py-4">
-              <h3 className="text-lg font-bold text-primary-900 flex items-center">
-                <Icon icon="heroicons:calendar-days" className="w-5 h-5 mr-2" />
-                Booking Details
-              </h3>
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Left Column */}
-                <div className="space-y-4">
-                  {dispute.bookingId.bookingDetails?.scheduledDate && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Scheduled Date</span>
-                      <p className="text-base text-gray-900 mt-1">
-                        {formatFullDate(dispute.bookingId.bookingDetails.scheduledDate)}
-                      </p>
-                    </div>
-                  )}
-
-                  {dispute.bookingId.bookingDetails?.estimatedCompletion && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Estimated Completion</span>
-                      <p className="text-sm text-gray-900 mt-1">
-                        {new Date(dispute.bookingId.bookingDetails.estimatedCompletion).toLocaleString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                  )}
-
-                  {dispute.bookingId.payment && (
-                    <div>
-                      <span className="text-sm font-medium text-gray-500">Payment Status</span>
-                      <div className="mt-1">
-                        <StatusBadge status={dispute.bookingId.payment.status} />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Column - Pricing */}
-                <div>
-                  {dispute.bookingId.bookingDetails?.pricing && (
-                    <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-3">Pricing Breakdown</h4>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Base Price:</span>
-                          <span className="font-semibold text-gray-900">
-                            {currencySymbol}{dispute.bookingId.bookingDetails.pricing.basePrice}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Parts Price:</span>
-                          <span className="text-gray-900">
-                            {currencySymbol}{dispute.bookingId.bookingDetails.pricing.partsPrice || 0}
-                          </span>
-                        </div>
-
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600">Service Charge:</span>
-                          <span className="text-gray-900">
-                            {currencySymbol}{dispute.bookingId.bookingDetails.pricing.serviceCharge || 0}
-                          </span>
-                        </div>
-
-                        <div className="border-t pt-2 mt-2 flex justify-between">
-                          <span className="text-sm font-semibold text-gray-700">Total Amount:</span>
-                          <span className="text-lg font-bold text-primary-600">
-                            {currencySymbol}{dispute.bookingId.bookingDetails.pricing.totalAmount}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Warranty */}
-              {dispute.bookingId.bookingDetails?.warranty && (
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <span className="text-sm font-medium text-gray-500 flex items-center mb-2">
-                    <Icon icon="heroicons:shield-check" className="w-4 h-4 mr-1" />
-                    Warranty
-                  </span>
-                  <p className="text-gray-900">
-                    {dispute.bookingId.bookingDetails.warranty.duration} days - {dispute.bookingId.bookingDetails.warranty.description}
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+ 
       </div>
-    </div>
   )
 }
 

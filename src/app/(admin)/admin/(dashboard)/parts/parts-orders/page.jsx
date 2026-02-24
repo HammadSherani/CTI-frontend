@@ -18,7 +18,7 @@ function PartsOrderPage() {
     const [submitError, setSubmitError] = useState('');
     const [submitSuccess, setSubmitSuccess] = useState('');
     const { token } = useSelector((state) => state.auth);
-
+const [actionLoading, setActionLoading] = useState(null);
     useEffect(() => {
         fetchOrders();
     }, []);
@@ -76,44 +76,36 @@ function PartsOrderPage() {
         setFilteredOrders(filtered);
     };
 
-    const handleDelete = async (orderId) => {
-        if (window.confirm('Are you sure you want to delete this order?')) {
-            try {
-                const res = await axiosInstance.delete(`/admin/parts-orders/${orderId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                toast.success(res.data.message || 'Order deleted successfully!');
-                setSubmitSuccess('Order deleted successfully!');
-                setTimeout(() => setSubmitSuccess(''), 3000);
-                fetchOrders();
-            } catch (error) {
-                console.error('Delete error:', error);
-                setSubmitError('Failed to delete order. Please try again.');
-                toast.error('Failed to delete order');
-            }
-        }
-    };
-
+   
     const updateOrderStatus = async (orderId, newStatus) => {
-        try {
-            const res = await axiosInstance.put(`/admin/parts-orders/${orderId}`,
-                { orderStatus: newStatus },
-                {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                }
-            );
-            toast.success(res.data.message || 'Order status updated!');
-            fetchOrders();
-        } catch (error) {
-            console.error('Update status error:', error);
-            setSubmitError('Failed to update order status. Please try again.');
-            toast.error('Failed to update order status');
-        }
-    };
+    try {
+        setActionLoading(orderId);
+
+        const res = await axiosInstance.put(
+            `/admin/parts-orders/${orderId}`,
+            { orderStatus: newStatus },
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+
+        toast.success(res.data.message || "Order status updated!");
+
+        // ✅ Update locally instead of refetch
+        setOrders(prev =>
+            prev.map(order =>
+                order._id === orderId
+                    ? { ...order, orderStatus: newStatus }
+                    : order
+            )
+        );
+
+    } catch (error) {
+        toast.error("Failed to update order status");
+    } finally {
+        setActionLoading(null);
+    }
+};
 
     const updatePaymentStatus = async (orderId, newPaymentStatus) => {
         try {
@@ -177,8 +169,40 @@ function PartsOrderPage() {
         return colors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
     };
 
+    const handleDelete = async (orderId) => {
+    if (!window.confirm("Are you sure you want to delete this order?")) return;
+
+    try {
+        setActionLoading(orderId);
+
+        const res = await axiosInstance.delete(
+            `/admin/parts-orders/${orderId}`,
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+
+        toast.success(res.data.message || "Order deleted successfully!");
+
+        // ✅ Remove locally
+        setOrders(prev => prev.filter(order => order._id !== orderId));
+
+    } catch (error) {
+        toast.error("Failed to delete order");
+    } finally {
+        setActionLoading(null);
+    }
+};
     return (
         <div className="min-h-screen bg-gray-50">
+            {actionLoading && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+                    <div className="bg-white/90 p-6 rounded-lg shadow-lg flex items-center gap-3">
+                        <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+                        <div className="text-sm font-medium text-gray-900">Updating order status...</div>
+                    </div>
+                </div>
+            )}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* Header */}
                 <div className="mb-8">
@@ -310,7 +334,7 @@ function PartsOrderPage() {
                             <select
                                 value={filterStatus}
                                 onChange={(e) => setFilterStatus(e.target.value)}
-                                className="block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white focus:outline-none focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                className={`block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-sm ${getStatusColor(filterStatus)}`}
                             >
                                 <option value="all">All Status</option>
                                 <option value="pending">Pending</option>
@@ -422,7 +446,8 @@ function PartsOrderPage() {
                                                     <select
                                                         value={order.orderStatus}
                                                         onChange={(e) => updateOrderStatus(order._id, e.target.value)}
-                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)} border-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary-500`}
+                                                        disabled={actionLoading === order._id}
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)} border-0 ${actionLoading === order._id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
                                                     >
                                                         <option value="pending">Pending</option>
                                                         <option value="confirmed">Confirmed</option>
@@ -460,13 +485,17 @@ function PartsOrderPage() {
                                                         >
                                                             <Icon icon="mdi:pencil" className="w-5 h-5" />
                                                         </Link> */}
-                                                        <button
-                                                            onClick={() => handleDelete(order._id)}
-                                                            className="text-red-600 hover:text-red-900 transition-colors"
-                                                            title="Delete order"
-                                                        >
-                                                            <Icon icon="mdi:trash-can" className="w-5 h-5" />
-                                                        </button>
+                                                       <button
+    onClick={() => handleDelete(order._id)}
+    disabled={actionLoading === order._id}
+    className="text-red-600 hover:text-red-900 transition-colors"
+>
+    {actionLoading === order._id ? (
+        <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />
+    ) : (
+        <Icon icon="mdi:trash-can" className="w-5 h-5" />
+    )}
+</button>
                                                     </div>
                                                 </td>
                                             </tr>

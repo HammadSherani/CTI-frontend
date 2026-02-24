@@ -52,6 +52,40 @@ function PartOrderDetailPage() {
         }).format(amount || 0);
     };
 
+
+    
+    const getActionIcon = (action) => {
+        const icons = {
+            'pending': 'mdi:file-document-plus',
+            'confirmed': 'mdi:send',
+            'processing': 'mdi:email-receive',
+            'ready-for-pickup': 'mdi:check-circle',
+            'shipped': 'mdi:account-arrow-right',
+            'delivered': 'mdi:play-circle',
+            'cancelled': 'mdi:check-all',
+            'returned': 'mdi:close-circle',
+        };
+        return icons[action] || 'mdi:circle';
+    };
+
+     const getActionColor = (action) => {
+        const colors = {
+            'pending': 'text-primary-600 bg-primary-100',
+            'confirmed': 'text-green-600 bg-green-100',
+            'processing': 'text-purple-600 bg-purple-100',
+            'ready-for-pickup': 'text-yellow-600 bg-yellow-100',
+            'shipped': 'text-blue-600 bg-blue-100',
+            'delivered': 'text-emerald-600 bg-emerald-100',
+            'cancelled': 'text-red-600 bg-red-100',
+            'returned': 'text-orange-600 bg-orange-100',
+        };
+        return colors[action] || 'text-gray-600 bg-gray-100';
+    };
+    
+    const formatStatus = (status) => {
+        return status?.replace(/_/g, ' ').toUpperCase();
+    };
+
     const getStatusBadge = (status) => {
         const map = {
             pending: 'bg-amber-50 text-amber-700 border border-amber-200',
@@ -245,6 +279,82 @@ function PartOrderDetailPage() {
                             <p><strong>Warranty:</strong> {order.warranty} days</p>
                             {order.orderNotes && <p className="mt-3"><strong>Notes:</strong> {order.orderNotes}</p>}
                         </div>
+
+<>
+  <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+
+    <h3 className="text-lg font-semibold text-gray-900 mb-6 flex items-center gap-2">
+      <Icon icon="mdi:timeline-clock" className="w-5 h-5 text-primary-600" />
+      Activity Timeline
+    </h3>
+
+    <div className="relative">
+
+      {/* ✅ Continuous Vertical Line (EMPTY DIV) */}
+      <div className="absolute left-3 top-0 bottom-0 w-0.5 bg-gray-200"></div>
+
+      {order?.activityLog && order.activityLog.length > 0 ? (
+        <div className="space-y-8">
+          {order.activityLog.map((activity, index) => (
+            <div key={index} className="relative pl-10">
+
+              {/* Dot */}
+              <div
+                className={`absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center 
+                shadow-md ring-4 ring-white ${getActionColor(activity.newStatus)}`}
+              >
+                <Icon
+                  icon={getActionIcon(activity.newStatus)}
+                  className="w-4 h-4"
+                />
+              </div>
+
+              {/* Card */}
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 shadow-sm">
+
+                <div className="flex items-start justify-between mb-2">
+                  <p className="font-semibold text-gray-900 text-sm tracking-wide">
+                    {formatStatus(activity.newStatus)}
+                  </p>
+                  <span className="text-xs text-gray-500 whitespace-nowrap">
+                    {formatDate(activity.createdAt)}
+                  </span>
+                </div>
+
+                {activity.changedBy && (
+                  <p className="text-sm text-gray-600">
+                    By: {activity.changedBy.name} ({activity.changedBy.role})
+                  </p>
+                )}
+
+                {activity.previousStatus && activity.newStatus && (
+                  <p className="text-sm text-gray-600 mt-1">
+                    Status changed from{" "}
+                    <span className="font-medium text-gray-800">
+                      {formatStatus(activity.previousStatus)}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-medium text-gray-800">
+                      {formatStatus(activity.newStatus)}
+                    </span>
+                  </p>
+                )}
+
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-gray-500 text-center py-4">
+          No activity recorded yet
+        </p>
+      )}
+
+    </div>
+  </div>
+</>
+
+
                     </div>
 
                     <div className="space-y-6">
@@ -255,22 +365,23 @@ function PartOrderDetailPage() {
                                 <Icon icon="mdi:account" className="w-5 h-5 text-gray-500" />
                                 Customer
                             </h3>
+                            {console.log("Customer Info:", order)}
                             <dl className="space-y-3 text-sm">
                                 <div>
                                     <dt className="text-gray-500">Name</dt>
-                                    <dd className="font-medium">{order.job_id?.customerId?.name || '—'}</dd>
+                                    <dd className="font-medium">{order?.customer?.name || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Email</dt>
-                                    <dd>{order.job_id?.customerId?.email || '—'}</dd>
+                                    <dd>{order?.customer?.email || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Phone</dt>
-                                    <dd>{order.job_id?.customerId?.phone || '—'}</dd>
+                                    <dd>{order?.customer?.phone || '—'}</dd>
                                 </div>
                                 <div>
                                     <dt className="text-gray-500">Country</dt>
-                                    <dd>{order.job_id?.customerId?.address?.country || order.job_id?.customerId?.shippingAddress?.country || 'Turkey'}</dd>
+                                    <dd>{order?.customer?.address?.country || order.job_id?.customerId?.shippingAddress?.country || 'Turkey'}</dd>
                                 </div>
                             </dl>
                         </div>
