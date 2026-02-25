@@ -481,6 +481,24 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     </div>
                                 </div>
                             )}
+
+                            <button
+                                onClick={handleSubmit(onSubmit)}
+                                disabled={isProcessing || Object.keys(errors).length > 0}
+                                className="w-full - bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-10 flex items-center justify-center gap-3"
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        Processing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Icon icon="lucide:shield-check" className="w-6 h-6" />
+                                        Complete Payment
+                                    </>
+                                )}
+                            </button>
                         </form>
                     </div>
 

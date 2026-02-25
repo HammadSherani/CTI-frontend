@@ -90,11 +90,17 @@ const RepairJobCard = ({ job }) => {
     ? job?.quotationId?.pricing
     : job?.budget;
 
-  const deviceName = isQuotationBased
-    ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
+    const deviceName = isQuotationBased
+    ? `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${deviceInfo.repairServices?.map(service => service?.name).join(', ')
     }`
     : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
     }`;
+
+  // const deviceName = isQuotationBased
+  //   ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
+  //   }`
+  //   : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
+  //   }`;
 
 
 

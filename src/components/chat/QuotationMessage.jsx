@@ -110,7 +110,7 @@ const QuotationMessage = ({ message, isOwner }) => {
     const isAnyButtonLoading = acceptLoading || rejectLoading;
 
     return (
-        <div className={`max-w-[85%] ${isOwner ? 'ml-auto' : 'mr-auto'} mb-4`}>
+        <div className={`max-w-[95%] ${isOwner ? 'ml-auto' : 'mr-auto'} mb-4`}>
             <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${isOwner ? 'border-primary-200' : 'border-green-200'
                 }`}>
                 {/* Header */}
@@ -427,7 +427,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                                 <button
                                     onClick={() => handleQuotationResponse('rejected')}
                                     disabled={isAnyButtonLoading}
-                                    className="flex-1 bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
+                                    className="flex-1 flex-wrap bg-red-600 text-white py-2 px-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
                                 >
                                     {rejectLoading ? (
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
