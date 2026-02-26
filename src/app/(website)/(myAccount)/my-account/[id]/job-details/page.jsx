@@ -181,12 +181,19 @@ function JobDetails() {
         fetchJob();
     }, [fetchJob]);
 
+    console.log('Current quotation state:', quotation);
+    console.log(dataType,"dattype")
     const deviceTitle = useMemo(() => {
         if (dataType === 'job_posting' && job) {
             return `${job.deviceInfo?.brand || ''} ${job.deviceInfo?.model || ''} (${job.deviceInfo?.color || ''}) - ${job.services.map(service => service?.name).join(', ')
                 }`;
         } else if (dataType === 'quotation_booking' && quotation) {
-            return `${quotation.deviceInfo?.brandName || ''} ${quotation.deviceInfo?.modelName || ''} - ${quotation.deviceInfo?.repairServices?.join(', ') || ''}`;
+            // Handle both string array and object array formats
+            const serviceNames = quotation.deviceInfo?.repairServices
+                ?.map(s => typeof s === 'string' ? s : s?.name)
+                .filter(Boolean)
+                .join(', ') || '';
+            return `${quotation.deviceInfo?.brand?.name || quotation.deviceInfo?.brandName || ''} ${quotation.deviceInfo?.model?.name || quotation.deviceInfo?.modelName || ''} - ${serviceNames}`;
         }
         return '';
     }, [dataType, job, quotation]);
@@ -519,7 +526,7 @@ function JobDetails() {
                                                     key={index}
                                                     className="px-4 py-2 bg-primary-50 text-primary-700 rounded-full border border-primary-200 text-sm"
                                                 >
-                                                    {service}
+                                                    {typeof service === 'string' ? service : service?.name}
                                                 </span>
                                             ))}
                                         </div>

@@ -9,7 +9,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
     const [isLoading, setIsLoading] = useState(true);
     const [selectedParts, setSelectedParts] = useState([]);
     const [hasLoadedInitial, setHasLoadedInitial] = useState(false);
-    
+    console.log('PartModal rendered with props:', { isOpen, jobId, chatId, isQuotationFlow, initialSelectedParts });
     const [pagination, setPagination] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -75,6 +75,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
         
         if (currentPage === 1) {
             fetchParts();
+            
         } else {
             setCurrentPage(1);
         }

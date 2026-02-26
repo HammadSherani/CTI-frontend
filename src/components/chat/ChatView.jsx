@@ -378,12 +378,14 @@ const ChatView = ({ chat, onBack }) => {
                             // Quotation messages
                             if (message.messageType === 'quotation' || message.quotationData) {
                                 return (
-                                    <QuotationMessage
-                                        key={message.id || message._id}
-                                        message={message}
-                                        isOwner={user.role === message.senderType}
-                                    />
-                                );
+                                                    <QuotationMessage
+                                                        key={message.id || message._id}
+                                                        message={message}
+                                                        isOwner={user.role === message.senderType}
+                                                        chatId={chat.id}
+                                                        onQuotationUpdate={() => fetchMessages()}
+                                                    />
+                                                );
                             }
 
                             const isOwner = user.role === message.senderType;

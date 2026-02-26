@@ -10,6 +10,42 @@ import Button from '@/components/ui/button';
 import axiosInstance from '@/config/axiosInstance';
 import Loader from '@/components/Loader';
 
+// Helpers to normalize device/brand/model/service names from different API shapes
+const getBrandName = (deviceInfo) => {
+  if (!deviceInfo) return 'Unknown';
+  return (
+    deviceInfo?.brand?.name ||
+    deviceInfo?.brandName ||
+    deviceInfo?.brand ||
+    'Unknown'
+  );
+};
+
+const getModelName = (deviceInfo) => {
+    console.log(deviceInfo,"device info in model name")
+  if (!deviceInfo) return '';
+  return (
+    deviceInfo?.model?.name ||
+    deviceInfo?.modelName ||
+    deviceInfo?.model ||
+    ''
+  );
+};
+
+const getServiceNames = (services) => {
+  console.log(services,"services in get service names")
+  if (!services) return [];
+  if (!Array.isArray(services)) return [String(services)];
+  // If services are objects with name property
+  const names = services.map((s) => {
+    if (!s && s !== 0) return '';
+    if (typeof s === 'string') return s;
+    if (typeof s === 'object') return s?.name || s?.title || JSON.stringify(s);
+    return String(s);
+  }).filter(Boolean);
+  return names;
+};
+
 
 const JobDescription = ({ job }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -89,13 +125,13 @@ const RepairJobCard = ({ job }) => {
   const pricing = isQuotationBased
     ? job?.quotationId?.pricing
     : job?.budget;
-
-    const deviceName = isQuotationBased
-    ? `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${deviceInfo.repairServices?.map(service => service?.name).join(', ')
-    }`
-    : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
-    }`;
-
+  // Normalize brand/model/service names for display
+  const brand = getBrandName(deviceInfo);
+  const model = getModelName(deviceInfo);
+  const serviceNames = getServiceNames(isQuotationBased ? deviceInfo?.repairServices : services);
+  const deviceName = `${brand} ${model}` + (serviceNames.length ? ` - ${serviceNames.join(', ')}` : '');
+    console.log(deviceInfo,"device info in card")
+  console.log(deviceName,"device name in card")
   // const deviceName = isQuotationBased
   //   ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
   //   }`
@@ -162,16 +198,17 @@ const RepairJobCard = ({ job }) => {
 
       <JobDescription job={job} />
 
-      {services && services.length > 0 && (
+      {serviceNames && serviceNames.length > 0 && (
+        console.log(serviceNames,"service names in card"),
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Required Services</h4>
           <div className="flex flex-wrap gap-2">
-            {services.map((service, index) => (
+            {serviceNames.map((s, index) => (
               <span
                 key={index}
                 className="px-4 py-2 text-sm font-medium text-primary-800 rounded-lg border"
               >
-                {service?.name}
+                {s}
               </span>
             ))}
           </div>
@@ -367,20 +404,21 @@ const ReviewJobs = () => {
               // 🔥 Determine booking source
               const isQuotationBased = job.bookingSource === 'direct_message';
 
-              // 🔥 Get device info from appropriate source
+              // 🔥 Get device info from appropriate source and normalize
               const deviceInfo = isQuotationBased
                 ? job.quotationId?.deviceInfo
-                : job.jobId?.deviceInfo;
+                : job.jobId?.deviceInfo || job?.deviceInfo;
 
-              // 🔥 Get services from appropriate source
-              const services = isQuotationBased
+              // 🔥 Get services and description from appropriate source
+              const rawServices = isQuotationBased
                 ? job.quotationId?.deviceInfo?.repairServices
-                : job.jobId?.services;
+                : job.jobId?.services || job?.services;
 
-              // 🔥 Get description from appropriate source
+              const services = getServiceNames(rawServices);
+
               const description = isQuotationBased
                 ? job.quotationId?.serviceDetails?.description
-                : job.jobId?.description;
+                : job.jobId?.description || job?.description;
 
               return (
                 <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -390,10 +428,7 @@ const ReviewJobs = () => {
                       <div className="flex-1">
                         {/* 🔥 Device Title */}
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                          {isQuotationBased
-                            ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''}`
-                            : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''}`
-                          }
+                          {`${getBrandName(deviceInfo)} ${getModelName(deviceInfo)}`}
                         </h3>
 
                         {/* 🔥 Description */}
@@ -826,22 +861,38 @@ export default function MyAccountPage() {
   const filteredJobs = jobs.filter(job => {
     const isQuotationBased = job?.bookingSource === 'direct_message';
 
-    const matchesSearch = isQuotationBased ? (
-      job?.quotationId?.deviceInfo?.brandName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.quotationId?.deviceInfo?.modelName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.quotationId?.deviceInfo?.repairServices?.some(service =>
-        service.toLowerCase().includes(searchTerm.toLowerCase())
-      ) ||
-      job?.repairman?.name?.toLowerCase()?.includes(searchTerm.toLowerCase())
-    ) : (
-      job?.deviceInfo?.brand?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.deviceInfo?.color?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.services?.some(service => service.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      job?.location?.city?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.location?.address?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.urgency?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.servicePreference?.toLowerCase()?.includes(searchTerm.toLowerCase())
-    );
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = (() => {
+      if (!term) return true;
+      if (isQuotationBased) {
+        const device = job?.quotationId?.deviceInfo;
+        const brand = getBrandName(device).toLowerCase();
+        const model = getModelName(device).toLowerCase();
+        const services = getServiceNames(device?.repairServices || []);
+        const servicesMatch = services.some(s => s.toLowerCase().includes(term));
+        return (
+          brand.includes(term) ||
+          model.includes(term) ||
+          servicesMatch ||
+          job?.repairman?.name?.toLowerCase()?.includes(term)
+        );
+      }
+
+      const brand = getBrandName(job?.deviceInfo).toLowerCase();
+      const model = getModelName(job?.deviceInfo).toLowerCase();
+      const services = getServiceNames(job?.services || []);
+      const servicesMatch = services.some(s => s.toLowerCase().includes(term));
+      return (
+        brand.includes(term) ||
+        model.includes(term) ||
+        (job?.deviceInfo?.color || '').toLowerCase().includes(term) ||
+        servicesMatch ||
+        (job?.location?.city || '').toLowerCase().includes(term) ||
+        (job?.location?.address || '').toLowerCase().includes(term) ||
+        (job?.urgency || '').toLowerCase().includes(term) ||
+        (job?.servicePreference || '').toLowerCase().includes(term)
+      );
+    })();
 
     let matchesStatus = false;
 

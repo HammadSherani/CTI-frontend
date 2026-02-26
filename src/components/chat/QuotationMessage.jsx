@@ -7,12 +7,16 @@ import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import Link from 'next/link';
 import { useChat } from '@/hooks/useChat';
+import QuotationForm from './QuotationForm';
+import { toast } from 'react-toastify';
 
-const QuotationMessage = ({ message, isOwner }) => {
+const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
     const { token, user } = useSelector((state) => state.auth);
     const [acceptLoading, setAcceptLoading] = useState(false);
     const [rejectLoading, setRejectLoading] = useState(false);
     const [showDetails, setShowDetails] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [deleting, setDeleting] = useState(false);
 
     const { closeChat } = useChat()
 
@@ -105,6 +109,26 @@ const QuotationMessage = ({ message, isOwner }) => {
         }
     };
 
+
+
+
+    const handleDelete = async ({ quotationId }) => {
+        if (!confirm('Are you sure you want to delete this quotation?')) return;
+        console.log('Deleting quotation with ID:', quotationId);
+        try {
+            setDeleting(true);
+            await axiosInstance.delete(`/chat/delete-quotation/${quotationId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success('Quotation deleted');
+            onQuotationUpdate?.();
+        } catch (err) {
+            handleError(err);
+        } finally {
+            setDeleting(false);
+        }
+    }
+
     const isExpired = quotationData.validUntil && new Date() > new Date(quotationData.validUntil);
     const canRespond = !isOwner && user?.role === 'customer' && status === 'sent' && !isExpired;
     const isAnyButtonLoading = acceptLoading || rejectLoading;
@@ -123,9 +147,34 @@ const QuotationMessage = ({ message, isOwner }) => {
                             </span>
                         </div>
                         <div className="flex items-center gap-2">
-                            {/* <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(status)}`}>
-                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                            </span> */}
+                            {/* Edit / Delete for non-customer roles */}
+                            {user?.role && user.role !== 'customer' && (
+                                <>
+                                    <button
+                                        onClick={() => setShowEditModal(true)}
+                                        className="p-1 hover:bg-gray-200 rounded"
+                                        title="Edit Quotation"
+                                    >
+                                        <Icon icon="mdi:pencil" width={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDelete({ quotationId: quotationData.quotationId })}
+                                        disabled={deleting}
+                                        className="p-1 hover:bg-gray-200 rounded"
+                                        title="Delete Quotation"
+                                    >
+                                        {deleting ? <div className="animate-spin h-4 w-4 border-b-2 border-gray-600 rounded-full" /> : <Icon icon="mdi:trash" width={16} />}
+                                    </button>
+                                </>
+                            )}
+
+                             <button
+                                        onClick={() => router.push(`/quotation/${quotationData.quotationId}`)}
+                                        className="p-1 hover:bg-gray-200 rounded"
+                                        title="View Quotation"
+                                    >
+                                       <Icon icon="mdi:eye" width={16} />
+                                    </button>
                             <button
                                 onClick={() => setShowDetails(!showDetails)}
                                 className="p-1 hover:bg-gray-200 rounded"
@@ -135,6 +184,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                                     width={16}
                                 />
                             </button>
+                            
                         </div>
                     </div>
                 </div>
@@ -326,7 +376,7 @@ const QuotationMessage = ({ message, isOwner }) => {
                         </div>
                     )}
 
-                    <p className='cursor-pointer text-sm w-fit hover:underline'  onClick={() => setShowDetails(!showDetails)}>
+                    <p className='cursor-pointer text-sm w-fit hover:underline' onClick={() => setShowDetails(!showDetails)}>
                         See More Details
                     </p>
 
@@ -463,6 +513,20 @@ const QuotationMessage = ({ message, isOwner }) => {
                     </span>
                 </div>
             </div>
+
+            {showEditModal && (
+                <QuotationForm
+                    chatId={chatId}
+                    onClose={() => setShowEditModal(false)}
+                    onSuccess={(q) => {
+                        setShowEditModal(false);
+                        onQuotationUpdate?.();
+                    }}
+                    // pass initial data so QuotationForm can prefill and perform edit
+                    initialData={quotationData}
+                    isEdit={true}
+                />
+            )}
         </div>
     );
 };
