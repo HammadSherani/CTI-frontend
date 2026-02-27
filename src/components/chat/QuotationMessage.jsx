@@ -117,7 +117,7 @@ const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
         console.log('Deleting quotation with ID:', quotationId);
         try {
             setDeleting(true);
-            await axiosInstance.delete(`/chat/delete-quotation/${quotationId}`, {
+            await axiosInstance.delete(`/chat/delete-single-quotation/${quotationId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             toast.success('Quotation deleted');

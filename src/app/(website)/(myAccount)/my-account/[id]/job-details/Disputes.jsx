@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import DisputeDetails from './DisputeDetails';
 import { Icon } from '@iconify/react';
+import Image from 'next/image';
 
 const DISPUTE_CATEGORIES = [
     { value: 'payment_issue', label: 'Payment Issue' },
@@ -255,75 +256,88 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                             </div>
                         </div>
 
-                        {/* ── Responses — each response = one bubble with message + images ── */}
-                        {(dispute.responses || [])
-                            .slice()
-                            .sort((a, b) => new Date(a.respondedAt) - new Date(b.respondedAt))
-                            .map((response, index) => {
-                                const { name, userType } = resolveResponder(response.respondedBy);
-                                const colors = getUserColor(userType);
-                                const hasFiles = response.evidenceFiles?.length > 0;
+{console.log(dispute,'dispute')}
+{(dispute.responses || [])
+    .slice()
+    .sort((a, b) => new Date(a.respondedAt) - new Date(b.respondedAt))
+    .map((response, index) => {
+        const { name, userType } = resolveResponder(response.respondedBy);
+        const colors = getUserColor(userType);
+        const hasFiles = response.evidenceFiles?.length > 0;
+        
+        console.log("Response:", response); // Debug: Check if evidenceFiles exists
+        console.log("Evidence Files:", response.evidenceFiles); // Debug: See the files
+        
+        return (
+            <div key={response._id || index} className="flex items-start gap-3">
+                {/* Avatar */}
+                <div className={`w-9 h-9 rounded-full ${colors.bg} flex items-center justify-center flex-shrink-0 text-sm font-bold ${colors.text}`}>
+                    {getInitials(name)}
+                </div>
 
-                                return (
-                                    <div key={response._id || index} className="flex items-start gap-3">
-                                        {/* Avatar */}
-                                        <div className={`w-9 h-9 rounded-full ${colors.bg} flex items-center justify-center flex-shrink-0 text-sm font-bold ${colors.text}`}>
-                                            {getInitials(name)}
-                                        </div>
+                {/* Bubble */}
+                <div className="flex-1 max-w-[85%]">
+                    {/* Meta */}
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-sm font-semibold ${colors.name}`}>{name}</span>
+                        <span className={`text-xs px-1.5 py-0.5 ${colors.badge} rounded font-medium capitalize`}>
+                            {userType}
+                        </span>
+                        <span className="text-xs text-gray-400">{formatDate(response.respondedAt)}</span>
+                    </div>
 
-                                        {/* Bubble */}
-                                        <div className="flex-1 max-w-[85%]">
-                                            {/* Meta */}
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`text-sm font-semibold ${colors.name}`}>{name}</span>
-                                                <span className={`text-xs px-1.5 py-0.5 ${colors.badge} rounded font-medium capitalize`}>
-                                                    {userType}
-                                                </span>
-                                                <span className="text-xs text-gray-400">{formatDate(response.respondedAt)}</span>
-                                            </div>
+                    {/* Message + evidence in same card */}
+                    <div className={`${colors.bubble} border rounded-2xl rounded-tl-sm px-4 py-3`}>
+                        {/* Text */}
+                        {response.message && (
+                            <p className="text-sm text-gray-800 leading-relaxed">{response.message}</p>
+                        )}
 
-                                            {/* Message + evidence in same card */}
-                                            <div className={`${colors.bubble} border rounded-2xl rounded-tl-sm px-4 py-3 space-y-3`}>
-                                                {/* Text */}
-                                                {response.message && (
-                                                    <p className="text-sm text-gray-800 leading-relaxed">{response.message}</p>
-                                                )}
-
-                                                {/* Images / files */}
-                                                {hasFiles && (
-                                                    <div className={`${response.message ? 'pt-2 flex flex-wrap gap-4 border-t border-gray-200' : ''} space-y-2`}>
-                                                        {response.evidenceFiles.map((file, fIdx) => (
-                                                            <div key={file._id || fIdx}>
-                                                                {file.fileType === 'image' ? (
-                                                                    <a href={file.fileUrl} target="_blank" rel="noopener noreferrer" title="View full image">
-                                                                        <img
-                                                                            src={file.fileUrl}
-                                                                            alt={`Evidence ${fIdx + 1}`}
-                                                                            className="rounded-xl max-w-[260px] w-full object-cover cursor-pointer hover:opacity-90 transition-opacity border border-gray-200"
-                                                                            onError={(e) => { e.target.style.display = 'none'; }}
-                                                                        />
-                                                                    </a>
-                                                                ) : (
-                                                                    <a
-                                                                        href={file.fileUrl}
-                                                                        target="_blank"
-                                                                        rel="noopener noreferrer"
-                                                                        className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors font-medium w-fit"
-                                                                    >
-                                                                        <Icon icon="heroicons:document-text" className="w-5 h-5 flex-shrink-0" />
-                                                                        <span>View {file.fileType?.toUpperCase()} file</span>
-                                                                        <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4" />
-                                                                    </a>
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
+                        {/* Images / files - FIXED VERSION */}
+                        {hasFiles && (
+                            <div className={`${response.message ? 'mt-3' : ''}`}>
+                                {/* Display each file */}
+                                {response.evidenceFiles.map((file, fileIndex) => (
+                                    <div key={file._id || fileIndex} className="mb-2 last:mb-0">
+                                        {file.fileType === 'image' ? (
+                                            <a 
+                                                href={file.fileUrl} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                className="block"
+                                            >
+                                                <img
+                                                    src={file.fileUrl}
+                                                    alt={`Evidence ${fileIndex + 1}`}
+                                                    className="rounded-lg max-w-full h-auto cursor-pointer hover:opacity-90 transition-opacity border border-gray-200"
+                                                    style={{ maxHeight: '200px', width: 'auto' }}
+                                                    onError={(e) => {
+                                                        console.log("Image failed to load:", file.fileUrl);
+                                                        e.target.style.display = 'none';
+                                                    }}
+                                                />
+                                            </a>
+                                        ) : (
+                                            <a
+                                                href={file.fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-primary-600 hover:text-primary-700 hover:bg-primary-50 transition-colors font-medium"
+                                            >
+                                                <Icon icon="heroicons:document-text" className="w-5 h-5" />
+                                                <span>View {file.fileType || 'Document'}</span>
+                                                <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4" />
+                                            </a>
+                                        )}
                                     </div>
-                                );
-                            })}
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        );
+    })}
 
                         <div ref={messagesEndRef} />
                     </div>

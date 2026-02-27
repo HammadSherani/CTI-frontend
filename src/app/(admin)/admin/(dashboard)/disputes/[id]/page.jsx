@@ -240,14 +240,24 @@ function DisputesDetail() {
            <div className='flex gap-2'>
             {console.log(dispute,"dispute")}
             
-            <button disabled={isValid}   onClick={() => handleStatusChange('under_review')} className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm ${isValid ? 'opacity-50 cursor-not-allowed' : ''}`} >
-              Under Review
+            {dispute.status!=="open" && (
+              <button   className={`px-4 py-2 bg-primary-600 rounded-full  text-white  hover:bg-primary-700 transition-colors font-medium text-sm opacity-75`}>
+              {dispute.status==="open" ? "Open" : dispute.status==="under_review" ? "Under Review" : "Resolved"}
             </button>
-            <button title='Add Resulation'  onClick={() => setShowResolutionModal(true)}
+            )}
+
+            {dispute.status==="open" && (
+      <button disabled={isValid}   onClick={() => handleStatusChange('under_review')} className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm ${isValid ? 'opacity-50 cursor-not-allowed' : ''}`} >
+              Under Review
+              
+            </button>
+            )}
+       
+            <button disabled={dispute.status==="resolved"} title='Add Resolution'  onClick={() => setShowResolutionModal(true)}
                  className="ml-2 px-4 py-2 flex items-center bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm">
                               <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
 
-              Add Resulation
+              Add Resolution
             </button>
            </div>
 

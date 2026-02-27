@@ -217,9 +217,9 @@ const RepairJobCard = ({ job }) => {
 {console.log(job,"job in card")}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-xs text-gray-500">
-          {(job?.status) && (
+          {(isQuotationBased ? job?.bookingStatus : job?.status) && (
             <span className="inline-block bg-primary-100 text-primary-800 font-medium px-3 py-1 rounded-full capitalize">
-              {job?.status}
+              {isQuotationBased ? job?.bookingStatus : job?.status}
             </span>
           )}
 
@@ -256,7 +256,7 @@ const RepairJobCard = ({ job }) => {
         )}
       </div>
 
-      {job.status === "delivered" && (
+      {(isQuotationBased ? job?.bookingStatus : job?.status) === "delivered" && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-sm text-blue-800 leading-relaxed">
             Your repairman has delivered the device. Please review the device carefully and, if everything is satisfactory,
@@ -269,7 +269,7 @@ const RepairJobCard = ({ job }) => {
       )}
 
 
-      {job.status === "closed" && (
+      {(isQuotationBased ? job?.bookingStatus : job?.status) === "closed" && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
           <p className="text-sm text-green-800 leading-relaxed">
             This job has been <span className="font-semibold">successfully closed</span>.
@@ -818,41 +818,43 @@ export default function MyAccountPage() {
   ];
 
   console.log(jobs,"jobsaaaa")
+  
+  // Helper function to get correct status based on job type
+  const getJobStatus = (job) => {
+    return job.bookingSource === 'direct_message' ? job.bookingStatus : job.status;
+  };
+
   const getJobCounts = () => {
     return {
       all: jobs.length,
-      open: jobs.filter(job => job.status === 'open').length,
-      offers_received: jobs.filter(job => job.status === "offers_received").length,
+      open: jobs.filter(job => getJobStatus(job) === 'open').length,
+      offers_received: jobs.filter(job => getJobStatus(job) === "offers_received").length,
+     
+      booked: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'confirmed' ||
+          status === 'repairman_notified' ||
+          status === 'scheduled' ||
+          status === 'booked';
+      }).length,
 
-      booked: jobs.filter(job =>
-        // job.status === 'booked' 
-        job.status === 'confirmed' ||
-        job.status === 'repairman_notified' ||
-        job.status === 'scheduled'||
-        job.status === 'booked'
-      ).length,
+      in_progress: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'in_progress' ||
+          status === 'parts_needed' ||
+          status === 'quality_check';
+      }).length,
 
-      in_progress: jobs.filter(job =>
-        job.status === 'in_progress' ||
-        job.status === 'in_progress' ||
-        job.status === 'parts_needed' ||
-        job.status === 'quality_check'
-      ).length,
+      completed: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'completed' ||
+          status === 'delivered' ||
+          status === 'closed';
+      }).length,
 
-      completed: jobs.filter(job =>
-        job.status === 'completed' ||
-        job.status === 'delivered' ||
-        job.status === 'delivered' ||
-        job.status === 'closed' ||
-        job.status === 'completed'
-      ).length,
+      disputed: jobs.filter(job => getJobStatus(job) === 'disputed').length,
 
-      disputed: jobs.filter(job =>
-        job.status === 'disputed' ||
-        job.status === 'disputed'
-      ).length,
-
-      review: jobs.filter(job => job.status === 'delivered').length
+      review: jobs.filter(job => getJobStatus(job) === 'delivered').length
     };
   };
 
@@ -860,6 +862,7 @@ export default function MyAccountPage() {
 
   const filteredJobs = jobs.filter(job => {
     const isQuotationBased = job?.bookingSource === 'direct_message';
+    const jobStatus = getJobStatus(job);
 
     const term = searchTerm.trim().toLowerCase();
     const matchesSearch = (() => {
@@ -899,23 +902,22 @@ export default function MyAccountPage() {
     if (activeTab === 'all') {
       matchesStatus = true;
     } else if (activeTab === 'booked') {
-      matchesStatus = job?.status === 'booked' ||
-        job?.status === 'confirmed' ||
-        job?.status === 'repairman_notified' ||
-        job?.status === 'scheduled';
+      matchesStatus = jobStatus === 'booked' ||
+        jobStatus === 'confirmed' ||
+        jobStatus === 'repairman_notified' ||
+        jobStatus === 'scheduled';
     } else if (activeTab === 'in_progress') {
-      matchesStatus = job?.status === 'in_progress' ||
-        job?.status === 'in_progress' ||
-        job?.status === 'parts_needed' ||
-        job?.status === 'quality_check';
+      matchesStatus = jobStatus === 'in_progress' ||
+        jobStatus === 'parts_needed' ||
+        jobStatus === 'quality_check';
     } else if (activeTab === 'completed') {
-      matchesStatus = job?.status === 'completed' || job?.status === 'delivered' ||
-        job?.status === 'completed' || job?.status === 'delivered' || job?.status === 'closed';
+      matchesStatus = jobStatus === 'completed' || 
+        jobStatus === 'delivered' || 
+        jobStatus === 'closed';
     } else if (activeTab === 'disputed') {
-      matchesStatus = job?.status === 'disputed' ||
-        job?.status === 'disputed';
+      matchesStatus = jobStatus === 'disputed';
     } else {
-      matchesStatus = job?.status === activeTab;
+      matchesStatus = jobStatus === activeTab;
     }
 
     return matchesSearch && matchesStatus;
