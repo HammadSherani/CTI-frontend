@@ -9,6 +9,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import PartModal from '@/app/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
+import { useMultiLoading } from '@/hooks/useMultiloading';
 
 const quotationSchema = yup.object().shape({
     brand: yup
@@ -50,6 +51,7 @@ const quotationSchema = yup.object().shape({
     partsPrice: yup
         .number()
         .min(0, 'Parts price cannot be negative')
+        .max(100000, 'Parts price seems too high')
         .default(0)
         .typeError('Parts price must be a valid number'),
     description: yup
@@ -59,6 +61,8 @@ const quotationSchema = yup.object().shape({
         .max(500, 'Description cannot exceed 500 characters'),
     estimatedDuration: yup
         .number()
+        .min(0, 'Estimated duration cannot be negative')
+        .max(365, 'Estimated duration cannot exceed 365 days')
         .required('Estimated duration is required')
         .positive('Duration must be positive')
         .typeError('Estimated duration must be a number'),
@@ -69,6 +73,7 @@ const quotationSchema = yup.object().shape({
     warranty: yup
         .number()
         .min(0, 'Warranty cannot be negative')
+        .max(365, 'Warranty cannot exceed 365 days')
         .nullable()
         .typeError('Warranty must be a number'),
     repairmanNotes: yup
@@ -79,6 +84,7 @@ const quotationSchema = yup.object().shape({
 
 const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit = false }) => {
     console.log('QuotationForm rendered with initialData:', initialData, 'isEdit:', isEdit);
+    const {multiloading, start, stop } = useMultiLoading();
     const { token } = useSelector((state) => state.auth);
     const [loading, setLoading] = useState(false);
     const [services, setService] = useState([]);
@@ -91,6 +97,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
     const [isPartRequired, setIsPartRequired] = useState(false);
     const [isPartModalOpen, setIsPartModalOpen] = useState(false);
     const [editDataLoaded, setEditDataLoaded] = useState(false);
+    const [isInitialLoaded, setIsInitialLoaded] = useState(false);
 
     // Use refs to track if initial data has been applied
     const editAppliedRef = useRef(false);
@@ -141,6 +148,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
             setSelectedModelId('');
             return [];
         }
+        start('models');
         try {
             const response = await axiosInstance.get(`/public/models/brand/${brandId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -152,6 +160,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
             handleError(error);
             setModels([]);
             return [];
+        } finally {
+            stop('models');
         }
     }, [token, setValue]);
 
@@ -172,13 +182,16 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
     useEffect(() => {
         const initialize = async () => {
             // Load brands and services in parallel
+            start('brands');
+            start('services');
             const [fetchedBrands, fetchedServices] = await Promise.all([
                 fetchBrands(),
                 fetchServices()
             ]);
-
             setBrands(fetchedBrands);
             setService(fetchedServices);
+            stop('brands');
+            stop('services');
 
             // ── ADD MODE: load localStorage data ──
             if (!isEdit || !initialData) {
@@ -189,6 +202,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                 if (storedParts) {
                     try { setSelectedParts(JSON.parse(storedParts)); } catch (e) { /* ignore */ }
                 }
+                setIsInitialLoaded(true);
                 return;
             }
 
@@ -442,10 +456,10 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
 
                 <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
                     {/* Edit loading indicator */}
-                    {isEdit && !editDataLoaded ?(
+                    {(isEdit ? !editDataLoaded : !isInitialLoaded) ?(
                         <div className="flex h-[50vh] justify-center items-center gap-2 mb-4 text-sm text-primary-600 px-3 py-2 rounded-md">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary-600"></div>
-                            Loading quotation data...
+                            Loading {isEdit ? 'quotation data' : 'data'}...
                         </div>
                     ):(
 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -471,14 +485,19 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                                     field.onChange(brandId);
                                                     await handleBrandChange(brandId);
                                                 }}
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.brand ? 'border-red-500' : 'border-gray-300'}`}
+                                                disabled={multiloading.brands}
+                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${errors.brand ? 'border-red-500' : 'border-gray-300'}`}
                                             >
                                                 <option value="">Select a Brand</option>
-                                                {brands.map((brand) => (
-                                                    <option key={brand._id} value={brand._id}>
-                                                        {brand.name}
-                                                    </option>
-                                                ))}
+                                                {multiloading.brands ? (
+                                                    <option disabled>Loading brands...</option>
+                                                ) : (
+                                                    brands.map((brand) => (
+                                                        <option key={brand._id} value={brand._id}>
+                                                            {brand.name}
+                                                        </option>
+                                                    ))
+                                                )}
                                             </select>
                                         )}
                                     />
@@ -503,13 +522,13 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                                     setSelectedModelId(modelId);
                                                     field.onChange(modelId);
                                                 }}
-                                                disabled={!selectedBrandId}
+                                                disabled={!selectedBrandId || multiloading.models}
                                                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed ${errors.model ? 'border-red-500' : 'border-gray-300'}`}
                                             >
                                                 <option value="">
-                                                    {selectedBrandId ? 'Select a Model' : 'Select a Brand first'}
+                                                    {selectedBrandId ? (multiloading.models ? 'Loading models...' : 'Select a Model') : 'Select a Brand first'}
                                                 </option>
-                                                {models.map((model) => (
+                                                {multiloading.models ? null : models.map((model) => (
                                                     <option key={model._id} value={model._id}>
                                                         {model.name}
                                                     </option>
@@ -537,10 +556,11 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                 <select
                                     onChange={(e) => handleServiceSelect(e.target.value)}
                                     value=""
-                                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 border-gray-300"
+                                    disabled={multiloading.services}
+                                    className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 border-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
                                 >
-                                    <option value="">Select a service</option>
-                                    {services.map(service => (
+                                    <option value="">{multiloading.services ? 'Loading services...' : 'Select a service'}</option>
+                                    {multiloading.services ? null : services.map(service => (
                                         <option key={service._id} value={service._id}>
                                             {selectedServices.includes(service._id)
                                                 ? `✓ ${service.name}`
@@ -695,14 +715,19 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                         name="basePrice"
                                         control={control}
                                         render={({ field }) => (
-                                            <input
-                                                {...field}
-                                                type="number"
-                                                placeholder="0.00"
-                                                min="0"
-                                                step="0.01"
-                                                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.basePrice ? 'border-red-500' : 'border-gray-300'}`}
-                                            />
+                                          <input
+    {...field}
+    type="number"
+    placeholder="0.00"
+    min="0"
+    step="0.01"
+    onFocus={(e) => {
+        if (field.value === 0) {
+            e.target.select();
+        }
+    }}
+    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 ${errors.serviceCharges ? 'border-red-500' : 'border-gray-300'}`}
+/>
                                         )}
                                     />
                                     {errors.basePrice && (
@@ -847,6 +872,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                             type="number"
                                             placeholder="e.g., 30"
                                             min="0"
+                                            max="365"
                                             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                                         />
                                     )}

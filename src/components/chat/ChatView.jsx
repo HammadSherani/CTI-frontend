@@ -376,7 +376,7 @@ const ChatView = ({ chat, onBack }) => {
                     ) : (
                         chatMessages.map((message) => {
                             // Quotation messages
-                            if (message.messageType === 'quotation' || message.quotationData) {
+                            if (message.messageType === 'quotation' && message.quotationData) {
                                 return (
                                                     <QuotationMessage
                                                         key={message.id || message._id}
