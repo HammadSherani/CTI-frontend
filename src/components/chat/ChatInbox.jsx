@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
@@ -21,11 +21,14 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     const chats = useSelector((state) => state.chat.chats);
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
     const selectedChat = useSelector((state) => state.chat.selectedChat);
-
+  console.log("onseletc chat click", onSelectChat)
     const { user, token } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    // ✅ NEW CODE — Track if chat list was already fetched to prevent re-fetching
+    const hasFetchedRef = useRef(false);
+    // ✅ END NEW CODE
 
     const {
         socket,
@@ -35,36 +38,37 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     } = useSocket();
 
     useEffect(() => {
-        console.log('=== ChatInbox Re-render Check ===');
-        console.log('Chats length:', chats?.length);
-        console.log('Unread counts:', unreadCounts);
-        console.log('Component rendered at:', new Date().toISOString());
-        console.log('Chats data:', chats);
+        // // OLD CODE — logged on every re-render, commented out
+        // console.log('=== ChatInbox Re-render Check ===');
+        // console.log('Chats length:', chats?.length);
+        // console.log('Unread counts:', unreadCounts);
+        // console.log('Component rendered at:', new Date().toISOString());
+        // console.log('Chats data:', chats);
     }, [chats, unreadCounts]);
 
-    useEffect(() => {
-        if (socket && connected && chats && chats.length > 0) {
-            console.log('Auto-joining all chats for inbox notifications');
+    // useEffect(() => {
+    //     if (socket && connected && chats && chats.length > 0) {
+    //         console.log('Auto-joining all chats for inbox notifications');
 
-            chats.forEach(chat => {
-                const chatId = chat.chatId || chat.id;
-                if (chatId) {
-                    console.log('Joining chat for notifications:', chatId);
-                    joinChat(chatId);
-                }
-            });
+    //         chats.forEach(chat => {
+    //             const chatId = chat.chatId || chat.id;
+    //             if (chatId) {
+    //                 console.log('Joining chat for notifications:', chatId);
+    //                 joinChat(chatId);
+    //             }
+    //         });
 
-            return () => {
-                console.log('Leaving all chats - ChatInbox cleanup');
-                chats.forEach(chat => {
-                    const chatId = chat.chatId || chat.id;
-                    if (chatId) {
-                        leaveChat(chatId);
-                    }
-                });
-            };
-        }
-    }, [socket, connected, chats, joinChat, leaveChat]);
+    //         return () => {
+    //             console.log('Leaving all chats - ChatInbox cleanup');
+    //             chats.forEach(chat => {
+    //                 const chatId = chat.chatId || chat.id;
+    //                 if (chatId) {
+    //                     leaveChat(chatId);
+    //                 }
+    //             });
+    //         };
+    //     }
+    // }, [socket, connected, chats, joinChat, leaveChat]);
 
     useEffect(() => {
         if (socket && connected) {
@@ -96,10 +100,12 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            console.log('Raw chat data from API:', data.chats);
+            // // OLD CODE — console logs commented out
+            // console.log('Raw chat data from API:', data.chats);
 
             const processedChats = (data.chats || []).map(chat => {
-                console.log('Processing individual chat:', chat);
+                // // OLD CODE — commented out
+                // console.log('Processing individual chat:', chat);
                 return {
                     ...chat,
                     id: chat.chatId
@@ -113,24 +119,61 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 }
             });
 
-            console.log('Processed chats:', processedChats);
-            console.log('Extracted unread counts:', unreadCountsFromAPI);
+            // // OLD CODE — commented out
+            // console.log('Processed chats:', processedChats);
+            // console.log('Extracted unread counts:', unreadCountsFromAPI);
+            // console.log('before User chats loaded into Redux store:', processedChats);
 
+            // // OLD CODE — passed messages: {} which WIPED all cached messages
+            // dispatch(loadUserChats({
+            //     chats: processedChats,
+            //     messages: {},
+            //     unreadCounts: unreadCountsFromAPI
+            // }));
+
+            // ✅ NEW CODE — Don't pass messages: {} so cached messages are preserved
             dispatch(loadUserChats({
                 chats: processedChats,
-                messages: {},
                 unreadCounts: unreadCountsFromAPI
             }));
+            // ✅ END NEW CODE
+
+            // // OLD CODE — commented out
+            // console.log('after User chats loaded into Redux store:', processedChats);
         } catch (error) {
             handleError(error);
         } finally {
             setLoading(false);
         }
-    }, [token, dispatch]);
+    }, [token]);
 
+    // // OLD CODE — console logs commented out
+    // console.log('ChatInbox rendered with chats:', chats);
+    // console.log('Current unread counts:', unreadCounts);
+    // useEffect(() => {
+    //     if (!token) return
+    //         if(!chats || chats.length === 0) {
+    //             fetchChatList();
+    //         }
+        
+    // }, [token,chats]);
+
+
+    // // OLD CODE — fetched on EVERY mount, even when chats already loaded
+    // useEffect(() => {
+    //     if (!token) return;
+    //     fetchChatList();
+    // }, [token, fetchChatList]);
+
+    // ✅ NEW CODE — Only fetch once per session, or if chats are empty
     useEffect(() => {
+        if (!token) return;
+        if (hasFetchedRef.current && chats.length > 0) return; // Already fetched, skip
+        hasFetchedRef.current = true;
         fetchChatList();
-    }, [fetchChatList]);
+    }, [token, fetchChatList]);
+    // ✅ END NEW CODE
+
 
     const filteredChats = chats?.filter(chat =>
         chat?.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase())
