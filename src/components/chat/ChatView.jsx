@@ -204,84 +204,164 @@ const ChatView = ({ chat, onBack }) => {
         fetchMessages();
     }, [fetchMessages]);
 
+    // const handleSendMessage = useCallback(async (e) => {
+    //     e.preventDefault();
+    //     if ((!inputText.trim() && !selectedFile) || sending) return;
+
+    //     setSending(true);
+
+    //     try {
+    //         if (connected && socket) {
+    //             console.log('Using socket to send message');
+
+    //             if (selectedFile) {
+    //                 const formData = new FormData();
+    //                 const trimmedText = inputText.trim();
+
+    //                 formData.append('content', trimmedText);
+    //                 formData.append('media', selectedFile);
+
+    //                 let messageType;
+    //                 if (trimmedText && selectedFile) {
+    //                     messageType = 'mixed';
+    //                 } else if (selectedFile.type.startsWith('image/')) {
+    //                     messageType = 'image';
+    //                 } else {
+    //                     messageType = 'file';
+    //                 }
+
+    //                 formData.append('messageType', messageType);
+
+    //                 await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
+    //                     headers: {
+    //                         Authorization: `Bearer ${token}`,
+    //                         'Content-Type': 'multipart/form-data'
+    //                     },
+    //                 });
+    //             } else {
+    //                 socketSendMessage(chat.id, inputText.trim(), 'text');
+    //             }
+
+    //         } else {
+    //             console.log('Using HTTP API fallback');
+    //             const messageData = {
+    //                 content: inputText.trim(),
+    //                 messageType: selectedFile ? (selectedFile.type.startsWith('image/') ? 'image' : 'file') : 'text',
+    //             };
+
+    //             if (selectedFile) {
+    //                 const formData = new FormData();
+    //                 formData.append('content', messageData.content);
+    //                 formData.append('media', selectedFile);
+    //                 formData.append('messageType', messageData.messageType);
+
+    //                 await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
+    //                     headers: {
+    //                         Authorization: `Bearer ${token}`,
+    //                         'Content-Type': 'multipart/form-data'
+    //                     },
+    //                 });
+    //             } else {
+    //                 await axiosInstance.post(`/chat/${chat.id}/send`, messageData, {
+    //                     headers: { Authorization: `Bearer ${token}` },
+    //                 });
+    //             }
+    //         }
+
+    //         updateInputText("");
+    //         dispatch(clearSelectedFile());
+    //         if (fileInputRef.current) {
+    //             fileInputRef.current.value = '';
+    //         }
+
+    //     } catch (error) {
+    //         console.error("Error sending message:", error);
+    //         handleError(error);
+    //     } finally {
+    //         setSending(false);
+    //     }
+    // }, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
+
     const handleSendMessage = useCallback(async (e) => {
-        e.preventDefault();
-        if ((!inputText.trim() && !selectedFile) || sending) return;
+    e.preventDefault();
+    if ((!inputText.trim() && !selectedFile) || sending) return;
 
-        setSending(true);
+    const messageContent = inputText.trim();
 
-        try {
-            if (connected && socket) {
-                console.log('Using socket to send message');
+    // ⭐ Text message — instant, koi loading nahi
+    if (connected && socket && !selectedFile) {
+        updateInputText("");
+        socketSendMessage(chat.id, messageContent, 'text');
+        return;
+    }
+console.log(`⏱️ socket emit at: ${Date.now()}ms`);  // ⭐ yeh add karo
 
-                if (selectedFile) {
-                    const formData = new FormData();
-                    const trimmedText = inputText.trim();
+    // File upload ke liye hi setSending
+    setSending(true);
 
-                    formData.append('content', trimmedText);
-                    formData.append('media', selectedFile);
+    try {
+        if (connected && socket && selectedFile) {
+            const formData = new FormData();
+            formData.append('content', messageContent);
+            formData.append('media', selectedFile);
 
-                    let messageType;
-                    if (trimmedText && selectedFile) {
-                        messageType = 'mixed';
-                    } else if (selectedFile.type.startsWith('image/')) {
-                        messageType = 'image';
-                    } else {
-                        messageType = 'file';
-                    }
-
-                    formData.append('messageType', messageType);
-
-                    await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'multipart/form-data'
-                        },
-                    });
-                } else {
-                    socketSendMessage(chat.id, inputText.trim(), 'text');
-                }
-
+            let messageType;
+            if (messageContent && selectedFile) {
+                messageType = 'mixed';
+            } else if (selectedFile.type.startsWith('image/')) {
+                messageType = 'image';
             } else {
-                console.log('Using HTTP API fallback');
-                const messageData = {
-                    content: inputText.trim(),
-                    messageType: selectedFile ? (selectedFile.type.startsWith('image/') ? 'image' : 'file') : 'text',
-                };
-
-                if (selectedFile) {
-                    const formData = new FormData();
-                    formData.append('content', messageData.content);
-                    formData.append('media', selectedFile);
-                    formData.append('messageType', messageData.messageType);
-
-                    await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                        headers: {
-                            Authorization: `Bearer ${token}`,
-                            'Content-Type': 'multipart/form-data'
-                        },
-                    });
-                } else {
-                    await axiosInstance.post(`/chat/${chat.id}/send`, messageData, {
-                        headers: { Authorization: `Bearer ${token}` },
-                    });
-                }
+                messageType = 'file';
             }
 
-            updateInputText("");
-            dispatch(clearSelectedFile());
-            if (fileInputRef.current) {
-                fileInputRef.current.value = '';
-            }
+            formData.append('messageType', messageType);
 
-        } catch (error) {
-            console.error("Error sending message:", error);
-            handleError(error);
-        } finally {
-            setSending(false);
+            await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    'Content-Type': 'multipart/form-data'
+                },
+            });
+
+        } else {
+            // HTTP fallback
+            const messageData = {
+                content: messageContent,
+                messageType: selectedFile
+                    ? (selectedFile.type.startsWith('image/') ? 'image' : 'file')
+                    : 'text',
+            };
+
+            if (selectedFile) {
+                const formData = new FormData();
+                formData.append('content', messageData.content);
+                formData.append('media', selectedFile);
+                formData.append('messageType', messageData.messageType);
+
+                await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        'Content-Type': 'multipart/form-data'
+                    },
+                });
+            } else {
+                await axiosInstance.post(`/chat/${chat.id}/send`, messageData, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+            }
         }
-    }, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
 
+        updateInputText("");
+        dispatch(clearSelectedFile());
+        if (fileInputRef.current) fileInputRef.current.value = '';
+
+    } catch (error) {
+        console.error("Error sending message:", error);
+        handleError(error);
+    } finally {
+        setSending(false);
+    }
+}, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
     const handleModelClose = () => {
         setShowQuotationForm(false)
         console.log(`selectedParts_quotation_chat_${chat.id}`);
@@ -376,14 +456,16 @@ const ChatView = ({ chat, onBack }) => {
                     ) : (
                         chatMessages.map((message) => {
                             // Quotation messages
-                            if (message.messageType === 'quotation' || message.quotationData) {
+                            if (message.messageType === 'quotation' && message.quotationData) {
                                 return (
-                                    <QuotationMessage
-                                        key={message.id || message._id}
-                                        message={message}
-                                        isOwner={user.role === message.senderType}
-                                    />
-                                );
+                                                    <QuotationMessage
+                                                        key={message.id || message._id}
+                                                        message={message}
+                                                        isOwner={user.role === message.senderType}
+                                                        chatId={chat.id}
+                                                        onQuotationUpdate={() => fetchMessages()}
+                                                    />
+                                                );
                             }
 
                             const isOwner = user.role === message.senderType;

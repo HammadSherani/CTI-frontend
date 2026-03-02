@@ -102,23 +102,38 @@ const chatSlice = createSlice({
             const chatIndexById = state.chats.findIndex(c => c.id === chatId);
             const chatIndexByChatId = state.chats.findIndex(c => c.chatId === chatId);
 
-            console.log('Found chat by id index:', chatIndexById);
-            console.log('Found chat by chatId index:', chatIndexByChatId);
+            // // OLD CODE (no dedup) — commented out
+            // console.log('Found chat by id index:', chatIndexById);
+            // console.log('Found chat by chatId index:', chatIndexByChatId);
 
             const chatIndex = chatIndexById !== -1 ? chatIndexById : chatIndexByChatId;
-            console.log('Final chat index used:', chatIndex);
+            // // OLD CODE — commented out
+            // console.log('Final chat index used:', chatIndex);
 
             if (chatIndex !== -1) {
-                console.log('✅ Chat found! Adding message...');
+                // // OLD CODE — commented out
+                // console.log('✅ Chat found! Adding message...');
 
                 if (!state.messages[chatId]) state.messages[chatId] = [];
+
+                // ✅ NEW CODE — Deduplication check to prevent duplicate messages
+                const msgId = message._id || message.messageId;
+                const isDuplicate = msgId && state.messages[chatId].some(
+                    m => (m._id && m._id === msgId) || (m.messageId && m.messageId === msgId)
+                );
+                if (isDuplicate) {
+                    return; // Message already exists, skip adding
+                }
+                // ✅ END NEW CODE
+
                 state.messages[chatId].push({
                     ...message,
-                    id: Date.now() + Math.random(),
-                    timestamp: new Date().toISOString(),
+                    id: msgId || Date.now() + Math.random(), // ✅ UPDATED — use server id if available
+                    timestamp: message.timestamp || new Date().toISOString(),
                 });
 
-                console.log('Message added. Total messages now:', state.messages[chatId].length);
+                // // OLD CODE — commented out
+                // console.log('Message added. Total messages now:', state.messages[chatId].length);
 
                 state.chats[chatIndex].lastMessage = message.text || message.content || "Media";
                 state.chats[chatIndex].timestamp = new Date().toISOString();
@@ -127,16 +142,21 @@ const chatSlice = createSlice({
                 state.chats.unshift(updatedChat);
 
                 if (message.sender !== 'user' && state.selectedChat?.id !== chatId) {
-                    console.log('Incrementing unread count for chatId:', chatId);
+                    // // OLD CODE — commented out
+                    // console.log('Incrementing unread count for chatId:', chatId);
                     state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
-                } else {
-                    console.log('Not incrementing unread - sender is user or chat is selected');
                 }
-            } else {
-                console.log('❌ Chat NOT found for chatId:', chatId);
-                console.log('Available chat IDs:', state.chats.map(c => c.id));
-                console.log('Available chatIds:', state.chats.map(c => c.chatId));
+                // // OLD CODE — commented out
+                // else {
+                //     console.log('Not incrementing unread - sender is user or chat is selected');
+                // }
             }
+            // // OLD CODE — commented out
+            // else {
+            //     console.log('❌ Chat NOT found for chatId:', chatId);
+            //     console.log('Available chat IDs:', state.chats.map(c => c.id));
+            //     console.log('Available chatIds:', state.chats.map(c => c.chatId));
+            // }
         },
 
         sendMessage: (state, action) => {
@@ -229,7 +249,20 @@ const chatSlice = createSlice({
         loadUserChats: (state, action) => {
             const { chats, messages, unreadCounts } = action.payload;
             state.chats = chats || [];
-            state.messages = messages || {};
+
+            // // OLD CODE — wiped all cached messages every time
+            // state.messages = messages || {};
+
+            // ✅ NEW CODE — Preserve cached messages, only add new ones
+            if (messages && Object.keys(messages).length > 0) {
+                // Only overwrite if API actually sent messages
+                Object.keys(messages).forEach(chatId => {
+                    state.messages[chatId] = messages[chatId];
+                });
+            }
+            // If messages is {} or undefined, keep existing cached messages intact
+            // ✅ END NEW CODE
+
             state.unreadCounts = unreadCounts || {};
         },
 

@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge'
 import { Icon } from '@iconify/react'
+import { useMultiLoading } from '@/hooks/useMultiloading'
 
 function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
@@ -24,6 +25,7 @@ function DisputesDetail() {
   const { token } = useSelector((state) => state.auth)
   const router = useRouter()
   const messagesEndRef = useRef(null)
+  const { multiloading, start, stop } = useMultiLoading()
 
   const fetchData = async () => {
     try {
@@ -175,6 +177,12 @@ function DisputesDetail() {
   
   const isValid=dispute?.status==="under_review" || dispute?.status==="resolved"
 
+  const quotationData = dispute?.bookingId?.quotationId;
+
+console.log('Dispute data:', dispute);
+console.log('Dispute quotationId:', dispute?.bookingId?.quotationId);
+console.log('Quotation Data:', quotationData);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
@@ -206,8 +214,25 @@ function DisputesDetail() {
   const currencySymbol = dispute.bookingId?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : '$'
   const totalAmount = dispute.bookingId?.bookingDetails?.pricing?.totalAmount || 0
 
-  const handleStatusChange=()=>{
-    toast.info('Status change functionality is not implemented in this demo')
+  const handleStatusChange=async()=>{
+     try {
+      start('statusChange')
+      const { data } = await axiosInstance.patch(
+  `/disputes/admin/${id}/status`,
+  {}, // empty body
+  {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  }
+)
+fetchData()
+      console.log(data,"status change response")
+    } catch (error) {
+      handleError(error)
+    } finally {
+      stop('statusChange')
+    }
   }
 
   return (
@@ -223,10 +248,10 @@ function DisputesDetail() {
             Back to Disputes
           </button>
 
-          <div className="flex items-center gap-3">
+          {/* <div className="flex items-center gap-3">
             <StatusBadge status={dispute.status} />
             <StatusBadge status={dispute.priority} />
-          </div>
+          </div> */}
         </div>
 
         {/* Admin Quick Actions Card */}
@@ -240,14 +265,32 @@ function DisputesDetail() {
            <div className='flex gap-2'>
             {console.log(dispute,"dispute")}
             
-            <button disabled={isValid}   onClick={() => handleStatusChange('under_review')} className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm ${isValid ? 'opacity-50 cursor-not-allowed' : ''}`} >
-              Under Review
+            {dispute.status!=="open" && (
+              <button   className={`px-4 py-2 bg-primary-600 rounded-full  text-white  hover:bg-primary-700 transition-colors font-medium text-sm opacity-75`}>
+              {dispute.status==="open" ? "Open" : dispute.status==="under_review" ? "Under Review" : "Resolved"}
             </button>
-            <button title='Add Resulation'  onClick={() => setShowResolutionModal(true)}
+            )}
+
+            {dispute.status==="open" && (
+      <button disabled={isValid||multiloading.statusChange}   onClick={() => handleStatusChange('under_review')} className={`px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors font-medium text-sm ${isValid ? 'opacity-50 cursor-not-allowed' : ''}`} >
+              
+              {multiloading.statusChange ? (
+                <span className="flex items-center">
+                  <Icon icon="heroicons:arrow-path" className="w-4 h-4 mr-2 animate-spin" />
+                  Updating...
+                </span>
+              ) : (
+                "Under Review"
+              )}
+              
+            </button>
+            )}
+       
+            <button disabled={dispute.status==="resolved"} title='Add Resolution'  onClick={() => setShowResolutionModal(true)}
                  className="ml-2 px-4 py-2 flex items-center bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm">
                               <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
 
-              Add Resulation
+              Add Resolution
             </button>
            </div>
 
@@ -263,7 +306,7 @@ function DisputesDetail() {
         </div>
 
       
-          <div className="p-6">
+          <div className="mb-4">
             {dispute.resolution?.resolutionType &&
               <div className="space-y-4">
                 <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-6">
@@ -833,8 +876,7 @@ function DisputesDetail() {
             )}
 
             {/* Job Details Tab */}
-            {activeTab === 'job' && dispute.jobId && (
-              <div className="space-y-6">
+{activeTab === 'job' && dispute?.jobId && (              <div className="space-y-6">
                 {/* Device Info Card */}
                 <div className="bg-gradient-to-br from-primary-100 to-white rounded-xl p-6 border border-purple-200">
                   <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
@@ -918,6 +960,100 @@ function DisputesDetail() {
                 </div>
               </div>
             )}
+
+
+{/* Quatation detailas */}
+{activeTab === 'job' && (quotationData) && (    
+            <div className="space-y-6">
+                {/* Device Info Card */}
+                <div className="bg-gradient-to-br from-primary-100 to-white rounded-xl p-6 border border-purple-200">
+                  <h3 className="text-lg font-semibold text-purple-900 mb-4 flex items-center gap-2">
+                    <Icon icon="heroicons:device-phone-mobile" className="w-5 h-5" />
+                    Device Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Brand</p>
+                      <p className="font-semibold">{quotationData?.deviceInfo?.brand || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Model</p>
+                      <p className="font-semibold">{quotationData?.deviceInfo?.model || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Color</p>
+                      <p className="font-semibold capitalize">{quotationData?.deviceInfo?.color || 'N/A'}</p>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <p className="text-xs text-gray-500 mb-1">Warranty</p>
+                      <p className="font-semibold capitalize">{quotationData?.deviceInfo?.warrantyStatus || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Services Card */}
+                {console.log(quotationData?.deviceInfo?.repairServices,"services details")}
+                {quotationData?.deviceInfo?.repairServices  && (
+                  <div className="bg-gradient-to-br from-green-50 to-white rounded-xl p-6 border border-green-200">
+                    <h3 className="text-lg font-semibold text-green-900 mb-4 flex items-center gap-2">
+                      <Icon icon="heroicons:wrench" className="w-5 h-5" />
+                      Services Required
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {quotationData?.deviceInfo?.repairServices.map((service, index) => (
+                        <span
+                          key={index}
+                          className="px-4 py-2 bg-white rounded-xl border border-green-200 text-green-800 font-medium"
+                        >
+                          {service.name || service}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Job Description */}
+                {quotationData?.serviceDetails?.description && (
+                  <div className="bg-white rounded-xl p-6 border border-gray-200">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Job Description</h3>
+                    <p className="text-gray-700 leading-relaxed">{quotationData?.serviceDetails?.description}</p>
+                  </div>
+                )}
+
+                {/* Location & Budget */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {dispute?.bookingId?.bookingDetails?.location && (
+                    console.log(dispute?.bookingId?.bookingDetails?.location,"location details"), 
+                    console.log(dispute,"booking details"),
+                    console.log(dispute?.bookingId?.bookingDetails,"bkas details"),
+                    <div className="bg-gradient-to-br from-blue-50 to-white rounded-xl p-6 border border-blue-200">
+                      <h3 className="text-lg font-semibold text-blue-900 mb-3 flex items-center gap-2">
+                        <Icon icon="heroicons:map-pin" className="w-5 h-5" />
+                        Location
+                      </h3>
+                      <p className="text-gray-900 font-medium">{dispute?.bookingId?.bookingDetails?.location?.address}</p>
+                      <p className="text-sm text-gray-600 mt-1">
+                        {dispute?.bookingId?.bookingDetails?.location?.city?.name || dispute?.bookingId?.bookingDetails?.location?.city}, {dispute?.bookingId?.bookingDetails?.location?.zipCode}
+                      </p>
+                    </div>
+                  )}
+
+                  {quotationData?.budget && (
+                    <div className="bg-gradient-to-br from-yellow-50 to-white rounded-xl p-6 border border-yellow-200">
+                      <h3 className="text-lg font-semibold text-yellow-900 mb-3 flex items-center gap-2">
+                        <Icon icon="heroicons:currency-dollar" className="w-5 h-5" />
+                        Budget Range
+                      </h3>
+                      <p className="text-2xl font-bold text-yellow-900">
+                        {quotationData?.budget?.currency} {quotationData?.budget?.min} - {quotationData?.budget?.max}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+
 
             {/* Booking Details Tab */}
             {activeTab === 'booking' && dispute.bookingId && (

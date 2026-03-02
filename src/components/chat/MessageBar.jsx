@@ -8,6 +8,7 @@ const MessageBar = React.memo(({ onClick }) => {
     // Direct Redux selector for real-time updates
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
     const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+    console.log('MessageBar rendered with totalUnreadCount:', totalUnreadCount);
 
     return (
         <div

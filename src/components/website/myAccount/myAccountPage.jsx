@@ -10,6 +10,42 @@ import Button from '@/components/ui/button';
 import axiosInstance from '@/config/axiosInstance';
 import Loader from '@/components/Loader';
 
+// Helpers to normalize device/brand/model/service names from different API shapes
+const getBrandName = (deviceInfo) => {
+  if (!deviceInfo) return 'Unknown';
+  return (
+    deviceInfo?.brand?.name ||
+    deviceInfo?.brandName ||
+    deviceInfo?.brand ||
+    'Unknown'
+  );
+};
+
+const getModelName = (deviceInfo) => {
+    console.log(deviceInfo,"device info in model name")
+  if (!deviceInfo) return '';
+  return (
+    deviceInfo?.model?.name ||
+    deviceInfo?.modelName ||
+    deviceInfo?.model ||
+    ''
+  );
+};
+
+const getServiceNames = (services) => {
+  console.log(services,"services in get service names")
+  if (!services) return [];
+  if (!Array.isArray(services)) return [String(services)];
+  // If services are objects with name property
+  const names = services.map((s) => {
+    if (!s && s !== 0) return '';
+    if (typeof s === 'string') return s;
+    if (typeof s === 'object') return s?.name || s?.title || JSON.stringify(s);
+    return String(s);
+  }).filter(Boolean);
+  return names;
+};
+
 
 const JobDescription = ({ job }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -89,12 +125,18 @@ const RepairJobCard = ({ job }) => {
   const pricing = isQuotationBased
     ? job?.quotationId?.pricing
     : job?.budget;
-
-  const deviceName = isQuotationBased
-    ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
-    }`
-    : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
-    }`;
+  // Normalize brand/model/service names for display
+  const brand = getBrandName(deviceInfo);
+  const model = getModelName(deviceInfo);
+  const serviceNames = getServiceNames(isQuotationBased ? deviceInfo?.repairServices : services);
+  const deviceName = `${brand} ${model}` + (serviceNames.length ? ` - ${serviceNames.join(', ')}` : '');
+    console.log(deviceInfo,"device info in card")
+  console.log(deviceName,"device name in card")
+  // const deviceName = isQuotationBased
+  //   ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''} - ${services.map(service => service?.name).join(', ')
+  //   }`
+  //   : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''} - ${services.map(s => s?.name || s).join(', ')
+  //   }`;
 
 
 
@@ -156,16 +198,17 @@ const RepairJobCard = ({ job }) => {
 
       <JobDescription job={job} />
 
-      {services && services.length > 0 && (
+      {serviceNames && serviceNames.length > 0 && (
+        console.log(serviceNames,"service names in card"),
         <div className="mb-4">
           <h4 className="text-sm font-semibold text-gray-700 mb-3">Required Services</h4>
           <div className="flex flex-wrap gap-2">
-            {services.map((service, index) => (
+            {serviceNames.map((s, index) => (
               <span
                 key={index}
                 className="px-4 py-2 text-sm font-medium text-primary-800 rounded-lg border"
               >
-                {service?.name}
+                {s}
               </span>
             ))}
           </div>
@@ -174,9 +217,9 @@ const RepairJobCard = ({ job }) => {
 {console.log(job,"job in card")}
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-xs text-gray-500">
-          {(job?.status) && (
+          {(isQuotationBased ? job?.bookingStatus : job?.status) && (
             <span className="inline-block bg-primary-100 text-primary-800 font-medium px-3 py-1 rounded-full capitalize">
-              {job?.status}
+              {isQuotationBased ? job?.bookingStatus : job?.status}
             </span>
           )}
 
@@ -213,7 +256,7 @@ const RepairJobCard = ({ job }) => {
         )}
       </div>
 
-      {job.status === "delivered" && (
+      {(isQuotationBased ? job?.bookingStatus : job?.status) === "delivered" && (
         <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-md">
           <p className="text-sm text-blue-800 leading-relaxed">
             Your repairman has delivered the device. Please review the device carefully and, if everything is satisfactory,
@@ -226,7 +269,7 @@ const RepairJobCard = ({ job }) => {
       )}
 
 
-      {job.status === "closed" && (
+      {(isQuotationBased ? job?.bookingStatus : job?.status) === "closed" && (
         <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
           <p className="text-sm text-green-800 leading-relaxed">
             This job has been <span className="font-semibold">successfully closed</span>.
@@ -361,20 +404,21 @@ const ReviewJobs = () => {
               // 🔥 Determine booking source
               const isQuotationBased = job.bookingSource === 'direct_message';
 
-              // 🔥 Get device info from appropriate source
+              // 🔥 Get device info from appropriate source and normalize
               const deviceInfo = isQuotationBased
                 ? job.quotationId?.deviceInfo
-                : job.jobId?.deviceInfo;
+                : job.jobId?.deviceInfo || job?.deviceInfo;
 
-              // 🔥 Get services from appropriate source
-              const services = isQuotationBased
+              // 🔥 Get services and description from appropriate source
+              const rawServices = isQuotationBased
                 ? job.quotationId?.deviceInfo?.repairServices
-                : job.jobId?.services;
+                : job.jobId?.services || job?.services;
 
-              // 🔥 Get description from appropriate source
+              const services = getServiceNames(rawServices);
+
               const description = isQuotationBased
                 ? job.quotationId?.serviceDetails?.description
-                : job.jobId?.description;
+                : job.jobId?.description || job?.description;
 
               return (
                 <div key={job._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -384,10 +428,7 @@ const ReviewJobs = () => {
                       <div className="flex-1">
                         {/* 🔥 Device Title */}
                         <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                          {isQuotationBased
-                            ? `${deviceInfo?.brandName || 'Unknown'} ${deviceInfo?.modelName || ''}`
-                            : `${deviceInfo?.brand || 'Unknown'} ${deviceInfo?.model || ''}`
-                          }
+                          {`${getBrandName(deviceInfo)} ${getModelName(deviceInfo)}`}
                         </h3>
 
                         {/* 🔥 Description */}
@@ -777,41 +818,43 @@ export default function MyAccountPage() {
   ];
 
   console.log(jobs,"jobsaaaa")
+  
+  // Helper function to get correct status based on job type
+  const getJobStatus = (job) => {
+    return job.bookingSource === 'direct_message' ? job.bookingStatus : job.status;
+  };
+
   const getJobCounts = () => {
     return {
       all: jobs.length,
-      open: jobs.filter(job => job.status === 'open').length,
-      offers_received: jobs.filter(job => job.status === "offers_received").length,
+      open: jobs.filter(job => getJobStatus(job) === 'open').length,
+      offers_received: jobs.filter(job => getJobStatus(job) === "offers_received").length,
+     
+      booked: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'confirmed' ||
+          status === 'repairman_notified' ||
+          status === 'scheduled' ||
+          status === 'booked';
+      }).length,
 
-      booked: jobs.filter(job =>
-        // job.status === 'booked' 
-        job.status === 'confirmed' ||
-        job.status === 'repairman_notified' ||
-        job.status === 'scheduled'||
-        job.status === 'booked'
-      ).length,
+      in_progress: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'in_progress' ||
+          status === 'parts_needed' ||
+          status === 'quality_check';
+      }).length,
 
-      in_progress: jobs.filter(job =>
-        job.status === 'in_progress' ||
-        job.status === 'in_progress' ||
-        job.status === 'parts_needed' ||
-        job.status === 'quality_check'
-      ).length,
+      completed: jobs.filter(job => {
+        const status = getJobStatus(job);
+        return status === 'completed' ||
+          status === 'delivered' ||
+          status === 'closed';
+      }).length,
 
-      completed: jobs.filter(job =>
-        job.status === 'completed' ||
-        job.status === 'delivered' ||
-        job.status === 'delivered' ||
-        job.status === 'closed' ||
-        job.status === 'completed'
-      ).length,
+      disputed: jobs.filter(job => getJobStatus(job) === 'disputed').length,
 
-      disputed: jobs.filter(job =>
-        job.status === 'disputed' ||
-        job.status === 'disputed'
-      ).length,
-
-      review: jobs.filter(job => job.status === 'delivered').length
+      review: jobs.filter(job => getJobStatus(job) === 'delivered').length
     };
   };
 
@@ -819,46 +862,62 @@ export default function MyAccountPage() {
 
   const filteredJobs = jobs.filter(job => {
     const isQuotationBased = job?.bookingSource === 'direct_message';
+    const jobStatus = getJobStatus(job);
 
-    const matchesSearch = isQuotationBased ? (
-      job?.quotationId?.deviceInfo?.brandName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.quotationId?.deviceInfo?.modelName?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.quotationId?.deviceInfo?.repairServices?.some(service =>
-        service.toLowerCase().includes(searchTerm.toLowerCase())
-      ) ||
-      job?.repairman?.name?.toLowerCase()?.includes(searchTerm.toLowerCase())
-    ) : (
-      job?.deviceInfo?.brand?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.deviceInfo?.color?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.services?.some(service => service.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      job?.location?.city?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.location?.address?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.urgency?.toLowerCase()?.includes(searchTerm.toLowerCase()) ||
-      job?.servicePreference?.toLowerCase()?.includes(searchTerm.toLowerCase())
-    );
+    const term = searchTerm.trim().toLowerCase();
+    const matchesSearch = (() => {
+      if (!term) return true;
+      if (isQuotationBased) {
+        const device = job?.quotationId?.deviceInfo;
+        const brand = getBrandName(device).toLowerCase();
+        const model = getModelName(device).toLowerCase();
+        const services = getServiceNames(device?.repairServices || []);
+        const servicesMatch = services.some(s => s.toLowerCase().includes(term));
+        return (
+          brand.includes(term) ||
+          model.includes(term) ||
+          servicesMatch ||
+          job?.repairman?.name?.toLowerCase()?.includes(term)
+        );
+      }
+
+      const brand = getBrandName(job?.deviceInfo).toLowerCase();
+      const model = getModelName(job?.deviceInfo).toLowerCase();
+      const services = getServiceNames(job?.services || []);
+      const servicesMatch = services.some(s => s.toLowerCase().includes(term));
+      return (
+        brand.includes(term) ||
+        model.includes(term) ||
+        (job?.deviceInfo?.color || '').toLowerCase().includes(term) ||
+        servicesMatch ||
+        (job?.location?.city || '').toLowerCase().includes(term) ||
+        (job?.location?.address || '').toLowerCase().includes(term) ||
+        (job?.urgency || '').toLowerCase().includes(term) ||
+        (job?.servicePreference || '').toLowerCase().includes(term)
+      );
+    })();
 
     let matchesStatus = false;
 
     if (activeTab === 'all') {
       matchesStatus = true;
     } else if (activeTab === 'booked') {
-      matchesStatus = job?.status === 'booked' ||
-        job?.status === 'confirmed' ||
-        job?.status === 'repairman_notified' ||
-        job?.status === 'scheduled';
+      matchesStatus = jobStatus === 'booked' ||
+        jobStatus === 'confirmed' ||
+        jobStatus === 'repairman_notified' ||
+        jobStatus === 'scheduled';
     } else if (activeTab === 'in_progress') {
-      matchesStatus = job?.status === 'in_progress' ||
-        job?.status === 'in_progress' ||
-        job?.status === 'parts_needed' ||
-        job?.status === 'quality_check';
+      matchesStatus = jobStatus === 'in_progress' ||
+        jobStatus === 'parts_needed' ||
+        jobStatus === 'quality_check';
     } else if (activeTab === 'completed') {
-      matchesStatus = job?.status === 'completed' || job?.status === 'delivered' ||
-        job?.status === 'completed' || job?.status === 'delivered' || job?.status === 'closed';
+      matchesStatus = jobStatus === 'completed' || 
+        jobStatus === 'delivered' || 
+        jobStatus === 'closed';
     } else if (activeTab === 'disputed') {
-      matchesStatus = job?.status === 'disputed' ||
-        job?.status === 'disputed';
+      matchesStatus = jobStatus === 'disputed';
     } else {
-      matchesStatus = job?.status === activeTab;
+      matchesStatus = jobStatus === activeTab;
     }
 
     return matchesSearch && matchesStatus;

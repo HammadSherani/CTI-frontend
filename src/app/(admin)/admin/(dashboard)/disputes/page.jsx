@@ -153,8 +153,8 @@ const AdminDisputes = () => {
                 <div className="bg-white rounded-lg shadow p-4 mb-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         {/* Search */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                        <div className="md:col-span-2">
+                            <label className="block  text-sm font-medium text-gray-700 mb-2">
                                 Search
                             </label>
                             <input
@@ -185,7 +185,7 @@ const AdminDisputes = () => {
                         </div>
 
                         {/* Priority Filter */}
-                        <div>
+                        {/* <div>
                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                 Priority
                             </label>
@@ -199,7 +199,7 @@ const AdminDisputes = () => {
                                 <option value="medium">Medium</option>
                                 <option value="high">High</option>
                             </select>
-                        </div>
+                        </div> */}
 
                         {/* Category Filter */}
                         <div>
@@ -262,9 +262,9 @@ const AdminDisputes = () => {
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Category
                                     </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                    {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Priority
-                                    </th>
+                                    </th> */}
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
                                     </th>
@@ -326,11 +326,11 @@ const AdminDisputes = () => {
                                                     {dispute.category?.replace('_', ' ')}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap">
+                                            {/* <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getPriorityBadge(dispute.priority)}`}>
                                                     {dispute.priority?.toUpperCase()}
                                                 </span>
-                                            </td>
+                                            </td> */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(dispute.status)}`}>
                                                     {dispute.status?.replace('_', ' ').toUpperCase()}

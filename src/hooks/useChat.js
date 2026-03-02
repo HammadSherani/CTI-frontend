@@ -52,18 +52,23 @@ export const useChat = () => {
     }
   }, [token, dispatch]);
 
-  // Auto-join chat when selected
-  useEffect(() => {
-    if (chatState.selectedChat && connected) {
-      joinChat(chatState.selectedChat.id);
-      
-      return () => {
-        if (chatState.selectedChat) {
-          leaveChat(chatState.selectedChat.id);
-        }
-      };
-    }
-  }, [chatState.selectedChat, connected, joinChat, leaveChat]);
+  // // OLD CODE — Duplicate auto-join: ChatView ALSO joins/leaves chat rooms
+  // // This caused double join_chat socket emissions
+  // // Auto-join chat when selected
+  // useEffect(() => {
+  //   if (chatState.selectedChat && connected) {
+  //     joinChat(chatState.selectedChat.id);
+  //     
+  //     return () => {
+  //       if (chatState.selectedChat) {
+  //         leaveChat(chatState.selectedChat.id);
+  //       }
+  //     };
+  //   }
+  // }, [chatState.selectedChat, connected, joinChat, leaveChat]);
+
+  // ✅ NEW CODE — ChatView handles join/leave, no need to duplicate here
+  // ✅ END NEW CODE
 
   const handleToggleChat = useCallback(() => {
     if (!chatState.currentUser) return;
@@ -85,9 +90,14 @@ export const useChat = () => {
     const chatId = chat.id;
     dispatch(markChatAsRead(chatId));
     
-    // CRITICAL FIX: Fetch messages when chat is selected
-    fetchMessages(chatId);
-  }, [dispatch, chatState.currentUser, fetchMessages]);
+    // // OLD CODE — caused DOUBLE fetch (ChatView also fetches messages)
+    // // CRITICAL FIX: Fetch messages when chat is selected
+    // fetchMessages(chatId);
+
+    // ✅ NEW CODE — Let ChatView handle fetching (cache-aware), don't duplicate here
+    // ChatView already has useEffect that checks cache and fetches if needed
+    // ✅ END NEW CODE
+  }, [dispatch, chatState.currentUser]);
 
   const handleBackToInbox = useCallback(() => {
     dispatch(backToInbox());
@@ -193,11 +203,19 @@ export const useChat = () => {
       const { data } = await axiosInstance.get("/chat/list", {
         headers: { Authorization: `Bearer ${token}` },
       });
+      // // OLD CODE — passed messages: {} which WIPED all cached messages
+      // dispatch(loadUserChats({
+      //   chats: data.chats || [],
+      //   messages: {},
+      //   unreadCounts: {}
+      // }));
+
+      // ✅ NEW CODE — Don't pass messages: {} so cached messages are preserved
       dispatch(loadUserChats({
         chats: data.chats || [],
-        messages: {},
         unreadCounts: {}
       }));
+      // ✅ END NEW CODE
     } catch (error) {
       handleError(error);
     }
