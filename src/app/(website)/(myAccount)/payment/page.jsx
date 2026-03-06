@@ -606,7 +606,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 </div>
                             </div>
 
-                            {/* <button
+                            <button
                                 onClick={handleSubmit(onSubmit)}
                                 disabled={isProcessing || Object.keys(errors).length > 0}
                                 className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
@@ -622,7 +622,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                         Complete Payment
                                     </>
                                 )}
-                            </button> */}
+                            </button>
 
                             <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-gray-500">
                                 <div className="flex items-center gap-2">
