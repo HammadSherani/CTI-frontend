@@ -159,10 +159,15 @@ const ChatView = ({ chat, onBack }) => {
         }
     }, [token, chat.id, dispatch]);
 
+    console.log(chatMessages.length, "messages loaded for chat", chat.id);  
     useEffect(() => {
+    if(chatMessages.length === 0) {
         setInitialLoading(true);
         fetchMessages();
-    }, [chat.id]);
+    } else {
+        setInitialLoading(false);  
+    }
+}, [chat.id]);
 
 
     useEffect(() => {
@@ -288,13 +293,11 @@ const ChatView = ({ chat, onBack }) => {
 
     const messageContent = inputText.trim();
 
-    // ⭐ Text message — instant, koi loading nahi
     if (connected && socket && !selectedFile) {
         updateInputText("");
         socketSendMessage(chat.id, messageContent, 'text');
         return;
     }
-console.log(`⏱️ socket emit at: ${Date.now()}ms`);  // ⭐ yeh add karo
 
     // File upload ke liye hi setSending
     setSending(true);

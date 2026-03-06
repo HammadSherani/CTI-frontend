@@ -147,32 +147,14 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
         }
     }, [token]);
 
-    // // OLD CODE — console logs commented out
-    // console.log('ChatInbox rendered with chats:', chats);
-    // console.log('Current unread counts:', unreadCounts);
-    // useEffect(() => {
-    //     if (!token) return
-    //         if(!chats || chats.length === 0) {
-    //             fetchChatList();
-    //         }
-        
-    // }, [token,chats]);
-
-
-    // // OLD CODE — fetched on EVERY mount, even when chats already loaded
-    // useEffect(() => {
-    //     if (!token) return;
-    //     fetchChatList();
-    // }, [token, fetchChatList]);
-
-    // ✅ NEW CODE — Only fetch once per session, or if chats are empty
-    useEffect(() => {
-        if (!token) return;
-        if (hasFetchedRef.current && chats.length > 0) return; // Already fetched, skip
-        hasFetchedRef.current = true;
-        fetchChatList();
-    }, [token, fetchChatList]);
-    // ✅ END NEW CODE
+    
+    console.log(chats,"chats")
+  useEffect(() => {
+    if (!token) return;
+    if (hasFetchedRef.current) return; 
+    hasFetchedRef.current = true;
+    fetchChatList();
+}, [token]); 
 
 
     const filteredChats = chats?.filter(chat =>
