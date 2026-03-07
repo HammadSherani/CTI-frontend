@@ -5,12 +5,12 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useParams, useRouter } from 'next/navigation';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { toast } from 'react-toastify';
 import DisputesModal from '@/components/partials/repairman/DisputesModal';
-import Chat from '@/components/chat/GlobalChat';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
+import { useMultiLoading } from '@/hooks/useMultiloading';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -22,13 +22,13 @@ function UpdateStatus() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [statusUpdateResult, setStatusUpdateResult] = useState(null);
-  const [chatOpen, setChatOpen] = useState(false);
   const params = useParams();
   const router = useRouter();
   const id = params.id;
-  const { token } = useSelector((state) => state.auth);
+  const { token, user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
-  const { openChat ,selectChat} = useChat();
+  const { openChat, selectChat } = useChat();
 
   const fetchJobDetails = async () => {
     try {
@@ -56,32 +56,16 @@ function UpdateStatus() {
     fetchJobDetails();
   }, [id]);
 
-  console.log(job,"job")
-    const { user } = useSelector((state) => state.auth);
-
-  const handleOpenChat=()=>{
-  openChat();
-  // selectChat(id); 
-};
-const custId= job?.jobInfo?.customerId._id;
-console.log("JobInfo",job?.jobInfo)
-console.log("Customer ID:", custId);
-console.log('Current User:', user);
-const [open,setIsOpen]=useState(false);
- const handleMessageSend = async () => {
-    if (!user && !token) {
-      setIsOpen(true);
-      return;
-    }selectChat(id)
-
-    console.log(job,"job in chat")
-
- console.log('Starting chat with user ID:', custId);
+  const CustomerId = job?.customer?._id;
+  const {start,stop,multiloading}=useMultiLoading()
+  const handleMessageSend = async () => {
+    if (!user && !token) return;
+    
     try {
+      start("Starting_chat");
       const { data } = await axiosInstance.post(
         `/chat/start`,
-        { repairmanId:custId },
-        // { repairmanId: user.id},
+        { repairmanId: CustomerId },
         {
           headers: {
             Authorization: "Bearer " + token,
@@ -89,7 +73,6 @@ const [open,setIsOpen]=useState(false);
         }
       );
 
-      console.log('Chat started, response:', data);
       const newChat = {
         id: data?.chat._id,
         chatId: data?.chat._id,
@@ -102,23 +85,18 @@ const [open,setIsOpen]=useState(false);
       };
 
       dispatch(addChat(newChat));
-      console.log('Chat added to list:', newChat);
-
       openChat();
-
       selectChat({
         id: data?.chat._id,
         name: data?.chat?.user?.name,
         avatar: data?.chat?.user?.avatar,
       });
-
-      console.log('Chat selected');
-
+  stop("Starting_chat");
     } catch (error) {
+            stop("Starting_chat");
       handleError(error);
     }
   };
-
 
   const handleStatusUpdate = async () => {
     if (!selectedStatus) {
@@ -232,25 +210,65 @@ const [open,setIsOpen]=useState(false);
     );
   }
 
-  // 🔥 Extract data with proper fallbacks
+  // Extract data with proper fallbacks
   const jobInfo = job.jobInfo || {};
-  const quotationInfo = job.quotationInfo || {}; // 🔥 NEW
+  const quotationInfo = job.quotationInfo || {};
   const customer = job.customer || {};
   const bookingDetails = job.bookingDetails || {};
-  const deviceInfo = jobInfo.deviceInfo || quotationInfo.deviceInfo || {}; // 🔥 Check both sources
+  const deviceInfo = jobInfo.deviceInfo || quotationInfo.deviceInfo || {};
   const actions = job.actions || {};
   const timeline = job.timeline || [];
   const tracking = job.tracking || {};
   const communication = job.communication || {};
   
-  // 🔥 Determine booking source
+  // Determine booking source
   const isQuotationBased = job.type === 'quotation_booking' || job.bookingSource === 'direct_message';
   
-  // 🔥 Get services from appropriate source
+  // Get services from appropriate source
   const services = isQuotationBased 
     ? (quotationInfo.deviceInfo?.repairServices || [])
     : (jobInfo.services || []);
 
+  // 🔥 FIXED: Helper functions to safely get values
+  const getBrandName = () => {
+    if (!deviceInfo.brand) return '';
+    if (typeof deviceInfo.brand === 'object') return deviceInfo.brand.name || '';
+    return deviceInfo.brand;
+  };
+
+  const getModelName = () => {
+    if (!deviceInfo.model) return '';
+    if (typeof deviceInfo.model === 'object') return deviceInfo.model.name || '';
+    return deviceInfo.model;
+  };
+
+ const getServiceNames = () => {
+  // 🔥 FIX: Direct message walon ke liye repairServices use karo
+  if (deviceInfo.repairServices && deviceInfo.repairServices.length > 0) {
+    return deviceInfo.repairServices
+      .map(service => {
+        if (typeof service === 'object') return service.name || '';
+        return service;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+  
+  // Job posting walon ke liye services use karo
+  if (services && services.length > 0) {
+    return services
+      .map(service => {
+        if (typeof service === 'object') return service.name || '';
+        return service;
+      })
+      .filter(Boolean)
+      .join(', ');
+  }
+  
+  return '';
+};
+
+const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim() || 'Untitled Job';
   return (
     <>
       <div className="min-h-screen bg-gray-50">
@@ -323,9 +341,9 @@ const [open,setIsOpen]=useState(false);
                     </span>
                   </div>
                   <div className="flex-1">
+                    {/* 🔥 FIXED: Using title variable */}
                     <h3 className="text-xl font-bold text-gray-900">
-                      {deviceInfo.brand || deviceInfo.brandName} {deviceInfo.model || deviceInfo.modelName} - {services?.map(service => service?.name).join(', ') || services?.join(', ') || 'Repair Service'}
-                      
+                      {title}
                     </h3>
                     <p className="text-gray-600 mb-2">{customer.name}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-500">
@@ -342,10 +360,6 @@ const [open,setIsOpen]=useState(false);
                           {jobInfo.urgency} priority
                         </span>
                       )}
-                      
-                      {console.log('Booking Details:', bookingDetails)}
-                      {console.log('JOb Type:', jobInfo)}
-                   
                     </div>
                   </div>
                   <div className="text-right">
@@ -364,17 +378,20 @@ const [open,setIsOpen]=useState(false);
                     </p>
                   </div>
                 )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Device Information</h4>
                     <div className="space-y-2 text-sm">
                       <div className="flex justify-between">
                         <span className="text-gray-500">Brand:</span>
-                        <span className="font-medium">{deviceInfo.brand || deviceInfo.brandName || 'N/A'}</span>
+                        {/* 🔥 FIXED: Using helper function */}
+                        <span className="font-medium">{getBrandName() || 'N/A'}</span>
                       </div>
                       <div className="flex justify-between">
                         <span className="text-gray-500">Model:</span>
-                        <span className="font-medium">{deviceInfo.model || deviceInfo.modelName || 'N/A'}</span>
+                        {/* 🔥 FIXED: Using helper function */}
+                        <span className="font-medium">{getModelName() || 'N/A'}</span>
                       </div>
                       
                       {!isQuotationBased && deviceInfo.color && (
@@ -384,7 +401,6 @@ const [open,setIsOpen]=useState(false);
                         </div>
                       )}
                       
-                      {/* 🔥 Warranty Status - only for job postings */}
                       {!isQuotationBased && deviceInfo.warrantyStatus && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Warranty:</span>
@@ -403,9 +419,6 @@ const [open,setIsOpen]=useState(false);
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Booking Details</h4>
                     <div className="space-y-2 text-sm">
-                     
-                      
-                      {/* 🔥 Scheduled Date - may not exist for quotations */}
                       {bookingDetails.scheduledDate ? (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Scheduled:</span>
@@ -420,7 +433,6 @@ const [open,setIsOpen]=useState(false);
                         </div>
                       )}
                       
-                      {/* 🔥 Base Price - may not exist for quotations */}
                       {bookingDetails.pricing?.basePrice !== undefined && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Base Price:</span>
@@ -437,7 +449,6 @@ const [open,setIsOpen]=useState(false);
                         </span>
                       </div>
                       
-                      {/* 🔥 Service Charge */}
                       <div className="flex justify-between">
                         <span className="text-gray-500">Service Charge:</span>
                         <span className="font-medium">
@@ -448,7 +459,6 @@ const [open,setIsOpen]=useState(false);
                   </div>
                 </div>
 
-                {/* 🔥 Quotation-specific info */}
                 {isQuotationBased && quotationInfo && (
                   <div className="mb-6 p-4 bg-purple-50 border border-purple-200 rounded-lg">
                     <h4 className="font-medium text-gray-900 mb-3">Quotation Details</h4>
@@ -475,7 +485,6 @@ const [open,setIsOpen]=useState(false);
                   </div>
                 )}
 
-                {/* Address - only for job postings */}
                 {!isQuotationBased && jobInfo.location?.address && (
                   <div>
                     <h4 className="font-medium text-gray-900 mb-2">Address</h4>
@@ -585,10 +594,10 @@ const [open,setIsOpen]=useState(false);
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
-                   
-                    <button onClick={()=>handleMessageSend()} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    <button onClick={handleMessageSend} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
                       <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
-                      Chat with Customer
+  {multiloading["Starting_chat"] ? "Loading..." : "Chat with Customer"}
+                      
                       {communication.unreadCount > 0 && (
                         <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
                           {communication.unreadCount}
@@ -603,8 +612,6 @@ const [open,setIsOpen]=useState(false);
                     <Icon icon="mdi:scale-balance" className="w-5 h-5 mr-2" />
                     Create Disputes
                   </button>
-
-                 
                 </div>
               </div>
 

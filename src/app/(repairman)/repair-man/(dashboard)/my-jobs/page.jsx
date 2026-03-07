@@ -193,13 +193,15 @@ const MyJobsPage = () => {
       const deviceInfo = jobDetails.deviceInfo || {};
 
       const isQuotationBased = job.bookingSource === 'direct_message';
-
+console.log(deviceInfo,"check filtering ")
+console.log(jobDetails,"jobDetails")
+console.log(customer,"cuistomer")
       const matchesSearch =
         jobDetails.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         jobDetails.location?.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        deviceInfo.brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        deviceInfo.model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deviceInfo.brand?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        deviceInfo.model?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         jobDetails.services?.some(service =>
           service.toLowerCase().includes(searchQuery.toLowerCase())
         );
@@ -224,6 +226,30 @@ const MyJobsPage = () => {
     const status = getBookingStatus(job);
     const urgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
     const customerInitials = customer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
+  const getBrandName = () => {
+    if (!deviceInfo.brand) return '';
+    if (typeof deviceInfo.brand === 'object') return deviceInfo.brand.name || '';
+    return deviceInfo.brand;
+  };
+
+  const getModelName = () => {
+    if (!deviceInfo.model) return '';
+    if (typeof deviceInfo.model === 'object') return deviceInfo.model.name || '';
+    return deviceInfo.model;
+  };
+
+  const getServiceNames = () => {
+    if (!jobDetails.services) return '';
+    return jobDetails.services
+      .map(service => {
+        if (typeof service === 'object') return service.name || '';
+        return service;
+      })
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim() || 'Untitled Job';
 
     const router = useRouter();
 
@@ -234,105 +260,107 @@ const MyJobsPage = () => {
             <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
               <span className="text-base font-semibold text-primary-700">{customerInitials}</span>
             </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-xl text-gray-900 mb-1">
-                {deviceInfo.brand} {deviceInfo.model} - {jobDetails.services?.map(service => service?.name).join(', ') || jobDetails.services?.join(', ')}
-              </h3>
-              <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
+             <div className="flex-1">
+            <h3 className="font-bold text-xl text-gray-900 mb-1">
+              {title}
+            </h3>
+            <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
 
-              <div className="flex items-center gap-2 mb-2">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
-                  ? 'bg-purple-100 text-purple-700'
-                  : 'bg-blue-100 text-blue-700'
-                  }`}>
-                  {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+            <div className="flex items-center gap-2 mb-2">
+              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-blue-100 text-blue-700'
+                }`}>
+                {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+              </span>
+
+              {!isQuotationBased && isPickupService && (
+                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                  <Icon icon="heroicons:truck" className="w-3 h-3 inline mr-1" />
+                  Pickup Required
                 </span>
+              )}
+            </div>
 
-                {!isQuotationBased && isPickupService && (
-                  <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                    <Icon icon="heroicons:truck" className="w-3 h-3 inline mr-1" />
-                    Pickup Required
-                  </span>
-                )}
-              </div>
+            <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
+              {!isQuotationBased && jobDetails.location?.city && (
+                <span className="flex items-center">
+                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
+                  {jobDetails.location.city?.name} , {jobDetails.location?.state?.name}
+                </span>
+              )}
 
-              <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
-                {!isQuotationBased && jobDetails.location?.city && (
-                  <span className="flex items-center">
-                    <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {jobDetails.location.city?.name} , {jobDetails.location?.state?.name}
-                  </span>
-                )}
+              {!isQuotationBased && (
+                <span className={`font-medium ${getUrgencyColor(urgency)}`}>
+                  {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
+                </span>
+              )}
 
-                {!isQuotationBased && (
-                  <span className={`font-medium ${getUrgencyColor(urgency)}`}>
-                    {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
-                  </span>
-                )}
+              {bookingDetails.serviceType && (
+                <span className="flex items-center">
+                  <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" aria-hidden="true" />
+                  {bookingDetails.serviceType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              )}
 
-                {bookingDetails.serviceType && (
-                  <span className="flex items-center">
-                    <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {bookingDetails.serviceType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </span>
-                )}
-
-                {isQuotationBased && jobDetails.partsQuality && (
-                  <span className="flex items-center">
-                    <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" aria-hidden="true" />
-                    {jobDetails.partsQuality.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                  </span>
-                )}
-              </div>
+              {isQuotationBased && jobDetails.partsQuality && (
+                <span className="flex items-center">
+                  <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" aria-hidden="true" />
+                  {jobDetails.partsQuality.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              )}
             </div>
           </div>
-          <div className="text-right w-full sm:w-auto">
-            <p className="text-2xl font-bold text-gray-900 whitespace-nowrap">
-              {formatCurrency(
-                bookingDetails.pricing?.totalAmount,
-                bookingDetails.pricing?.currency
-              )}
-            </p>
-
-            <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)} mt-2`}>
-              {status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-            </span>
-
-            {!isQuotationBased && jobDetails.expiresAt && (
-              <p className="text-sm text-gray-500 mt-1">
-                {getTimeRemaining(jobDetails.expiresAt)}
-              </p>
+        </div>
+        <div className="text-right w-full sm:w-auto">
+          <p className="text-2xl font-bold text-gray-900 whitespace-nowrap">
+            {formatCurrency(
+              bookingDetails.pricing?.totalAmount,
+              bookingDetails.pricing?.currency
             )}
+          </p>
 
-            {isQuotationBased && jobDetails.warranty?.duration && (
-              <p className="text-sm text-gray-500 mt-1">
-                Warranty: {jobDetails.warranty.duration} days
-              </p>
+          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)} mt-2`}>
+            {status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+          </span>
+
+          {!isQuotationBased && jobDetails.expiresAt && (
+            <p className="text-sm text-gray-500 mt-1">
+              {getTimeRemaining(jobDetails.expiresAt)}
+            </p>
+          )}
+
+          {isQuotationBased && jobDetails.warranty?.duration && (
+            <p className="text-sm text-gray-500 mt-1">
+              Warranty: {jobDetails.warranty.duration} days
+            </p>
+          )}
+        </div>
+      </div>
+
+      {deviceInfo && (deviceInfo.brand || deviceInfo.model) && (
+        <div className="mb-4">
+          <div className="flex items-center space-x-4 text-sm text-gray-600">
+            <span className="flex items-center">
+              <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 mr-1" />
+              {/* FIX: Use helper functions here too */}
+              {getBrandName()} {getModelName()}
+            </span>
+            {deviceInfo.color && (
+              <span className="capitalize">{deviceInfo.color}</span>
+            )}
+            {deviceInfo.warrantyStatus && (
+              <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
+                ? 'bg-green-100 text-green-800'
+                : 'bg-gray-100 text-gray-800'
+                }`}>
+                Warranty: {deviceInfo.warrantyStatus}
+              </span>
             )}
           </div>
         </div>
+      )}
 
-        {deviceInfo && (deviceInfo.brand || deviceInfo.model) && (
-          <div className="mb-4">
-            <div className="flex items-center space-x-4 text-sm text-gray-600">
-              <span className="flex items-center">
-                <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 mr-1" />
-                {deviceInfo.brand} {deviceInfo.model}
-              </span>
-              {deviceInfo.color && (
-                <span className="capitalize">{deviceInfo.color}</span>
-              )}
-              {deviceInfo.warrantyStatus && (
-                <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
-                  ? 'bg-green-100 text-green-800'
-                  : 'bg-gray-100 text-gray-800'
-                  }`}>
-                  Warranty: {deviceInfo.warrantyStatus}
-                </span>
-              )}
-            </div>
-          </div>
-        )}
 
         {(() => {
           // FOR QUOTATION-BASED JOBS
