@@ -21,14 +21,21 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     const chats = useSelector((state) => state.chat.chats);
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
     const selectedChat = useSelector((state) => state.chat.selectedChat);
-  console.log("onseletc chat click", onSelectChat)
+    
     const { user, token } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
-    // ✅ NEW CODE — Track if chat list was already fetched to prevent re-fetching
-    const hasFetchedRef = useRef(false);
-    // ✅ END NEW CODE
+    
+    //  IMPROVED: Use sessionStorage to persist fetch status across remounts
+    const [hasFetched, setHasFetched] = useState(() => {
+        // Check if we've already fetched in this session
+        if (typeof window !== 'undefined') {
+            const fetched = sessionStorage.getItem('chats_fetched');
+            return fetched === 'true';
+        }
+        return false;
+    });
 
     const {
         socket,
@@ -38,58 +45,16 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     } = useSocket();
 
     useEffect(() => {
-        // // OLD CODE — logged on every re-render, commented out
-        // console.log('=== ChatInbox Re-render Check ===');
-        // console.log('Chats length:', chats?.length);
-        // console.log('Unread counts:', unreadCounts);
-        // console.log('Component rendered at:', new Date().toISOString());
-        // console.log('Chats data:', chats);
-    }, [chats, unreadCounts]);
-
-    // useEffect(() => {
-    //     if (socket && connected && chats && chats.length > 0) {
-    //         console.log('Auto-joining all chats for inbox notifications');
-
-    //         chats.forEach(chat => {
-    //             const chatId = chat.chatId || chat.id;
-    //             if (chatId) {
-    //                 console.log('Joining chat for notifications:', chatId);
-    //                 joinChat(chatId);
-    //             }
-    //         });
-
-    //         return () => {
-    //             console.log('Leaving all chats - ChatInbox cleanup');
-    //             chats.forEach(chat => {
-    //                 const chatId = chat.chatId || chat.id;
-    //                 if (chatId) {
-    //                     leaveChat(chatId);
-    //                 }
-    //             });
-    //         };
-    //     }
-    // }, [socket, connected, chats, joinChat, leaveChat]);
-
-    useEffect(() => {
-        if (socket && connected) {
-            console.log('Setting up ChatInbox socket listeners');
-
-            // Listen for messages marked as read
-            const handleMessagesRead = (data) => {
-                console.log('ChatInbox: Messages marked as read:', data);
-                dispatch(resetUnreadCount({
-                    chatId: data.chatId
-                }));
-            };
-
-            socket.on('messages_read', handleMessagesRead);
-
-            return () => {
-                console.log('Cleaning up ChatInbox socket listeners');
-                socket.off('messages_read', handleMessagesRead);
-            };
+        if (!token) return;
+        
+        // Only fetch if not fetched in this session
+        if (!hasFetched) {
+            fetchChatList();
+            setHasFetched(true);
+            sessionStorage.setItem('chats_fetched', 'true');
         }
-    }, [socket, connected, dispatch]);
+    }, [token]);
+
 
     const fetchChatList = useCallback(async () => {
         if (!token) return;
@@ -100,17 +65,10 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            // // OLD CODE — console logs commented out
-            // console.log('Raw chat data from API:', data.chats);
-
-            const processedChats = (data.chats || []).map(chat => {
-                // // OLD CODE — commented out
-                // console.log('Processing individual chat:', chat);
-                return {
-                    ...chat,
-                    id: chat.chatId
-                };
-            });
+            const processedChats = (data.chats || []).map(chat => ({
+                ...chat,
+                id: chat.chatId
+            }));
 
             const unreadCountsFromAPI = {};
             data.chats.forEach(chat => {
@@ -119,43 +77,48 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 }
             });
 
-            // // OLD CODE — commented out
-            // console.log('Processed chats:', processedChats);
-            // console.log('Extracted unread counts:', unreadCountsFromAPI);
-            // console.log('before User chats loaded into Redux store:', processedChats);
-
-            // // OLD CODE — passed messages: {} which WIPED all cached messages
-            // dispatch(loadUserChats({
-            //     chats: processedChats,
-            //     messages: {},
-            //     unreadCounts: unreadCountsFromAPI
-            // }));
-
-            // ✅ NEW CODE — Don't pass messages: {} so cached messages are preserved
             dispatch(loadUserChats({
                 chats: processedChats,
                 unreadCounts: unreadCountsFromAPI
             }));
-            // ✅ END NEW CODE
 
-            // // OLD CODE — commented out
-            // console.log('after User chats loaded into Redux store:', processedChats);
         } catch (error) {
             handleError(error);
         } finally {
             setLoading(false);
         }
-    }, [token]);
+    }, [token, dispatch]);
 
-    
-    console.log(chats,"chats")
-  useEffect(() => {
-    if (!token) return;
-    if (hasFetchedRef.current) return; 
-    hasFetchedRef.current = true;
-    fetchChatList();
-}, [token]); 
+    // Manual refresh function 
+    const refreshChats = useCallback(async () => {
+        setHasFetched(false);
+        sessionStorage.removeItem('chats_fetched');
+        await fetchChatList();
+        setHasFetched(true);
+        sessionStorage.setItem('chats_fetched', 'true');
+    }, [fetchChatList]);
 
+    //  NEW: Socket listeners for real-time updates
+    useEffect(() => {
+        if (socket && connected) {
+            const handleNewMessage = (data) => {
+                // Update chat list without full refresh
+                console.log('New message received, updating chat list:', data);
+            };
+
+            const handleChatUpdate = (data) => {
+                console.log('Chat updated:', data);
+            };
+
+            socket.on('new_message', handleNewMessage);
+            socket.on('chat_updated', handleChatUpdate);
+
+            return () => {
+                socket.off('new_message', handleNewMessage);
+                socket.off('chat_updated', handleChatUpdate);
+            };
+        }
+    }, [socket, connected]);
 
     const filteredChats = chats?.filter(chat =>
         chat?.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -181,6 +144,18 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
             <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <div className="flex gap-4 items-center">
+                    {/*  NEW: Manual refresh button */}
+                    <button 
+                        onClick={refreshChats}
+                        className="hover:opacity-80 transition-opacity"
+                        disabled={loading}
+                    >
+                        <Icon 
+                            icon="mdi:refresh" 
+                            width={20} 
+                            className={loading ? 'animate-spin' : ''} 
+                        />
+                    </button>
                     <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
                         title={connected ? 'Connected' : 'Disconnected'} />
                     <Icon icon="mdi:chevron-down" width={20} onClick={onClose} className="cursor-pointer" />

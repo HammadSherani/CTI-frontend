@@ -121,7 +121,8 @@ function Header() {
         },
   
       ]
-    },
+    },    { name: "Withdrwals", path: `/admin/withdrawals/all-withdrawal-request`, icon: "mdi:cash" },
+
   ];
 
   // Updated user dropdown links (more admin-focused)

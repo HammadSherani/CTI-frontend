@@ -3,6 +3,11 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';           // ← Add this import
+import { useMultiLoading } from '@/hooks/useMultiloading';
+import { useDispatch, useSelector } from 'react-redux';
+import handleError from '@/helper/handleError';
+import axiosInstance from '@/config/axiosInstance';
+import { addChat, openChat, selectChat } from '@/store/chat';
 
 const RatingStars = ({ rating = 0, size = "text-lg" }) => {
     const filled = Math.floor(rating);
@@ -67,6 +72,81 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
     console.log('offer', offer);
 
+const { user, token } = useSelector((state) => state.auth);
+      const {start,stop,multiloading}=useMultiLoading()
+const repairId=offer.repairmanId?._id
+console.log("repairId:", repairId)
+const dispatch=useDispatch()
+const handleMessageSend = async () => {
+  if (!user && !token) {
+    console.log("No user or token found");
+    return;
+  }
+  
+  try {
+    start("Starting_chat");
+    console.log("Sending request with repairId:", repairId);
+    
+    const { data } = await axiosInstance.post(
+      `/chat/start`,
+      { repairmanId: repairId },
+      {
+        headers: {
+          Authorization: "Bearer " + token,
+        },
+      }
+    );
+
+    console.log("API Response:", data);
+
+    if (data?.success && data?.chat) {
+      // Create chat object with all necessary fields
+      const newChat = {
+        id: data?.chat._id || data?.chat.chatId,
+        chatId: data?.chat._id || data?.chat.chatId,
+        name: data?.chat?.user?.name || data?.chat?.repairman?.name,
+        avatar: data?.chat?.user?.avatar || data?.chat?.repairman?.avatar || data?.chat?.repairman?.profilePhoto,
+        userId: data?.chat?.user?._id || data?.chat?.repairman?._id,
+        lastMessage: '',
+        timestamp: new Date().toISOString(),
+        online: false
+      };
+
+      console.log("New chat object:", newChat);
+
+      // First add chat to list
+      dispatch(addChat(newChat));
+      
+      setTimeout(() => {
+        dispatch(openChat()); 
+        
+        dispatch(selectChat({
+          id: newChat.id,
+          name: newChat.name,
+          avatar: newChat.avatar,
+        }));
+      
+        if (dispatch(setChatOpen)) {
+          dispatch(setChatOpen(true));
+        }
+        
+        const chatWindow = document.querySelector('.chat-window');
+        if (chatWindow) {
+          chatWindow.style.display = 'block';
+        }
+      }, 100);
+      
+    } else {
+      console.error("Invalid response structure:", data);
+    }
+    
+    stop("Starting_chat");
+  } catch (error) {
+    stop("Starting_chat");
+    console.error("Error in handleMessageSend:", error);
+    handleError(error);
+  }
+};
     const baseClasses = "px-4 py-2 rounded text-sm transition-colors duration-200 flex items-center gap-2";
     const disabledClasses = "bg-gray-300 text-gray-500 cursor-not-allowed";
     const submittingClasses = "bg-primary-400 text-white cursor-not-allowed";
@@ -290,11 +370,11 @@ const OfferCard = ({ offer, index, onAcceptOffer, isSubmitting, submittingOfferI
 
     {/* Chat Button */}
     <button
-        onClick={() => alert("chat")}
+        onClick={handleMessageSend}
         className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 shadow-sm hover:shadow-md active:scale-[0.98]"
     >
         <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
-        Chat with Customer
+  {multiloading["Starting_chat"] ? "Loading..." : "Chat with Customer"}
         {/* {communication.unreadCount > 0 && (
             <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
                 {communication.unreadCount}
