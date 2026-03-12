@@ -245,6 +245,75 @@ export default function RepairmanMultiStepForm() {
     }
   };
 
+  // Populate form data from user profile if available
+  useEffect(() => {
+    if (user?.repairmanProfile) {
+      const rp = user.repairmanProfile;
+      const currentData = informationData;
+
+      const mappedData = {
+        fullName: rp.fullName || '',
+        fatherName: rp.fatherName || '',
+        nationalIdOrCitizenNumber: rp.nationalIdOrCitizenNumber || '',
+        dob: rp.dob ? new Date(rp.dob).toISOString().split('T')[0] : '',
+        gender: rp.gender || '',
+        mobileNumber: rp.mobileNumber || '',
+        whatsappNumber: rp.whatsappNumber || '',
+        emailAddress: rp.emailAddress || user.email || '',
+        emergencyContactPerson: rp.emergencyContactPerson || '',
+        emergencyContactNumber: rp.emergencyContactNumber || '',
+        shopName: rp.shopName || '',
+        country: user.country || rp.country || '',
+        state: user.state || rp.state || '',
+        city: user.city?._id || user.city || rp.city || '', 
+        zipCode: rp.zipCode || '',
+        fullAddress: rp.fullAddress || '', 
+        taxNumber: rp.taxNumber || '',
+        yearsOfExperience: rp.yearsOfExperience || '',
+        specializations: rp.specializations || [],
+        brandsWorkedWith: rp.brandsWorkedWith || [],
+        description: rp.description || '',
+        workingDays: rp.workingDays || [],
+        workingHours: rp.workingHours || { start: '', end: '' },
+        pickupService: rp.pickupService || false,
+      };
+
+      // Create a merged object that prefers existing user edits (from storage/state)
+      // but fills in gaps from profile data
+      const finalData = { ...mappedData };
+      
+      if (Object.keys(currentData).length > 0) {
+          Object.keys(currentData).forEach(key => {
+              const val = currentData[key];
+              // Keep currentData value if it appears "valid" (user entered/selected something)
+              // This prevents overwriting user's work with old profile data
+              if (Array.isArray(val)) {
+                  if (val.length > 0) finalData[key] = val;
+              } else if (val && typeof val === 'object') {
+                   // For objects like workingHours
+                   if (Object.values(val).some(v => v)) finalData[key] = val;
+              } else if (val !== '' && val !== null && val !== undefined) {
+                  finalData[key] = val;
+              }
+          });
+      }
+
+      // Check for deep equality to prevent infinite loops
+      const needsUpdate = JSON.stringify(finalData) !== JSON.stringify(currentData);
+      
+      // Only update if we are adding data (e.g. initial load or missing fields)
+      // We check if brands count is 0 in current but > 0 in profile as a heuristic for "needs population"
+      const brandsMissing = (currentData.brandsWorkedWith?.length || 0) === 0 && (mappedData.brandsWorkedWith?.length || 0) > 0;
+      const isInitialLoad = Object.keys(currentData).length === 0;
+
+      if ((isInitialLoad || brandsMissing) && needsUpdate) {
+         console.log("Merging profile data into form", finalData);
+         setInformationData(finalData);
+         saveToStorage('informationData', finalData);
+      }
+    }
+  }, [user, informationData, saveToStorage]);
+
   // Save data to storage when it changes
   useEffect(() => {
     saveToStorage('informationData', informationData);

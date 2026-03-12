@@ -27,26 +27,39 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
   useEffect(() => {
     if (selectedCountry) {
       fetchStates(selectedCountry);
-      // Reset state and city when country changes
-      setValue('state', '');
-      setValue('city', '');
-      setCities([]);
-    } else {
-      setStates([]);
-      setCities([]);
+      // Only reset state and city if they're not already set (for initial load)
+      if (!watch('state')) {
+        setValue('state', '');
+        setValue('city', '');
+        setCities([]);
+      }
     }
-  }, [selectedCountry, setValue]);
+  }, [selectedCountry]);
 
   // Fetch cities when state changes
   useEffect(() => {
     if (selectedState) {
       fetchCities(selectedState);
-      // Reset city when state changes
-      setValue('city', '');
-    } else {
-      setCities([]);
+      // Only reset city if it's not already set (for initial load)
+      if (!watch('city')) {
+        setValue('city', '');
+      }
     }
-  }, [selectedState, setValue]);
+  }, [selectedState]);
+
+  useEffect(() => {
+    const initialCity = watch('city');
+    if (cities.length > 0 && initialCity) {
+      const cityExists = cities.some(city => 
+        (city._id || city.id) === initialCity
+      );
+      
+      if (!cityExists) {
+        console.log('City ID not found in cities list:', initialCity);
+        // setValue('city', '');
+      }
+    }
+  }, [cities]);
 
   // Fetch Countries
   const fetchCountries = async () => {
@@ -76,6 +89,18 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
       
       if (response.data && response.data.data) {
         setStates(response.data.data);
+        
+        const initialSelectedState = watch('state');
+        if (initialSelectedState) {
+          const stateExists = response.data.data.some(state => 
+            (state._id || state.id) === initialSelectedState
+          );
+          
+          if (!stateExists) {
+            console.log('State ID not found in states list:', initialSelectedState);
+            setValue('state', '');
+          }
+        }
       } else {
         setStates([]);
       }
@@ -96,6 +121,21 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
       
       if (response.data && response.data.data) {
         setCities(response.data.data);
+        
+        const initialSelectedCity = watch('city');
+        if (initialSelectedCity) {
+          const cityExists = response.data.data.some(city => 
+            (city._id || city.id) === initialSelectedCity
+          );
+          
+          if (cityExists) {
+            console.log('City found in list, auto-selecting:', initialSelectedCity);
+            setValue('city', initialSelectedCity);
+          } else {
+            console.log('City ID not found in cities list:', initialSelectedCity);
+            setValue('city', '');
+          }
+        }
       } else {
         setCities([]);
       }

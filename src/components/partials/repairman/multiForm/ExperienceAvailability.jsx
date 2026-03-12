@@ -89,28 +89,30 @@ const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error,
     );
 };
 
-// Brand Dropdown Component
+// Brand Dropdown Component - Updated to properly display selected brands
 const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-
-    // Filter brands based on search term and exclude already selected ones
+  console.log(brands,"brandds")
+  console.log("value",value)
+    // Get full brand objects for selected IDs - FIXED: Compare with _id
+    const selectedBrands = brands.filter(brand => value.includes(brand._id));
+  console.log(selectedBrands,"selcted")
     const filteredBrands = brands.filter(brand =>
         brand.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !value.some(selectedBrand => selectedBrand.id === brand._id)
+        !value.includes(brand._id)
     );
 
     const addBrand = (brand) => {
-        // Add the full brand object to value array for display
-        const brandWithId = { ...brand, id: brand._id };
-        const newValue = [...value, brandWithId];
+        const newValue = [...value, brand._id];
         onChange(newValue);
         setIsOpen(false);
         setSearchTerm("");
     };
 
     const removeBrand = (index) => {
-        const newValue = value.filter((_, i) => i !== index);
+        const brandToRemove = selectedBrands[index];
+        const newValue = value.filter(id => id !== brandToRemove._id);
         onChange(newValue);
     };
 
@@ -118,9 +120,9 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
         <div className="relative">
             {/* Selected Brands Display */}
             <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center transition-all ${error && touched ? 'border-red-500' : 'border-gray-300'}`}>
-                {value.map((brand, index) => (
+                {selectedBrands.map((brand, index) => (
                     <span
-                        key={brand.id}
+                        key={brand._id}
                         className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 border border-primary-200"
                     >
                         {brand.icon && (
@@ -149,11 +151,11 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
                     onClick={() => setIsOpen(!isOpen)}
                     className="flex-1 min-w-[120px] text-left text-gray-500 hover:text-gray-700 focus:outline-none"
                 >
-                    {value.length === 0 ? "Select brands..." : "Add more brands..."}
+                    {selectedBrands.length === 0 ? "Select brands..." : "Add more brands..."}
                 </button>
             </div>
 
-            {/* Dropdown */}
+            {/* Dropdown - rest remains the same */}
             {isOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
                     {/* Search Input */}
@@ -190,7 +192,7 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
                                     )}
                                     <div>
                                         <div className="font-medium capitalize">{brand.name}</div>
-                                        <div className="text-xs text-gray-500">{brand.totalModels} models</div>
+                                        <div className="text-xs text-gray-500">{brand.totalModels || 0} models</div>
                                     </div>
                                 </button>
                             ))
@@ -270,6 +272,10 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
     useEffect(() => {
         fetchBrands();
     }, []);
+
+    useEffect(() => {
+    console.log('Brands loaded:', brands);
+}, [brands]);
 
     // Render the form
     return (
@@ -375,12 +381,9 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                                         Loading brands...
                                     </div>
                                 ) : (
-                                    <BrandDropdown
-                                        value={field.value}
-                                        onChange={(brands) => {
-                                            // Store full brand objects for display
-                                            field.onChange(brands);
-                                        }}
+                                                      <BrandDropdown
+                                        value={field.value || []} // This should be array of IDs
+                                        onChange={field.onChange} // This expects array of IDs
                                         brands={brands}
                                         error={errors.brandsWorkedWith}
                                         touched={touchedFields?.brandsWorkedWith}
@@ -498,6 +501,8 @@ export { ExperienceAvailability as default };
 export const transformFormDataForAPI = (formData) => {
     return {
         ...formData,
-        brandsWorkedWith: formData.brandsWorkedWith?.map(brand => brand.id || brand._id) || []
+                brandsWorkedWith: formData.brandsWorkedWith || []
+
+        // brandsWorkedWith: formData.brandsWorkedWith?.map(brand => brand.id || brand._id) || []
     };
 };
