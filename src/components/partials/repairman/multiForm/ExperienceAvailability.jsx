@@ -89,73 +89,86 @@ const ChipInput = ({ value = [], onChange, placeholder, suggestions = [], error,
     );
 };
 
-// Brand Dropdown Component - Updated to properly display selected brands
+// Brand Dropdown Component - FIXED: Now properly displays selected brands
 const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState("");
-  console.log(brands,"brandds")
-  console.log("value",value)
-    // Get full brand objects for selected IDs - FIXED: Compare with _id
-    const selectedBrands = brands.filter(brand => value.includes(brand._id));
-  console.log(selectedBrands,"selcted")
+
+    // Get full brand objects for selected IDs
+    const selectedBrands = brands.filter(brand =>
+        value.some(selectedId => String(selectedId) === String(brand._id))
+    );
+
+    // Filter out already selected brands
     const filteredBrands = brands.filter(brand =>
         brand.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !value.includes(brand._id)
+        !value.some(selectedId => String(selectedId) === String(brand._id))
     );
 
     const addBrand = (brand) => {
+        // FIXED: Make sure we're storing just the ID
         const newValue = [...value, brand._id];
         onChange(newValue);
         setIsOpen(false);
         setSearchTerm("");
     };
 
-    const removeBrand = (index) => {
-        const brandToRemove = selectedBrands[index];
-        const newValue = value.filter(id => id !== brandToRemove._id);
+    const removeBrand = (brandId) => {
+        // FIXED: Remove by ID
+        const newValue = value.filter(id => String(id) !== String(brandId));
         onChange(newValue);
     };
 
     return (
         <div className="relative">
-            {/* Selected Brands Display */}
-            <div className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center transition-all ${error && touched ? 'border-red-500' : 'border-gray-300'}`}>
-                {selectedBrands.map((brand, index) => (
-                    <span
-                        key={brand._id}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-primary-100 text-primary-800 border border-primary-200"
-                    >
-                        {brand.icon && (
-                            <img
-                                src={brand.icon}
-                                alt={brand.name}
-                                className="w-4 h-4 mr-2 rounded-sm object-cover"
-                                onError={(e) => {
-                                    e.target.style.display = 'none';
-                                }}
-                            />
-                        )}
-                        {brand.name}
-                        <button
-                            type="button"
-                            onClick={() => removeBrand(index)}
-                            className="ml-2 text-primary-600 hover:text-primary-800 font-bold"
+            {/* Selected Brands Display - FIXED: Now shows correctly */}
+            <div 
+                className={`min-h-[44px] border rounded-lg px-3 py-2 flex flex-wrap gap-2 items-center cursor-pointer transition-all ${
+                    error && touched ? 'border-red-500' : 'border-gray-300 hover:border-orange-300'
+                }`}
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                {selectedBrands.length > 0 ? (
+                    selectedBrands.map((brand) => (
+                        <span
+                            key={brand._id}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-orange-100 text-orange-800 border border-orange-200"
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            ×
-                        </button>
-                    </span>
-                ))}
-
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(!isOpen)}
-                    className="flex-1 min-w-[120px] text-left text-gray-500 hover:text-gray-700 focus:outline-none"
-                >
-                    {selectedBrands.length === 0 ? "Select brands..." : "Add more brands..."}
-                </button>
+                            {brand.icon && (
+                                <img
+                                    src={brand.icon}
+                                    alt={brand.name}
+                                    className="w-4 h-4 mr-1 rounded-sm object-cover"
+                                    onError={(e) => {
+                                        e.target.style.display = 'none';
+                                    }}
+                                />
+                            )}
+                            {brand.name}
+                            <button
+                                type="button"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeBrand(brand._id);
+                                }}
+                                className="ml-1 text-orange-600 hover:text-orange-800 font-bold"
+                            >
+                                ×
+                            </button>
+                        </span>
+                    ))
+                ) : (
+                    <span className="text-gray-500">Select brands...</span>
+                )}
+                
+                {/* Dropdown indicator */}
+                <span className="ml-auto text-gray-400">
+                    {isOpen ? '▲' : '▼'}
+                </span>
             </div>
 
-            {/* Dropdown - rest remains the same */}
+            {/* Dropdown */}
             {isOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">
                     {/* Search Input */}
@@ -165,8 +178,9 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             placeholder="Search brands..."
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
                             autoFocus
+                            onClick={(e) => e.stopPropagation()}
                         />
                     </div>
 
@@ -178,22 +192,19 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
                                     key={brand._id}
                                     type="button"
                                     onClick={() => addBrand(brand)}
-                                    className="w-full text-left px-4 py-3 hover:bg-gray-100 focus:bg-gray-100 outline-none flex items-center"
+                                    className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100 outline-none flex items-center gap-2"
                                 >
                                     {brand.icon && (
                                         <img
                                             src={brand.icon}
                                             alt={brand.name}
-                                            className="w-6 h-6 mr-3 rounded-sm object-cover"
+                                            className="w-5 h-5 rounded-sm object-cover"
                                             onError={(e) => {
                                                 e.target.style.display = 'none';
                                             }}
                                         />
                                     )}
-                                    <div>
-                                        <div className="font-medium capitalize">{brand.name}</div>
-                                        <div className="text-xs text-gray-500">{brand.totalModels || 0} models</div>
-                                    </div>
+                                    <span className="capitalize">{brand.name}</span>
                                 </button>
                             ))
                         ) : (
@@ -222,62 +233,37 @@ const BrandDropdown = ({ value = [], onChange, brands = [], error, touched }) =>
     );
 };
 
-
-const ExperienceAvailability = ({ control, errors, touchedFields }) => {
-    // Local state to store the brands that will be worked with
+const ExperienceAvailability = ({ control, errors, touchedFields = {} }) => {
     const [brands, setBrands] = useState([]);
-
-    // Local state to track whether the brands are loading
     const [brandsLoading, setBrandsLoading] = useState(true);
 
-    // Predefined suggestions for chips
     const specializationSuggestions = [
         "Mobile Phone Repair", "Laptop Repair", "Desktop Repair", "Tablet Repair",
         "Gaming Console Repair", "Smart TV Repair", "Home Appliances", "Audio Equipment",
         "Camera Repair", "Smartwatch Repair", "Printer Repair", "Router Repair"
     ];
 
-    // Options for the working days
     const workingDaysOptions = [
         "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"
     ];
 
-    // Function to fetch the brands
     const fetchBrands = async () => {
         try {
-            // Set the loading state
             setBrandsLoading(true);
-
-            // Make the API call
             const { data } = await axiosInstance.get('/public/brands');
-
-            // Update the brands state
             setBrands(data?.data?.brands || []);
-
-            // Log the result
-            console.log('Fetched brands:', data?.data?.brands);
         } catch (error) {
-            // Log the error
             console.error('Error fetching brands:', error);
-
-            // Handle the error
             handleError(error);
         } finally {
-            // Set the loading state to false
             setBrandsLoading(false);
         }
     };
 
-    // Fetch the brands on mount
     useEffect(() => {
         fetchBrands();
     }, []);
 
-    useEffect(() => {
-    console.log('Brands loaded:', brands);
-}, [brands]);
-
-    // Render the form
     return (
         <div className="space-y-6">
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Experience & Availability</h2>
@@ -285,7 +271,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Years of Experience <span className="text-red-500">*</span></label>
                         <Controller
                             name="yearsOfExperience"
                             control={control}
@@ -295,13 +281,17 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                                     type="number"
                                     min="0"
                                     max="50"
+                                    step="1"
                                     placeholder="0"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.yearsOfExperience && touchedFields?.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                    onChange={(e) => field.onChange(e.target.value ? Number(e.target.value) : '')}
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                        errors.yearsOfExperience ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 />
                             )}
                         />
-                        {errors.yearsOfExperience && touchedFields?.yearsOfExperience && (
+                        {/* FIXED: Removed touchedFields check - error hamesha show hoga */}
+                        {errors.yearsOfExperience && (
                             <p className="text-red-500 text-sm mt-1">{errors.yearsOfExperience.message}</p>
                         )}
                     </div>
@@ -341,7 +331,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                 {/* Custom Chip Input for Specializations */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Specializations
+                        Specializations <span className="text-red-500">*</span>
                         <span className="text-xs text-gray-500 ml-2">(Type and press Enter to add, or select from suggestions)</span>
                     </label>
                     <Controller
@@ -359,15 +349,15 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                             />
                         )}
                     />
-                    {errors.specializations && touchedFields?.specializations && (
+                    {errors.specializations && (
                         <p className="text-red-500 text-sm mt-1">{errors.specializations.message}</p>
                     )}
                 </div>
 
-                {/* Brand Dropdown - Modified to handle ObjectId transformation */}
+                {/* Brand Dropdown - FIXED */}
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Brands Worked With
+                        Brands Worked With <span className="text-red-500">*</span>
                         <span className="text-xs text-gray-500 ml-2">(Select from available brands)</span>
                     </label>
                     <Controller
@@ -381,9 +371,9 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                                         Loading brands...
                                     </div>
                                 ) : (
-                                                      <BrandDropdown
-                                        value={field.value || []} // This should be array of IDs
-                                        onChange={field.onChange} // This expects array of IDs
+                                    <BrandDropdown
+                                        value={field.value || []}
+                                        onChange={field.onChange}
                                         brands={brands}
                                         error={errors.brandsWorkedWith}
                                         touched={touchedFields?.brandsWorkedWith}
@@ -392,13 +382,13 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                             </>
                         )}
                     />
-                    {errors.brandsWorkedWith && touchedFields?.brandsWorkedWith && (
+                    {errors.brandsWorkedWith && (
                         <p className="text-red-500 text-sm mt-1">{errors.brandsWorkedWith.message}</p>
                     )}
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Working Days <span className="text-red-500">*</span></label>
                     <Controller
                         name="workingDays"
                         control={control}
@@ -406,7 +396,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                         render={({ field }) => (
                             <div className="grid grid-cols-3 md:grid-cols-7 gap-3">
                                 {workingDaysOptions.map((day) => (
-                                    <label key={day} className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50">
+                                    <label key={day} className="flex items-center space-x-2 p-2 border rounded-lg hover:bg-gray-50 cursor-pointer">
                                         <input
                                             type="checkbox"
                                             checked={field.value.includes(day)}
@@ -425,14 +415,14 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                             </div>
                         )}
                     />
-                    {errors.workingDays && touchedFields?.workingDays && (
+                    {errors.workingDays && (
                         <p className="text-red-500 text-sm mt-1">{errors.workingDays.message}</p>
                     )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - Start</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - Start <span className="text-red-500">*</span></label>
                         <Controller
                             name="workingHours.start"
                             control={control}
@@ -440,18 +430,19 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                                 <input
                                     {...field}
                                     type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.start && touchedFields?.workingHours?.start ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                        errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 />
                             )}
                         />
-                        {errors.workingHours?.start && touchedFields?.workingHours?.start && (
+                        {errors.workingHours?.start && (
                             <p className="text-red-500 text-sm mt-1">{errors.workingHours.start.message}</p>
                         )}
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - End</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - End <span className="text-red-500">*</span></label>
                         <Controller
                             name="workingHours.end"
                             control={control}
@@ -459,33 +450,53 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
                                 <input
                                     {...field}
                                     type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.workingHours?.end && touchedFields?.workingHours?.end ? 'border-red-500' : 'border-gray-300'
-                                        }`}
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                        errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
+                                    }`}
                                 />
                             )}
                         />
-                        {errors.workingHours?.end && touchedFields?.workingHours?.end && (
+                        {errors.workingHours?.end && (
                             <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>
                         )}
                     </div>
                 </div>
 
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>
                     <Controller
                         name="description"
                         control={control}
                         render={({ field }) => (
-                            <textarea
-                                {...field}
-                                rows="4"
-                                placeholder="Describe your repair services, expertise, and what makes you unique..."
-                                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${errors.description && touchedFields?.description ? 'border-red-500' : 'border-gray-300'
+                            <div>
+                                <textarea
+                                    {...field}
+                                    rows="4"
+                                    placeholder="Describe your repair services, expertise, and what makes you unique..."
+                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+                                        errors.description ? 'border-red-500' : 'border-gray-300'
                                     }`}
-                            />
+                                />
+                                {/* Character Counter */}
+                                <div className="flex justify-between items-center mt-1">
+                                    <span className={`text-xs ${field.value?.length < 50 ? 'text-red-500' : 'text-green-600'}`}>
+                                        {field.value?.length || 0} / 1000 characters
+                                    </span>
+                                    {field.value?.length < 50 && (
+                                        <span className="text-xs text-red-500">
+                                            Minimum 50 characters required ({50 - (field.value?.length || 0)} left)
+                                        </span>
+                                    )}
+                                    {field.value?.length > 950 && (
+                                        <span className="text-xs text-orange-500">
+                                            Maximum limit approaching
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
                         )}
                     />
-                    {errors.description && touchedFields?.description && (
+                    {errors.description && (
                         <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>
                     )}
                 </div>
@@ -494,15 +505,16 @@ const ExperienceAvailability = ({ control, errors, touchedFields }) => {
     );
 };
 
-// Export both the component and helper function
 export { ExperienceAvailability as default };
 
-// Helper function to transform data before API submission
+// Helper function to transform data before API submission - FIXED
 export const transformFormDataForAPI = (formData) => {
     return {
         ...formData,
-                brandsWorkedWith: formData.brandsWorkedWith || []
-
-        // brandsWorkedWith: formData.brandsWorkedWith?.map(brand => brand.id || brand._id) || []
+        yearsOfExperience: formData.yearsOfExperience ? Number(formData.yearsOfExperience) : 0,
+        brandsWorkedWith: formData.brandsWorkedWith || [],
+        specializations: formData.specializations || [],
+        workingDays: formData.workingDays || [],
+        pickupService: formData.pickupService || false
     };
 };

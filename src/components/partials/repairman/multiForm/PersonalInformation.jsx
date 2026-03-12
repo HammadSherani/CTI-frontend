@@ -9,7 +9,7 @@ const PersonalInformation = ({ control, errors }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Full Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Full Name <span className="text-red-500">*</span></label>
           <Controller
             name="fullName"
             control={control}
@@ -29,7 +29,7 @@ const PersonalInformation = ({ control, errors }) => {
 
         {/* Father's Name */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Father's Name</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Father's Name <span className="text-red-500">*</span></label>
           <Controller
             name="fatherName"
             control={control}
@@ -49,7 +49,7 @@ const PersonalInformation = ({ control, errors }) => {
 
         {/* T.C. Identity Number */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">T.C. Identity Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">T.C. Identity Number <span className="text-red-500">*</span></label>
           <Controller
             name="nationalIdOrCitizenNumber"
             control={control}
@@ -71,7 +71,7 @@ const PersonalInformation = ({ control, errors }) => {
 
         {/* Date of Birth */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Date of Birth <span className="text-red-500">*</span></label>
           <Controller
             name="dob"
             control={control}
@@ -90,7 +90,7 @@ const PersonalInformation = ({ control, errors }) => {
 
         {/* Gender */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Gender</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Gender <span className="text-red-500">*</span></label>
           <Controller
             name="gender"
             control={control}

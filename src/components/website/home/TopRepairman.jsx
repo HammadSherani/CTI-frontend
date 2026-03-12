@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Autoplay, Pagination } from 'swiper/modules';
@@ -6,6 +6,10 @@ import { Autoplay, Pagination } from 'swiper/modules';
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/pagination';
+import { useMultiLoading } from '../../../hooks/useMultiloading';
+import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
+import handleError from '@/helper/handleError'
 
 const customNavigationStyles = `
   .custom-swiper-button-next-top,
@@ -14,7 +18,7 @@ const customNavigationStyles = `
     height: 38px;
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 50%; /* Fully rounded (circular) */
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -78,97 +82,58 @@ const cardVariants = {
   },
 };
 
-const buttonVariants = {
-  hover: {
-    scale: 1.02,
-    transition: {
-      duration: 0.2,
-    },
-  },
-  tap: {
-    scale: 0.98,
-  },
-};
+// Skeleton loader component
+const RepairmanSkeleton = () => (
+  <div className="bg-white rounded-2xl overflow-hidden border border-gray-100">
+    <div className="relative h-52 w-full bg-gray-200 animate-pulse">
+      <div className="absolute -bottom-6 left-6 border-4 border-white rounded-full w-16 h-16 overflow-hidden bg-gray-300" />
+    </div>
+    <div className="p-6 pt-8">
+      <div className="flex items-center justify-between mb-2">
+        <div className="space-y-2">
+          <div className="h-5 w-32 bg-gray-200 rounded animate-pulse" />
+          <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+        </div>
+        <div className="space-y-2 text-right">
+          <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+          <div className="h-3 w-16 bg-gray-200 rounded animate-pulse ml-auto" />
+        </div>
+      </div>
+      <div className="flex items-center gap-3 mt-4">
+        <div className="flex-1 h-10 bg-gray-200 rounded-full animate-pulse" />
+        <div className="w-12 h-10 bg-gray-200 rounded-full animate-pulse" />
+      </div>
+    </div>
+  </div>
+);
 
 function TopRepairman() {
   const swiperRef = useRef(null);
-
-  // Sample repairman data
-  const repairmen = [
-    {
-      id: 1,
-      name: 'John Smith',
-      specialty: 'Plumbing',
-      rating: 4.9,
-      reviews: 152,
-      image: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=400&h=400&fit=crop',
-      experience: '10+ years'
-    },
-    {
-      id: 2,
-      name: 'Mike Johnson',
-      specialty: 'Electrical',
-      rating: 4.8,
-      reviews: 134,
-      image: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=400&h=400&fit=crop',
-      experience: '8+ years'
-    },
-    {
-      id: 3,
-      name: 'David Brown',
-      specialty: 'HVAC',
-      rating: 4.9,
-      reviews: 167,
-      image: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=400&h=400&fit=crop',
-      experience: '12+ years'
-    },
-    {
-      id: 4,
-      name: 'James Wilson',
-      specialty: 'Carpentry',
-      rating: 4.7,
-      reviews: 98,
-      image: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop',
-      experience: '9+ years'
-    },
-    {
-      id: 5,
-      name: 'Robert Davis',
-      specialty: 'Appliance Repair',
-      rating: 4.8,
-      reviews: 145,
-      image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&h=400&fit=crop',
-      experience: '11+ years'
-    },
-    {
-      id: 6,
-      name: 'Michael Lee',
-      specialty: 'General Handyman',
-      rating: 4.9,
-      reviews: 189,
-      image: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&h=400&fit=crop',
-      experience: '15+ years'
-    }
-  ];
+  
+  // Get repairmen data from Redux store
+  const { repairmans } = useSelector((state) => state.home);
+  const { user } = useSelector((state) => state.auth);
+  const { multiloading } = useMultiLoading();
+  
+  console.log('Repairmen from Redux:', repairmans);
+  console.log('User from Redux:', user);
 
   const handlePrev = () => {
-    console.log('Prev button clicked'); // Debug log
     if (swiperRef.current && swiperRef.current.swiper) {
       swiperRef.current.swiper.slidePrev();
     }
   };
 
   const handleNext = () => {
-    console.log('Next button clicked'); // Debug log
     if (swiperRef.current && swiperRef.current.swiper) {
       swiperRef.current.swiper.slideNext();
     }
   };
 
-  // Optional: Update button states (safe version for loop=true)
+  // Update button states
   useEffect(() => {
     const swiper = swiperRef.current?.swiper;
-    if (swiper && !swiper.params.loop) { // Only if not loop
+    if (swiper && !swiper.params.loop) {
       const updateButtons = () => {
         const prevBtn = document.querySelector('.custom-swiper-button-prev-top');
         const nextBtn = document.querySelector('.custom-swiper-button-next-top');
@@ -177,9 +142,12 @@ function TopRepairman() {
       };
       swiper.on('slideChange', updateButtons);
       updateButtons();
-      return () => swiper.off('slideChange', updateButtons); // Cleanup
+      return () => swiper.off('slideChange', updateButtons);
     }
-  }, []);
+  }, [repairmans]); // Re-run when repairmen data changes
+
+  const isLoading = multiloading?.repairmans;
+  const repairmenList = repairmans || []; // Ensure we have an array
 
   return (
     <motion.div
@@ -200,48 +168,50 @@ function TopRepairman() {
           Top Repairman
         </motion.h2>
 
-        <div className='flex gap-3'>
-          <motion.div 
-            className='custom-swiper-button-prev-top'
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            onClick={handlePrev}
-          >
-            <svg 
-              className='w-5 h-5' 
-              fill='none' 
-              stroke='currentColor' 
-              viewBox='0 0 24 24'
-              strokeWidth={2}
+        {!isLoading && repairmenList.length > 0 && (
+          <div className='flex gap-3'>
+            <motion.div 
+              className='custom-swiper-button-prev-top'
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              onClick={handlePrev}
             >
-              <path 
-                strokeLinecap='round' 
-                strokeLinejoin='round' 
-                d='M15 19l-7-7 7-7' 
-              />
-            </svg>
-          </motion.div>
-          <motion.div 
-            className='custom-swiper-button-next-top'
-            whileTap={{ scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            onClick={handleNext}
-          >
-            <svg 
-              className='w-5 h-5' 
-              fill='none' 
-              stroke='currentColor' 
-              viewBox='0 0 24 24'
-              strokeWidth={2}
+              <svg 
+                className='w-5 h-5' 
+                fill='none' 
+                stroke='currentColor' 
+                viewBox='0 0 24 24'
+                strokeWidth={2}
+              >
+                <path 
+                  strokeLinecap='round' 
+                  strokeLinejoin='round' 
+                  d='M15 19l-7-7 7-7' 
+                />
+              </svg>
+            </motion.div>
+            <motion.div 
+              className='custom-swiper-button-next-top'
+              whileTap={{ scale: 0.95 }}
+              transition={{ duration: 0.2 }}
+              onClick={handleNext}
             >
-              <path 
-                strokeLinecap='round' 
-                strokeLinejoin='round' 
-                d='M9 5l7 7-7 7' 
-              />
-            </svg>
-          </motion.div>
-        </div>
+              <svg 
+                className='w-5 h-5' 
+                fill='none' 
+                stroke='currentColor' 
+                viewBox='0 0 24 24'
+                strokeWidth={2}
+              >
+                <path 
+                  strokeLinecap='round' 
+                  strokeLinejoin='round' 
+                  d='M9 5l7 7-7 7' 
+                />
+              </svg>
+            </motion.div>
+          </div>
+        )}
       </div>
 
       <div className='relative'>
@@ -254,8 +224,7 @@ function TopRepairman() {
             delay: 2000,
             disableOnInteraction: false,
           }}
-         
-          loop={true}
+          loop={repairmenList.length > 4} // Only loop if we have enough items
           breakpoints={{
             320: {
               slidesPerView: 1,
@@ -272,61 +241,96 @@ function TopRepairman() {
           }}
           className="mySwiper pb-12"
         >
-          {repairmen.map((repairman) => (
-            <SwiperSlide key={repairman.id}>
-              <motion.div
-                className='bg-white rounded-2xl overflow-hidden transition-shadow transform hover:-translate-y-1 hover:shadow-xl border border-gray-100'
-                variants={cardVariants}
-              >
-                <div className='relative h-52 w-full bg-gray-100'>
-                  <img
-                    src={repairman.image}
-                    alt={repairman.name}
-                    className='w-full h-full object-cover'
-                  />
+          {isLoading ? (
+            // Show skeleton loaders
+            [1, 2, 3, 4].map((index) => (
+              <SwiperSlide key={`skeleton-${index}`}>
+                <RepairmanSkeleton />
+              </SwiperSlide>
+            ))
+          ) : repairmenList.length > 0 ? (
+            // Show actual data from Redux
+            repairmenList.map((repairman) => (
+              <SwiperSlide key={repairman._id}>
+                <motion.div
+                  className='bg-white rounded-2xl overflow-hidden transition-shadow transform hover:-translate-y-1 hover:shadow-xl border border-gray-100'
+                  variants={cardVariants}
+                >
+                  <div className='relative h-52 w-full bg-gray-100'>
+                    <img
+                      src={repairman.repairmanProfile?.profilePhoto || repairman.profilePhoto || 'https://via.placeholder.com/400x400?text=No+Image'}
+                      alt={repairman.repairmanProfile?.fullName || repairman.name}
+                      className='w-full h-full object-cover'
+                      onError={(e) => {
+                        e.target.src = 'https://via.placeholder.com/400x400?text=No+Image';
+                      }}
+                    />
 
-                  {/* Rating badge */}
-                  <div className='absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 shadow'>
-                    <svg className='w-4 h-4' viewBox='0 0 20 20' fill='currentColor'>
-                      <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
-                    </svg>
-                    <span className='text-sm font-medium'>{repairman.rating}</span>
-                  </div>
-
-                  {/* Avatar overlapping image */}
-                  <div className='absolute -bottom-6 left-6 border-4 border-white rounded-full w-16 h-16 overflow-hidden shadow-lg'>
-                    <img src={repairman.image} alt={repairman.name} className='w-full h-full object-cover' />
-                  </div>
-                </div>
-
-                <div className='p-6 pt-8'>
-                  <div className='flex items-center justify-between mb-2'>
-                    <div>
-                      <h3 className='text-lg font-semibold text-gray-900'>{repairman.name}</h3>
-                      <p className='text-sm text-primary-600 font-medium'>{repairman.specialty}</p>
-                    </div>
-                    <div className='text-right'>
-                      <p className='text-sm text-gray-500'>{repairman.reviews} reviews</p>
-                      <p className='text-xs text-gray-400'>{repairman.experience}</p>
-                    </div>
-                  </div>
-
-                  <div className='flex items-center gap-3 mt-4'>
-                    <button
-                      className='flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-2 rounded-full shadow-md hover:opacity-95 transition'
-                    >
-                      Book Now
-                    </button>
-                    <button className='w-12 h-12 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:shadow-md'>
-                      <svg className='w-5 h-5 text-primary-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 8l7.89 4.26a2 2 0 001.85 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
+                    {/* Rating badge - Using repairmanProfile.rating or default */}
+                    <div className='absolute top-4 right-4 bg-gradient-to-r from-yellow-400 to-yellow-300 text-gray-900 px-3 py-1 rounded-full text-sm font-semibold flex items-center gap-2 shadow'>
+                      <svg className='w-4 h-4' viewBox='0 0 20 20' fill='currentColor'>
+                        <path d='M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z' />
                       </svg>
-                    </button>
+                      <span className='text-sm font-medium'>
+                        {repairman.repairmanProfile?.rating || '4.5'}
+                      </span>
+                    </div>
+
+                    {/* Avatar overlapping image */}
+                    <div className='absolute -bottom-6 left-6 border-4 border-white rounded-full w-16 h-16 overflow-hidden shadow-lg'>
+                      <img 
+                        src={repairman.repairmanProfile?.profilePhoto || repairman.profilePhoto || 'https://via.placeholder.com/100x100?text=Avatar'} 
+                        alt={repairman.repairmanProfile?.fullName || repairman.name} 
+                        className='w-full h-full object-cover'
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/100x100?text=Avatar';
+                        }}
+                      />
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            </SwiperSlide>
-          ))}
+
+                  <div className='p-6 pt-8'>
+                    <div className='flex items-center justify-between mb-2'>
+                      <div>
+                        <h3 className='text-lg font-semibold text-gray-900'>
+                          {repairman.repairmanProfile?.fullName || repairman.name}
+                        </h3>
+                        <p className='text-sm text-primary-600 font-medium'>
+                          {repairman.repairmanProfile?.specializations?.[0] || 'Repairman'}
+                        </p>
+                      </div>
+                      <div className='text-right'>
+                        <p className='text-sm text-gray-500'>
+                          {repairman.repairmanProfile?.totalJobs || 0} jobs
+                        </p>
+                        <p className='text-xs text-gray-400'>
+                          {repairman.city?.name || repairman.repairmanProfile?.city || 'City'}, {repairman.state?.name || ''}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className='flex items-center gap-3 mt-4'>
+                      <button
+                        className='flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-2 rounded-full shadow-md hover:opacity-95 transition'
+                      >
+                        Book Now
+                      </button>
+                      <button className='w-12 h-12 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:shadow-md'>
+                        <svg className='w-5 h-5 text-primary-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 8l7.89 4.26a2 2 0 001.85 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </SwiperSlide>
+            ))
+          ) : (
+            // No data state
+            <div className="col-span-full text-center py-10">
+              <p className="text-gray-500">No repairmen found in your area</p>
+            </div>
+          )}
         </Swiper>
       </div>
     </motion.div>

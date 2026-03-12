@@ -1,65 +1,74 @@
-
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import axiosInstance from "@/config/axiosInstance";
-import { baseUrl, getConfig } from "./slicer";
-import { HOMEPAGE_API } from "./apiRoutes";
-import handleError from "@/helper/handleError";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import axiosInstance from '@/config/axiosInstance';
+import { baseUrl, getConfig } from './slicer';
+import { HOMEPAGE_API } from './apiRoutes';
 
 export const fetchHome = createAsyncThunk(
-  "home/fetch",
+  'home/fetchHome',
   async (_, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get(baseUrl + HOMEPAGE_API, getConfig());
-      return response.data;
-    } catch (err) {
-      handleError(err);
-      const payload = err?.response?.data || err?.message || "Something went wrong";
-      return rejectWithValue(payload);
+      return response.data.data;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch home data');
     }
   }
 );
 
 const initialState = {
-  data: null,
-  isLoading: false,
-  isError: false,
-  isSuccess: false,
-  heroSlides: null,
-  services: null,
-  reviews: null,
-  blogs: null,
-  categories: null,
+  homeData: null,
+  categories: [],
+  banners: [],
+  blogs: [],
+  reviews: [],
+  repairmans: [],
+  services: [],
+  heroSlides: [],
+  loading: false,
+  error: null,
+  lastFetched: null 
 };
 
 const homeSlice = createSlice({
-  name: "home",
+  name: 'home',
   initialState,
-  reducers: {},
+  reducers: {
+    clearHomeData: (state) => {
+      state.homeData = null;
+      state.categories = [];
+      state.banners = [];
+      state.blogs = [];
+      state.reviews = [];
+      state.repairmans = [];
+      state.services = [];
+      state.heroSlides = [];
+      state.lastFetched = null;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchHome.pending, (state) => {
-        state.isLoading = true;
-        state.isError = false;
-        state.isSuccess = false;
+        state.loading = true;
+        state.error = null;
       })
       .addCase(fetchHome.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.isSuccess = true;
-        state.data = action.payload;
-        state.heroSlides = action.payload.data.banners;
-        state.services = action.payload.data.services;
-        state.reviews = action.payload.data.reviews;
-        state.categories = action.payload.data.categories;
-        state.blogs=action.payload.data.blogs;
+        state.loading = false;
+        state.homeData = action.payload;
+        state.categories = action.payload.categories || [];
+        state.banners = action.payload.banners || [];
+        state.blogs = action.payload.blogs || [];
+        state.reviews = action.payload.reviews || [];
+        state.repairmans = action.payload.repairmen || [];
+        state.services = action.payload.services || [];
+        state.heroSlides = action.payload.banners || [];
+        state.lastFetched = Date.now();
       })
       .addCase(fetchHome.rejected, (state, action) => {
-        state.isLoading = false;
-        state.isError = true;
-        state.isSuccess = false;
+        state.loading = false;
+        state.error = action.payload;
       });
-  },
+  }
 });
 
+export const { clearHomeData } = homeSlice.actions;
 export default homeSlice.reducer;
-export const {} = homeSlice.actions;
-export { fetchHome };

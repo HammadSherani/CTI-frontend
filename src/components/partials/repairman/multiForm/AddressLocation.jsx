@@ -18,7 +18,6 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
   const selectedState = watch('state');
   const selectedCity = watch('city');
 
-  // Fetch countries on component mount
   useEffect(() => {
     fetchCountries();
   }, []);
@@ -286,53 +285,70 @@ const AddressLocation = ({ control, errors, setValue, watch }) => {
         </div>
 
         {/* ZIP Code */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            ZIP Code <span className="text-red-500">*</span>
-          </label>
-          <Controller
-            name="zipCode"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                placeholder="Enter ZIP code"
-                maxLength={5}
-                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                  errors.zipCode ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-            )}
-          />
-          {errors.zipCode && (
-            <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>
-          )}
-        </div>
+      {/* ZIP Code - Sirf Numbers */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    ZIP Code <span className="text-red-500">*</span>
+  </label>
+  <Controller
+    name="zipCode"
+    control={control}
+    render={({ field }) => (
+      <input
+        {...field}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="Enter ZIP code"
+        maxLength={5}
+        onChange={(e) => {
+          const value = e.target.value;
+          // Sirf numbers allow karo
+          const numbersOnly = value.replace(/[^0-9]/g, '');
+          field.onChange(numbersOnly);
+        }}
+        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+          errors.zipCode ? 'border-red-500' : 'border-gray-300'
+        }`}
+      />
+    )}
+  />
+  {errors.zipCode && (
+    <p className="text-red-500 text-sm mt-1">{errors.zipCode.message}</p>
+  )}
+</div>
 
-        {/* Tax Number */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Tax Number <span className="text-red-500">*</span>
-          </label>
-          <Controller
-            name="taxNumber"
-            control={control}
-            render={({ field }) => (
-              <input
-                {...field}
-                type="text"
-                placeholder="Enter tax number"
-                className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                  errors.taxNumber ? 'border-red-500' : 'border-gray-300'
-                }`}
-              />
-            )}
-          />
-          {errors.taxNumber && (
-            <p className="text-red-500 text-sm mt-1">{errors.taxNumber.message}</p>
-          )}
-        </div>
+{/* Tax Number - Sirf Numbers */}
+<div>
+  <label className="block text-sm font-medium text-gray-700 mb-2">
+    Tax Number <span className="text-red-500">*</span>
+  </label>
+  <Controller
+    name="taxNumber"
+    control={control}
+    render={({ field }) => (
+      <input
+        {...field}
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        placeholder="Enter tax number"
+        onChange={(e) => {
+          const value = e.target.value;
+          // Sirf numbers allow karo
+          const numbersOnly = value.replace(/[^0-9]/g, '');
+          field.onChange(numbersOnly);
+        }}
+        className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+          errors.taxNumber ? 'border-red-500' : 'border-gray-300'
+        }`}
+      />
+    )}
+  />
+  {errors.taxNumber && (
+    <p className="text-red-500 text-sm mt-1">{errors.taxNumber.message}</p>
+  )}
+</div>
 
         {/* Full Address */}
         <div className="md:col-span-2">

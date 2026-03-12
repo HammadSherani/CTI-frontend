@@ -2,15 +2,23 @@
 import { Controller } from "react-hook-form";
 
 const ContactInformation = ({ control, errors, user }) => {
+  
+  const handleNumberInput = (e, onChange) => {
+    const value = e.target.value;
+    // Sirf digits allow karo (0-9)
+    const numbersOnly = value.replace(/[^0-9]/g, '');
+    onChange(numbersOnly);
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Contact Information</h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-        {/* Mobile Number */}
+        {/* Mobile Number - Sirf Numbers */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Mobile Number <span className="text-red-500">*</span></label>
           <Controller
             name="mobileNumber"
             control={control}
@@ -18,7 +26,10 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="05XXXXXXXXX"
+                onChange={(e) => handleNumberInput(e, field.onChange)}
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.mobileNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -28,9 +39,9 @@ const ContactInformation = ({ control, errors, user }) => {
           {errors.mobileNumber && <p className="text-red-500 text-sm mt-1">{errors.mobileNumber.message}</p>}
         </div>
 
-        {/* WhatsApp Number */}
+        {/* WhatsApp Number - Sirf Numbers */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">WhatsApp Number <span className="text-red-500">*</span></label>
           <Controller
             name="whatsappNumber"
             control={control}
@@ -38,7 +49,10 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="05XXXXXXXXX"
+                onChange={(e) => handleNumberInput(e, field.onChange)}
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.whatsappNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
@@ -50,7 +64,7 @@ const ContactInformation = ({ control, errors, user }) => {
 
         {/* Email Address (Disabled) */}
         <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Email Address <span className="text-red-500">*</span></label>
           <Controller
             name="emailAddress"
             control={control}
@@ -72,7 +86,7 @@ const ContactInformation = ({ control, errors, user }) => {
 
         {/* Emergency Contact Person */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Person</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Person <span className="text-red-500">*</span></label>
           <Controller
             name="emergencyContactPerson"
             control={control}
@@ -92,9 +106,9 @@ const ContactInformation = ({ control, errors, user }) => {
           )}
         </div>
 
-        {/* Emergency Contact Number */}
+        {/* Emergency Contact Number - Sirf Numbers */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Number</label>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Emergency Contact Number <span className="text-red-500">*</span></label>
           <Controller
             name="emergencyContactNumber"
             control={control}
@@ -102,7 +116,10 @@ const ContactInformation = ({ control, errors, user }) => {
               <input
                 {...field}
                 type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
                 placeholder="05XXXXXXXXX"
+                onChange={(e) => handleNumberInput(e, field.onChange)}
                 className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
                   errors.emergencyContactNumber ? 'border-red-500' : 'border-gray-300'
                 }`}
