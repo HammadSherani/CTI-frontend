@@ -144,55 +144,63 @@ const step5Schema = yup.object({
 
 const schemas = [step1Schema, step2Schema, step3Schema, step4Schema, step5Schema];
 
-// Custom hook for form persistence
-const useFormPersistence = () => {
-  const KEY_PREFIX = 'repairmanForm_';
+const STORAGE_KEY = 'repairmanFormData';
 
-  const saveToStorage = (key, data) => {
-    if (typeof window !== 'undefined') {
-      try {
-        sessionStorage.setItem(KEY_PREFIX + key, JSON.stringify(data));
-      } catch (error) {
-        console.warn('Failed to save to sessionStorage:', error);
-      }
-    }
-  };
+// File fields cannot be JSON-serialised – skip them when persisting
+const FILE_FIELDS = [
+  'profilePhoto',
+  'nationalIdOrPassportScan',
+  'shopPhoto',
+  'utilityBillOrShopProof',
+  'certifications',
+];
 
-  const getFromStorage = (key) => {
-    if (typeof window !== 'undefined') {
-      try {
-        const saved = sessionStorage.getItem(KEY_PREFIX + key);
-        return saved ? JSON.parse(saved) : null;
-      } catch (error) {
-        console.warn('Failed to read from sessionStorage:', error);
-        return null;
-      }
-    }
+const saveFormData = (data, currentStep) => {
+  if (typeof window === 'undefined') return;
+  try {
+    const serializable = { currentStep };
+    Object.keys(data).forEach(key => {
+      if (FILE_FIELDS.includes(key)) return;
+      serializable[key] = data[key];
+    });
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(serializable));
+  } catch (error) {
+    console.warn('Failed to save to sessionStorage:', error);
+  }
+};
+
+const loadSavedFormData = () => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : null;
+  } catch (error) {
+    console.warn('Failed to read from sessionStorage:', error);
     return null;
-  };
+  }
+};
 
-  const clearStorage = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        Object.keys(sessionStorage)
-          .filter(key => key.startsWith(KEY_PREFIX))
-          .forEach(key => sessionStorage.removeItem(key));
-      } catch (error) {
-        console.warn('Failed to clear sessionStorage:', error);
-      }
-    }
-  };
-
-  return { saveToStorage, getFromStorage, clearStorage };
+const clearSavedFormData = () => {
+  if (typeof window === 'undefined') return;
+  try {
+    sessionStorage.removeItem(STORAGE_KEY);
+  } catch (error) {
+    console.warn('Failed to clear sessionStorage:', error);
+  }
 };
 
 export default function RepairmanMultiStepForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { saveToStorage, getFromStorage, clearStorage } = useFormPersistence();
 
-  // Initialize step from URL or storage
+  // Load any previously saved form data once on mount
+  const [savedData] = useState(() => {
+    if (typeof window === 'undefined') return null;
+    return loadSavedFormData();
+  });
+
+  // Initialize step from URL → sessionStorage → default 1
   const [step, setStep] = useState(() => {
     const urlStep = searchParams.get('step');
     if (urlStep && !isNaN(parseInt(urlStep))) {
@@ -202,22 +210,13 @@ export default function RepairmanMultiStepForm() {
       }
     }
 
-    const savedStep = getFromStorage('step');
+    const savedStep = savedData?.currentStep;
     if (savedStep && savedStep >= 1 && savedStep <= 5) {
       return savedStep;
     }
 
     return 1;
   });
-
-  // Initialize form data from storage
-  const [informationData, setInformationData] = useState(() =>
-    getFromStorage('informationData') || {}
-  );
-
-  const [documentData, setDocumentData] = useState(() =>
-    getFromStorage('documentData') || {}
-  );
 
   const { user, token, isProfileComplete } = useSelector(state => state.auth);
   const dispatch = useDispatch();
@@ -236,7 +235,6 @@ export default function RepairmanMultiStepForm() {
     if (newStep < 1 || newStep > 5) return;
 
     setStep(newStep);
-    saveToStorage('step', newStep);
 
     if (typeof window !== 'undefined') {
       const newUrl = new URL(window.location);
@@ -244,15 +242,6 @@ export default function RepairmanMultiStepForm() {
       router.replace(newUrl.pathname + newUrl.search, { scroll: false });
     }
   };
-
-  // Save data to storage when it changes
-  useEffect(() => {
-    saveToStorage('informationData', informationData);
-  }, [informationData, saveToStorage]);
-
-  useEffect(() => {
-    saveToStorage('documentData', documentData);
-  }, [documentData, saveToStorage]);
 
   // Update URL on initial load if step is from storage
   useEffect(() => {
@@ -277,7 +266,6 @@ export default function RepairmanMultiStepForm() {
     resolver: yupResolver(schemas[step - 1]),
     mode: "onChange",
     defaultValues: {
-      emailAddress: user?.email || "",
       shopName: '',
       country: '',
       state: '',
@@ -306,74 +294,34 @@ export default function RepairmanMultiStepForm() {
       shopPhoto: null,
       utilityBillOrShopProof: null,
       certifications: null,
+      // Spread saved (non-file) data so all previous steps are pre-filled
+      ...(savedData || {}),
+      // Always use the authenticated user's email (overrides any saved value)
+      emailAddress: user?.email || savedData?.emailAddress || "",
     }
   });
 
-  // Load saved data into form when step changes or component mounts
+  // Auto-save all non-file form fields to sessionStorage on every input change
   useEffect(() => {
-    const allSavedData = { ...informationData, ...documentData };
-
-    reset({
-      emailAddress: user?.email || "",
-      shopName: '',
-      country: '',
-      state: '',
-      city: '',
-      zipCode: '',
-      fullAddress: '',
-      taxNumber: '',
-      fullName: '',
-      fatherName: '',
-      nationalIdOrCitizenNumber: '',
-      dob: '',
-      gender: '',
-      mobileNumber: '',
-      whatsappNumber: '',
-      emergencyContactPerson: '',
-      emergencyContactNumber: '',
-      yearsOfExperience: '',
-      specializations: [],
-      brandsWorkedWith: [],
-      description: '',
-      workingDays: [],
-      workingHours: { start: '', end: '' },
-      pickupService: false,
-      profilePhoto: null,
-      nationalIdOrPassportScan: null,
-      shopPhoto: null,
-      utilityBillOrShopProof: null,
-      certifications: null,
-      ...allSavedData,
+    const subscription = watch((data) => {
+      saveFormData(data, step);
     });
-  }, [step, reset, informationData, documentData, user?.email]);
+    return () => subscription.unsubscribe();
+  }, [step]); // watch is a stable reference from useForm; re-subscribe when step changes
 
   const nextStep = async () => {
     const isValid = await trigger();
-    if (isValid) {
-      const currentData = getValues();
-
-      // Save current step data
-      if (step <= 4) {
-        setInformationData(prev => ({ ...prev, ...currentData }));
-      } else {
-        setDocumentData(prev => ({ ...prev, ...currentData }));
-      }
-
-      if (step < steps.length) {
-        updateStep(step + 1);
-      }
+    if (isValid && step < steps.length) {
+      // Persist current values (including the upcoming step) before navigating
+      saveFormData(getValues(), step + 1);
+      updateStep(step + 1);
     }
   };
 
   const prevStep = () => {
     if (step > 1) {
-      const currentData = getValues();
-      if (step <= 4) {
-        setInformationData(prev => ({ ...prev, ...currentData }));
-      } else {
-        setDocumentData(prev => ({ ...prev, ...currentData }));
-      }
-
+      // Persist current values before going back
+      saveFormData(getValues(), step - 1);
       updateStep(step - 1);
     }
   };
@@ -382,7 +330,7 @@ export default function RepairmanMultiStepForm() {
     // Only submit on step 5 (final step)
     if (step < 5) {
       // For steps 1-4, just save data and move to next step
-      setInformationData(prev => ({ ...prev, ...data }));
+      saveFormData(getValues(), step + 1);
       updateStep(step + 1);
       return;
     }
@@ -410,8 +358,8 @@ export default function RepairmanMultiStepForm() {
         return; // ⚠️ STOP execution here - form will NOT submit
       }
 
-      // Merge all collected data
-      const allFormData = { ...informationData, ...data };
+      // Merge step 5 submission data with all previously collected form values
+      const allFormData = { ...getValues(), ...data };
       console.log("All form data:", allFormData);
 
       // Create FormData for multipart/form-data
@@ -500,16 +448,13 @@ export default function RepairmanMultiStepForm() {
         toast.success("Registration completed! Your account has been submitted for approval. You will receive an email once it's approved.");
 
         // Clear all stored form data from sessionStorage
-        clearStorage();
+        clearSavedFormData();
 
-        // Clear form state
-        setInformationData({});
-        setDocumentData({});
        dispatch(clearAuth());
 
         // Reset form fields
         reset({
-          emailAddress: user?.email || "",
+          emailAddress: "",
           shopName: '',
           country: '',
           state: '',
@@ -609,10 +554,8 @@ export default function RepairmanMultiStepForm() {
   // Debug logging
   useEffect(() => {
     console.log('Current step:', step);
-    console.log('Information data:', informationData);
-    console.log('Document data:', documentData);
     console.log('Form errors:', errors);
-  }, [step, informationData, documentData, errors]);
+  }, [step, errors]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-orange-50 p-4">
@@ -628,6 +571,7 @@ export default function RepairmanMultiStepForm() {
                   onClick={() => {
                     // Only allow clicking on current step or previous completed steps
                     if (s <= step) {
+                      saveFormData(getValues(), s);
                       updateStep(s);
                     }
                   }}
