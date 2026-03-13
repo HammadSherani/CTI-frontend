@@ -2,16 +2,37 @@
 
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
+import { setUserDetails} from '@/store/auth';
 import { Icon } from '@iconify/react';
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 export default function Dashboard() {
-  const { user, token } = useSelector(state => state.auth);
+  const { user,userDetails, token } = useSelector(state => state.auth);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+const dispatch=useDispatch()
+  console.log('user', user);
+ console.log(userDetails,"userDEtail")
+   const fetchUserDetails = async () => {
+  try {
+    setLoading(true);
+    const { data } = await axiosInstance.get('/auth/user-details', {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+      }
+    });
 
+    dispatch(setUserDetails(data.data)); 
+    
+    console.log(data);
+  } catch (error) {
+    handleError(error);
+  } finally {
+    setLoading(false);
+  }
+};
   const fetchData = async () => {
     try {
       setLoading(true);
@@ -28,8 +49,14 @@ export default function Dashboard() {
     }
   };
 
+
+  
   useEffect(() => {
-    fetchData();
+    if(user.isProfileComplete){
+      fetchData();
+    }
+
+    fetchUserDetails()
   }, []);
 
   if (loading) {
@@ -42,6 +69,58 @@ export default function Dashboard() {
       </div>
     );
   }
+
+ 
+
+  if (userDetails && !userDetails.isProfileComplete) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="heroicons:exclamation-triangle" className="w-10 h-10 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Incomplete</h2>
+          <p className="text-gray-600 mb-6">
+            Please complete your profile to access the dashboard and start receiving job requests.
+          </p>
+          <button 
+            onClick={() => window.location.href = '/repair-man/complete-profile?step=1'}
+            className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+          >
+            Complete Profile Now
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+
+   if (userDetails?.repairmanProfile?.status === "pending") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="heroicons:clock" className="w-10 h-10 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Under Review</h2>
+          <p className="text-gray-600 mb-4">
+            Your profile is currently being reviewed by our team. This process typically takes 12-24 hours.
+          </p>
+          <div className="bg-blue-50 rounded-xl p-4 mb-6">
+            <p className="text-sm text-blue-800">
+              We'll notify you via email once your profile is approved. You'll then be able to access all features.
+            </p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
+            <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-500" />
+            <span>Profile Complete: Yes</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   const stats = data?.stats || {};
   const recentActivity = data?.recentActivity || {};

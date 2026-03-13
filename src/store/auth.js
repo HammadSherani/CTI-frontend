@@ -33,6 +33,7 @@ const checkProfileComplete = (user) => {
 
 const initialState = loadAuthState() || {
   user: null,
+  userDetails: null,
   userType: null,
   token: null,
   isProfileComplete: false,
@@ -53,6 +54,12 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
+    
+    setUserDetails: (state, action) => {
+      state.userDetails = action.payload; // Corrected line
+      saveAuthState(state);
+    },
+    
     setUser: (state, action) => {
       const newState = {
         ...state,
@@ -62,7 +69,8 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
-     setProfileComplete: (state, action) => {
+    
+    setProfileComplete: (state, action) => {
       const newState = {
         ...state,
         isProfileComplete: action.payload, // true / false
@@ -70,11 +78,13 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
+    
     clearAuth: () => {
       const newState = {
         user: null,
         userType: null,
         token: null,
+        userDetails: null, 
         // isProfileComplete: false,
       };
       saveAuthState(newState);
@@ -83,6 +93,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { setAuth, clearAuth, setUser, setProfileComplete } = authSlice.actions;
+export const { setAuth, clearAuth, setUser, setUserDetails, setProfileComplete } = authSlice.actions;
 export const selectAuth = (state) => state.auth;
 export default authSlice.reducer;

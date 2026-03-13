@@ -387,7 +387,89 @@ const ExperienceAvailability = ({ control, errors, touchedFields = {} }) => {
                     )}
                 </div>
 
-                <div>
+
+
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - Start <span className="text-red-500">*</span></label>
+    <Controller
+      name="workingHours.start"
+      control={control}
+      render={({ field }) => (
+        <div className="relative">
+          <input
+            type="time"
+            value={field.value ? field.value.split(' ')[0] : ''} // Sirf time part (HH:MM)
+            onChange={(e) => {
+              const timeValue = e.target.value;
+              if (timeValue) {
+                // Detect if it should be AM or PM based on hour
+                const [hours] = timeValue.split(':');
+                const hour = parseInt(hours, 10);
+                const period = hour >= 12 ? 'PM' : 'AM';
+                // Save with AM/PM
+                field.onChange(`${timeValue} ${period}`);
+              } else {
+                field.onChange('');
+              }
+            }}
+            className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+              errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
+            }`}
+          />
+          {/* {field.value && (
+            <span className="absolute right-3 top-3 text-sm text-gray-500">
+              {field.value.split(' ')[1]} 
+            </span>
+          )} */}
+        </div>
+      )}
+    />
+    {errors.workingHours?.start && (
+      <p className="text-red-500 text-sm mt-1">{errors.workingHours.start.message}</p>
+    )}
+  </div>
+
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - End <span className="text-red-500">*</span></label>
+    <Controller
+      name="workingHours.end"
+      control={control}
+      render={({ field }) => (
+        <div className="relative">
+          <input
+            type="time"
+            value={field.value ? field.value.split(' ')[0] : ''}
+            onChange={(e) => {
+              const timeValue = e.target.value;
+              if (timeValue) {
+                const [hours] = timeValue.split(':');
+                const hour = parseInt(hours, 10);
+                const period = hour >= 12 ? 'PM' : 'AM';
+                field.onChange(`${timeValue} ${period}`);
+              } else {
+                field.onChange('');
+              }
+            }}
+            className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
+              errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
+            }`}
+          />
+          {/* {field.value && (
+            <span className="absolute right-3 top-3 text-sm text-gray-500">
+              {field.value.split(' ')[1]}
+            </span>
+          )} */}
+        </div>
+      )}
+    />
+    {errors.workingHours?.end && (
+      <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>
+    )}
+  </div>
+</div>
+
+                {/* <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Working Days <span className="text-red-500">*</span></label>
                     <Controller
                         name="workingDays"
@@ -460,7 +542,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields = {} }) => {
                             <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>
                         )}
                     </div>
-                </div>
+                </div> */}
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>

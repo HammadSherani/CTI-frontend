@@ -14,6 +14,7 @@ import AddressLocation from "./AddressLocation";
 import ExperienceAvailability from "./ExperienceAvailability";
 import DocumentUploads from "./DocumentUploads";
 import { clearAuth } from '@/store/auth';
+import PendingApprovalModal from "./PendingModel";
 
 const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2, "Name must be at least 2 characters"),
@@ -183,23 +184,56 @@ const step4Schema = yup.object({
         )
     ),
   
-  workingHours: yup.object({
+  // workingHours: yup.object({
+  //   start: yup
+  //     .string()
+  //     .required("Start time is required")
+  //     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)"),
+    
+  //   end: yup
+  //     .string()
+  //     .required("End time is required")
+  //     .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)")
+  //     .test('is-greater', 'End time must be after start time', function(value) {
+  //       const { start } = this.parent;
+  //       if (!start || !value) return true;
+  //       return value > start;
+  //     }),
+  // }),
+  
+workingHours: yup.object({
     start: yup
       .string()
       .required("Start time is required")
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)"),
+      .matches(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/, 
+        "Invalid time format (use HH:MM AM/PM)"
+      ),
     
     end: yup
       .string()
       .required("End time is required")
-      .matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/, "Invalid time format (use HH:MM)")
+      .matches(
+        /^([0-1]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/, 
+        "Invalid time format (use HH:MM AM/PM)"
+      )
       .test('is-greater', 'End time must be after start time', function(value) {
         const { start } = this.parent;
         if (!start || !value) return true;
-        return value > start;
-      }),
-  }),
-  
+        
+        // Parse times for comparison
+        const parseTime = (timeStr) => {
+          const [time, period] = timeStr.split(' ');
+          let [hours, minutes] = time.split(':').map(Number);
+          if (period === 'PM' && hours !== 12) hours += 12;
+          if (period === 'AM' && hours === 12) hours = 0;
+          return hours * 60 + minutes;
+        };
+        
+        return parseTime(value) > parseTime(start);
+      }),  }),
+
+
   pickupService: yup
     .boolean()
     .required("Please specify if pickup service is available")
@@ -598,6 +632,8 @@ export default function RepairmanMultiStepForm() {
     }
   };
 
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+
   const onSubmit = async (data) => {
   // Only submit on step 5 (final step)
   if (step < 5) {
@@ -626,7 +662,7 @@ export default function RepairmanMultiStepForm() {
 
     // Merge all collected data
     const allFormData = { ...informationData, ...data };
-
+  
     // Create FormData for multipart/form-data
     const formData = new FormData();
 
@@ -642,13 +678,16 @@ export default function RepairmanMultiStepForm() {
       emailAddress: allFormData.emailAddress,
       emergencyContactPerson: allFormData.emergencyContactPerson,
       emergencyContactNumber: allFormData.emergencyContactNumber,
+
       shopName: allFormData.shopName,
+      fullAddress:allFormData.fullAddress,
       zipCode: allFormData.zipCode,
       taxNumber: allFormData.taxNumber,
-      // FIX 2: Use yearsOfExperience (not experience) - backend maps it
+      city: allFormData.city,
+      state: allFormData.state,
+      country: allFormData.country,
       yearsOfExperience: allFormData.yearsOfExperience?.toString(),
       specializations: allFormData.specializations,
-      // FIX 3: Use brandsWorkedWith (not brands) - backend maps it
       brandsWorkedWith: allFormData.brandsWorkedWith,
       description: allFormData.description,
       workingDays: allFormData.workingDays,
@@ -656,15 +695,7 @@ export default function RepairmanMultiStepForm() {
       pickupService: allFormData.pickupService,
     };
 
-    // Append repairmanProfile as JSON string
     formData.append('repairmanProfile', JSON.stringify(repairmanProfile));
-
-    // Append location fields (backend expects these)
-    if (allFormData.country) formData.append('country', allFormData.country);
-    if (allFormData.state) formData.append('state', allFormData.state);
-    if (allFormData.city) formData.append('city', allFormData.city);
-    if (allFormData.fullAddress) formData.append('address', allFormData.fullAddress);
-
     // Append document files
     if (data.profilePhoto instanceof File) {
       formData.append('profilePhoto', data.profilePhoto);
@@ -720,15 +751,9 @@ export default function RepairmanMultiStepForm() {
 
     // Check if response is successful
     if (response.status === 200 || response.data.success) {
-      // FIX 4: Check if it was new profile or update
-      const isNewProfile = response.data.data?.isNewProfile || false;
-      
-      toast.success(
-        isNewProfile 
-          ? "Registration completed! Your account has been submitted for approval."
-          : "Profile updated successfully!"
-      );
-
+     
+            setShowApprovalModal(true);
+     
       // Clear all stored form data from sessionStorage
       clearStorage();
 
@@ -774,29 +799,9 @@ export default function RepairmanMultiStepForm() {
         certifications: null,
       });
 
-      // Remove step parameter from URL
-      if (typeof window !== 'undefined') {
-        const newUrl = new URL(window.location);
-        newUrl.searchParams.delete('step');
-        router.replace(newUrl.pathname, { scroll: false });
-      }
-
-      // Update profile completion status
-      if (response.data.data) {
-        const { isProfileComplete, completionPercentage, kycStatus } = response.data.data;
-        console.log(`Profile completion: ${completionPercentage}%, KYC Status: ${kycStatus}`);
-
-        // FIX 6: Better redirect logic
-        if (isProfileComplete) {
-          setTimeout(() => {
-            if (isNewProfile) {
-              router.push('/repair-man/pending-approval'); 
-                       } else {
-              router.push('/repair-man/dashboard');
-            }
-          }, 1500);
-        }
-      }
+    
+      // router.push('/repair-man/dashboard');       
+      
     }
 
   } catch (error) {
@@ -980,6 +985,10 @@ export default function RepairmanMultiStepForm() {
             )}
           </div>
         </form>
+      <PendingApprovalModal 
+  isOpen={showApprovalModal}
+  onClose={() => setShowApprovalModal(false)}
+/>
       </div>
     </div>
   );

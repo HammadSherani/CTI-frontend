@@ -7,36 +7,175 @@ import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
+import FieldReviewModal from '@/components/admin/FieldReviewModal';
+import Image from 'next/image';
 
-// Read-only Input component
-const InputField = ({ label, value }) => (
-  <div>
-    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-    <input
-      type="text"
-      value={value || ''}
-      disabled
-      className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
-    />
+// Enhanced Input Field Component
+const InputField = ({ label, value, icon }) => (
+  <div className="group">
+    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+      {icon && <Icon icon={icon} className="w-4 h-4 text-gray-500" />}
+      {label}
+    </label>
+    <div className="relative">
+      <input
+        type="text"
+        value={value || ''}
+        disabled
+        className="w-full px-4 py-2.5 border border-gray-200 rounded-lg bg-gray-50 text-gray-700 cursor-not-allowed focus:ring-2 focus:ring-primary-500/20 transition-all"
+      />
+      {/* {value && (
+        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+        </div>
+      )} */}
+    </div>
   </div>
 );
 
-// Image Display Component
 const ImageDisplay = ({ url, alt, label }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
   if (!url || url === "") return null;
+
+  // const handleDownload = async () => {
+  //   try {
+  //     const response = await fetch(url);
+  //     const blob = await response.blob();
+  //     const downloadUrl = window.URL.createObjectURL(blob);
+  //     const link = document.createElement('a');
+  //     link.href = downloadUrl;
+  //     link.download = `${label.replace(/\s+/g, '_')}_${Date.now()}.${url.split('.').pop()}`;
+  //     document.body.appendChild(link);
+  //     link.click();
+  //     document.body.removeChild(link);
+  //     window.URL.revokeObjectURL(downloadUrl);
+  //     toast.success('Download started');
+  //   } catch (error) {
+  //     toast.error('Failed to download file');
+  //   }
+  // };
+
   return (
-    <div>
-      <label className="block text-sm font-medium text-gray-700 mb-2">{label}</label>
-      <img
-        src={url}
-        alt={alt}
-        className="w-full max-w-md h-64 object-cover rounded-lg border border-gray-300 cursor-pointer hover:shadow-lg transition-shadow"
-        onClick={() => window.open(url, '_blank')}
-        onError={(e) => {
-          e.target.style.display = 'none';
-        }}
-      />
-      <p className="text-xs text-gray-500 mt-1">Click to view full size</p>
+    <div className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all">
+      <div className="p-3 border-b border-gray-100 bg-gray-50">
+        <label className="block text-sm font-semibold text-gray-700 flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            <Icon icon="mdi:file-image" className="w-4 h-4 text-primary-600" />
+            {label}
+          </span>
+          {/* <button
+            onClick={handleDownload}
+            className="p-1.5 hover:bg-white rounded-lg transition-colors text-gray-600 hover:text-primary-600"
+            title="Download"
+          >
+            <Icon icon="mdi:download" className="w-4 h-4" />
+          </button> */}
+        </label>
+      </div>
+      <div className="p-3">
+        <div 
+          className="relative w-full h-48 rounded-lg overflow-hidden cursor-pointer group"
+          onClick={() => window.open(url, '_blank')}
+        >
+          {isLoading && (
+            <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+              <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+            </div>
+          )}
+          <img
+            src={url}
+            alt={alt}
+            className={`w-full h-full object-cover transition-transform group-hover:scale-105 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+            onLoad={() => setIsLoading(false)}
+            onError={(e) => {
+              setIsLoading(false);
+              setError(true);
+              e.target.src = 'https://via.placeholder.com/400x300?text=Image+Not+Found';
+            }}
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <span className="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+              Click to view full size
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+
+const TagsDisplay = ({ items, label, icon, color = 'primary' }) => {
+  if (!items || items.length === 0) {
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Icon icon={icon} className={`w-5 h-5 text-${color}-600`} />
+          <span className="text-sm font-medium text-gray-700">{label}</span>
+        </div>
+        <p className="text-gray-400 text-sm italic">No {label.toLowerCase()} specified</p>
+      </div>
+    );
+  }
+
+  const colors = {
+    primary: 'bg-primary-50 text-primary-700 border-primary-200',
+    blue: 'bg-blue-50 text-blue-700 border-blue-200',
+    purple: 'bg-purple-50 text-purple-700 border-purple-200',
+    green: 'bg-green-50 text-green-700 border-green-200',
+    orange: 'bg-orange-50 text-orange-700 border-orange-200'
+  };
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-all">
+      <div className="flex items-center gap-2 mb-3">
+        <Icon icon={icon} className={`w-5 h-5 text-${color}-600`} />
+        <span className="text-sm font-semibold text-gray-800">{label}</span>
+        <span className="ml-auto bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded-full">
+          {items.length} items
+        </span>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {items.map((item, index) => (
+          <span
+            key={index}
+            className={`px-3 py-1.5 ${colors[color]} rounded-lg text-sm font-medium border flex items-center gap-1`}
+          >
+            {item.icon && (
+              <img src={item.icon} alt={item.name} className="w-4 h-4 rounded-full" />
+            )}
+            {typeof item === 'string' ? item : item.name || item}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Stats Card Component
+const StatsCard = ({ icon, label, value, color = 'primary', bgColor = '50' }) => {
+  const colors = {
+    primary: { bg: 'bg-primary-50', text: 'text-primary-700', icon: 'text-primary-600' },
+    blue: { bg: 'bg-blue-50', text: 'text-blue-700', icon: 'text-blue-600' },
+    green: { bg: 'bg-green-50', text: 'text-green-700', icon: 'text-green-600' },
+    yellow: { bg: 'bg-yellow-50', text: 'text-yellow-700', icon: 'text-yellow-600' },
+    purple: { bg: 'bg-purple-50', text: 'text-purple-700', icon: 'text-purple-600' }
+  };
+
+  return (
+    <div className={`${colors[color].bg} rounded-xl p-4 border border-${color}-200`}>
+      <div className="flex items-center gap-3">
+        <div className={`p-3 bg-white rounded-lg shadow-sm`}>
+          <Icon icon={icon} className={`w-6 h-6 ${colors[color].icon}`} />
+        </div>
+        <div>
+          <p className="text-sm text-gray-600">{label}</p>
+          <p className={`text-2xl font-bold ${colors[color].text}`}>{value}</p>
+        </div>
+      </div>
     </div>
   );
 };
@@ -48,6 +187,8 @@ function KycRepairmanDetail() {
   const [selectedStatus, setSelectedStatus] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
   const [showReasonModal, setShowReasonModal] = useState(false);
+  const [showFieldReview, setShowFieldReview] = useState(false);
+  const [activeTab, setActiveTab] = useState('personal');
 
   const { id } = useParams();
   const router = useRouter();
@@ -57,9 +198,7 @@ function KycRepairmanDetail() {
     try {
       setLoading(true);
       const response = await axiosInstance.get(`/admin/repairman/new-repairmans/${id}`, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-        }
+        headers: { 'Authorization': 'Bearer ' + token }
       });
       console.log('API Response:', response.data);
       const repairmanData = response.data.data;
@@ -81,14 +220,12 @@ function KycRepairmanDetail() {
     const newStatus = e.target.value;
     setSelectedStatus(newStatus);
     
-    // If status is rejected or revision, show reason modal
     if (newStatus === 'rejected' || newStatus === 'revision') {
       setShowReasonModal(true);
     }
   };
 
   const handleStatusUpdate = async () => {
-    // If rejected or revision, reason is required
     if ((selectedStatus === 'rejected' || selectedStatus === 'revision') && !rejectionReason.trim()) {
       toast.error('Please provide a reason');
       return;
@@ -100,15 +237,12 @@ function KycRepairmanDetail() {
         kycStatus: selectedStatus
       };
 
-      // Add reason for rejected or revision status
       if (selectedStatus === 'rejected' || selectedStatus === 'revision') {
         payload.reason = rejectionReason;
       }
 
       await axiosInstance.post(`/admin/repairman/new-repairmans/${id}/toggle-kyc`, payload, {
-        headers: {
-          'Authorization': 'Bearer ' + token
-        }
+        headers: { 'Authorization': 'Bearer ' + token }
       });
       
       const statusMessages = {
@@ -131,28 +265,38 @@ function KycRepairmanDetail() {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'mdi:clock-outline' },
-      approved: { bg: 'bg-green-100', text: 'text-green-800', icon: 'mdi:check-circle' },
-      rejected: { bg: 'bg-red-100', text: 'text-red-800', icon: 'mdi:close-circle' },
-      revision: { bg: 'bg-blue-100', text: 'text-blue-800', icon: 'mdi:file-edit' }
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: 'mdi:clock-outline', border: 'border-yellow-200' },
+      approved: { bg: 'bg-green-100', text: 'text-green-800', icon: 'mdi:check-circle', border: 'border-green-200' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-800', icon: 'mdi:close-circle', border: 'border-red-200' },
+      revision: { bg: 'bg-blue-100', text: 'text-blue-800', icon: 'mdi:file-edit', border: 'border-blue-200' }
     };
 
     const config = statusConfig[status] || statusConfig.pending;
 
     return (
-      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${config.bg} ${config.text}`}>
-        <Icon icon={config.icon} className="w-4 h-4 mr-1" />
+      <span className={`inline-flex items-center px-4 py-2 rounded-full text-sm font-medium border ${config.bg} ${config.text} ${config.border} shadow-sm`}>
+        <Icon icon={config.icon} className="w-5 h-5 mr-2" />
         {status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
   };
 
+  const tabs = [
+    { id: 'personal', label: 'Personal Info', icon: 'mdi:account' },
+    { id: 'contact', label: 'Contact', icon: 'mdi:phone' },
+    { id: 'location', label: 'Location', icon: 'mdi:map-marker' },
+    { id: 'professional', label: 'Professional', icon: 'mdi:briefcase' },
+    { id: 'documents', label: 'Documents', icon: 'mdi:file-document' },
+    { id: 'bank', label: 'Bank Details', icon: 'mdi:bank' }
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Icon icon="mdi:loading" className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading KYC details...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-xl">
+          <Icon icon="mdi:loading" className="w-16 h-16 text-primary-600 animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 text-lg font-medium">Loading KYC details...</p>
+          <p className="text-sm text-gray-400 mt-2">Please wait while we fetch the data</p>
         </div>
       </div>
     );
@@ -160,13 +304,16 @@ function KycRepairmanDetail() {
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Icon icon="mdi:alert-circle" className="w-16 h-16 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-800">No Data Found</h2>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-center bg-white p-8 rounded-2xl shadow-xl max-w-md">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="mdi:alert-circle" className="w-10 h-10 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">No Data Found</h2>
+          <p className="text-gray-600 mb-6">The requested repairman KYC data could not be found.</p>
           <button
             onClick={() => router.back()}
-            className="mt-4 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-medium shadow-lg"
           >
             Go Back
           </button>
@@ -179,58 +326,75 @@ function KycRepairmanDetail() {
   const currentKycStatus = data?.repairmanProfile?.kycStatus || 'pending';
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-6">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex justify-between items-start">
+        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6 border border-gray-100">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <h1 className="text-3xl font-bold text-gray-900">KYC Details</h1>
-                {getStatusBadge(currentKycStatus)}
-              </div>
-              <p className="text-gray-600">Review repairman KYC application</p>
-              <p className="text-sm text-gray-500 mt-1">Application ID: {id}</p>
-              {profile.kycReason && (
-                <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                  <p className="text-sm font-medium text-yellow-800">Previous Reason:</p>
-                  <p className="text-sm text-yellow-700 mt-1">{profile.kycReason}</p>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl flex items-center justify-center shadow-lg">
+                  <Icon icon="mdi:shield-account" className="w-8 h-8 text-white" />
                 </div>
-              )}
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900">KYC Application Review</h1>
+                  <p className="text-gray-500 flex items-center gap-2 mt-1">
+                    <Icon icon="mdi:identifier" className="w-4 h-4" />
+                    ID: {id}
+                  </p>
+                </div>
+              </div>
             </div>
-            <button
-              onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-            >
-              <Icon icon="mdi:arrow-left" className="w-4 h-4" />
-              Back
-            </button>
+            <div className="flex items-center gap-3">
+              {getStatusBadge(currentKycStatus)}
+              <button
+                onClick={() => router.back()}
+                className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-all"
+              >
+                <Icon icon="mdi:arrow-left" className="w-5 h-5" />
+                Back
+              </button>
+            </div>
           </div>
+
+          {profile.kycReason && (
+            <div className="mt-4 p-4 bg-orange-50 border border-orange-200 rounded-xl flex items-start gap-3">
+              <Icon icon="mdi:information" className="w-5 h-5 text-orange-600 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-orange-800">Previous Review Feedback:</p>
+                <p className="text-sm text-orange-700 mt-1">{profile.kycReason}</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* KYC Status Change Section */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Change KYC Status</h3>
-          <div className="flex items-end gap-4">
-            <div className="flex-1">
+        {/* KYC Actions */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-6 border border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+            <Icon icon="mdi:shield-check" className="w-5 h-5 text-primary-600" />
+            KYC Review Actions
+          </h3>
+          <div className="flex flex-wrap items-end gap-4">
+            <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Select Status
+                Update KYC Status
               </label>
               <select
                 value={selectedStatus}
                 onChange={handleStatusChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-white"
               >
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
+                <option value="pending"> Pending Review</option>
+                <option value="approved">Approve Application</option>
                 <option value="revision">Request Revision</option>
-                <option value="rejected">Rejected</option>
+                <option value="rejected">Reject Application</option>
               </select>
             </div>
+            
             <button
               onClick={handleStatusUpdate}
               disabled={updatingStatus || selectedStatus === currentKycStatus}
-              className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2 font-medium"
+              className="px-8 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 disabled:bg-gray-300 flex items-center gap-2 font-medium shadow-lg min-w-[160px] justify-center"
             >
               {updatingStatus ? (
                 <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />
@@ -239,284 +403,312 @@ function KycRepairmanDetail() {
               )}
               Update Status
             </button>
+            
+            <button
+              onClick={() => setShowFieldReview(true)}
+              className="px-8 py-3 bg-orange-500 text-white rounded-xl hover:bg-orange-600 flex items-center gap-2 font-medium shadow-lg"
+            >
+              <Icon icon="mdi:file-document-edit" className="w-5 h-5" />
+              Field Review
+            </button>
           </div>
         </div>
 
-        {/* Basic Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:account" className="w-5 h-5 text-primary-600" />
-            Basic Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InputField label="Name" value={data?.name} />
-            <InputField label="Email" value={data?.email} />
-            <InputField label="Phone" value={data?.phone} />
+        {/* Tabs Navigation */}
+        <div className="bg-white rounded-2xl shadow-xl p-2 mb-6 border border-gray-100">
+          <div className="flex flex-wrap gap-2">
+            {tabs.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-3 rounded-xl flex items-center gap-2 transition-all ${
+                  activeTab === tab.id
+                    ? 'bg-primary-600 text-white shadow-lg'
+                    : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Icon icon={tab.icon} className="w-5 h-5" />
+                {tab.label}
+              </button>
+            ))}
           </div>
         </div>
 
-        {/* Personal Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:account-details" className="w-5 h-5 text-primary-600" />
-            Personal Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Full Name" value={profile.fullName} />
-            <InputField label="Father's Name" value={profile.fatherName} />
-            <InputField label="National ID Number" value={profile.nationalIdOrCitizenNumber} />
-            <InputField label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString() : ''} />
-            <InputField label="Gender" value={profile.gender} />
-            <InputField label="Email Address" value={profile.emailAddress} />
-          </div>
-        </div>
-
-        {/* Contact Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:phone" className="w-5 h-5 text-primary-600" />
-            Contact Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Mobile Number" value={profile.mobileNumber} />
-            <InputField label="WhatsApp Number" value={profile.whatsappNumber} />
-            <InputField label="Emergency Contact Person" value={profile.emergencyContactPerson} />
-            <InputField label="Emergency Contact Number" value={profile.emergencyContactNumber} />
-          </div>
-        </div>
-
-        {/* Location Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:map-marker" className="w-5 h-5 text-primary-600" />
-            Location Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Country" value={data?.country?.name} />
-            <InputField label="State" value={data?.state?.name} />
-            <InputField label="City" value={data?.city?.name} />
-            <InputField label="Zip Code" value={profile.zipCode} />
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Full Address</label>
-              <textarea
-                value={data?.address || profile.fullAddress || ''}
-                disabled
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Shop Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:store" className="w-5 h-5 text-primary-600" />
-            Shop Information
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField label="Shop Name" value={profile.shopName} />
-            <InputField label="Tax Number" value={profile.taxNumber} />
-            <InputField label="District" value={profile.district} />
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Shop Address</label>
-              <textarea
-                value={profile.fullAddress || ''}
-                disabled
-                rows={2}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Working Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:clock-outline" className="w-5 h-5 text-primary-600" />
-            Working Schedule
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InputField 
-              label="Working Hours" 
-              value={profile.workingHours?.start && profile.workingHours?.end 
-                ? `${profile.workingHours.start} - ${profile.workingHours.end}` 
-                : 'Not specified'} 
-            />
-            <InputField label="Pickup Service" value={profile.pickupService ? 'Yes' : 'No'} />
-            <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-2">Working Days</label>
-              <div className="flex flex-wrap gap-2">
-                {profile.workingDays && profile.workingDays.length > 0 ? (
-                  profile.workingDays.map((day) => (
-                    <span key={day} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-sm font-medium">
-                      {day}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-500 text-sm">No working days specified</span>
-                )}
+        {/* Content Sections */}
+        <div className="space-y-6">
+          {/* Personal Information */}
+          {activeTab === 'personal' && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:account-details" className="w-6 h-6 text-primary-600" />
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <InputField label="Full Name" value={profile.fullName} icon="mdi:account" />
+                <InputField label="Father's Name" value={profile.fatherName} icon="mdi:account-family" />
+                <InputField label="National ID" value={profile.nationalIdOrCitizenNumber} icon="mdi:card-account-details" />
+                <InputField label="Date of Birth" value={profile.dob ? new Date(profile.dob).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : ''} icon="mdi:cake" />
+                <InputField label="Gender" value={profile.gender} icon="mdi:gender-male-female" />
+                <InputField label="Email Address" value={profile.emailAddress} icon="mdi:email" />
               </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Professional Information */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:briefcase" className="w-5 h-5 text-primary-600" />
-            Professional Details
-          </h3>
-          <div className="grid grid-cols-1 gap-4">
-            <InputField label="Years of Experience" value={profile.yearsOfExperience?.toString() || '0'} />
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Specializations</label>
-              <div className="flex flex-wrap gap-2">
-                {profile.specializations && profile.specializations.length > 0 ? (
-                  profile.specializations.map((spec, index) => (
-                    <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
-                      {spec}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-500 text-sm">No specializations specified</span>
-                )}
+          {/* Contact Information */}
+          {activeTab === 'contact' && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:phone-in-talk" className="w-6 h-6 text-primary-600" />
+                Contact Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField label="Mobile Number" value={profile.mobileNumber} icon="mdi:phone" />
+                <InputField label="WhatsApp Number" value={profile.whatsappNumber} icon="mdi:whatsapp" />
+                <InputField label="Emergency Contact" value={profile.emergencyContactPerson} icon="mdi:account-alert" />
+                <InputField label="Emergency Number" value={profile.emergencyContactNumber} icon="mdi:phone-alert" />
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Brands Worked With</label>
-              <div className="flex flex-wrap gap-2">
-                {profile.brandsWorkedWith && profile.brandsWorkedWith.length > 0 ? (
-                  profile.brandsWorkedWith.map((brand, index) => (
-                    <span key={index} className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
-                      {typeof brand === 'string' ? brand : brand.name || 'Unknown Brand'}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-gray-500 text-sm">No brands specified</span>
-                )}
+          )}
+
+          {/* Location Information */}
+          {activeTab === 'location' && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:map-marker" className="w-6 h-6 text-primary-600" />
+                Location Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField label="Country" value={profile.country?.name || data?.country?.name} icon="mdi:map" />
+                <InputField label="State" value={profile.state?.name || data?.state?.name} icon="mdi:map-marker-radius" />
+                <InputField label="City" value={profile.city?.name || data?.city?.name} icon="mdi:city" />
+                <InputField label="Zip Code" value={profile.zipCode} icon="mdi:mailbox" />
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
+                    <Icon icon="mdi:map-marker" className="w-4 h-4 text-gray-500" />
+                    Full Address
+                  </label>
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-gray-700">
+                    {profile.fullAddress || 'No address provided'}
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={profile.description || 'No description provided'}
-                disabled
-                rows={3}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-700 cursor-not-allowed"
-              />
+          )}
+
+          {/* Professional Details */}
+          {activeTab === 'professional' && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:briefcase" className="w-6 h-6 text-primary-600" />
+                Professional Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <StatsCard
+                  icon="mdi:briefcase-clock"
+                  label="Years of Experience"
+                  value={profile.yearsOfExperience || 0}
+                  color="blue"
+                />
+                
+                <StatsCard
+                  icon="mdi:truck"
+                  label="Pickup Service"
+                  value={profile.pickupService ? 'Available' : 'Not Available'}
+                  color={profile.pickupService ? 'green' : 'yellow'}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                <TagsDisplay
+                  items={profile.specializations}
+                  label="Specializations"
+                  icon="mdi:wrench"
+                  color="primary"
+                />
+                
+                <TagsDisplay
+                  items={profile.brandsWorkedWith}
+                  label="Brands Worked With"
+                  icon="mdi:star"
+                  color="purple"
+                />
+              </div>
+
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                  <Icon icon="mdi:text" className="w-4 h-4 text-gray-500" />
+                  Description
+                </label>
+                <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-gray-700 whitespace-pre-wrap">
+                  {profile.description || 'No description provided'}
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <h4 className="text-lg font-semibold text-gray-800 mb-3">Working Schedule</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-blue-50 rounded-xl">
+                    <p className="text-sm text-blue-600 mb-1">Working Hours</p>
+                    <p className="text-lg font-bold text-blue-900">
+                      {profile.workingHours?.start} - {profile.workingHours?.end}
+                    </p>
+                  </div>
+                  
+                  <div className="p-4 bg-green-50 rounded-xl">
+                    <p className="text-sm text-green-600 mb-1">Working Days</p>
+                    <div className="flex flex-wrap gap-2">
+                      {profile.workingDays?.map(day => (
+                        <span key={day} className="px-2 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-medium">
+                          {day}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          )}
 
-        {/* Bank Details */}
-        {profile.bankDetails && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-              <Icon icon="mdi:bank" className="w-5 h-5 text-primary-600" />
-              Bank Details
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InputField label="Account Title" value={profile.bankDetails.accountTitle} />
-              <InputField label="Account Number" value={profile.bankDetails.accountNumber} />
-              <InputField label="Bank Name" value={profile.bankDetails.bankName} />
-              <InputField label="Branch Name" value={profile.bankDetails.branchName} />
-              <InputField label="IBAN" value={profile.bankDetails.iban} />
-              <InputField 
-                label="Last Updated" 
-                value={profile.bankDetails.updatedAt 
-                  ? new Date(profile.bankDetails.updatedAt).toLocaleDateString() 
-                  : 'Not updated yet'} 
-              />
+          {/* Documents */}
+          {activeTab === 'documents' && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:file-document" className="w-6 h-6 text-primary-600" />
+                Uploaded Documents
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <ImageDisplay url={profile.profilePhoto} alt="Profile Photo" label="Profile Photo" />
+                <ImageDisplay url={profile.nationalIdOrPassportScan} alt="National ID" label="National ID / Passport" />
+                <ImageDisplay url={profile.shopPhoto} alt="Shop Photo" label="Shop Photo" />
+                <ImageDisplay url={profile.utilityBillOrShopProof} alt="Utility Bill" label="Utility Bill / Shop Proof" />
+              </div>
+
+              {profile.certifications && profile.certifications.length > 0 && (
+                <div className="mt-8">
+                  <h4 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <Icon icon="mdi:certificate" className="w-5 h-5 text-primary-600" />
+                    Certifications ({profile.certifications.filter(c => c).length})
+                  </h4>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {profile.certifications.filter(cert => cert).map((cert, index) => (
+                      <ImageDisplay
+                        key={index}
+                        url={cert}
+                        alt={`Certification ${index + 1}`}
+                        label={`Certificate ${index + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Documents */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:file-document" className="w-5 h-5 text-primary-600" />
-            Uploaded Documents
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <ImageDisplay url={profile.profilePhoto} alt="Profile Photo" label="Profile Photo" />
-            <ImageDisplay url={profile.nationalIdOrPassportScan} alt="National ID" label="National ID/Passport Scan" />
-            <ImageDisplay url={profile.shopPhoto} alt="Shop" label="Shop Photo" />
-            <ImageDisplay url={profile.utilityBillOrShopProof} alt="Utility Bill" label="Utility Bill/Shop Proof" />
-          </div>
-
-          {profile.certifications && profile.certifications.length > 0 && (
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">Certifications</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {profile.certifications.filter(cert => cert !== "").map((cert, index) => (
-                  <img
-                    key={index}
-                    src={cert}
-                    alt={`Certification ${index + 1}`}
-                    className="w-full h-32 object-cover rounded-lg border border-gray-300 cursor-pointer hover:shadow-lg transition-shadow"
-                    onClick={() => window.open(cert, '_blank')}
-                    onError={(e) => {
-                      e.target.style.display = 'none';
-                    }}
-                  />
-                ))}
+          {/* Bank Details */}
+          {activeTab === 'bank' && profile.bankDetails && (
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <Icon icon="mdi:bank" className="w-6 h-6 text-primary-600" />
+                Bank Account Details
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <InputField label="Account Title" value={profile.bankDetails.accountTitle} icon="mdi:account" />
+                <InputField label="Account Number" value={profile.bankDetails.accountNumber} icon="mdi:credit-card" />
+                <InputField label="Bank Name" value={profile.bankDetails.bankName} icon="mdi:bank" />
+                <InputField label="Branch Name" value={profile.bankDetails.branchName} icon="mdi:domain" />
+                <InputField label="IBAN" value={profile.bankDetails.iban} icon="mdi:identifier" />
+                <InputField 
+                  label="Last Updated" 
+                  value={profile.bankDetails.updatedAt ? new Date(profile.bankDetails.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'Not updated'} 
+                  icon="mdi:calendar-clock"
+                />
               </div>
             </div>
           )}
         </div>
 
-        {/* Statistics */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <Icon icon="mdi:chart-line" className="w-5 h-5 text-primary-600" />
-            Statistics & Status
+        {/* Statistics Section */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mt-6 border border-gray-100">
+          <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+            <Icon icon="mdi:chart-line" className="w-6 h-6 text-primary-600" />
+            Application Statistics
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-600 font-medium">Total Jobs</p>
-              <p className="text-2xl font-bold text-blue-900">{profile.totalJobs || 0}</p>
-            </div>
-            <div className="p-4 bg-yellow-50 rounded-lg">
-              <p className="text-sm text-yellow-600 font-medium">Rating</p>
-              <p className="text-2xl font-bold text-yellow-900">{profile.rating || 0} / 5</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg">
-              <p className="text-sm text-green-600 font-medium">KYC Status</p>
-              <p className="text-2xl font-bold text-green-900 capitalize">{currentKycStatus}</p>
-            </div>
-            <div className="p-4 bg-purple-50 rounded-lg">
-              <p className="text-sm text-purple-600 font-medium">KYC Completed</p>
-              <p className="text-2xl font-bold text-purple-900">
-                {profile.isKycCompleted ? 'Yes' : 'No'}
-              </p>
-            </div>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <StatsCard
+              icon="mdi:briefcase"
+              label="Total Jobs"
+              value={profile.totalJobs || 0}
+              color="blue"
+            />
+            
+            <StatsCard
+              icon="mdi:star"
+              label="Rating"
+              value={`${profile.rating || 0}/5`}
+              color="yellow"
+            />
+            
+            <StatsCard
+              icon="mdi:shield-check"
+              label="KYC Status"
+              value={currentKycStatus.charAt(0).toUpperCase() + currentKycStatus.slice(1)}
+              color={currentKycStatus === 'approved' ? 'green' : currentKycStatus === 'rejected' ? 'red' : 'yellow'}
+            />
+            
+            <StatsCard
+              icon="mdi:calendar"
+              label="Joined"
+              value={data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A'}
+              color="purple"
+            />
           </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-            <div className="p-4 bg-indigo-50 rounded-lg">
-              <p className="text-sm text-indigo-600 font-medium">Payment Info Completed</p>
-              <p className="text-2xl font-bold text-indigo-900">
-                {profile.isPaymentInformationCompleted ? 'Yes' : 'No'}
-              </p>
+            <div className="p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-xl">
+              <p className="text-sm text-green-700 mb-1">KYC Completed</p>
+              <p className="text-3xl font-bold text-green-800">{profile.isKycCompleted ? ' Yes' : ' No'}</p>
             </div>
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-sm text-gray-600 font-medium">Joined Date</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {data?.createdAt ? new Date(data.createdAt).toLocaleDateString() : 'N/A'}
-              </p>
+            
+            <div className="p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl">
+              <p className="text-sm text-purple-700 mb-1">Payment Info</p>
+              <p className="text-3xl font-bold text-purple-800">{profile.isPaymentInformationCompleted ? ' Completed' : ' Pending'}</p>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Field Review Modal */}
+      <FieldReviewModal
+        isOpen={showFieldReview}
+        onClose={() => setShowFieldReview(false)}
+        repairmanId={id}
+        currentData={data}
+        onSubmit={(reviewData) => {
+          toast.success('Review submitted successfully');
+          fetchRepairman();
+        }}
+      />
+
       {/* Reason Modal */}
       {showReasonModal && (
-        <div className="fixed inset-0 bg-black/50 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">
-                {selectedStatus === 'revision' ? 'Revision Details' : 'Rejection Reason'}
-              </h3>
+              <div className="flex items-center gap-2">
+                <div className={`w-10 h-10 rounded-full ${selectedStatus === 'revision' ? 'bg-blue-100' : 'bg-red-100'} flex items-center justify-center`}>
+                  <Icon 
+                    icon={selectedStatus === 'revision' ? 'mdi:file-edit' : 'mdi:alert-circle'} 
+                    className={`w-5 h-5 ${selectedStatus === 'revision' ? 'text-blue-600' : 'text-red-600'}`} 
+                  />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900">
+                  {selectedStatus === 'revision' ? 'Request Revision' : 'Reject Application'}
+                </h3>
+              </div>
               <button
                 onClick={() => {
                   setShowReasonModal(false);
@@ -528,9 +720,10 @@ function KycRepairmanDetail() {
                 <Icon icon="mdi:close" className="w-6 h-6" />
               </button>
             </div>
+            
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                {selectedStatus === 'revision' ? 'What needs to be revised?' : 'Why are you rejecting this application?'}
+                {selectedStatus === 'revision' ? 'What needs to be revised?' : 'Reason for rejection'}
                 <span className="text-red-500 ml-1">*</span>
               </label>
               <textarea
@@ -538,11 +731,12 @@ function KycRepairmanDetail() {
                 onChange={(e) => setRejectionReason(e.target.value)}
                 rows={4}
                 placeholder={selectedStatus === 'revision' 
-                  ? 'Please specify what needs to be revised...' 
+                  ? 'Please specify what fields need to be corrected...' 
                   : 'Please provide a detailed reason for rejection...'}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               />
             </div>
+            
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => {
@@ -550,14 +744,18 @@ function KycRepairmanDetail() {
                   setRejectionReason('');
                   setSelectedStatus(currentKycStatus);
                 }}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-xl text-gray-700 hover:bg-gray-50"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStatusUpdate}
                 disabled={updatingStatus || !rejectionReason.trim()}
-                className={`px-4 py-2 ${selectedStatus === 'revision' ? 'bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400' : 'bg-red-600 hover:bg-red-700 disabled:bg-red-400'} text-white rounded-lg flex items-center gap-2 disabled:cursor-not-allowed`}
+                className={`px-6 py-2 rounded-xl text-white flex items-center gap-2 disabled:opacity-50 ${
+                  selectedStatus === 'revision' 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
                 {updatingStatus && <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />}
                 {selectedStatus === 'revision' ? 'Request Revision' : 'Confirm Rejection'}
