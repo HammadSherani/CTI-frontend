@@ -469,7 +469,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields = {} }) => {
   </div>
 </div>
 
-                {/* <div>
+                <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Working Days <span className="text-red-500">*</span></label>
                     <Controller
                         name="workingDays"
@@ -502,47 +502,7 @@ const ExperienceAvailability = ({ control, errors, touchedFields = {} }) => {
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - Start <span className="text-red-500">*</span></label>
-                        <Controller
-                            name="workingHours.start"
-                            control={control}
-                            render={({ field }) => (
-                                <input
-                                    {...field}
-                                    type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                                        errors.workingHours?.start ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                            )}
-                        />
-                        {errors.workingHours?.start && (
-                            <p className="text-red-500 text-sm mt-1">{errors.workingHours.start.message}</p>
-                        )}
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Working Hours - End <span className="text-red-500">*</span></label>
-                        <Controller
-                            name="workingHours.end"
-                            control={control}
-                            render={({ field }) => (
-                                <input
-                                    {...field}
-                                    type="time"
-                                    className={`w-full border rounded-lg px-4 py-3 focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-all ${
-                                        errors.workingHours?.end ? 'border-red-500' : 'border-gray-300'
-                                    }`}
-                                />
-                            )}
-                        />
-                        {errors.workingHours?.end && (
-                            <p className="text-red-500 text-sm mt-1">{errors.workingHours.end.message}</p>
-                        )}
-                    </div>
-                </div> */}
+              
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">Description <span className="text-red-500">*</span></label>

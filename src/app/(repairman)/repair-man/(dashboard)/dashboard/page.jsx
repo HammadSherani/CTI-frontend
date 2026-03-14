@@ -70,57 +70,6 @@ const dispatch=useDispatch()
     );
   }
 
- 
-
-  if (userDetails && !userDetails.isProfileComplete) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon icon="heroicons:exclamation-triangle" className="w-10 h-10 text-yellow-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Incomplete</h2>
-          <p className="text-gray-600 mb-6">
-            Please complete your profile to access the dashboard and start receiving job requests.
-          </p>
-          <button 
-            onClick={() => window.location.href = '/repair-man/complete-profile?step=1'}
-            className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors"
-          >
-            Complete Profile Now
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-
-   if (userDetails?.repairmanProfile?.status === "pending") {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon icon="heroicons:clock" className="w-10 h-10 text-blue-600" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Under Review</h2>
-          <p className="text-gray-600 mb-4">
-            Your profile is currently being reviewed by our team. This process typically takes 12-24 hours.
-          </p>
-          <div className="bg-blue-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              We'll notify you via email once your profile is approved. You'll then be able to access all features.
-            </p>
-          </div>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-500" />
-            <span>Profile Complete: Yes</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-
 
   const stats = data?.stats || {};
   const recentActivity = data?.recentActivity || {};

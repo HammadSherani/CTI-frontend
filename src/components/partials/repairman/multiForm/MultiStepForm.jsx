@@ -666,7 +666,6 @@ export default function RepairmanMultiStepForm() {
     // Create FormData for multipart/form-data
     const formData = new FormData();
 
-    // FIX 1: Use consistent field names (backend expects these exact names)
     const repairmanProfile = {
       fullName: allFormData.fullName,
       fatherName: allFormData.fatherName,
@@ -754,50 +753,46 @@ export default function RepairmanMultiStepForm() {
      
             setShowApprovalModal(true);
      
-      // Clear all stored form data from sessionStorage
-      clearStorage();
+      // clearStorage();
 
       // Clear form state
-      setInformationData({});
-      setDocumentData({});
+      // setInformationData({});
+      // setDocumentData({});
       
-      // FIX 5: Don't clear auth on update, only on new registration
-      if (isNewProfile) {
-        dispatch(clearAuth());
-      }
+      
 
       // Reset form fields
-      reset({
-        emailAddress: user?.email || "",
-        shopName: '',
-        country: '',
-        state: '',
-        city: '',
-        zipCode: '',
-        fullAddress: '',
-        taxNumber: '',
-        fullName: '',
-        fatherName: '',
-        nationalIdOrCitizenNumber: '',
-        dob: '',
-        gender: '',
-        mobileNumber: '',
-        whatsappNumber: '',
-        emergencyContactPerson: '',
-        emergencyContactNumber: '',
-        yearsOfExperience: '',
-        specializations: [],
-        brandsWorkedWith: [],
-        description: '',
-        workingDays: [],
-        workingHours: { start: '', end: '' },
-        pickupService: false,
-        profilePhoto: null,
-        nationalIdOrPassportScan: null,
-        shopPhoto: null,
-        utilityBillOrShopProof: null,
-        certifications: null,
-      });
+      // reset({
+      //   emailAddress: user?.email || "",
+      //   shopName: '',
+      //   country: '',
+      //   state: '',
+      //   city: '',
+      //   zipCode: '',
+      //   fullAddress: '',
+      //   taxNumber: '',
+      //   fullName: '',
+      //   fatherName: '',
+      //   nationalIdOrCitizenNumber: '',
+      //   dob: '',
+      //   gender: '',
+      //   mobileNumber: '',
+      //   whatsappNumber: '',
+      //   emergencyContactPerson: '',
+      //   emergencyContactNumber: '',
+      //   yearsOfExperience: '',
+      //   specializations: [],
+      //   brandsWorkedWith: [],
+      //   description: '',
+      //   workingDays: [],
+      //   workingHours: { start: '', end: '' },
+      //   pickupService: false,
+      //   profilePhoto: null,
+      //   nationalIdOrPassportScan: null,
+      //   shopPhoto: null,
+      //   utilityBillOrShopProof: null,
+      //   certifications: null,
+      // });
 
     
       // router.push('/repair-man/dashboard');       
