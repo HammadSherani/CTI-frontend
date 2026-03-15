@@ -91,10 +91,12 @@ function Login() {
         router.push("/admin/dashboard");
       } else if (resData?.user?.role === "repairman") {
         // Pending accounts cannot login (handled in API)
-        if (resData?.user?.isProfileComplete) {
-          router.push("/repair-man/dashboard");
-        } else {
+        if (resData?.user?.kycStatus === "not_submitted") {
+          // router.push("/repair-man/dashboard");
           router.push("/repair-man/complete-profile");
+        } else  {
+          // router.push("/repair-man/complete-profile");
+          router.push("/repair-man/dashboard");
         }
       } else {
         router.push("/");

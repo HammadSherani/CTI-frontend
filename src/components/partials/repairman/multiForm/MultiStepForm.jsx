@@ -751,7 +751,8 @@ export default function RepairmanMultiStepForm() {
     // Check if response is successful
     if (response.status === 200 || response.data.success) {
      
-            setShowApprovalModal(true);
+            // setShowApprovalModal(true);
+            clearStorage();
      
       // clearStorage();
 
@@ -795,7 +796,7 @@ export default function RepairmanMultiStepForm() {
       // });
 
     
-      // router.push('/repair-man/dashboard');       
+      router.push('/repair-man/dashboard');       
       
     }
 
