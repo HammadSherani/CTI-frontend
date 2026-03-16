@@ -289,39 +289,42 @@ function TopRepairman() {
                     </div>
                   </div>
 
-                  <div className='p-6 pt-8'>
-                    <div className='flex items-center justify-between mb-2'>
-                      <div>
-                        <h3 className='text-lg font-semibold text-gray-900'>
-                          {repairman.repairmanProfile?.fullName || repairman.name}
-                        </h3>
-                        <p className='text-sm text-primary-600 font-medium'>
-                          {repairman.repairmanProfile?.specializations?.[0] || 'Repairman'}
-                        </p>
-                      </div>
-                      <div className='text-right'>
-                        <p className='text-sm text-gray-500'>
-                          {repairman.repairmanProfile?.totalJobs || 0} jobs
-                        </p>
-                        <p className='text-xs text-gray-400'>
-                          {repairman.city?.name || repairman.repairmanProfile?.city || 'City'}, {repairman.state?.name || ''}
-                        </p>
-                      </div>
-                    </div>
+                <div className='p-6 pt-8'>
+  <div className='flex items-center justify-between mb-2'>
+    <div>
+      <h3 className='text-lg font-semibold text-gray-900'>
+        {repairman.repairmanProfile?.fullName || repairman.name}
+      </h3>
+      <p className='text-sm text-primary-600 font-medium'>
+        {repairman.repairmanProfile?.specializations?.[0] || 'Repairman'}
+      </p>
+    </div>
+    <div className='text-right'>
+      <p className='text-sm text-gray-500'>
+        {repairman.repairmanProfile?.totalJobs || 0} jobs
+      </p>
+      <p className='text-xs text-gray-400'>
+        {/* Fix: Check if city and state are objects or strings */}
+        {typeof repairman.city === 'object' ? repairman.city?.name || '' : repairman.city || ''}
+        {repairman.city && ', '}
+        {typeof repairman.state === 'object' ? repairman.state?.name || '' : repairman.state || ''}
+      </p>
+    </div>
+  </div>
 
-                    <div className='flex items-center gap-3 mt-4'>
-                      <button
-                        className='flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-2 rounded-full shadow-md hover:opacity-95 transition'
-                      >
-                        Book Now
-                      </button>
-                      <button className='w-12 h-12 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:shadow-md'>
-                        <svg className='w-5 h-5 text-primary-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                          <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 8l7.89 4.26a2 2 0 001.85 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
-                        </svg>
-                      </button>
-                    </div>
-                  </div>
+  <div className='flex items-center gap-3 mt-4'>
+    <button
+      className='flex-1 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold py-2 rounded-full shadow-md hover:opacity-95 transition'
+    >
+      Book Now
+    </button>
+    <button className='w-12 h-12 bg-white border border-gray-100 rounded-full flex items-center justify-center shadow-sm hover:shadow-md'>
+      <svg className='w-5 h-5 text-primary-600' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+        <path strokeLinecap='round' strokeLinejoin='round' strokeWidth={2} d='M3 8l7.89 4.26a2 2 0 001.85 0L20 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
+      </svg>
+    </button>
+  </div>
+</div>
                 </motion.div>
               </SwiperSlide>
             ))

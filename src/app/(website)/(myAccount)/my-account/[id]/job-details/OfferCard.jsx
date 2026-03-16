@@ -299,7 +299,8 @@ const handleMessageSend = async () => {
 
                     {/* Required Parts */}
                     {offer.requiredParts && offer.requiredParts.length > 0 && (
-                        <div className="mb-6 pt-3 border-t border-gray-200">
+                        <>
+                        <div className=" pt-3 border-t border-gray-200">
                             <h5 className="font-bold text-sm mb-3 text-gray-800">Required Parts</h5>
                             <div className="space-y-3 max-h-48 overflow-y-auto grid md:grid-cols-2 grid-cols-2 gap-3">
                                 {offer.requiredParts.map((part) => (
@@ -328,6 +329,9 @@ const handleMessageSend = async () => {
                                 ))}
                             </div>
                         </div>
+<p className='bg-blue-100 p-2 rounded-lg mb-3'>These parts are required for the repair job.</p>
+                        </>
+
                     )}
 
                     {/* Action Buttons */}
@@ -363,7 +367,7 @@ const handleMessageSend = async () => {
 
         {offer.status === 'in_progress' && (
             <div className="px-4 py-2 bg-yellow-50 text-yellow-700 rounded-xl text-sm font-semibold border border-yellow-200 shadow-sm">
-                🚧 Work in Progress
+                Work in Progress
             </div>
         )}
     </div>

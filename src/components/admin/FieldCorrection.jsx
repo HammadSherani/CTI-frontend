@@ -4,24 +4,42 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
-import { getFieldLabel } from '@/utils/functions';
+import { getFieldLabel, fieldValidations } from '@/utils/functions';
+
+// Validation function for each field
+const validateField = async (fieldName, value) => {
+  const validation = fieldValidations[fieldName];
+  if (!validation) return { isValid: true, error: null };
+
+  try {
+    await validation.validate(value);
+    return { isValid: true, error: null };
+  } catch (error) {
+    return { isValid: false, error: error.message };
+  }
+};
 
 // Renders the correct input based on field type
-function FieldInput({ fieldConfig, fieldName, value, onChange }) {
+function FieldInput({ fieldConfig, fieldName, value, onChange, error }) {
   const type = fieldConfig?.type || 'text';
 
   if (type === 'select') {
     return (
-      <select
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 bg-white"
-      >
-        <option value="">Select {fieldConfig.label}</option>
-        {fieldConfig.options?.map(opt => (
-          <option key={opt} value={opt}>{opt}</option>
-        ))}
-      </select>
+      <div>
+        <select
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 bg-white ${
+            error ? 'border-red-500' : 'border-gray-300'
+          }`}
+        >
+          <option value="">Select {fieldConfig.label}</option>
+          {fieldConfig.options?.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
     );
   }
 
@@ -34,21 +52,24 @@ function FieldInput({ fieldConfig, fieldName, value, onChange }) {
       onChange(updated);
     };
     return (
-      <div className="flex flex-wrap gap-2">
-        {fieldConfig.options?.map(opt => (
-          <button
-            key={opt}
-            type="button"
-            onClick={() => toggle(opt)}
-            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
-              selected.includes(opt)
-                ? 'bg-primary-600 text-white border-primary-600'
-                : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
-            }`}
-          >
-            {opt}
-          </button>
-        ))}
+      <div>
+        <div className="flex flex-wrap gap-2">
+          {fieldConfig.options?.map(opt => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => toggle(opt)}
+              className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+                selected.includes(opt)
+                  ? 'bg-primary-600 text-white border-primary-600'
+                  : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
   }
@@ -56,14 +77,36 @@ function FieldInput({ fieldConfig, fieldName, value, onChange }) {
   if (type === 'tags') {
     const tags = Array.isArray(value) ? value : [];
     const [inputVal, setInputVal] = useState('');
-    const addTag = () => {
+    const [tagError, setTagError] = useState('');
+    
+    const addTag = async () => {
       const trimmed = inputVal.trim();
-      if (trimmed && !tags.includes(trimmed)) {
-        onChange([...tags, trimmed]);
-        setInputVal('');
+      if (!trimmed) return;
+      
+      // Validate single tag
+      const tagValidation = yup.string()
+        .min(2, "Each specialization must be at least 2 characters")
+        .max(50, "Each specialization cannot exceed 50 characters");
+      
+      try {
+        await tagValidation.validate(trimmed);
+        
+        if (!tags.includes(trimmed)) {
+          if (tags.length >= 10) {
+            setTagError("Cannot add more than 10 specializations");
+            return;
+          }
+          onChange([...tags, trimmed]);
+          setInputVal('');
+          setTagError('');
+        }
+      } catch (error) {
+        setTagError(error.message);
       }
     };
+    
     const removeTag = (tag) => onChange(tags.filter(t => t !== tag));
+    
     return (
       <div>
         <div className="flex flex-wrap gap-2 mb-2">
@@ -82,7 +125,9 @@ function FieldInput({ fieldConfig, fieldName, value, onChange }) {
             value={inputVal}
             onChange={(e) => setInputVal(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
-            className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+            className={`flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+              tagError ? 'border-red-500' : 'border-gray-300'
+            }`}
             placeholder={`Add ${fieldConfig.label} and press Enter`}
           />
           <button
@@ -93,64 +138,109 @@ function FieldInput({ fieldConfig, fieldName, value, onChange }) {
             Add
           </button>
         </div>
+        {tagError && <p className="text-red-500 text-xs mt-1">{tagError}</p>}
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
   }
 
   if (type === 'textarea') {
     return (
-      <textarea
-        value={value || ''}
-        onChange={(e) => onChange(e.target.value)}
-        rows={4}
-        className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 resize-none"
-        placeholder={`Enter ${fieldConfig.label}`}
-      />
+      <div>
+        <textarea
+          value={value || ''}
+          onChange={(e) => onChange(e.target.value)}
+          rows={4}
+          className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 resize-none ${
+            error ? 'border-red-500' : 'border-gray-300'
+          }`}
+          placeholder={`Enter ${fieldConfig.label}`}
+        />
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      </div>
     );
   }
 
   if (type === 'boolean') {
     return (
-      <div className="flex gap-4">
-        {[true, false].map(opt => (
-          <label key={String(opt)} className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="radio"
-              checked={value === opt}
-              onChange={() => onChange(opt)}
-              className="accent-primary-600"
-            />
-            <span>{opt ? 'Yes' : 'No'}</span>
-          </label>
-        ))}
+      <div>
+        <div className="flex gap-4">
+          {[true, false].map(opt => (
+            <label key={String(opt)} className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                checked={value === opt}
+                onChange={() => onChange(opt)}
+                className="accent-primary-600"
+              />
+              <span>{opt ? 'Yes' : 'No'}</span>
+            </label>
+          ))}
+        </div>
+        {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
       </div>
     );
   }
 
   if (type === 'workinghours') {
     const hours = typeof value === 'object' && value !== null ? value : { start: '', end: '' };
+    const [errors, setErrors] = useState({ start: '', end: '' });
+    
+    const handleStartChange = async (val) => {
+      const newHours = { ...hours, start: val };
+      onChange(newHours);
+      
+      // Validate start time
+      const result = await validateField('workingHours.start', val);
+      setErrors(prev => ({ ...prev, start: result.error || '' }));
+    };
+    
+    const handleEndChange = async (val) => {
+      const newHours = { ...hours, end: val };
+      onChange(newHours);
+      
+      // Validate end time with context
+      try {
+        await fieldValidations['workingHours.end'].validate(val, {
+          context: { start: hours.start }
+        });
+        setErrors(prev => ({ ...prev, end: '' }));
+      } catch (error) {
+        setErrors(prev => ({ ...prev, end: error.message }));
+      }
+    };
+    
     return (
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-xs text-gray-500 mb-1">Start Time</label>
-          <input
-            type="text"
-            value={hours.start || ''}
-            onChange={(e) => onChange({ ...hours, start: e.target.value })}
-            placeholder="e.g. 09:00 AM"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-          />
+      <div>
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block text-xs text-gray-500 mb-1">Start Time</label>
+            <input
+              type="text"
+              value={hours.start || ''}
+              onChange={(e) => handleStartChange(e.target.value)}
+              placeholder="e.g. 09:00 AM"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                errors.start ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.start && <p className="text-red-500 text-xs mt-1">{errors.start}</p>}
+          </div>
+          <div className="flex-1">
+            <label className="block text-xs text-gray-500 mb-1">End Time</label>
+            <input
+              type="text"
+              value={hours.end || ''}
+              onChange={(e) => handleEndChange(e.target.value)}
+              placeholder="e.g. 06:00 PM"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+                errors.end ? 'border-red-500' : 'border-gray-300'
+              }`}
+            />
+            {errors.end && <p className="text-red-500 text-xs mt-1">{errors.end}</p>}
+          </div>
         </div>
-        <div className="flex-1">
-          <label className="block text-xs text-gray-500 mb-1">End Time</label>
-          <input
-            type="text"
-            value={hours.end || ''}
-            onChange={(e) => onChange({ ...hours, end: e.target.value })}
-            placeholder="e.g. 06:00 PM"
-            className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-          />
-        </div>
+        {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
       </div>
     );
   }
@@ -165,13 +255,18 @@ function FieldInput({ fieldConfig, fieldName, value, onChange }) {
 
   // Default: text, email, tel, number, date
   return (
-    <input
-      type={type}
-      value={value || ''}
-      onChange={(e) => onChange(e.target.value)}
-      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
-      placeholder={`Enter correct ${fieldConfig?.label || fieldName}`}
-    />
+    <div>
+      <input
+        type={type}
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 ${
+          error ? 'border-red-500' : 'border-gray-300'
+        }`}
+        placeholder={`Enter correct ${fieldConfig?.label || fieldName}`}
+      />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
   );
 }
 
@@ -200,6 +295,7 @@ export default function FieldCorrections({ reviewId }) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [corrections, setCorrections] = useState({});
+  const [fieldErrors, setFieldErrors] = useState({});
   const { token } = useSelector(state => state.auth);
 
   useEffect(() => {
@@ -241,13 +337,13 @@ export default function FieldCorrections({ reviewId }) {
         } else if (config?.type === 'boolean') {
           val = field.currentValue === true || field.currentValue === 'true';
         } else if (config?.type === 'date' && field.currentValue) {
-          // Format date to YYYY-MM-DD for date input
           try { val = new Date(field.currentValue).toISOString().split('T')[0]; } catch { val = ''; }
         }
 
         initialCorrections[field.fieldName] = val;
       });
       setCorrections(initialCorrections);
+      setFieldErrors({});
     } catch (error) {
       toast.error('Failed to fetch review details');
     }
@@ -255,10 +351,38 @@ export default function FieldCorrections({ reviewId }) {
 
   const handleCorrectionChange = (fieldName, value) => {
     setCorrections(prev => ({ ...prev, [fieldName]: value }));
+    // Clear error for this field when user starts typing
+    setFieldErrors(prev => ({ ...prev, [fieldName]: '' }));
+  };
+
+  const validateAllFields = async () => {
+    const errors = {};
+    let isValid = true;
+
+    for (const field of selectedReview.fields) {
+      const fieldName = field.fieldName;
+      const value = corrections[fieldName];
+      
+      const result = await validateField(fieldName, value);
+      if (!result.isValid) {
+        errors[fieldName] = result.error;
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
   };
 
   const handleSubmitCorrections = async () => {
     if (!selectedReview) return;
+
+    // Validate all fields first
+    const isValid = await validateAllFields();
+    if (!isValid) {
+      toast.error('Please fix all validation errors');
+      return;
+    }
 
     const correctedFields = selectedReview.fields.map(field => ({
       fieldName: field.fieldName,
@@ -276,6 +400,7 @@ export default function FieldCorrections({ reviewId }) {
       await fetchPendingReviews();
       setSelectedReview(null);
       setCorrections({});
+      setFieldErrors({});
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit corrections');
     } finally {
@@ -307,79 +432,86 @@ export default function FieldCorrections({ reviewId }) {
     );
   }
 
+  console.log("Reviews Data", reviews);
+  
+  // Check if reviews is an array or single object
+  const reviewList = Array.isArray(reviews) ? reviews : reviews ? [reviews] : [];
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">Field Corrections Required</h1>
 
       {!selectedReview ? (
         <div className="space-y-4">
-          {reviews.length === 0 ? (
+          {reviewList.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-lg shadow">
               <Icon icon="mdi:check-circle" className="w-16 h-16 text-green-500 mx-auto mb-4" />
               <h3 className="text-lg font-medium text-gray-900">No Pending Corrections</h3>
               <p className="text-gray-500">All your fields are up to date!</p>
             </div>
           ) : (
-            <div key={reviews.reviewId} className="bg-white rounded-lg shadow p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="font-semibold text-lg">
-                    Review from {new Date(reviews.createdAt).toLocaleDateString()}
-                  </h3>
-                  <p className="text-sm text-gray-600 mt-1">{reviews.overallComment}</p>
+            reviewList.map((review) => (
+              <div key={review.reviewId || review._id} className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-semibold text-lg">
+                      Review from {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'N/A'}
+                    </h3>
+                    <p className="text-sm text-gray-600 mt-1">{review.overallComment}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-sm ${
+                    review.status === 'pending'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-blue-100 text-blue-800'
+                  }`}>
+                    {review.status}
+                  </span>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-sm ${
-                  reviews.status === 'pending'
-                    ? 'bg-yellow-100 text-yellow-800'
-                    : 'bg-blue-100 text-blue-800'
-                }`}>
-                  {reviews.status}
-                </span>
-              </div>
 
-              <div className="mb-4">
-                <h4 className="font-medium mb-2">Fields to correct:</h4>
-                <ul className="space-y-2">
-                  {reviews.fields?.map(field => {
-                    const config = getFieldLabel[field.fieldName];
-                    return (
-                      <li key={field._id} className="flex items-start gap-2 text-sm">
-                        <Icon
-                          icon={field.status === 'resolved' ? 'mdi:check-circle' : 'mdi:alert-circle'}
-                          className={`w-4 h-4 mt-0.5 ${field.status === 'resolved' ? 'text-green-500' : 'text-orange-500'}`}
-                        />
-                        <div>
-                          <span className="font-medium">{config?.label || field.fieldName}:</span>
-                          <span className="text-gray-600 ml-2">{field.issue}</span>
-                          {field.status === 'resolved' && (
-                            <span className="ml-2 text-green-600 text-xs">(Resolved ✓)</span>
-                          )}
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
+                <div className="mb-4">
+                  <h4 className="font-medium mb-2">Fields to correct:</h4>
+                  <ul className="space-y-2">
+                    {review.fields?.map(field => {
+                      const config = getFieldLabel[field.fieldName];
+                      return (
+                        <li key={field._id || field.fieldName} className="flex items-start gap-2 text-sm">
+                          <Icon
+                            icon={field.status === 'resolved' ? 'mdi:check-circle' : 'mdi:alert-circle'}
+                            className={`w-4 h-4 mt-0.5 ${field.status === 'resolved' ? 'text-green-500' : 'text-orange-500'}`}
+                          />
+                          <div>
+                            <span className="font-medium">{config?.label || field.fieldName}:</span>
+                            <span className="text-gray-600 ml-2">{field.issue}</span>
+                            {field.status === 'resolved' && (
+                              <span className="ml-2 text-green-600 text-xs">(Resolved ✓)</span>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={() => fetchReviewDetails(reviews.reviewId)}
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Correct Fields
-                </button>
-
-                {reviews.fields?.every(f => f.status === 'resolved') && (
+                <div className="flex gap-3">
                   <button
-                    onClick={() => handleSubmitAll(reviews.reviewId)}
-                    disabled={submitting}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
+                    onClick={() => fetchReviewDetails(review.reviewId || review._id)}
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
                   >
-                    Submit for Review
+                    Correct Fields
                   </button>
-                )}
+
+                  {review.fields?.every(f => f.status === 'resolved') && (
+                    <button
+                      onClick={() => handleSubmitAll(review.reviewId || review._id)}
+                      disabled={submitting}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300"
+                    >
+                      Submit for Review
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
+            ))
           )}
         </div>
       ) : (
@@ -399,6 +531,7 @@ export default function FieldCorrections({ reviewId }) {
             {selectedReview.fields.map(field => {
               const config = getFieldLabel[field.fieldName];
               const label = config?.label || field.fieldName;
+              const error = fieldErrors[field.fieldName];
 
               return (
                 <div key={field.fieldName} className="border rounded-lg p-4">
@@ -434,7 +567,7 @@ export default function FieldCorrections({ reviewId }) {
                         </p>
                       </div>
 
-                      {/* Corrected input */}
+                      {/* Corrected input with validation */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Corrected Value <span className="text-red-500">*</span>
@@ -444,6 +577,7 @@ export default function FieldCorrections({ reviewId }) {
                           fieldName={field.fieldName}
                           value={corrections[field.fieldName]}
                           onChange={(val) => handleCorrectionChange(field.fieldName, val)}
+                          error={error}
                         />
                       </div>
                     </div>

@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { max } from 'date-fns';
 
 const cardSchema = yup.object().shape({
     cardNumber: yup
@@ -42,11 +43,13 @@ const userDetailsSchema = yup.object().shape({
         .string()
         .required('First name is required')
         .min(2, 'First name must be at least 2 characters')
+        .max(100, 'First name cannot exceed 100 characters')
         .matches(/^[a-zA-Z\s]+$/, 'Only letters are allowed'),
     lastName: yup
         .string()
         .required('Last name is required')
         .min(2, 'Last name must be at least 2 characters')
+        .max(100, 'Last name cannot exceed 100 characters')
         .matches(/^[a-zA-Z\s]+$/, 'Only letters are allowed'),
     email: yup
         .string()
@@ -60,22 +63,28 @@ const userDetailsSchema = yup.object().shape({
             const phoneDigits = value.replace(/\D/g, '');
             return phoneDigits.length >= 10 && phoneDigits.length <= 15;
         }),
+        
     identityNumber: yup
         .string()
         .required('Identity number is required')
-        .matches(/^\d{11}$/, 'Identity number must be exactly 11 digits'),
+        .matches(/^\d{11}$/, 'Identity number must be exactly 11 digits')
+        .min(11, 'Identity number must be exactly 11 digits')
+        .max(11, 'Identity number must be exactly 11 digits'),
     city: yup
         .string()
         .required('City is required')
-        .min(2, 'City name must be at least 2 characters'),
+        .min(2, 'City name must be at least 2 characters')
+        .max(100, 'City name cannot exceed 100 characters'),
     country: yup
         .string()
         .required('Country is required')
-        .min(2, 'Country name must be at least 2 characters'),
+        .min(2, 'Country name must be at least 2 characters')
+        .max(100, 'Country name cannot exceed 100 characters'),
     address: yup
         .string()
         .required('Address is required')
         .min(10, 'Please enter a complete address (min 10 characters)')
+        .max(200, 'Address cannot exceed 200 characters'),
 });
 
 function QuotationPayment({ quotationId, jobId, token, router }) {

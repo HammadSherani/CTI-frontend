@@ -47,7 +47,9 @@ const schema = yup.object({
             .required("Warranty duration is required")
             .min(1, "Warranty duration must be at least 1 day")
             .typeError("Warranty duration must be a valid number"),
-        description: yup.string(),
+        description: yup.string()
+              .min(1)
+        .max(500, "Description cannot exceed 500 characters"),
         terms: yup.string()
     }),
     availability: yup.object({
@@ -74,7 +76,9 @@ const schema = yup.object({
                 is: true,
                 then: (schema) => schema
                     .required("Drop-off address is required when drop-off service is selected")
-                    .min(10, "Address must be at least 10 characters"),
+                    .min(10, "Address must be at least 10 characters")
+                    .max(200, "Address cannot exceed 200 characters"),
+                    
                 otherwise: (schema) => schema.nullable()
             })
     }).test('at-least-one-service', 'Please select at least one service option (Drop-off or Pickup)', function(value) {

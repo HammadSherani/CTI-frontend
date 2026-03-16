@@ -19,6 +19,7 @@ import Loader from '@/components/Loader';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import Link from 'next/link';
 
 // Updated Yup schema (removed customServices)
 const schema = yup.object().shape({
@@ -491,8 +492,8 @@ const CreateRepairJobForm = () => {
                           onChange={(e) => setIsTermsAgreed(e.target.checked)}
                           className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
                         />
-                        <label htmlFor="terms" className="text-sm text-gray-600">
-                          I agree to the <a href="#" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</a>
+                        <label htmlFor="/terms-and-conditions" className="text-sm text-gray-600">
+                          I agree to the <Link href="/terms-and-conditions" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</Link>
                         </label>
                       </div>
                       <button

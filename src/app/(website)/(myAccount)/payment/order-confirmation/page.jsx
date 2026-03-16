@@ -1,12 +1,15 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import Link from 'next/link';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { format } from 'date-fns';
 
 // Constants
 const ORDER_TYPES = {
@@ -26,6 +29,220 @@ const calculateOfferPricing = (offer, job) => {
   const discount = 0;
   const tax = Math.round((basePrice + pickupCharge + deliveryFee - discount) * TAX_RATE);
   return basePrice + pickupCharge + deliveryFee + tax - discount;
+};
+
+// ── Guard: ek waqt mein sirf ek PDF generate ho ──
+let isGenerating = false;
+ 
+// Helper: image ko base64 mein convert karta hai
+const getBase64FromUrl = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL('image/png'));
+    };
+    img.onerror = () => reject(new Error('Logo load failed'));
+    img.src = url;
+  });
+};
+// PDF Generator Function
+const generateInvoicePDF = (orderDetails, userData) => {
+   if (isGenerating) {
+    console.warn('PDF already generating, please wait...');
+    return;
+  }
+  isGenerating = true;
+  
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Colors
+  const primaryColor = [234, 88, 12]; // Orange-600
+  const grayColor = [107, 114, 128];
+  
+  // Header with Logo
+  doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.rect(0, 0, pageWidth, 40, 'F');
+   const logoX = 8;
+    const logoY = 5;
+    const logoW = 35;
+    const logoH = 35;
+
+    try {
+      const logoBase64 =  getBase64FromUrl('/assets/logo.png');
+ 
+      // White rounded background behind logo for clean look
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(logoX - 2, logoY - 2, logoW + 4, logoH + 4, 4, 4, 'F');
+ 
+      doc.addImage(logoBase64, 'PNG', logoX, logoY, logoW, logoH);
+    } catch (err) {
+      console.error('Logo failed:', err);
+      doc.setFillColor(255, 255, 255);
+      doc.roundedRect(logoX - 2, logoY - 2, logoW + 4, logoH + 4, 4, 4, 'F');
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(11);
+      doc.text('LOGO', logoX + logoW / 2, logoY + logoH / 2 + 1, { align: 'center' });
+    }
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.text('INVOICE', pageWidth - 20, 25, { align: 'right' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Repair Service Invoice', pageWidth - 20, 32, { align: 'right' });
+  
+  // Company Details
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.text('QuickRepair Services', 20, 50);
+  doc.text('123 Service Street, Tech City', 20, 55);
+  doc.text('support@quickrepair.com | +1 234 567 890', 20, 60);
+  
+  // Invoice Details
+  doc.setFontSize(10);
+  doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
+  doc.text('Invoice Number:', 120, 50);
+  doc.text('Invoice Date:', 120, 55);
+  doc.text('Payment ID:', 120, 60);
+  
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`INV-${Date.now().toString().slice(-8)}`, 160, 50);
+  doc.text(format(new Date(), 'dd MMM yyyy'), 160, 55);
+  doc.text(orderDetails.paymentId || 'N/A', 160, 60);
+  
+  // Line separator
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, 70, pageWidth - 20, 70);
+  
+  // Customer Details
+  doc.setFontSize(12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Bill To:', 20, 80);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.text(userData?.name || 'Customer', 20, 87);
+  doc.text(userData?.email || 'N/A', 20, 92);
+  doc.text(userData?.phone || 'N/A', 20, 97);
+  
+  // Repairman Details
+  doc.setFontSize(12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Service Provider:', 120, 80);
+  
+  doc.setFontSize(10);
+  doc.setTextColor(0, 0, 0);
+  doc.setFont('helvetica', 'normal');
+  doc.text(orderDetails.repairmanProfile?.name || 'Repairman', 120, 87);
+  doc.text(orderDetails.repairmanProfile?.shopName || 'N/A', 120, 92);
+  doc.text(orderDetails.repairmanProfile?.mobileNumber || 'N/A', 120, 97);
+  
+  // Service Details Table
+  doc.setFontSize(12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Service Details', 20, 115);
+  
+  // Service table data
+  const serviceData = [
+    ['Device', `${orderDetails.deviceBrand} ${orderDetails.deviceModel}`],
+    ['Services', Array.isArray(orderDetails.services) 
+      ? orderDetails.services.map(s => s.name || s).join(', ') 
+      : 'N/A'],
+    ['Estimated Time', orderDetails.estimatedTime],
+    ['Warranty', `${orderDetails.warranty} days`]
+  ];
+  
+  autoTable(doc, {
+    startY: 120,
+    head: [['Description', 'Details']],
+    body: serviceData,
+    theme: 'striped',
+    headStyles: { 
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    columnStyles: {
+      0: { cellWidth: 80, fontStyle: 'bold' },
+      1: { cellWidth: 'auto' }
+    },
+    styles: { fontSize: 10 }
+  });
+  
+  // Payment Summary Table
+  const finalY = doc.lastAutoTable.finalY + 10;
+  
+  doc.setFontSize(12);
+  doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Payment Summary', 20, finalY);
+  
+  // Calculate breakdown
+  let subtotal = orderDetails.totalPrice;
+  let pickupCharge = 0;
+  let tax = 0;
+  
+  if (orderDetails.isQuotation) {
+    subtotal = orderDetails.quotation?.pricing?.totalAmount || 0;
+    pickupCharge = orderDetails.quotation?.pricing?.serviceCharges || 0;
+  } else {
+    subtotal = orderDetails.offer?.pricing?.totalPrice || 0;
+    pickupCharge = orderDetails.offer?.serviceOptions?.pickupCharge || 0;
+  }
+  
+  const paymentData = [
+    ['Subtotal', `${orderDetails.currency} ${subtotal.toLocaleString()}`],
+    ...(pickupCharge > 0 ? [['Pickup Charge', `${orderDetails.currency} ${pickupCharge.toLocaleString()}`]] : []),
+    ['Tax', `${orderDetails.currency} 0`],
+    ['Total Amount', `${orderDetails.currency} ${orderDetails.totalPrice.toLocaleString()}`]
+  ];
+  
+  autoTable(doc, {
+    startY: finalY + 5,
+    head: [['Description', 'Amount']],
+    body: paymentData,
+    theme: 'striped',
+    headStyles: { 
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold'
+    },
+    columnStyles: {
+      0: { cellWidth: 80, fontStyle: 'bold' },
+      1: { cellWidth: 60, halign: 'right' }
+    },
+    styles: { fontSize: 10 }
+  });
+  
+  // Footer
+  const footerY = doc.lastAutoTable.finalY + 20;
+  
+  doc.setDrawColor(200, 200, 200);
+  doc.line(20, footerY - 5, pageWidth - 20, footerY - 5);
+  
+  doc.setFontSize(8);
+  doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
+  doc.text('This is a computer generated invoice. No signature required.', pageWidth / 2, footerY, { align: 'center' });
+  doc.text('Thank you for choosing our service!', pageWidth / 2, footerY + 5, { align: 'center' });
+  
+  // Return the PDF as blob URL
+  return doc.output('bloburl');
 };
 
 // Separate loading component
@@ -57,8 +274,6 @@ const ErrorState = () => (
 // Payment summary component
 const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warranty, job, offer, isQuotation, quotation }) => {
   const showPickupCharge = !isQuotation && job?.isPickUp && offer?.serviceOptions?.pickupCharge;
-
-  // ✅ For quotation pickup charge
   const showQuotationPickup = isQuotation && quotation?.serviceDetails?.isPickup && quotation?.pricing?.serviceCharges > 0;
 
   return (
@@ -70,7 +285,6 @@ const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warran
         </div>
       )}
 
-      {/* Offer pickup charge breakdown */}
       {showPickupCharge && (
         <div className="border-t pt-3 space-y-2">
           <div className="flex justify-between items-center text-sm">
@@ -88,7 +302,6 @@ const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warran
         </div>
       )}
 
-      {/* Quotation pickup charge breakdown */}
       {showQuotationPickup && (
         <div className="border-t pt-3 space-y-2">
           <div className="flex justify-between items-center text-sm">
@@ -136,7 +349,7 @@ const ServiceDetails = ({
   job
 }) => {
   const isQuotation = orderType === ORDER_TYPES.QUOTATION;
-  console.log(services, "servicesgfhfhfh")
+  
   return (
     <div className="bg-primary-50 rounded-xl p-6 mb-8 text-left">
       <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -147,7 +360,7 @@ const ServiceDetails = ({
         <p><strong>Device:</strong> {deviceBrand} {deviceModel}</p>
         <p>
           <strong>Service:</strong>{" "}
-          {services?.map(service => service.name).join(", ")}
+          {services?.map(service => service.name || service).join(", ")}
         </p>
         <p><strong>Repairman:</strong> {repairmanProfile?.name} ({repairmanProfile?.shopName})</p>
         <p><strong>Contact:</strong> {repairmanProfile?.mobileNumber || repairmanProfile?.phone}</p>
@@ -255,11 +468,13 @@ function OrderConfirmation() {
   const [orderData, setOrderData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [orderType, setOrderType] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
-  const token = useSelector(state => state.auth.token);
-
+  const { user, token,userDetails } = useSelector(state => state.auth);
+console.log("User in Order Confirmation", user);
+console.log("User Details in Order Confirmation", userDetails); 
   const quotationId = searchParams.get('quotationId');
   const jobId = searchParams.get('jobId');
   const offerId = searchParams.get('offerId');
@@ -279,7 +494,6 @@ function OrderConfirmation() {
       router.push(`/payment?quotationId=${quotationId}`);
       return null;
     }
-    console.log(data, "quotation data")
 
     return {
       quotation: data.data.quotation,
@@ -338,6 +552,34 @@ function OrderConfirmation() {
     fetchOrderData();
   }, [token, quotationId, jobId, fetchQuotationOrder, fetchOfferOrder]);
 
+  // Handle PDF Download
+  const handleDownloadInvoice = () => {
+    if (!orderDetails) return;
+    
+    setDownloading(true);
+    try {
+      const pdfBlobUrl = generateInvoicePDF(orderDetails, userDetails);
+      
+      // Create a link to download
+      const link = document.createElement('a');
+      link.href = pdfBlobUrl;
+      link.download = `Invoice_${orderDetails.paymentId || 'order'}_${format(new Date(), 'yyyyMMdd')}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfBlobUrl);
+      }, 100);
+      
+    } catch (error) {
+      console.error('PDF generation error:', error);
+      handleError(error);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   const orderDetails = useMemo(() => {
     if (!orderData || !orderType) return null;
 
@@ -346,7 +588,6 @@ function OrderConfirmation() {
     const job = isQuotation ? null : orderData.job;
     const offer = isQuotation ? null : orderData.offer;
 
-    // ✅ Calculate quotation total with pickup
     const quotationTotal = isQuotation
       ? (quotation.pricing.totalAmount + (quotation.pricing.serviceCharges || 0))
       : 0;
@@ -379,7 +620,7 @@ function OrderConfirmation() {
         ? quotation.deviceInfo?.modelName
         : job.deviceInfo.model,
       services: isQuotation
-        ? (quotation.deviceInfo?.repairServices|| 'N/A')
+        ? (quotation.deviceInfo?.repairServices || 'N/A')
         : job.services
     };
   }, [orderData, orderType]);
@@ -403,10 +644,6 @@ function OrderConfirmation() {
     services
   } = orderDetails;
 
-console.log("orderDetails ->", orderDetails);
-  console.log("services ->", services);
-
-
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
       <div className="bg-white rounded-3xl shadow-xl p-8 max-w-2xl w-full text-center relative overflow-hidden">
@@ -419,6 +656,27 @@ console.log("orderDetails ->", orderDetails);
           Your {isQuotation ? 'quotation' : 'repair request'} has been confirmed. {repairmanProfile?.name} will contact you within the next hour.
         </p>
 
+        {/* Download Invoice Button */}
+        <div className="mb-6 flex justify-center">
+          <button
+            onClick={handleDownloadInvoice}
+            disabled={downloading}
+            className="bg-primary-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-primary-700 transition-all duration-300 flex items-center gap-2 shadow-md"
+          >
+            {downloading ? (
+              <>
+                <Icon icon="lucide:loader" className="w-5 h-5 animate-spin" />
+                Generating Invoice...
+              </>
+            ) : (
+              <>
+                <Icon icon="lucide:file-text" className="w-5 h-5" />
+                Download Invoice PDF
+              </>
+            )}
+          </button>
+        </div>
+
         <PaymentSummary
           paymentId={paymentId}
           totalPrice={totalPrice}
@@ -430,6 +688,7 @@ console.log("orderDetails ->", orderDetails);
           isQuotation={isQuotation}
           quotation={quotation}
         />
+        
         <ServiceDetails
           deviceBrand={deviceBrand}
           deviceModel={deviceModel}

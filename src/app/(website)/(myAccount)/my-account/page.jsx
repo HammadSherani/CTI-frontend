@@ -7,6 +7,7 @@ const Page = () => {
     <>
       <div className="bg-gray-50 min-h-screen flex   ">
         <MyAccountPage />
+        
       </div>
     </>
   )

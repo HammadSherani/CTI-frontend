@@ -37,6 +37,8 @@
     "firebase": "^12.4.0",
     "framer-motion": "^12.23.12",
     "iconify": "^1.4.0",
+    "jspdf": "^4.2.0",
+    "jspdf-autotable": "^5.0.7",
     "lexical": "^0.38.2",
     "next": "^16.0.10",
     "next-cloudinary": "^6.16.0",

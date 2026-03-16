@@ -326,14 +326,14 @@ const StatsCard = ({ icon, label, value, color = 'primary', bgColor = '50' }) =>
   };
 
   return (
-    <div className={`${colors[color].bg} rounded-xl p-4 border border-${color}-200`}>
+    <div className={`${colors[color]?.bg} rounded-xl p-4 border border-${color}-200`}>
       <div className="flex items-center gap-3">
         <div className={`p-3 bg-white rounded-lg shadow-sm`}>
-          <Icon icon={icon} className={`w-6 h-6 ${colors[color].icon}`} />
+          <Icon icon={icon} className={`w-6 h-6 ${colors[color]?.icon}`} />
         </div>
         <div>
           <p className="text-sm text-gray-600">{label}</p>
-          <p className={`text-2xl font-bold ${colors[color].text}`}>{value}</p>
+          <p className={`text-2xl font-bold ${colors[color]?.text}`}>{value}</p>
         </div>
       </div>
     </div>
