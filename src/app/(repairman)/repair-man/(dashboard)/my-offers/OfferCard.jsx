@@ -7,6 +7,7 @@ import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import { useRouter } from 'next/navigation';
 
 const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -15,6 +16,8 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
     const { token } = useSelector((state) => state.auth);
 
     console.log(offer, 'offer');
+
+    const router = useRouter();
 
 
     const jobTitle = `${offer.jobId?.deviceInfo?.brand || ''} ${offer.jobId?.deviceInfo?.model || ''} Repair`;
