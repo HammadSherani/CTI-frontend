@@ -130,72 +130,57 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
             </div>
 
             {/* Actions */}
-            <div className="flex space-x-2 flex-1">
-                {offer.status === 'pending' && !offer.isExpired && (
-                    <div className="flex gap-3 w-full">
-                        <Link href={`/repair-man/my-offers/${offer._id}/edit`} className="flex-1">
-                            <button
-                                className="w-full bg-primary-600 text-white py-2 px-3 rounded-md 
-                           hover:bg-primary-700 transition-colors text-sm font-medium"
-                            >
-                                Edit Offer
-                            </button>
-                        </Link>
+       <div className="flex gap-3 flex-1 w-full">
 
-                        <button
-                            onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
-                            className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md 
-                       hover:bg-red-50 transition-colors text-sm font-medium"
-                        >
-                            Withdraw
-                        </button>
-                    </div>
-                )}
+  {offer.status === 'pending' && !offer.isExpired && (
+    <>
+      <Link href={`/repair-man/my-offers/${offer._id}/edit`} className="flex-1">
+        <button
+          className="w-full bg-primary-600 text-white py-2 px-3 rounded-md 
+          hover:bg-primary-700 transition-colors text-sm font-medium"
+        >
+          Edit Offer
+        </button>
+      </Link>
 
-                {offer.status === 'under_review' && (
-                    <>
-                        <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
-                            Message Client
-                        </button>
-                        <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                            View Details
-                        </button>
-                    </>
-                )}
-                {offer.status === 'accepted' && (
-                    <>
-                        {/* <button
-                            onClick={() => handleStartJob(offer?.jobId?._id)}
-                            disabled={isChangeStatus}
-                            className={`flex items-center justify-center gap-2 flex-1 bg-green-600 text-white py-2 px-3 rounded-md transition-colors text-sm font-medium 
-    ${isChangeStatus ? "opacity-70 cursor-not-allowed" : "hover:bg-green-700"}`}
-                        >
-                            {isChangeStatus ? (
-                                <>
-                                    <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                                    Updating...
-                                </>
-                            ) : (
-                                "Start Job"
-                            )}
-                        </button> */}
+      <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+      <Link href={`/repair-man/my-offers/${offer._id}/view`} className="flex-1">
+        View Details
+      </Link>
+      </button>
 
-                        {/* <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                            Message Client
-                        </button> */}
-                    </>
-                )}
-                {(offer.status === 'rejected' || offer.status === 'withdrawn' || offer.isExpired) && (
-                    <>
-                        <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-                            View Details
-                        </button>
-                        {/* <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
-                            Find Similar Jobs
-                        </button> */}
-                    </>
-                )}
-            </div>
+      <button
+        onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
+        className="flex-1 border border-red-300 text-red-700 py-2 px-3 rounded-md 
+        hover:bg-red-50 transition-colors text-sm font-medium"
+      >
+        Withdraw
+      </button>
+    </>
+  )}
+
+  {offer.status === 'under_review' && (
+    <>
+      <button className="flex-1 bg-primary-600 text-white py-2 px-3 rounded-md hover:bg-primary-700 transition-colors text-sm font-medium">
+        Message Client
+      </button>
+
+      <button className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+        View Details
+      </button>
+    </>
+  )}
+
+  {offer.status === 'accepted' && (
+    <>
+      <button onClick={() => router.push(`/repair-man/my-offers/${offer._id}/view`)} className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+       
+        View Details For Accepting Offer
+      </button>
+    </>
+  )}
+
+</div>
 
             {/* Edit Offer Modal */}
             <EditOfferModal

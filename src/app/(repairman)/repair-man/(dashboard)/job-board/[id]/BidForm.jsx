@@ -715,11 +715,12 @@ export default function BidForm({
                             <label htmlFor="warrantyDescription" className="block text-sm font-medium text-gray-700">
                                 Warranty Description
                             </label>
+
                             <Controller
                                 name="warranty.description"
                                 control={control}
                                 render={({ field }) => (
-                                    <input
+                                    <textarea
                                         {...field}
                                         id="warrantyDescription"
                                         type="text"
@@ -727,6 +728,7 @@ export default function BidForm({
                                         placeholder="e.g., Full parts and labor warranty"
                                     />
                                 )}
+                                error={errors.warranty?.description}
                             />
                         </div>
                     </div>
