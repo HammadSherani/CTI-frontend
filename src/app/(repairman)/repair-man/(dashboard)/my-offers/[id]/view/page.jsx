@@ -604,13 +604,13 @@ const handleStartJob = () => {
             </div>
           </div>
 
-          <button
+          {/* <button
             onClick={handleChatWithCustomer}
             className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
           >
             <Icon icon="mdi:chat-outline" className="text-xl mr-2" />
             Chat with Customer
-          </button>
+          </button> */}
 
     <div className="grid grid-cols-2 gap-3 pt-2">
 
@@ -632,13 +632,13 @@ const handleStartJob = () => {
 
 </div>
 
-          <button
+          {/* <button
             onClick={handleCounterOffer}
             className="w-full flex items-center justify-center px-4 py-2.5 border-2 border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 text-sm font-medium"
           >
             <Icon icon="mdi:swap-horizontal" className="text-xl mr-2" />
             Make Counter Offer
-          </button>
+          </button> */}
         </div>
       )}
 
