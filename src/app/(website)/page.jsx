@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearHomeData, fetchHome } from '@/store/home';
 
 // Components
-import Hero from '@/components/website/home/hero';
+import Hero, { Header } from '@/components/website/home/hero';
 import Categories from '@/components/website/home/categories';
 import PromoBanner from '@/components/website/home/Promo';
 import RefurbishedTabs from '@/components/website/home/RefurbishedTabs';

@@ -13,7 +13,7 @@ import handleError from '@/helper/handleError'
 
 function layout({ children }) {
   const {userDetails, token} = useSelector(state => state.auth);  
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   console.log("Repair User", userDetails);
   const dispatch = useDispatch();
   const fetchUserDetails = async () => {
@@ -37,12 +37,12 @@ function layout({ children }) {
   };
 
   useEffect(() => {
-    fetchUserDetails();
-  }, [])
+    if(token){
+      fetchUserDetails();
+    }
+  }, [token])
 
-  useEffect(() => {
-    setLoading(false)
-  }, [])
+ 
 
   if (loading) {
     return (

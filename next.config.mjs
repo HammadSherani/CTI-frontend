@@ -8,6 +8,11 @@ const nextConfig = {
         hostname: 'clicktointegrate.s3.eu-north-1.amazonaws.com',
         port: '',
         pathname: '/**', // allows all paths under this domain
+      }, {
+        protocol: "https",
+        hostname: "images.unsplash.com",
+        port: "",
+        pathname: "/**",
       },
     ],
   },

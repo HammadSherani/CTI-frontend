@@ -1,18 +1,38 @@
 import React from 'react';
+import { Header } from '../home/hero';
 
 // Hero Skeleton
 export const HeroSkeleton = () => {
   return (
-    <section className="relative h-[500px] max-w-7xl mx-auto py-7">
-      <div className="h-full flex flex-col md:flex-row items-center bg-gray-100 overflow-hidden rounded-3xl animate-pulse">
-        <div className="w-full md:w-1/2 px-4 md:px-10 py-8 md:py-0 space-y-4">
-          <div className="h-12 bg-gray-300 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-300 rounded w-full"></div>
-          <div className="h-4 bg-gray-300 rounded w-5/6"></div>
-          <div className="h-12 bg-gray-300 rounded w-32 mt-6"></div>
-        </div>
-        <div className="w-full md:w-1/2 flex justify-center px-4 md:px-0 py-8 md:py-0">
-          <div className="w-full h-[300px] bg-gray-300 rounded-2xl"></div>
+    <section className="relative text-white overflow-hidden bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">
+      <Header />
+
+      <div className="relative max-w-7xl mx-auto px-5 lg:px-8 py-16 lg:py-24">
+        <div className="grid md:grid-cols-2 gap-12 items-center animate-pulse">
+          
+          {/* Left skeleton */}
+          <div className="space-y-6">
+            <div className="w-44 h-8 bg-white/20 rounded-full"></div>
+
+            <div className="space-y-3">
+              <div className="h-12 w-3/4 bg-white/20 rounded"></div>
+              <div className="h-12 w-2/3 bg-white/20 rounded"></div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-white/20 rounded"></div>
+              <div className="h-4 w-5/6 bg-white/20 rounded"></div>
+              <div className="h-4 w-4/6 bg-white/20 rounded"></div>
+            </div>
+
+            <div className="h-12 w-40 bg-white/20 rounded-lg"></div>
+          </div>
+
+          {/* Right skeleton image */}
+          <div className="flex justify-center">
+            <div className="w-[420px] h-[420px] bg-white/20 rounded-xl"></div>
+          </div>
+
         </div>
       </div>
     </section>

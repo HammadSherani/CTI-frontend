@@ -1,147 +1,438 @@
 "use client";
-import React, { useState } from 'react';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
-import { motion } from 'framer-motion';
 
-import 'swiper/css';
-import 'swiper/css/pagination';
-import 'swiper/css/effect-fade';
-import Image from 'next/image';
-import { useSelector } from 'react-redux';
+import React, { useState,useEffect } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Autoplay, Pagination, EffectFade } from "swiper/modules";
+import { AnimatePresence, motion } from "framer-motion";
+import Image from "next/image";
+import Link from "next/link";
+import { useSelector } from "react-redux";
 
-// heroSlides will come from redux (state.home.heroSlides). It may be an array or a single object.
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/effect-fade";
+import { Icon } from "@iconify/react";
+import { HeroSkeleton } from "../skeletons/home";
 
 const textVariants = {
-  hidden: { 
-    opacity: 0, 
-    y: 50 
-  },
+  hidden: { opacity: 0, y: 40 },
   visible: {
     opacity: 1,
     y: 0,
-    transition: { 
-      duration: 0.6, 
-      ease: 'easeOut' 
-    },
+    transition: { duration: 0.7, ease: "easeOut" },
   },
 };
 
 const imageVariants = {
-  hidden: { 
-    opacity: 0, 
-    y: 0 
-  },
+  hidden: { opacity: 0, scale: 0.92 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { 
-      duration: 0.8, 
-      ease: 'easeOut',
-      delay: 0.2 
-    },
+    scale: 1,
+    transition: { duration: 0.9, ease: "easeOut", delay: 0.3 },
   },
 };
 
-const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {  
-  const [activeIndex, setActiveIndex] = useState(0);
+const dotCircleVariants = {
+  hidden: { opacity: 0, scale: 0.5 },
+  visible: {
+    opacity: 0.25,
+    scale: 1,
+    transition: { duration: 1.2, ease: "easeOut" },
+  },
+};
 
-  const { heroSlides } = useSelector((state) => state.home || {});
 
-  const [loading, setLoading] = React.useState(true);
+export function Header() {
+  const [openDropdown, setOpenDropdown] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  React.useEffect(() => {
-    if (heroSlides === undefined) setLoading(true);
-    else setLoading(false);
-  }, [heroSlides]);
-
-  const slides = React.useMemo(() => {
-    if (!heroSlides) return [];
-    if (Array.isArray(heroSlides)) return heroSlides.filter((s) => s.isActive !== false);
-    return heroSlides.isActive === false ? [] : [heroSlides];
-  }, [heroSlides]);
+  const navigationData = {
+  mainNav: [
+    { name: "Home", href: "/", hasDropdown: false },
+    { 
+      name: "Services", 
+      href: "#", 
+      hasDropdown: true,
+      dropdownItems: [
+        { name: "Mobile Repair", href: "/services/mobile-repair", icon: "mdi:cellphone" },
+        { name: "Screen Repair", href: "/services/screen-repair", icon: "mdi:cellphone-screen" },
+        { name: "Battery Replacement", href: "/services/battery", icon: "mdi:battery" },
+        { name: "Motherboard Repair", href: "/services/motherboard", icon: "mdi:chip" },
+        { name: "Water Damage", href: "/services/water-damage", icon: "mdi:water" },
+        { name: "Software Issues", href: "/services/software", icon: "mdi:code-brackets" },
+      ]
+    },
+    { 
+      name: "Products", 
+      href: "#", 
+      hasDropdown: true,
+      dropdownItems: [
+        { name: "New Arrivals", href: "/products/new", icon: "mdi:star" },
+        { name: "Refurbished Devices", href: "/products/refurbished", icon: "mdi:refresh" },
+        { name: "Accessories", href: "/products/accessories", icon: "mdi:headphones" },
+        { name: "Spare Parts", href: "/products/spare-parts", icon: "mdi:tools" },
+        { name: "Deals & Offers", href: "/products/deals", icon: "mdi:tag" },
+      ]
+    },
+    { name: "Experts / Top Repairmen", href: "/experts", hasDropdown: false },
+    { name: "Academy", href: "/academy", hasDropdown: false },
+    { name: "About", href: "/about", hasDropdown: false },
+    { name: "Support", href: "/support", hasDropdown: false },
+  ],
+  ctaButtons: [
+    { name: "Track Order", href: "/track-order", icon: "mdi:truck" },
+    { name: "Login", href: "/login", icon: "mdi:account" },
+  ]
+};
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.dropdown-container')) {
+        setOpenDropdown(null);
+      }
+    };
+    document.addEventListener('click', handleClickOutside);
+    return () => document.removeEventListener('click', handleClickOutside);
+  }, []);
 
   return (
-    <section className="relative h-[500px] max-w-7xl mx-auto py-7">
-      {loading ? (
-        <div className="h-[420px] flex items-center justify-center">
-          <div className="flex flex-col items-center gap-4">
-            <div className="w-12 h-12 rounded-full border-4 border-primary-600 border-t-transparent animate-spin" />
-            <p className="text-gray-600">Loading slides...</p>
-          </div>
+    <header className="bg-transparent w-full z-50 py-4">
+        <div className="flex items-center justify-center">
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {navigationData.mainNav.map((item) => (
+              <div key={item.name} className="relative dropdown-container">
+                {item.hasDropdown ? (
+                  <>
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
+                      className="flex items-center gap-1.5 px-4 py-2  z-50 rounded-lg font-medium transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10"
+                    >
+                      {item.name}
+                      <Icon
+                        icon="mdi:chevron-down" 
+                        className={`transition-transform duration-300 ${
+                          openDropdown === item.name ? "rotate-180" : ""
+                        }`}
+                        width={18}
+                      />
+                    </button>
+                    
+                    {/* Dropdown Menu - Transparent with blur */}
+                    <AnimatePresence>
+                      {openDropdown === item.name && (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute top-full left-0 mt-2 z-50 w-64 bg-white/10 backdrop-blur-md rounded-xl shadow-xl py-2 border border-white/20"
+                        >
+                          {item.dropdownItems.map((dropdownItem) => (
+                            <Link
+                              key={dropdownItem.name}
+                              href={dropdownItem.href}
+                              className="flex items-center gap-3 px-4 py-3 text-gray-900 hover:bg-white/20 hover:text-white transition-all duration-200"
+                              onClick={() => setOpenDropdown(null)}
+                            >
+                              {dropdownItem.icon && (
+                                <Icon icon={dropdownItem.icon} width={18} className="text-gray-900" />
+                              )}
+                              <span className="text-sm font-medium">{dropdownItem.name}</span>
+                            </Link>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className="px-4 py-2 rounded-lg font-medium transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10"
+                  >
+                    {item.name}
+                  </Link>
+                )}
+              </div>
+            ))}
+          </nav>
+
+          {/* Mobile Menu Button - Only show on mobile */}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="lg:hidden p-2 rounded-lg transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10 absolute right-4"
+          >
+            <Icon icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"} width={24} />
+          </button>
         </div>
-      ) : slides.length === 0 ? (
-        <div className="h-[420px] flex items-center justify-center">
-          <div className="text-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-4 w-24 h-24 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M16 3v4M8 3v4m-5 4h18" />
-            </svg>
-            <h3 className="text-xl font-semibold mb-2">No slides found</h3>
-            <p className="text-gray-600">There are no active hero slides to display right now.</p>
-          </div>
-        </div>
-      ) : (
-      <Swiper
-        modules={[Autoplay, Pagination, EffectFade]}
-        effect="fade"
-        fadeEffect={{ crossFade: true }}
-        autoplay={{ delay: autoplayDelay, disableOnInteraction: false }}
-        speed={transitionSpeed}  // Fade speed in ms
-        pagination={{
-          clickable: true,
-          renderBullet: (index, className) => `<span class="${className} custom-pagination-bullet"></span>`,
-        }}
-        loop
-        onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
-        className="h-full overflow-hidden"
-      >
-        {slides.map((slide, index) => (
-          <SwiperSlide key={slide.id || slide._id || index}>
-            <div className="h-full flex flex-col md:flex-row items-center bg-primary-100/30 overflow-hidden rounded-3xl">
 
-              <motion.div
-                className="w-full md:w-1/2 px-4 md:px-10 py-8 md:py-0"
-                variants={textVariants}
-                initial="hidden"
-                animate={activeIndex === index ? 'visible' : 'hidden'}
-              >
-                <h1 className="text-3xl md:text-4xl font-bold mb-4">
-                  {slide.title || slide.label}
-                </h1>
-                <p className="text-gray-600 text-base md:text-lg mb-6">
-                  {slide.description}
-                </p>
-                <button className="px-6 py-3 bg-primary-600 text-white rounded-lg">
-                  Get Started
-                </button>
-              </motion.div>
+   
+    </header>
+  );
+}
 
-              <motion.div
-                className="w-full md:w-1/2 flex justify-center px-4 md:px-0 py-8 md:py-0"
-                variants={imageVariants}
-                initial="hidden"
-                animate={activeIndex === index ? 'visible' : 'hidden'}
-              >
-                <Image
-                  src={slide.image}
-                  alt={slide.title || slide.label || 'hero image'}
-                  width={1600}
-                  height={900}
-                  className="h-auto object-cover w-full"
-                />
-              </motion.div>
+const Hero = () => {
+  const { banners, loading } = useSelector((state) => state.home || {});
 
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Filter only active banners
+  const slides = Array.isArray(banners)
+    ? banners.filter((b) => b.isActive !== false)
+    : [];
+
+    console.log("slides", slides);
+  
+
+if(loading){
+  return (
+            <HeroSkeleton />
+  )
+}
+  return (
+<section className="relative min-h-[600px]  text-white overflow-hidden bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
+    
+<Header/>
+      <div className="relative max-w-7xl mx-auto px-5 lg:px-8 py-16 lg:py-24">
+        {loading ? (
+          <div className="h-96 flex items-center justify-center">
+            <div className="animate-pulse flex flex-col items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-white/20" />
+              <div className="h-10 w-64 bg-white/20 rounded" />
+              <div className="h-6 w-96 bg-white/20 rounded" />
             </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-      )}
+          </div>
+        ) : (
+          <Swiper
+            modules={[Autoplay, Pagination, EffectFade]}
+            effect="fade"
+            fadeEffect={{ crossFade: true }}
+            autoplay={{ delay: 5000, disableOnInteraction: false }}
+            speed={800}
+            pagination={{ clickable: true }}
+            loop={slides.length > 1}
+            onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+            className="h-full"
+          >
+            {slides.map((slide, idx) => (
+              <SwiperSlide key={slide._id || slide.id || idx}>
+                <div className="grid md:grid-cols-2 gap-12 items-center">
+                  {/* Left - Text Content */}
+                  <motion.div
+                    className="space-y-6 md:space-y-8"
+                    variants={textVariants}
+                    initial="hidden"
+                    animate={activeIndex === idx ? "visible" : "hidden"}
+                  >
+                    {/* Small badge / highlight */}
+                    <div className="inline-flex items-center gap-2 bg-[#181818] backdrop-blur-sm px-5 py-2 rounded-full text-sm font-medium">
+                      <span className="w-3 h-3 bg-[#FF6900] rounded-full animate-pulse" />
+                      {slide.label || "Hundreds of training courses!"}
+                    </div>
 
-      <style jsx>{`
-       
-      `}</style>
+                   <h1 className="text-6xl font-bold">
+  <span className="text-black ">
+    {slide.title?.split(" ").slice(0, 3).join(" ")}
+  </span>{" "}
+  {slide.title?.split(" ").slice(3).join(" ") || "Fast & Reliable Device Repairs"}
+</h1>
+
+                    <p className="text-lg md:text-xl text-orange-50/90 leading-relaxed max-w-xl">
+                      {slide.description ||
+                        "Hundreds of different types of training courses... take your business to the next level with personalized experiences tailored to your needs."}
+                    </p>
+
+                      <div className="pt-4">
+                        <Link
+                          href={slide.ctaLink || "/shop"}
+                          className="inline-block px-10 py-4 bg-[#181818] text-white font-semibold rounded-xl hover:bg-gray-900 transition-colors shadow-lg hover:shadow-xl text-lg"
+                        >
+                          {slide.ctaText || "Shop Now"}
+                        </Link>
+                      </div>
+                  </motion.div>
+
+                  {/* Right - Image with frame effect */}
+                  <motion.div
+                    className="relative flex justify-center"
+                    variants={imageVariants}
+                    initial="hidden"
+                    animate={activeIndex === idx ? "visible" : "hidden"}
+                  >
+                    <div className="relative z-10 max-w-md lg:max-w-lg">
+                        <Image
+                          src={slide.image}
+                          alt={slide.title || "Hero banner"}
+                          width={900}
+                          height={900}
+                          className="w-full h-auto object-cover rounded-xl"
+                          priority={idx === 0}
+                        />
+</div>
+    
+                  </motion.div>
+                </div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+        )}
+      </div>
     </section>
   );
 };
 
 export default Hero;
+
+
+
+  // components/Header.jsx
+
+
+
+// "use client";
+// import React, { useState } from 'react';
+// import { Swiper, SwiperSlide } from 'swiper/react';
+// import { Autoplay, Pagination, EffectFade } from 'swiper/modules';
+// import { motion } from 'framer-motion';
+
+// import 'swiper/css';
+// import 'swiper/css/pagination';
+// import 'swiper/css/effect-fade';
+// import Image from 'next/image';
+// import { useSelector } from 'react-redux';
+
+// // heroSlides will come from redux (state.home.heroSlides). It may be an array or a single object.
+
+// const textVariants = {
+//   hidden: { 
+//     opacity: 0, 
+//     y: 50 
+//   },
+//   visible: {
+//     opacity: 1,
+//     y: 0,
+//     transition: { 
+//       duration: 0.6, 
+//       ease: 'easeOut' 
+//     },
+//   },
+// };
+
+// const imageVariants = {
+//   hidden: { 
+//     opacity: 0, 
+//     y: 0 
+//   },
+//   visible: {
+//     opacity: 1,
+//     y: 0,
+//     transition: { 
+//       duration: 0.8, 
+//       ease: 'easeOut',
+//       delay: 0.2 
+//     },
+//   },
+// };
+
+// const Hero = ({ autoplayDelay = 4000, transitionSpeed = 600 }) => {  
+//   const [activeIndex, setActiveIndex] = useState(0);
+
+//   const { heroSlides } = useSelector((state) => state.home || {});
+
+//   const [loading, setLoading] = React.useState(true);
+
+//   React.useEffect(() => {
+//     if (heroSlides === undefined) setLoading(true);
+//     else setLoading(false);
+//   }, [heroSlides]);
+
+//   const slides = React.useMemo(() => {
+//     if (!heroSlides) return [];
+//     if (Array.isArray(heroSlides)) return heroSlides.filter((s) => s.isActive !== false);
+//     return heroSlides.isActive === false ? [] : [heroSlides];
+//   }, [heroSlides]);
+
+//   return (
+//     <section className="relative h-[500px] max-w-7xl mx-auto py-7">
+//       {loading ? (
+//         <div className="h-[420px] flex items-center justify-center">
+//           <div className="flex flex-col items-center gap-4">
+//             <div className="w-12 h-12 rounded-full border-4 border-primary-600 border-t-transparent animate-spin" />
+//             <p className="text-gray-600">Loading slides...</p>
+//           </div>
+//         </div>
+//       ) : slides.length === 0 ? (
+//         <div className="h-[420px] flex items-center justify-center">
+//           <div className="text-center">
+//             <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto mb-4 w-24 h-24 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+//               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V7M16 3v4M8 3v4m-5 4h18" />
+//             </svg>
+//             <h3 className="text-xl font-semibold mb-2">No slides found</h3>
+//             <p className="text-gray-600">There are no active hero slides to display right now.</p>
+//           </div>
+//         </div>
+//       ) : (
+//       <Swiper
+//         modules={[Autoplay, Pagination, EffectFade]}
+//         effect="fade"
+//         fadeEffect={{ crossFade: true }}
+//         autoplay={{ delay: autoplayDelay, disableOnInteraction: false }}
+//         speed={transitionSpeed}  // Fade speed in ms
+//         pagination={{
+//           clickable: true,
+//           renderBullet: (index, className) => `<span class="${className} custom-pagination-bullet"></span>`,
+//         }}
+//         loop
+//         onSlideChange={(swiper) => setActiveIndex(swiper.realIndex)}
+//         className="h-full overflow-hidden"
+//       >
+//         {slides.map((slide, index) => (
+//           <SwiperSlide key={slide.id || slide._id || index}>
+//             <div className="h-full flex flex-col md:flex-row items-center bg-primary-100/30 overflow-hidden rounded-3xl">
+
+//               <motion.div
+//                 className="w-full md:w-1/2 px-4 md:px-10 py-8 md:py-0"
+//                 variants={textVariants}
+//                 initial="hidden"
+//                 animate={activeIndex === index ? 'visible' : 'hidden'}
+//               >
+//                 <h1 className="text-3xl md:text-4xl font-bold mb-4">
+//                   {slide.title || slide.label}
+//                 </h1>
+//                 <p className="text-gray-600 text-base md:text-lg mb-6">
+//                   {slide.description}
+//                 </p>
+//                 <button className="px-6 py-3 bg-primary-600 text-white rounded-lg">
+//                   Get Started
+//                 </button>
+//               </motion.div>
+
+//               <motion.div
+//                 className="w-full md:w-1/2 flex justify-center px-4 md:px-0 py-8 md:py-0"
+//                 variants={imageVariants}
+//                 initial="hidden"
+//                 animate={activeIndex === index ? 'visible' : 'hidden'}
+//               >
+//                 <Image
+//                   src={slide.image}
+//                   alt={slide.title || slide.label || 'hero image'}
+//                   width={1600}
+//                   height={900}
+//                   className="h-auto object-cover w-full"
+//                 />
+//               </motion.div>
+
+//             </div>
+//           </SwiperSlide>
+//         ))}
+//       </Swiper>
+//       )}
+
+//       <style jsx>{`
+       
+//       `}</style>
+//     </section>
+//   );
+// };
+
+// export default Hero;
