@@ -41,7 +41,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #f7f7f7;
+    /* --background: #f7f7f7; */
+    --background: #ffffff;
     --foreground: #ededed;
   }
 }
@@ -158,3 +159,5 @@ body {
 .swiper-pagination {
   bottom: 1rem !important;
 }
+
+

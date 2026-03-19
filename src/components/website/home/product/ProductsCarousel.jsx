@@ -10,114 +10,149 @@ const demoProducts = [
   {
     title: 'Apple iPhone 14 Yenilenmiş',
     img: '/assets/product/prode2.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'fast', text: 'HIZLI TESLİMAT' },
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
   },
   {
     title: 'Apple iPhone 14 Yenilenmiş',
     img: '/assets/product/prode6.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'fast', text: 'HIZLI TESLİMAT' },
-  },
-  {
-    title: 'Apple iPhone 14 Yenilenmiş',
-    img: '/assets/product/prode2.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'free', text: 'KARGO BEDAVA' },
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
   },
   {
     title: 'Apple iPhone 14 Yenilenmiş',
     img: '/assets/product/prode5.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'fast', text: 'HIZLI TESLİMAT' },
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
   },
   {
     title: 'Apple iPhone 14 Yenilenmiş',
     img: '/assets/product/prode1.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'free', text: 'KARGO BEDAVA' },
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
   },
   {
     title: 'Apple iPhone 14 Yenilenmiş',
-    img: '/assets/product/prode2.jpg',
-    price: '$49.50',
-    oldPrice: '$55.50',
-    discountPercent: 54,
-    badge: { kind: 'fast', text: 'HIZLI TESLİMAT' },
+    img: '/assets/product/prode3.jpg',
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
+  },
+  {
+    title: 'Apple iPhone 14 Yenilenmiş',
+    img: '/assets/product/prode4.jpg',
+    price: '$50.90',
+    oldPrice: '$80.90',
+    discountAmount: '12,000',
+    discountPercent: '61',
+    reviews: '5k',
+    goldPrice: '$30.90',
+    badge: 'Sale',
   },
 ];
 
-export default function ProductsCarousel({ products = demoProducts, title = 'New Products', onAdd }) {
+export default function ProductsCarousel({
+  products = demoProducts,
+  title = 'New',
+  titleHighlight = 'Products',
+  viewMoreHref = '#',
+  onAdd,
+}) {
   const swiperRef = useRef(null);
-
+ 
   return (
-    <section className="py-6">
-      <div>
-        <div
-          className="rounded-2xl "
-          // style={{ background: 'linear-gradient(to top, rgb(255,253,251), #fcefe7)' }}
-        >
-          {/* header */}
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-2xl font-bold text-gray-700">{title}</h2>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                aria-label="Prev"
-                onClick={() => swiperRef.current?.slidePrev()}
-                className="grid h-10 w-10 place-items-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50"
-              >
-                <Icon icon="mdi:chevron-left" className="h-6 w-6 text-gray-700" />
-              </button>
-              <button
-                type="button"
-                aria-label="Next"
-                onClick={() => swiperRef.current?.slideNext()}
-                className="grid h-10 w-10 place-items-center rounded-full bg-white border border-gray-200 shadow-sm hover:bg-gray-50"
-              >
-                <Icon icon="mdi:chevron-right" className="h-6 w-6 text-gray-700" />
-              </button>
-            </div>
-          </div>
+    <section className="py-6 px-2 max-w-7xl mx-auto">
+      {/* ── Section Header ── */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-2xl font-extrabold text-gray-800">
+          <span className="text-orange-500">{titleHighlight}</span>
+          {" "}
+          {title}{' '}
+        </h2>
 
-          {/* swiper */}
-          <Swiper
-            onSwiper={(s) => (swiperRef.current = s)}
-            spaceBetween={10}
-            slidesPerView={'auto'}
-            breakpoints={{
-              0: { slidesPerView: 1.15 },
-              480: { slidesPerView: 2 },
-              768: { slidesPerView: 3 },
-              1024: { slidesPerView: 4 },
-              1280: { slidesPerView: 5 },
-            }}
-          >
-            {products.map((p, i) => (
-              <SwiperSlide key={i} className="pb-2 h-auto">
-                <ProductCard
-                  title={p.title}
-                  img={p.img}
-                  price={p.price}
-                  oldPrice={p.oldPrice}
-                  discountPercent={p.discountPercent}
-                  badge={p.badge}
-                  onAdd={() => (onAdd ? onAdd(p) : null)}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
+        <a
+          href={viewMoreHref}
+          className="text-sm font-semibold text-orange-500 hover:text-orange-600 hover:underline transition-colors"
+        >
+          View More
+        </a>
+      </div>
+
+      {/* ── Carousel Wrapper ── */}
+      <div className="relative">
+        {/* Left / Right Buttons */}
+        <button
+          type="button"
+          aria-label="Previous"
+          onClick={() => swiperRef.current?.slidePrev()}
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -left-14 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all"
+        >
+          <Icon icon="mdi:chevron-left" className="w-5 h-5 text-white" />
+        </button>
+        <button
+          type="button"
+          aria-label="Next"
+          onClick={() => swiperRef.current?.slideNext()}
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -right-14 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all"
+        >
+          <Icon icon="mdi:chevron-right" className="w-5 h-5 text-white" />
+        </button>
+
+        {/* ── Swiper ── */}
+        <Swiper
+          onSwiper={(s) => (swiperRef.current = s)}
+          spaceBetween={12}
+          breakpoints={{
+            0:    { slidesPerView: 1.2 },
+            480:  { slidesPerView: 2 },
+            640:  { slidesPerView: 2.5 },
+            768:  { slidesPerView: 3 },
+            1024: { slidesPerView: 4 },
+            1280: { slidesPerView: 4.5 },
+          }}
+          className="!pb-3"
+        >
+          {products.map((p, i) => (
+            <SwiperSlide key={i} style={{ height: 'auto' }}>
+              <ProductCard
+                title={p.title}
+                img={p.img}
+                price={p.price}
+                oldPrice={p.oldPrice}
+                discountAmount={p.discountAmount}
+                discountPercent={p.discountPercent}
+                reviews={p.reviews}
+                goldPrice={p.goldPrice}
+                badge={p.badge}
+                onAdd={() => onAdd?.(p)}
+              />
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </div>
     </section>
   );
