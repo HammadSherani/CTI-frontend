@@ -2,10 +2,10 @@
 
 import ProductsCarousel from './product/ProductsCarousel';
 
-export default function SellingProducts({ products, title }) {
+export default function SellingProducts({ products, title,titleHighlight }) {
   return(
-    <div className='max-w-7xl mx-auto'>
-      <ProductsCarousel products={products} title={title} />
+    <div className=''>
+      <ProductsCarousel products={products} title={title} titleHighlight={titleHighlight} />
     </div>
   )
 }

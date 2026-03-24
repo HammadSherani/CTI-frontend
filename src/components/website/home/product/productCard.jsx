@@ -3,79 +3,103 @@
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 
-function ShippingBadge({ kind = 'fast', text }) {
-  const isFast = kind === 'fast';
-  return (
-    <div
-      className={`absolute left-3 top-3 z-10 inline-flex items-center gap-1.5 rounded-md px-1 py-0.5 text-[12px] font-bold uppercase tracking-wide
-      ${isFast ? 'bg-[#168848] text-white' : 'bg-[#2E3238] text-white'}`}
-    >
-      <Icon icon={'mdi:truck-fast-outline'} className="h-5 w-5" />
-      <span className="font-medium leading-3.5 text-[13px]">
-  {text.split(" ")[0]} <br /> {text.split(" ")[1]}
-</span>
-
-    </div>
-  );
-}
-
-function DiscountBadge({ percent }) {
-  if (!percent) return null;
-  return (
-    <div className="absolute right-3 top-3 z-10 rounded-md bg-[#FCE8EC] px-2 py-0.5 text-[12px] font-bold text-red-600">
-      -{percent}% Off
-    </div>
-  );
-}
-
-export default function ProductCard({
-  title,
-  img,
-  price,
-  oldPrice,
-  discountPercent,
-  badge = { kind: 'fast', text: 'HIZLI TESLİMAT' },
-  onAdd,
+function ProductCard({ 
+  title, 
+  img, 
+  price, 
+  oldPrice, 
+  discountAmount, 
+  discountPercent, 
+  reviews, 
+  goldPrice, 
+  badge, 
+  onAdd 
 }) {
   return (
-    <div className="relative flex h-full flex-col rounded-md border border-slate-200 bg-white transition">
-      {badge && <ShippingBadge kind={badge.kind} text={badge.text} />}
-      <DiscountBadge percent={discountPercent} />
+    <div className="group relative flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full">
 
-      <div className="relative mx-auto mt-14 mb-4 h-56 w-[86%]">
+      {/* ── Top Badges Row ── */}
+      <div className="flex items-start justify-between px-2.5 p-4 pt-2.5 gap-1 min-h-[32px] relative">
+        {/* Logo */}
+        <Image 
+          src='/assets/logo.png' 
+          alt='Logo' 
+          width={77} 
+          height={40} 
+          className="inline-block mr-1" 
+        />
+
+        {/* Badge */}
+        {badge && (
+          <div className="absolute top-3 right-3 z-10  bg-gray-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
+            {badge}
+          </div>
+        )}
+      </div>
+
+      {/* ── Product Image ── */}
+      <div className="relative w-full h-40 md:h-36 border-b lg:h-32 xl:h-28 2xl:h-24 bg-white flex items-center justify-center">
         <Image
-          src={img}
+          src={img || "https://via.placeholder.com/250?text=Product"}
           alt={title}
-          fill
-          sizes="(min-width:1024px) 240px, 40vw"
-          className="object-contain"
-          priority
+          width={250}
+          height={250}
+          className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-300"
         />
       </div>
 
-      <div className="flex-grow px-4 pb-4 flex flex-col">
-        <p className="text-[13px] font-semibold text-red-600">Flash Sale</p>
+      {/* ── Card Body ── */}
+      <div className="flex flex-col flex-1 px-3 pb-3 gap-2 p-3 bg-white">
 
-        <h3
-          title={title}
-          className="mt-1 max-w-[260px] truncate text-[16px] font-semibold text-[#1e1e1e]"
-        >
+        {/* Discounts Row */}
+        {(discountAmount || discountPercent) && (
+          <div className="flex justify-between gap-2">
+            {discountAmount && (
+              <span className="bg-green-500 text-white text-[14px] font-bold px-2 py-0.5 rounded-md">
+                {discountAmount}
+              </span>
+            )}
+            {discountPercent && (
+              <span className="text-primary-600 text-[14px] font-bold px-2 py-0.5 rounded-md">
+              -  {discountPercent}Off
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Product Title */}
+        <h3 className="text-[14px] font-bold text-gray-900 leading-snug line-clamp-2 min-h-[36px]">
           {title}
         </h3>
-        <div className="flex-grow" />
-        <div className="mt-1 flex items-end gap-2">
-          {oldPrice && <span className="text-[16px] text-gray-400 line-through">{oldPrice}</span>}
-          <span className="text-[20px] font-medium text-[#1e1e1e]">{price}</span>
+
+        {/* Price & Reviews Row */}
+        <div className="flex justify-between items-center mt-1">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[18px] font-extrabold text-orange-500">{price}</span>
+            {oldPrice && (
+              <span className="text-[13px] text-gray-400 line-through">{oldPrice}</span>
+            )}
+          </div>
+
+          {reviews && (
+            <div className="flex items-center gap-1">
+              <Icon icon="mdi:star" className="w-3.5 h-3.5 text-yellow-400" />
+              <span className="text-[11px] text-gray-500 font-medium">{reviews} Reviews</span>
+            </div>
+          )}
         </div>
 
-        <button
-          type="button"
-          onClick={onAdd}
-          className="mt-3 w-full rounded-lg border-none py-2 text-base font-medium text-gray-800 hover:bg-primary-100 cursor-pointer bg-primary-50 transition-all duration-300" 
-        >
-          Coming Soon
-        </button>
+        {/* Gold Payment Tag */}
+        {goldPrice && (
+          <div className="flex items-center gap-1.5 mt-2 bg-gradient-to-r from-[#F1D0A2] via-[#F9EAEA]/0 to-transparent border border-amber-200 rounded-lg px-2.5 py-1.5">
+            <span className="text-[12px] font-bold text-gray-700">{goldPrice}</span>
+            <span className="text-[10px] text-gray-500">with</span>
+            <span className="text-[11px] font-extrabold text-amber-600 tracking-wide uppercase">GOLD</span>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+
+export default ProductCard;

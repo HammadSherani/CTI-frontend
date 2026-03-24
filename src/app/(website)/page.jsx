@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearHomeData, fetchHome } from '@/store/home';
 
 // Components
-import Hero from '@/components/website/home/hero';
+import Hero, { Header } from '@/components/website/home/hero';
 import Categories from '@/components/website/home/categories';
 import PromoBanner from '@/components/website/home/Promo';
 import RefurbishedTabs from '@/components/website/home/RefurbishedTabs';
@@ -24,40 +24,48 @@ import DownloadApp from '@/components/website/home/downloadApp';
 import Footer from '@/components/website/Footer';
 import FAQ from '@/components/website/home/FAQ';
 import BlogSection from '@/components/website/home/blogSection';
-import { HeroSkeleton, CategoriesSkeleton, ServicesSkeleton, RepairmanSkeleton } from '@/components/website/skeletons/home';
+import { HeroSkeleton, CategoriesSkeleton, ServicesSkeleton, RepairmanSkeleton, VideoSkeleton } from '@/components/website/skeletons/home';
+import VideoSection from '@/components/website/home/video';
+import StaticSections from '@/components/website/home/staticSections';
+import GoodProducts from '@/components/website/home/goodProduct';
+import ScrollToTop from '@/components/ScrollToTop';
+import Stores from '@/components/website/home/stores';
+import HowItWorks from '@/components/website/home/works';
 
 
 function Home() {
   const dispatch = useDispatch();
   const { homeData, loading, error } = useSelector((state) => state.home);
   const [initialLoad, setInitialLoad] = useState(true);
+useEffect(() => {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+}, []);
+useEffect(() => {
+  if (!homeData) {
+    setInitialLoad(true);
 
-  useEffect(() => {
-    if (!homeData) {
-      dispatch(fetchHome())
-        .unwrap()
-        .then((result) => {
-          console.log('Home data fetched:', result);
-        })
-        .catch((error) => {
-          dispatch(clearHomeData());
-          console.error('Error fetching home data:', error);
-        })
-        .finally(() => {
-          setInitialLoad(false);
-        });
-    } else {
-      setInitialLoad(false);
-    }
-  }, [dispatch, homeData]);
+    dispatch(fetchHome())
+      .unwrap()
+      .catch((error) => {
+        dispatch(clearHomeData());
+        console.error("Error fetching home data:", error);
+      })
+      .finally(() => {
+        setInitialLoad(false);
+      });
+  } else {
+    setInitialLoad(false);
+  }
+}, [dispatch, homeData]);
 
   // Show full page skeleton on initial load
-  if (initialLoad && loading) {
+  if (initialLoad ) {
     return (
       <div className="space-y-8">
         <HeroSkeleton />
-        <CategoriesSkeleton />
         <ServicesSkeleton />
+       <VideoSkeleton/>
+        <CategoriesSkeleton />
         <RepairmanSkeleton count={4} />
       </div>
     );
@@ -66,18 +74,24 @@ function Home() {
   return (
     <div className="space-y-8">
       <Hero />
-      <FilterBar />
       <OurServices />
+      <VideoSection/>
+      <SellingProducts title="Products" titleHighlight="New" />
+      <StaticSections/>
+      <FAQ />
+      <GoodProducts  title="Products" titleHighlight="Good" />
+      <Stores/>
+      {/* <HowItWorks/> */}
       <TopRepairman />
       <BecomePartner />
-      <SellingProducts />
-      <SellingProducts title="Refurbished Products" />
+      <SellingProducts title="Products" titleHighlight="Refurbished" />
       <Testimonials />
       <OurProcess />
       <DownloadApp />
       <AcademySection />
-      <FAQ />
       <BlogSection />
+        <ScrollToTop />
+
     </div>
   );
 }
