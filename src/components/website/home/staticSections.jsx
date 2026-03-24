@@ -2,21 +2,22 @@ import React from 'react';
 import Image from 'next/image';
 import SectionTag from './sectoinTag';
 
-
+import { motion } from 'framer-motion';
+import { AnimatedNumber } from '@/components/AnimatedNumber';
 
 export default function StaticSections() {
   return (
-    <div className="max-w-7xl mx-auto px-5 lg:px-4 py-12 lg:py-20 space-y-48">
+    <div className="max-w-7xl mx-auto ml-16 py-12 lg:py-20 space-y-48">
 
       {/* ════════════════════════════════════
           SECTION 1 — Integrate Academy
       ════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-42 items-center justify-center">
 
         {/* Image — left */}
         <div className="relative flex ">
           {/* Subtle background blob */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl opacity-60 blur-2xl scale-90" />
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl opacity-60 blur-2xl scale-90" /> */}
           <Image
             src="/assets/home/academy.png"
             alt="Integrate Academy"
@@ -28,7 +29,7 @@ export default function StaticSections() {
         </div>
 
         {/* Text — right */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 w-full">
           <SectionTag title="Hundreds of training courses!" />
 
           <h2 className="text-[32px] md:text-[40px] font-extrabold leading-tight tracking-tight">
@@ -68,7 +69,7 @@ export default function StaticSections() {
       {/* ════════════════════════════════════
           SECTION 2 — Grow Your Business
       ════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-42 items-center justify-center">
 
         {/* Text — left */}
         <div className="flex flex-col gap-5 order-2 md:order-1">
@@ -103,35 +104,50 @@ export default function StaticSections() {
         {/* Image — right */}
         <div className="relative flex justify-center order-1 md:order-2">
           {/* Warm background blob */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-100 to-amber-50 rounded-3xl opacity-70 blur-2xl scale-90" />
-          <Image
+           <Image
             src="/assets/home/business.png"
             alt="Grow Your Business"
             width={520}
             height={380}
             className="relative z-10 w-full max-w-[520px] object-cover rounded-2xl shadow-2xl"
           />
+          
         </div>
       </div>
 
 
  {/* ════════════════════════════════════
-          SECTION 3 — Integrate Academy
+          SECTION 3 — Trusted Academy
       ════════════════════════════════════ */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16 items-center">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-42 items-center justify-center">
 
         {/* Image — left */}
         <div className="relative flex ">
           {/* Subtle background blob */}
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl opacity-60 blur-2xl scale-90" />
+          {/* <div className="absolute inset-0 bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl opacity-60 blur-2xl scale-90" /> */}
           <Image
-            src="/assets/home/trusted.png"
+            src="/assets/home/trusteed.png"
             alt="Integrate Academy"
             width={520}
             height={380}
             className="relative z-10 w-full max-w-[520px] object-contain drop-shadow-xl"
             priority
           />
+          <div>
+  <motion.div
+  className="absolute inset-0 flex items-center -left-20 justify-center z-20 pointer-events-none"
+  animate={{ rotate: 360 }}
+  transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
+>
+  <Image
+    src="/assets/home/supports.png"
+    alt="support"
+    width={150}
+    height={190}
+    className="w-20 md:w-34 object-contain "
+  />
+</motion.div>
+          </div>
         </div>
 
         {/* Text — right */}
@@ -152,22 +168,28 @@ export default function StaticSections() {
           <p className="text-gray-500 text-[14.5px] leading-relaxed max-w-[480px]">
             Hundreds of different types of training courses, enriched with AI-powered content, await you at Trendyol Academy! Easily access all the information you need, anytime and anywhere, and take your business to the next level with personalized experiences tailored to your needs.
           </p>
+<div className="flex flex-wrap items-center gap-6 mt-4">
+  <div>
+    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+      <AnimatedNumber value={150000} duration={3} suffix="+" />
+    </h1>
+    <p className="text-gray-500 text-sm">Happy Customers</p>
+  </div>
 
-          <div className="flex flex-wrap items-center gap-4 mt-2">
-            {/* Primary filled button */}
-          <div>
-            <h1 className="text-3xl font-bold text-primary-600">150,000+</h1>
-            <p className="text-gray-500 text-sm">Happy Customers</p>
-          </div>
-            <div>
-            <h1 className="text-3xl font-bold text-primary-600">120,000+</h1>
-            <p className="text-gray-500 text-sm">Devices Repaired</p>
-          </div>
-            <div>
-            <h1 className="text-3xl font-bold text-primary-600">98%</h1>
-            <p className="text-gray-500 text-sm">Customer Satisfaction</p>
-          </div>
-          </div>
+  <div>
+    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+      <AnimatedNumber value={120000} duration={3} suffix="+" />
+    </h1>
+    <p className="text-gray-500 text-sm">Devices Repaired</p>
+  </div>
+
+  <div>
+    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+      <AnimatedNumber value={98} duration={3} suffix="%" />
+    </h1>
+    <p className="text-gray-500 text-sm">Customer Satisfaction</p>
+  </div>
+</div>
         </div>
       </div>
 

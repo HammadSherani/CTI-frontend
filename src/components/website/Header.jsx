@@ -218,7 +218,7 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 
   return (
     <div className="bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="max-w-7xl mx-auto px-4">
         <div className="flex items-center justify-between gap-3 md:gap-6">
 
           {/* ── Hamburger (mobile only) ── */}
@@ -232,7 +232,7 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 
           {/* ── Logo ── */}
           <Link href="/" className="flex-shrink-0">
-            <div className="relative w-14 h-12 md:w-20 md:h-16">
+            <div className="relative w-14 h-12 md:w-26 md:h-16">
               <Image src="/assets/logo.png" alt="Click To Integrate" fill className="object-contain" />
             </div>
           </Link>

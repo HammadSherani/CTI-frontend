@@ -96,7 +96,7 @@ export function Header() {
   }, []);
 
   return (
-    <header className="bg-transparent w-full z-50 py-4">
+    <header className=" w-full z-10  p-1">
         <div className="flex items-center justify-center">
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center gap-1">
@@ -190,15 +190,16 @@ if(loading){
   )
 }
   return (
-<section className="relative min-h-[600px]  text-white overflow-hidden bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
+<section className="relative min-h-[300px]  text-white overflow-hidden z-10 bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
     
 <Header/>
-      <div className="relative max-w-7xl mx-auto px-5 lg:px-8 py-16 lg:py-24">
-        {loading ? (
+      <div className="relative max-w-7xl mx-auto px-2 py- z-10 l4">
+        {slides.length === 0 ? (
           <div className="h-96 flex items-center justify-center">
             <div className="animate-pulse flex flex-col items-center gap-6">
               <div className="w-16 h-16 rounded-full bg-white/20" />
               <div className="h-10 w-64 bg-white/20 rounded" />
+              <h1>No Data found</h1>
               <div className="h-6 w-96 bg-white/20 rounded" />
             </div>
           </div>
@@ -216,10 +217,10 @@ if(loading){
           >
             {slides.map((slide, idx) => (
               <SwiperSlide key={slide._id || slide.id || idx}>
-                <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="grid md:grid-cols-2 gap-12 items-center p-10  z-10">
                   {/* Left - Text Content */}
                   <motion.div
-                    className="space-y-6 md:space-y-8"
+                    className="space-y-6 md:space-y-4"
                     variants={textVariants}
                     initial="hidden"
                     animate={activeIndex === idx ? "visible" : "hidden"}
@@ -230,14 +231,14 @@ if(loading){
                       {slide.label || "Hundreds of training courses!"}
                     </div>
 
-                   <h1 className="text-6xl font-bold">
+                   <h1 className="text-5xl font-bold">
   <span className="text-black ">
     {slide.title?.split(" ").slice(0, 3).join(" ")}
   </span>{" "}
   {slide.title?.split(" ").slice(3).join(" ") || "Fast & Reliable Device Repairs"}
 </h1>
 
-                    <p className="text-lg md:text-xl text-orange-50/90 leading-relaxed max-w-xl">
+                    <p className="text-md  md:text-lg text-orange-50/90 leading-relaxed max-w-xl">
                       {slide.description ||
                         "Hundreds of different types of training courses... take your business to the next level with personalized experiences tailored to your needs."}
                     </p>
@@ -245,7 +246,7 @@ if(loading){
                       <div className="pt-4">
                         <Link
                           href={slide.ctaLink || "/shop"}
-                          className="inline-block px-10 py-4 bg-[#181818] text-white font-semibold rounded-xl hover:bg-gray-900 transition-colors shadow-lg hover:shadow-xl text-lg"
+                          className="inline-block px-10 py-4 bg-[#181818] text-white font-semibold rounded-xl hover:bg-gray-900 transition-colors shadow-lg hover:shadow-xl text-sm"
                         >
                           {slide.ctaText || "Shop Now"}
                         </Link>
@@ -253,24 +254,61 @@ if(loading){
                   </motion.div>
 
                   {/* Right - Image with frame effect */}
-                  <motion.div
-                    className="relative flex justify-center"
-                    variants={imageVariants}
-                    initial="hidden"
-                    animate={activeIndex === idx ? "visible" : "hidden"}
-                  >
-                    <div className="relative z-10 max-w-md lg:max-w-lg">
-                        <Image
-                          src={slide.image}
-                          alt={slide.title || "Hero banner"}
-                          width={900}
-                          height={900}
-                          className="w-full h-auto object-cover rounded-xl"
-                          priority={idx === 0}
-                        />
+     <div className="relative flex items-center justify-center">
+
+  {/* 🔴 Background Vector */}
+  <motion.div
+    className="absolute z-0"
+    animate={{ scale: [1, 1.05, 1] }}
+    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <Image 
+      src='/assets/home/line.png'
+      width={500}
+      height={500}
+      className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[480px] opacity-90"
+    />
+  </motion.div>
+
+  {/* ✨ Ellipses (BEHIND IMAGE) */}
+  <motion.div
+    className="absolute z-10 flex items-center justify-center"
+    animate={{ rotate: 360 }}
+    transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+  >
+    <div className="relative w-[260px] md:w-[360px] h-[260px] md:h-[360px]">
+
+      <div className="absolute top-0 left-30">
+        <Image src="/assets/home/ellipse1.png" width={60} height={60} />
+      </div>
+
+      <div className="absolute top-[35%] -left-[20%]">
+        <Image src="/assets/home/ellipse2.png" width={70} height={60} />
+      </div>
+
+      <div className="absolute top-[45%] right-[0%]">
+        <Image src="/assets/home/ellipse3.png" width={80} height={60} />
+      </div>
+
+    </div>
+  </motion.div>
+
+  {/* 🟠 MAIN IMAGE (TOP MOST) */}
+  <motion.div
+    className="relative z-20 flex justify-center items-center"
+    animate={{ y: [0, -18, 0], scale: [1, 1.04, 1] }}
+    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+  >
+    <Image
+      src={slide.image}
+      alt="hero"
+      width={600}
+      height={600}
+      className="w-[220px] md:w-[320px] lg:w-[360px] object-contain"
+    />
+  </motion.div>
+
 </div>
-    
-                  </motion.div>
                 </div>
               </SwiperSlide>
             ))}

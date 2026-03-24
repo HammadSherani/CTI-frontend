@@ -28,13 +28,18 @@ import { HeroSkeleton, CategoriesSkeleton, ServicesSkeleton, RepairmanSkeleton, 
 import VideoSection from '@/components/website/home/video';
 import StaticSections from '@/components/website/home/staticSections';
 import GoodProducts from '@/components/website/home/goodProduct';
+import ScrollToTop from '@/components/ScrollToTop';
+import Stores from '@/components/website/home/stores';
+import HowItWorks from '@/components/website/home/works';
 
 
 function Home() {
   const dispatch = useDispatch();
   const { homeData, loading, error } = useSelector((state) => state.home);
   const [initialLoad, setInitialLoad] = useState(true);
-
+useEffect(() => {
+  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+}, []);
 useEffect(() => {
   if (!homeData) {
     setInitialLoad(true);
@@ -75,6 +80,8 @@ useEffect(() => {
       <StaticSections/>
       <FAQ />
       <GoodProducts  title="Products" titleHighlight="Good" />
+      <Stores/>
+      {/* <HowItWorks/> */}
       <TopRepairman />
       <BecomePartner />
       <SellingProducts title="Products" titleHighlight="Refurbished" />
@@ -83,6 +90,8 @@ useEffect(() => {
       <DownloadApp />
       <AcademySection />
       <BlogSection />
+        <ScrollToTop />
+
     </div>
   );
 }

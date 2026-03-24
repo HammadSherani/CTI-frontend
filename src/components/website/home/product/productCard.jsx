@@ -40,10 +40,10 @@ function ProductCard({
       {/* ── Product Image ── */}
       <div className="relative w-full h-40 md:h-36 border-b lg:h-32 xl:h-28 2xl:h-24 bg-white flex items-center justify-center">
         <Image
-          src={img || "https://via.placeholder.com/150?text=Product"}
+          src={img || "https://via.placeholder.com/250?text=Product"}
           alt={title}
-          width={150}
-          height={150}
+          width={250}
+          height={250}
           className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-300"
         />
       </div>

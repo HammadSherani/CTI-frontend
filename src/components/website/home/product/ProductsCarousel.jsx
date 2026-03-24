@@ -109,7 +109,7 @@ export default function ProductsCarousel({
           type="button"
           aria-label="Previous"
           onClick={() => swiperRef.current?.slidePrev()}
-          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -left-14 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all"
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -left-4 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
         >
           <Icon icon="mdi:chevron-left" className="w-5 h-5 text-white" />
         </button>
@@ -117,7 +117,7 @@ export default function ProductsCarousel({
           type="button"
           aria-label="Next"
           onClick={() => swiperRef.current?.slideNext()}
-          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -right-14 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-orange-50 hover:border-orange-300 transition-all"
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -right-4 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
         >
           <Icon icon="mdi:chevron-right" className="w-5 h-5 text-white" />
         </button>
