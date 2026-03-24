@@ -81,15 +81,16 @@ useEffect(() => {
       <FAQ />
       <GoodProducts  title="Products" titleHighlight="Good" />
       <Stores/>
-      {/* <HowItWorks/> */}
-      <TopRepairman />
+      <HowItWorks/>
+      <TopRepairman/>
+      {/* <TopRepairman />
       <BecomePartner />
       <SellingProducts title="Products" titleHighlight="Refurbished" />
       <Testimonials />
       <OurProcess />
       <DownloadApp />
       <AcademySection />
-      <BlogSection />
+      <BlogSection /> */}
         <ScrollToTop />
 
     </div>

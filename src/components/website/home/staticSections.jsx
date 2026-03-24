@@ -109,7 +109,7 @@ export default function StaticSections() {
             alt="Grow Your Business"
             width={520}
             height={380}
-            className="relative z-10 w-full max-w-[520px] object-cover rounded-2xl shadow-2xl"
+            className="relative z-10 w-full max-w-[520px] object-cover rounded-2xl drop-shadow-xl"
           />
           
         </div>
