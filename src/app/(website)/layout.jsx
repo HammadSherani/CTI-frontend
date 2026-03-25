@@ -14,7 +14,6 @@ import handleError from '@/helper/handleError'
 function layout({ children }) {
   const {userDetails, token} = useSelector(state => state.auth);  
   const [loading, setLoading] = useState(false)
-  console.log("Repair User", userDetails);
   const dispatch = useDispatch();
   const fetchUserDetails = async () => {
     try {

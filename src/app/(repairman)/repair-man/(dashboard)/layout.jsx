@@ -14,7 +14,6 @@ function RepairmanLayout({ children }) {
   const { user, userDetails, token } = useSelector(state => state.auth);
   const [revisionFieldsData, setRevisionFieldsData] = useState(null);
   const [loading, setLoading] = useState(true);
-  console.log("Repair User", userDetails);
   const dispatch = useDispatch();
   const fetchUserDetails = async () => {
     try {
