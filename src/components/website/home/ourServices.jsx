@@ -128,6 +128,10 @@ const ServiceSection = () => {
 
   // Search Now → Navigate to dynamic URL
   const handleSearchNow = () => {
+        router.push("/coming-soon");
+  };
+
+  const handlePostJob = () => {
     if (!selectedBrand || !selectedModel || !selectedColor) {
       alert("Please select Brand, Model, and Color");
       return;
@@ -139,11 +143,6 @@ const ServiceSection = () => {
 
     const url = `/mobile-repair/${brandSlug}/${modelSlug}/${colorSlug}`;
     router.push(url);
-  };
-
-  // Post a Job (you can change the route later)
-  const handlePostJob = () => {
-    router.push("/coming-soon"); // or your desired route
   };
 
   // Initial fetch
