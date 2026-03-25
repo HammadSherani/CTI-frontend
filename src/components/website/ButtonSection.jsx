@@ -1,8 +1,10 @@
+import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import { Icon } from '@iconify/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 
 const IconButton = ({
   icon,
@@ -54,14 +56,25 @@ function ButtonSection() {
   const [wishlistItems, setWishlistItems] = useState(1);
   const [notificationCount] = useState(4);
   const { user } = useSelector((state) => state.auth);
+  const router=useRouter()
+  const handleCartClick = () => {
+    router.push("/coming-soon")
+  }
+   const handleWishlistClick = () => {
+    router.push("/coming-soon")
+  }
+   const handleNotificationClick = () => {
+    router.push("/coming-soon")
+  }
 
-  const handleCartClick = () => console.log('Cart clicked');
-  const handleWishlistClick = () => console.log('Wishlist clicked');
-  const handleNotificationClick = () => console.log('Notifications clicked');
+  const dispatch = useDispatch();
+    const handleLogout = useCallback(() => {
+      dispatch(clearAuth());
+    }, [dispatch]);
 
   if (!user) {
     return (
-      <div className="flex items-center  gap-2">
+      <div className="flex items-center  ">
         {/* Primary CTA */}
         {/* <Link href="/auth/register">
           <button
@@ -78,7 +91,19 @@ function ButtonSection() {
         </Link> */}
 
 
-        <Link href="/cart">
+  <Link href="/coming-soon">
+          <button
+            className="p-3
+                 hover:bg-gray-100/60 w-12 h-12 flex itens-cemter justify-center rounded-full 
+                 
+                 transition-all duration-200 cursor-pointer
+                 "
+          >
+            <Icon icon="mdi:heart-outline" width="22" height="22" />
+          </button>
+        </Link>
+
+        <Link href="/coming-soon">
           <button
             className=" p-3
                  hover:bg-gray-100/60 w-12 h-12 flex itens-cemter justify-center rounded-full 
@@ -86,23 +111,16 @@ function ButtonSection() {
                  transition-all duration-200 cursor-pointer
                  "
           >
-
             <Icon icon="proicons:cart" width="22" height="22" />
           </button>
         </Link>
 
-        <Link href="/auth/login">
-          <button
-            className="px-5 py-2.5 text-base font-medium  rounded-full
-                 
-                 hover:bg-gray-100/60
-                 transition-all cursor-pointer duration-200
-                 active:scale-95 flex items-center gap-1 duration-300 transition-all"
-          >
-            <Icon icon="mynaui:user" width="18" height="18" />
-            Login
-          </button>
-        </Link>
+       <Link
+                href="/auth/register"
+                className="hidden sm:inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white px-4 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all duration-200 shadow-sm"
+              >
+                Get Started
+              </Link>
       </div>
 
     );
@@ -130,9 +148,10 @@ function ButtonSection() {
         const dropdownLinks = [
     { name: "Account", path: "/my-account" , icon: "mdi:account-cog-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
-    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true },
+    { name: "Sign Out", path: "/", icon: "mdi:logout", isLogout: true },
   ];
 
+  
   const renderCustomerButtons = () => (
     <>
       <IconButton
@@ -221,7 +240,7 @@ function ButtonSection() {
                                   ? 'text-red-600 hover:bg-red-50'
                                   : 'text-gray-700 hover:bg-gray-50'
                                 }`}
-                              onClick={() => link.isLogout && handleLogout()}
+                              onClick={handleLogout}
                             >
                               <Icon
                                 icon={link.icon}

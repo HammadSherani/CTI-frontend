@@ -126,11 +126,11 @@ const CreateRepairJobForm = () => {
     }
   }, [modelId]);
 
-  useEffect(() => {
-    if (!user || user.role !== "customer") {
-      setShowLoginModal(true);
-    }
-  }, [user]);
+  // useEffect(() => {
+  //   if (!user || user.role !== "customer") {
+  //     setShowLoginModal(true);
+  //   }
+  // }, [user]);
 
   const {
     control,
@@ -300,11 +300,21 @@ const CreateRepairJobForm = () => {
   };
 
   const onSubmit = async (formData) => {
-    if (!user || user.role !== "customer") {
+     if (!user) {
+      toast.error('You must be logged in as a customer to post a repair job.');
       setPendingFormData(formData);
       setShowLoginModal(true);
       return;
     }
+    if (user.role !== "customer") {
+      toast.error('You role must be a customer to post a repair job.');
+      setPendingFormData(formData);
+      setShowLoginModal(true);
+      return;
+    }
+
+   
+    
 
     if (!isTermsAgreed) {
       alert('Please agree to the Terms and Conditions');

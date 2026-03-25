@@ -13,6 +13,7 @@ import "swiper/css/pagination";
 import "swiper/css/effect-fade";
 import { Icon } from "@iconify/react";
 import { HeroSkeleton } from "../skeletons/home";
+import { NavigationHeader } from "../Header";
 
 const textVariants = {
   hidden: { opacity: 0, y: 40 },
@@ -42,134 +43,7 @@ const dotCircleVariants = {
 };
 
 
-export function Header() {
-  const [openDropdown, setOpenDropdown] = useState(null);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navigationData = {
-  mainNav: [
-    { name: "Home", href: "/", hasDropdown: false },
-    { 
-      name: "Services", 
-      href: "#", 
-      hasDropdown: true,
-      dropdownItems: [
-        { name: "Mobile Repair", href: "/services/mobile-repair", icon: "mdi:cellphone" },
-        { name: "Screen Repair", href: "/services/screen-repair", icon: "mdi:cellphone-screen" },
-        { name: "Battery Replacement", href: "/services/battery", icon: "mdi:battery" },
-        { name: "Motherboard Repair", href: "/services/motherboard", icon: "mdi:chip" },
-        { name: "Water Damage", href: "/services/water-damage", icon: "mdi:water" },
-        { name: "Software Issues", href: "/services/software", icon: "mdi:code-brackets" },
-      ]
-    },
-    { 
-      name: "Products", 
-      href: "#", 
-      hasDropdown: true,
-      dropdownItems: [
-        { name: "New Arrivals", href: "/products/new", icon: "mdi:star" },
-        { name: "Refurbished Devices", href: "/products/refurbished", icon: "mdi:refresh" },
-        { name: "Accessories", href: "/products/accessories", icon: "mdi:headphones" },
-        { name: "Spare Parts", href: "/products/spare-parts", icon: "mdi:tools" },
-        { name: "Deals & Offers", href: "/products/deals", icon: "mdi:tag" },
-      ]
-    },
-    { name: "Experts / Top Repairmen", href: "/experts", hasDropdown: false },
-    { name: "Academy", href: "/academy", hasDropdown: false },
-    { name: "About", href: "/about", hasDropdown: false },
-    { name: "Support", href: "/support", hasDropdown: false },
-  ],
-  ctaButtons: [
-    { name: "Track Order", href: "/track-order", icon: "mdi:truck" },
-    { name: "Login", href: "/login", icon: "mdi:account" },
-  ]
-};
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest('.dropdown-container')) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  return (
-    <header className=" w-full z-10  p-1">
-        <div className="flex items-center justify-center">
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-1">
-            {navigationData.mainNav.map((item) => (
-              <div key={item.name} className="relative dropdown-container">
-                {item.hasDropdown ? (
-                  <>
-                    <button
-                      onClick={() => setOpenDropdown(openDropdown === item.name ? null : item.name)}
-                      className="flex items-center gap-1.5 px-4 py-2  z-50 rounded-lg font-medium transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10"
-                    >
-                      {item.name}
-                      <Icon
-                        icon="mdi:chevron-down" 
-                        className={`transition-transform duration-300 ${
-                          openDropdown === item.name ? "rotate-180" : ""
-                        }`}
-                        width={18}
-                      />
-                    </button>
-                    
-                    {/* Dropdown Menu - Transparent with blur */}
-                    <AnimatePresence>
-                      {openDropdown === item.name && (
-                        <motion.div
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 10 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute top-full left-0 mt-2 z-50 w-64 bg-white/10 backdrop-blur-md rounded-xl shadow-xl py-2 border border-white/20"
-                        >
-                          {item.dropdownItems.map((dropdownItem) => (
-                            <Link
-                              key={dropdownItem.name}
-                              href={dropdownItem.href}
-                              className="flex items-center gap-3 px-4 py-3 text-gray-900 hover:bg-white/20 hover:text-white transition-all duration-200"
-                              onClick={() => setOpenDropdown(null)}
-                            >
-                              {dropdownItem.icon && (
-                                <Icon icon={dropdownItem.icon} width={18} className="text-gray-900" />
-                              )}
-                              <span className="text-sm font-medium">{dropdownItem.name}</span>
-                            </Link>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </>
-                ) : (
-                  <Link
-                    href={item.href}
-                    className="px-4 py-2 rounded-lg font-medium transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10"
-                  >
-                    {item.name}
-                  </Link>
-                )}
-              </div>
-            ))}
-          </nav>
-
-          {/* Mobile Menu Button - Only show on mobile */}
-          <button
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="lg:hidden p-2 rounded-lg transition-all duration-300 text-gray-900 hover:text-white hover:bg-white/10 absolute right-4"
-          >
-            <Icon icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"} width={24} />
-          </button>
-        </div>
-
-   
-    </header>
-  );
-}
 
 const Hero = () => {
   const { banners, loading } = useSelector((state) => state.home || {});
@@ -190,9 +64,12 @@ if(loading){
   )
 }
   return (
+    <>
+    {/* <div className="sticky top-[16%] z-50 left-0">
+<NavigationHeader/>
+    </div> */}
 <section className="relative min-h-[300px]  text-white overflow-hidden z-10 bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
     
-<Header/>
       <div className="relative max-w-7xl mx-auto px-2 py- z-10 l4">
         {slides.length === 0 ? (
           <div className="h-96 flex items-center justify-center">
@@ -316,6 +193,8 @@ if(loading){
         )}
       </div>
     </section>
+    </>
+
   );
 };
 

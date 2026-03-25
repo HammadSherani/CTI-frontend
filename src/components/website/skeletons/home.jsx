@@ -1,11 +1,9 @@
 import React from 'react';
-import { Header } from '../home/hero';
 
 // Hero Skeleton
 export const HeroSkeleton = () => {
   return (
     <section className="relative text-white overflow-hidden bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">
-      <Header />
 
       <div className="relative max-w-7xl mx-auto px-5 lg:px-8 py-16 lg:py-24">
         <div className="grid md:grid-cols-2 gap-12 items-center animate-pulse">
