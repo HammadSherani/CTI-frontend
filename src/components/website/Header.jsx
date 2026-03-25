@@ -450,10 +450,10 @@ export function NavigationHeader() {
 
   return (
     <header
-      className={`fixed top-[16%] left-0 w-full z-50 p-2 transition-all duration-300 ${
+      className={`fixed  left-0 w-full z-50 p-2 transition-all duration-300 ${
         isScrolled
-          ? "bg-white shadow-md"
-          : "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]  z-50"
+          ? "bg-white shadow-md  top-[98px]"
+          : "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[135px]   z-50"
       }`}
     >
       <div className="flex items-center justify-center">

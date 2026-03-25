@@ -94,7 +94,7 @@ if(loading){
           >
             {slides.map((slide, idx) => (
               <SwiperSlide key={slide._id || slide.id || idx}>
-                <div className="grid md:grid-cols-2 gap-12 items-center p-10  z-10">
+                <div className="grid md:grid-cols-2 gap-12 items-center px-10 py-20  z-10">
                   {/* Left - Text Content */}
                   <motion.div
                     className="space-y-6 md:space-y-4"
