@@ -161,7 +161,7 @@ export default function MeetOurProfessionals() {
                       <div className="relative w-full sm:w-[200px] md:w-[230px] lg:w-[260px] h-[250px] sm:h-full overflow-hidden">
                         <Image
                           src={profile.profilePhoto || '/placeholder-repairman.jpg'}
-                          alt={fullName}
+                          alt={fullName||"profile"}
                           fill
                           sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 260px"
                           className="object-cover object-center group-hover:scale-105 rounded-lg transition-transform duration-500"

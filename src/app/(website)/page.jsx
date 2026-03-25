@@ -31,6 +31,8 @@ import GoodProducts from '@/components/website/home/goodProduct';
 import ScrollToTop from '@/components/ScrollToTop';
 import Stores from '@/components/website/home/stores';
 import HowItWorks from '@/components/website/home/works';
+import OurDeals from '@/components/website/home/ourDeals';
+import TermsSection from '@/components/website/home/terms';
 
 
 function Home() {
@@ -83,14 +85,11 @@ useEffect(() => {
       <Stores/>
       <HowItWorks/>
       <TopRepairman/>
-      {/* <TopRepairman />
-      <BecomePartner />
-      <SellingProducts title="Products" titleHighlight="Refurbished" />
       <Testimonials />
-      <OurProcess />
+      <OurDeals/>
       <DownloadApp />
-      <AcademySection />
-      <BlogSection /> */}
+      <BlogSection />
+      <TermsSection/>
         <ScrollToTop />
 
     </div>

@@ -1,14 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import SectionTag from "./sectoinTag";
 import { CustomDropdown } from "./customDropdown";
 import { ServicesSkeleton } from "../skeletons/home";
-
+import axiosInstance from "@/config/axiosInstance";
+import { useSelector } from "react-redux";
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -26,83 +27,11 @@ const cardVariants = {
   },
 };
 
-const Divider = () => (
-  <div className="hidden sm:block w-px h-10 bg-gray-200 self-center flex-shrink-0" />
-);
-const ServiceSection = () => {
-  const [brand, setBrand] = useState("");
-  const [model, setModel] = useState("");
-  const [issue, setIssue] = useState("");
-  const [location, setLocation] = useState("");
- 
-  // Reset model when brand changes
-  const handleBrandChange = (val) => {
-    setBrand(val);
-    setModel("");
-  };
- 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    onSearch?.({ brand, model, issue, location });
-  };
- 
-  /* ── Options ── */
-  const brandOptions = [
-    { value: "apple",   label: "Apple" },
-    { value: "samsung", label: "Samsung" },
-    { value: "xiaomi",  label: "Xiaomi" },
-    { value: "oppo",    label: "Oppo" },
-    { value: "huawei",  label: "Huawei" },
-    { value: "nokia",   label: "Nokia" },
-    { value: "oneplus", label: "OnePlus" },
-    { value: "sony",    label: "Sony" },
-  ];
- 
-  const modelOptions = brand === "apple"
-    ? [
-        { value: "iphone-15", label: "iPhone 15" },
-        { value: "iphone-14", label: "iPhone 14" },
-        { value: "iphone-13", label: "iPhone 13" },
-        { value: "iphone-12", label: "iPhone 12" },
-      ]
-    : brand === "samsung"
-    ? [
-        { value: "s24",      label: "Galaxy S24" },
-        { value: "s23",      label: "Galaxy S23" },
-        { value: "a54",      label: "Galaxy A54" },
-        { value: "a34",      label: "Galaxy A34" },
-      ]
-    : [
-        { value: "model-1", label: "Model 1" },
-        { value: "model-2", label: "Model 2" },
-      ];
- 
-  const issueOptions = [
-    { value: "screen",   label: "Screen Damage" },
-    { value: "battery",  label: "Battery Issue" },
-    { value: "camera",   label: "Camera Problem" },
-    { value: "charging", label: "Charging Issue" },
-    { value: "speaker",  label: "Speaker Problem" },
-    { value: "software", label: "Software Issue" },
-    { value: "water",    label: "Water Damage" },
-    { value: "back",     label: "Back Glass" },
-  ];
- 
-  const cityOptions = [
-    { value: "karachi",   label: "Karachi" },
-    { value: "lahore",    label: "Lahore" },
-    { value: "islamabad", label: "Islamabad" },
-    { value: "peshawar",  label: "Peshawar" },
-    { value: "quetta",    label: "Quetta" },
-    { value: "multan",    label: "Multan" },
-    { value: "faisalabad",label: "Faisalabad" },
-    { value: "rawalpindi",label: "Rawalpindi" },
-  ];
- 
 
+const ServiceSection = () => {
+  const router = useRouter();
   const { services, loading: servicesLoading } = useSelector((state) => state.home || {});
-  
-  // Active services from Redux (fallback to dummy if empty)
+// Active services from Redux (fallback to dummy if empty)
   const activeServices = Array.isArray(services)
     ? services.filter((s) => s.isActive !== false)
     : [];
@@ -111,95 +40,231 @@ const ServiceSection = () => {
 
   const displayServices = activeServices.length > 0 ? activeServices : [];
 
+  // States
+  const [brands, setBrands] = useState([]);
+  const [models, setModels] = useState([]);
+  const [colors, setColors] = useState([]);
+
+  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [selectedModel, setSelectedModel] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(null);
+
+  const [loadingBrands, setLoadingBrands] = useState(true);
+  const [loadingModels, setLoadingModels] = useState(false);
+  const [loadingColors, setLoadingColors] = useState(false);
+
+  const [error, setError] = useState(null);
+
+  // Fetch Brands
+  const fetchBrands = async () => {
+    try {
+      setLoadingBrands(true);
+      const { data } = await axiosInstance.get("/public/brands");
+      setBrands(data?.data?.brands || []);
+    } catch (err) {
+      setError("Failed to load brands. Please try again.");
+      console.error(err);
+    } finally {
+      setLoadingBrands(false);
+    }
+  };
+
+  // Fetch Models when brand changes
+  const fetchModels = async (brandId) => {
+    if (!brandId) return;
+    try {
+      setLoadingModels(true);
+      setModels([]);
+      setSelectedModel(null);
+      setColors([]);
+      setSelectedColor(null);
+
+      const { data } = await axiosInstance.get(`/public/models/brand/${brandId}`);
+      setModels(data?.data?.models || []);
+    } catch (err) {
+      console.error("Failed to load models", err);
+    } finally {
+      setLoadingModels(false);
+    }
+  };
+
+  // Fetch Colors when model changes
+  const fetchColors = async (modelId) => {
+    if (!modelId) return;
+    try {
+      setLoadingColors(true);
+      setColors([]);
+
+      const { data } = await axiosInstance.get(`/public/models/${modelId}/colors`);
+      setColors(data?.data?.colors || []);
+    } catch (err) {
+      console.error("Failed to load colors", err);
+    } finally {
+      setLoadingColors(false);
+    }
+  };
+
+  // Handlers
+  const handleBrandChange = (brand) => {
+    setSelectedBrand(brand);
+    setSelectedModel(null);
+    setSelectedColor(null);
+    if (brand?._id) {
+      fetchModels(brand._id);
+    }
+  };
+
+  const handleModelChange = (model) => {
+    setSelectedModel(model);
+    setSelectedColor(null);
+    if (model?._id) {
+      fetchColors(model._id);
+    }
+  };
+
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+  };
+
+  // Search Now → Navigate to dynamic URL
+  const handleSearchNow = () => {
+    if (!selectedBrand || !selectedModel || !selectedColor) {
+      alert("Please select Brand, Model, and Color");
+      return;
+    }
+
+    const brandSlug = selectedBrand.slug || selectedBrand.name.toLowerCase();
+    const modelSlug = selectedModel.slug || selectedModel.name.toLowerCase().replace(/\s+/g, "-");
+    const colorSlug = selectedColor.toLowerCase();
+
+    const url = `/mobile-repair/${brandSlug}/${modelSlug}/${colorSlug}`;
+    router.push(url);
+  };
+
+  // Post a Job (you can change the route later)
+  const handlePostJob = () => {
+    router.push("/coming-soon"); // or your desired route
+  };
+
+  // Initial fetch
+  useEffect(() => {
+    fetchBrands();
+  }, []);
+
+  // Prepare options for CustomDropdown (assuming it accepts { value, label, ... })
+  const brandOptions = brands.map((b) => ({
+    value: b._id,
+    label: b.name,
+    icon: b.icon, // if your dropdown supports it
+    data: b,      // full object for later use
+  }));
+
+  const modelOptions = models.map((m) => ({
+    value: m._id,
+    label: m.name,
+    data: m,
+  }));
+
+  const colorOptions = colors.map((color) => ({
+    value: color,
+    label: color.charAt(0).toUpperCase() + color.slice(1),
+  }));
+
   return (
     <div className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Quick Service Finder Card */}
-        <div className="bg-[#FF69000D] rounded-2xl shadow-xl  mb-16">
-          <div className="  px-8 py-6  mx-auto">
+        <div className="bg-[#FF69000D] rounded-2xl shadow-xl mb-16">
+          <div className="px-8 py-6 mx-auto">
             <div className="flex justify-center items-center">
-                    <SectionTag title="Service Finder" />
+              <SectionTag title="Service Finder" />
             </div>
-            <div className="flex items-center justify-center gap-3">
-
-              <div>
-                <h2 className="text-2xl md:text-3xl font-bold text-center text-gray-900">
-                  Quick <span className="text-primary-600">Service </span>Finder
-                </h2>
-                <p className="text-gray-600 mt-3 text-center mx-auto w-120 ">
-Select your device brand, choose the model, and describe the issue to instantly connect with verified professionals near you. Fast, simple, and reliable — all in just a few clicks.                </p>
-              </div>
+            <div className="text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+                Quick <span className="text-primary-600">Service</span> Finder
+              </h2>
+              <p className="text-gray-600 mt-3 max-w-md mx-auto">
+                Select your device brand, model, color and connect with verified professionals near you.
+              </p>
             </div>
           </div>
 
-          {/* Filter Form */}
-    <form onSubmit={handleSearch} className="px-4 py-4 md:px-8 md:py-6 -mt-4">
-      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 border border-gray-200 bg-white rounded-2xl shadow-md px-3 py-3">
- 
-        {/* Brand */}
-        <CustomDropdown
-          icon="mdi:cellphone"
-          label="Brand"
-          placeholder="Select Brands"
-          options={brandOptions}
-          value={brand}
-          onChange={handleBrandChange}
-        />
- 
-        <Divider />
- 
-        {/* Model */}
-        <CustomDropdown
-          icon="fluent:phone-key-20-regular"
-          label="Model"
-          placeholder="Select Models"
-          options={modelOptions}
-          value={model}
-          onChange={setModel}
-        />
- 
-        <Divider />
- 
-        {/* Issue */}
-        <CustomDropdown
-          icon="mdi:tools"
-          label="Issue"
-          placeholder="Select Issue ?"
-          options={issueOptions}
-          value={issue}
-          onChange={setIssue}
-        />
- 
-        <Divider />
- 
-        {/* Location */}
-        <CustomDropdown
-          icon="mdi:map-marker-outline"
-          label="Location"
-          placeholder="Select Location"
-          options={cityOptions}
-          value={location}
-          onChange={setLocation}
-        />
- 
-        {/* Divider before button */}
-        <Divider />
- 
-        {/* Search Button */}
-        <div className="flex-shrink-0 px-1">
-          <button
-            type="submit"
-            className="bg-black hover:bg-gray-800 active:scale-95 text-white font-semibold py-3 px-4 rounded-xl transition-all duration-200 flex items-center gap-2 shadow-sm hover:shadow-md whitespace-nowrap"
-          >
-            <Icon icon="mdi:magnify" className="w-5 h-5" />
-            Search Now
-          </button>
-        </div>
-      </div>
-    </form>
+          {/* Dynamic Filter Form */}
+          <form className="px-4 py-4 md:px-8 md:py-6 -mt-4" onSubmit={(e) => e.preventDefault()}>
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2 border border-gray-200 bg-white rounded-2xl shadow-md px-3 py-3">
+
+              {/* Brand */}
+              <CustomDropdown
+                icon="mdi:cellphone"
+                label="Brand"
+                placeholder="Select Brand"
+                options={brandOptions}
+                value={selectedBrand?._id || ""}
+                onChange={(val) => {
+                  const brandObj = brands.find(b => b._id === val);
+                  handleBrandChange(brandObj);
+                }}
+                loading={loadingBrands}
+              />
+
+              <Divider />
+
+              {/* Model */}
+              <CustomDropdown
+                icon="fluent:phone-key-20-regular"
+                label="Model"
+                placeholder="Select Model"
+                options={modelOptions}
+                value={selectedModel?._id || ""}
+                onChange={(val) => {
+                  const modelObj = models.find(m => m._id === val);
+                  handleModelChange(modelObj);
+                }}
+                loading={loadingModels}
+                disabled={!selectedBrand}
+              />
+
+              <Divider />
+
+              {/* Color */}
+              <CustomDropdown
+                icon="mdi:palette"
+                label="Color"
+                placeholder="Select Color"
+                options={colorOptions}
+                value={selectedColor || ""}
+                onChange={(val) => handleColorChange(val)}
+                loading={loadingColors}
+                disabled={!selectedModel}
+              />
+
+              <Divider />
+
+              {/* Action Buttons */}
+              <div className="flex-shrink-0 flex gap-2 px-1">
+                <button
+                  type="button"
+                  onClick={handleSearchNow}
+                  disabled={!selectedBrand || !selectedModel || !selectedColor}
+                  className="bg-black hover:bg-gray-800 disabled:bg-gray-400 text-white font-semibold py-3 px-6 rounded-xl transition-all flex items-center gap-2 shadow-sm"
+                >
+                  <Icon icon="mdi:magnify" className="w-5 h-5" />
+                  Search Now
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handlePostJob}
+                  className="border border-gray-300 hover:bg-gray-50 font-semibold py-3 px-6 rounded-xl transition-all flex items-center gap-2"
+                >
+                  Post a Job
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
 
-        {/* Our Services Section */}
+       {/* Our Services Section */}
         <div className="text-left mb-12">
          <SectionTag title="Our Services" />
           <h2 className="text-3xl md:text-4xl font-bold text-gray-900"> <span className="text-primary-600">Our</span> Services</h2>
@@ -252,5 +317,10 @@ Select your device brand, choose the model, and describe the issue to instantly 
     </div>
   );
 };
+
+// Small Divider Component
+const Divider = () => (
+  <div className="hidden sm:block w-px h-10 bg-gray-200 self-center flex-shrink-0" />
+);
 
 export default ServiceSection;

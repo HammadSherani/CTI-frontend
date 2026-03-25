@@ -41,10 +41,9 @@ export default function BlogSection() {
                 </div>
                 <div className="p-4">
                   <h4 className="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">{post.title || post.name}</h4>
-                  <p className="text-sm text-gray-500 mb-3 line-clamp-2">{post.excerpt || post.summary || post.description}</p>
+                  <p className="text-sm text-gray-500 mb-3 line-clamp-3">{post.excerpt || post.summary || post.description}</p>
                   <div className="flex items-center justify-between text-xs text-gray-400">
-                    <span>{new Date(post.createdAt || post.publishedAt || Date.now()).toLocaleDateString()}</span>
-                    <span className="text-primary-600 font-medium">Read</span>
+                    <span href={`/blog/${post.slug}`} className="text-primary-600 font-medium underline text-[16px] "> Read More</span>
                   </div>
                 </div>
               </Link>
