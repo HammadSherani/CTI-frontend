@@ -118,13 +118,16 @@ function Signup() {
 
           {/* Left Image Section */}
           <div className="hidden lg:block lg:w-5/12">
+                <div className="absolute top-10 left-4">
+                  <button onClick={()=>router.push("/")} className="flex justify-center cursor-pointer items-center gap-2 px-3 py-1 bg-gray-100 rounded-full "><Icon icon="mdi:arrow-left" className="text-gray-800" />Go to Website</button>
+                </div>
             <div className="flex items-center justify-center h-full p-8">
               <div className="text-center">
                 <Image
                   src={Logins}
                   alt="Signup Illustration"
                   className="w-full max-w-md mx-auto mb-6 drop-shadow-2xl"
-                />
+                  />
                 <div className="text-white">
                   <h3 className="mb-2 text-2xl font-bold">Join Our Community</h3>
                   <p className="text-orange-100">Connect, repair, and trade with ease</p>
@@ -139,15 +142,21 @@ function Signup() {
               <div className="w-full p-6 md:p-10">
                 <div className="max-w-lg mx-auto">
 
+<div className="flex items-center justify-between mb-6"> 
+
+   <div>
+                    <Image onClick={()=>router.push("/")} src="/assets/logo/logo.png" width={80} height={80} alt="logo" className="cursor-pointer"/>
+                  </div>
+
                   {/* Language Switch */}
-                  <div className="mb-6 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
+                  <div className=" text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
                     <span className="flex items-center justify-end gap-1">
                       <Icon icon="mdi:web" className="text-base" />
                       English (UK)
                       <Icon icon="mdi:chevron-down" className="text-xs" />
                     </span>
                   </div>
-
+</div>
                   {/* Header */}
                   <div className="text-center mb-8">
                     <h1 className="text-3xl font-bold text-gray-900 mb-2">

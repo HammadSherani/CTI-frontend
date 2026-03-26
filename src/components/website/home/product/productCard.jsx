@@ -16,7 +16,7 @@ function ProductCard({
   onAdd 
 }) {
   return (
-    <div className="group relative flex flex-col bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full">
+    <div onClick={onAdd} className="group relative flex flex-col cursor-pointer bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full">
 
       {/* ── Top Badges Row ── */}
       <div className="flex items-start justify-between px-2.5 p-4 pt-2.5 gap-1 min-h-[32px] relative">

@@ -94,7 +94,7 @@ function Login() {
         if (resData?.user?.kycStatus === "not_submitted") {
           // router.push("/repair-man/dashboard");
           router.push("/repair-man/complete-profile");
-        } else  {
+        } else {
           // router.push("/repair-man/complete-profile");
           router.push("/repair-man/dashboard");
         }
@@ -120,42 +120,80 @@ function Login() {
     <>
       <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
 
-        {/* Left Image Section */}
-        <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
-          <div className="absolute inset-0 bg-black/10"></div>
-          <div className="flex items-center justify-center h-full p-8 relative z-10">
-            <div className="text-center">
-              <Image
-                src={Logins}
-                alt="Login Illustration"
-                className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
-                priority
-              />
-              <div className="text-white">
-                <h2 className="text-3xl font-bold mb-4">Welcome Back!</h2>
-                <p className="text-xl text-orange-100 mb-6">
-                  Sign in to continue your journey
-                </p>
-                <div className="flex items-center justify-center gap-6 text-orange-100">
-                  <div className="flex items-center gap-2">
-                    <Icon icon="mdi:shield-check" className="text-2xl" />
-                    <span className="text-sm">Secure Login</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Icon icon="mdi:flash" className="text-2xl" />
-                    <span className="text-sm">Quick Access</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+     {/* Left Image Section */}
+<div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+  
+  {/* Overlay */}
+  <div className="absolute inset-0 bg-black/10 pointer-events-none"></div>
 
-          {/* Decorative Elements */}
-          <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
-          <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
-          <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full"></div>
+ 
+
+
+  {/* Illustration & Text */}
+  <div className="flex items-center h-full justify-center    z-20">
+     {/* Go to Website Button */}
+  <div className="absolute top-10 left-4 z-20">
+    <button
+      onClick={() => router.push("/")}
+      className="flex items-center gap-2 px-3 py-1 cursor-pointer bg-gray-100 rounded-full hover:opacity-80 transition"
+    >
+      <Icon icon="mdi:arrow-left" className="text-gray-800" />
+      Go to Website
+    </button>
+  </div>
+  
+  {/* Logo */}
+  <Link href="/" className="absolute top-10 right-14 z-20">
+    <Image
+      src="/assets/logo/logo.png"
+      width={100}
+      height={100}
+      alt="logo"
+      className="cursor-pointer"
+    />
+  </Link>
+    <div className="text-center">
+      <Image
+        src={Logins}
+        
+        alt="Login Illustration"
+        className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
+        priority
+      />
+      <div className="text-white">
+        <h2 className="text-3xl font-bold mb-4">Welcome Back!</h2>
+        <p className="text-xl text-orange-100 mb-6">
+          Sign in to continue your journey
+        </p>
+        <div className="flex items-center justify-center gap-6 text-orange-100">
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:shield-check" className="text-2xl" />
+            <span className="text-sm">Secure Login</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:flash" className="text-2xl" />
+            <span className="text-sm">Quick Access</span>
+          </div>
         </div>
 
+        {/* Clickable Link */}
+        <div className="mt-6">
+          <Link
+            href="/auth/register"
+            className="text-orange-100 hover:text-white font-medium underline"
+          >
+            Create an account
+          </Link>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {/* Decorative Elements */}
+  <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
+  <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
+  <div className="absolute top-1/2 right-10 w-16 h-16 bg-white/10 rounded-full"></div>
+</div>
         {/* Right Form Section */}
         <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">

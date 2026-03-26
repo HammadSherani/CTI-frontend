@@ -48,7 +48,7 @@ export default function HowItWorks() {
 
     {/* Step 01 */}
     <div className="max-w-xs text-left absolute top-4 left-2 flex flex-col items-center justify-centerw-[400px] p-6 rounded-lg">
-      <div className="bg-black text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
+      <div className="bg-black hover:opacity-80 text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
         01
       </div>
       <div className="">
@@ -63,7 +63,7 @@ export default function HowItWorks() {
 
     {/* Step 02 */}
     <div className="max-w-xs text-left absolute -top-12 left-[36%] flex flex-col items-center justify-centerw-[400px] p-6 rounded-lg">
-      <div className="bg-black text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
+      <div className="bg-black hover:opacity-80 text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
         02
       </div>
       <div className="">
@@ -78,7 +78,7 @@ Your Device      </h3>
 
     {/* Step 03 */}
     <div className="max-w-xs text-left absolute -top-3    -right-12 flex flex-col items-center justify-centerw-[400px] p-6 rounded-lg">
-      <div className="bg-black text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
+      <div className="bg-black hover:opacity-80 text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
         03
       </div>
       <div className="">
@@ -92,12 +92,12 @@ Get Your Device Back    </h3>
 
 
 {/* CTA Button */}
-        <div className="flex justify-center items-end absolute top-70 left-1/2 -translate-x-1/2">
+        {/* <div className="flex justify-center items-end absolute top-70 left-1/2 -translate-x-1/2">
           <button className="bg-orange-600 hover:bg-orange-700 transition-colors text-white font-semibold text-md px-6 py-4 rounded-2xl shadow-xl flex items-center gap-3">
             Talk With Us
             <span className="text-md">→</span>
           </button>
-        </div>
+        </div> */}
   </div>
 </div>
  

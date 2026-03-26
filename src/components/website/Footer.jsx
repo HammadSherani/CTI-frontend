@@ -4,105 +4,166 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 import Marquee from 'react-fast-marquee';
+import Link from "next/link";
+import { useRouter } from 'next/navigation';
 
 export default function Footer() {
+  const footerData = {
+  social: [
+    { label: "Twitter", url: "/coming", icon: "mdi:twitter" },
+    { label: "Facebook", url: "/coming", icon: "mdi:facebook" },
+    { label: "Instagram", url: "/coming", icon: "mdi:instagram" },
+    { label: "YouTube", url: "/coming", icon: "mdi:youtube" },
+  ],
+  services: [
+    { label: "Sell Phone", url: "/coming" },
+    { label: "Sell TV", url: "/coming" },
+    { label: "Sell Smart Watch", url: "/coming" },
+    { label: "Repair Phone", url: "/mobile-repair" },
+    { label: "Buy Gadgets", url: "/coming" },
+    { label: "Recycle Phone", url: "/coming" },
+    { label: "Partner With Us", url: "/coming" },
+  ],
+  company: [
+    { label: "About Us", url: "/about-us" },
+    { label: "Careers", url: "/coming" },
+    { label: "Blog", url: "/blog" },
+    { label: "Press", url: "/coming" },
+    { label: "Become Partner", url: "/coming" },
+    { label: "Corporate Info", url: "/coming" },
+  ],
+  sellDevice: [
+    { label: "Mobile", url: "/coming" },
+    { label: "Laptop", url: "/coming" },
+    { label: "Tablet", url: "/coming" },
+    { label: "iMac", url: "/coming" },
+    { label: "Gaming Console", url: "/coming" },
+  ],
+  support: [
+    { label: "FAQ", url: "/faq" },
+    { label: "Contact Us", url: "/coming" },
+    { label: "Warranty Policy", url: "/coming" },
+    { label: "Refund Policy", url: "/coming" },
+    { label: "E-Waste Policy", url: "/coming" },
+    { label: "Device Safety", url: "/coming" },
+  ],
+}
+const router = useRouter();
   return (
     <footer className="bg-black text-gray-300 pt-16 pb-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-12">
-          
-          {/* Left - Logo & Description */}
-          <div className="lg:col-span-3">
-            <div className="flex items-center gap-3 mb-6">
-              <Image 
-                src="/assets/logo/logo-dark.png" 
-                alt="CTI Logo" 
-                width={140} 
-                height={45} 
-                className="object-contain" 
-              />
-            </div>
-            
-            <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
-              We provide fast, reliable, and trusted device repair, resale, and refurbished 
-              solutions for all your gadgets.
-            </p>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-x-8 gap-y-12">
 
-            {/* Social Icons */}
-            <div className="flex gap-4 mt-8">
-              <a href="#" className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all">
-                <Icon icon="mdi:twitter" className="text-xl" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all">
-                <Icon icon="mdi:facebook" className="text-xl" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all">
-                <Icon icon="mdi:instagram" className="text-xl" />
-              </a>
-              <a href="#" className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all">
-                <Icon icon="mdi:youtube" className="text-xl" />
-              </a>
-            </div>
+        {/* Left - Logo & Description */}
+        <div className="lg:col-span-3">
+          <div className="flex items-center gap-3 mb-6">
+            <Image
+              src="/assets/logo/logo-dark.png"
+              alt="CTI Logo"
+              width={140}
+              height={45}
+              className="object-contain"
+            />
           </div>
 
-          {/* Services */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">Services</h3>
-            <ul className="space-y-3 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">Sell Phone</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Sell TV</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Sell Smart Watch</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Repair Phone</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Buy Gadgets</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Recycle Phone</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Partner With Us</a></li>
-            </ul>
-          </div>
+          <p className="text-sm leading-relaxed text-gray-400 max-w-xs">
+            We provide fast, reliable, and trusted device repair, resale, and
+            refurbished solutions for all your gadgets.
+          </p>
 
-          {/* Company */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">Company</h3>
-            <ul className="space-y-3 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Press</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Become Partner</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Corporate Info</a></li>
-            </ul>
+          {/* Social Icons */}
+          <div className="flex gap-4 mt-8">
+            {footerData.social.map((item) => (
+              <Link
+                key={item.label}
+                href={item.url}
+                className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all"
+              >
+                <Icon icon={item.icon} className="text-xl" />
+              </Link>
+            ))}
           </div>
-
-          {/* Sell Device */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">Sell Device</h3>
-            <ul className="space-y-3 text-sm">
-              <li><a href="#" className="hover:text-white transition-colors">Mobile</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Laptop</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Tablet</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">iMac</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Gaming Console</a></li>
-            </ul>
-          </div>
-
-          {/* Support + Chat + Marquee */}
-          <div className="lg:col-span-3">
-            <h3 className="text-white font-semibold mb-5">Support</h3>
-            <ul className="space-y-3 text-sm mb-8">
-              <li><a href="#" className="hover:text-white transition-colors">FAQ</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Warranty Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Refund Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">E-Waste Policy</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Device Safety</a></li>
-            </ul>
         </div>
+
+        {/* Services */}
+        <div className="lg:col-span-2">
+          <h3 className="text-white font-semibold mb-5">Services</h3>
+          <ul className="space-y-3 text-sm">
+            {footerData.services.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.url}
+                  className="hover:text-white transition-colors"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
-<div className="flex flex-col lg:flex-row gap-4 items-start w-[45%] ml-[55%] mt-10">
-              {/* Chat Button */}
-              <div className="lg:w-auto w-full">
-                <button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 text-white font-medium py-2 pr-16  rounded-2xl flex items-center gap-3 shadow-lg w-full lg:w-auto group">
+
+        {/* Company */}
+        <div className="lg:col-span-2">
+          <h3 className="text-white font-semibold mb-5">Company</h3>
+          <ul className="space-y-3 text-sm">
+            {footerData.company.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.url}
+                  className="hover:text-white transition-colors"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Sell Device */}
+        <div className="lg:col-span-2">
+          <h3 className="text-white font-semibold mb-5">Sell Device</h3>
+          <ul className="space-y-3 text-sm">
+            {footerData.sellDevice.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.url}
+                  className="hover:text-white transition-colors"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Support */}
+        <div className="lg:col-span-3">
+          <h3 className="text-white font-semibold mb-5">Support</h3>
+          <ul className="space-y-3 text-sm">
+            {footerData.support.map((item) => (
+              <li key={item.label}>
+                <Link
+                  href={item.url}
+                  className="hover:text-white transition-colors"
+                >
+                  {item.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+      </div>
+
+
+
+
+
+<div className="flex flex-col lg:flex-row gap-4 items-start md:w-[45%] w-full ml-[55%] mt-10">
+              <div className="lg:w-auto w-full mt-8">
+                <button className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 text-white font-medium py-1 pr-20  rounded-2xl flex items-center gap-3 shadow-lg w-full lg:w-auto group">
                   <Image 
                     src="/assets/footer/message.png" 
                     alt="Chat Icon" 
@@ -117,8 +178,7 @@ export default function Footer() {
                 </button>
               </div>
 
-              {/* Marquees Container */}
-              <div className="flex-1  sm:w-full lg:w-[40%]">
+              <div className="flex-1 opacity-80 shadow-2xl sm:w-full lg:w-[40%]">
                 <div className="mb-3">
                   <Marquee
                     gradient={false}
@@ -204,7 +264,7 @@ export default function Footer() {
             </div>
 
         {/* Bottom Section */}
-        <div className="mt-10 pt-10 border-t border-gray-800 grid grid-cols-1 lg:grid-cols-12 gap-10">
+        <div className="mt-4 pt-10 border-t border-gray-800 grid grid-cols-1 lg:grid-cols-12 gap-10">
           {/* Registered Office */}
           <div className="lg:col-span-8 text-sm text-gray-400">
             <p className="font-semibold text-gray-200 mb-3">Registered Office:</p>
@@ -228,7 +288,7 @@ export default function Footer() {
             <div className="lg:col-span-4 w-full ">
             <div className="  bg-white   pr-12 gap-4 justify-center items-center flex border border-zinc-800 rounded-2xl p-2  max-w-[420px] hover:border-zinc-700 transition-all duration-300">
             <div>
-              <Image src='/assets/footer/f9.png' alt='footer' width={160} height={100}/>
+              <Image src='/assets/footer/f9.png' alt='footer' width={190} height={120}/>
               </div>
                 <div className="text-xs">
                   <p className="text-black font-semibold mb-1 text-md">Safeguarded by DeviceSafety.org</p>

@@ -12,6 +12,8 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import SectionTag from './sectoinTag';
+import { useRouter } from 'next/navigation';
+import { toast } from 'react-toastify';
 
 export default function MeetOurProfessionals() {
   const swiperRef = useRef(null);
@@ -51,6 +53,27 @@ export default function MeetOurProfessionals() {
   const handleNext = useCallback(() => {
     swiperRef.current?.swiper?.slideNext();
   }, []);
+
+  const router = useRouter();
+
+  const {user} =useSelector(state=>state.auth || {});
+  
+  const handleChat = (pro) => {
+    if(!pro._id) return;
+
+  if(!user){
+    toast.error("Please login to start a chat with the professional.");
+    router.push('/auth/login');
+    return;
+  }
+
+  if(user.role !== 'customer'){
+    toast.error("Only customers can start a chat with professionals.");
+    return;
+  }
+      toast.info('chat with customer feature coming soon...');
+  }
+
 
   // Loading skeleton
   if (loading) {
@@ -97,7 +120,7 @@ export default function MeetOurProfessionals() {
         {/* Header Section */}
         <div className="flex flex-col lg:flex-row justify-between gap-8 mb-12 lg:mb-16">
           <div className="lg:max-w-xl">
-            <div className="mb-4">
+            <div className="">
               <SectionTag title="Our Specialists" />
             </div>
             <h2 className="text-3xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
@@ -233,14 +256,16 @@ export default function MeetOurProfessionals() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-2 sm:gap-3 mt-auto">
+                        <div  className="flex gap-2 sm:gap-3 mt-auto">
                           <button 
+                          onClick={()=>router.push(`/repairmans/${pro._id}`)}
                             className="flex-1 bg-gray-900 hover:bg-primary-500 text-white transition-all duration-300 py-2.5 sm:py-3 rounded-xl text-sm font-semibold transform hover:scale-[1.02] active:scale-[0.98]"
                             aria-label="Book appointment"
                           >
                             Book Appointment
                           </button>
                           <button 
+                          onClick={()=>handleChat(pro)}
                             className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-200 hover:border-primary-500 hover:text-primary-500 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-105"
                             aria-label="Chat with professional"
                           >

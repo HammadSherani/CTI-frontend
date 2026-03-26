@@ -5,6 +5,7 @@ import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
 import ProductCard from './productCard';
 import { Icon } from '@iconify/react';
+import { useRouter } from 'next/navigation';
 
 const demoProducts = [
   {
@@ -79,10 +80,15 @@ export default function ProductsCarousel({
   products = demoProducts,
   title = 'New',
   titleHighlight = 'Products',
-  viewMoreHref = '#',
+  viewMoreHref = '/coming',
   onAdd,
 }) {
   const swiperRef = useRef(null);
+const router = useRouter();
+  const handleCardClick = (product) => {
+    router.push("/coming")
+    console.log('Product clicked:', product);
+  }
  
   return (
     <section className="py-6 px-2 max-w-7xl mx-auto">
@@ -148,7 +154,7 @@ export default function ProductsCarousel({
                 reviews={p.reviews}
                 goldPrice={p.goldPrice}
                 badge={p.badge}
-                onAdd={() => onAdd?.(p)}
+                onAdd={() =>handleCardClick(p)}
               />
             </SwiperSlide>
           ))}

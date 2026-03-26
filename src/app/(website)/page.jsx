@@ -91,7 +91,6 @@ useEffect(() => {
       <BlogSection />
       <TermsSection/>
         <ScrollToTop />
-
     </div>
   );
 }

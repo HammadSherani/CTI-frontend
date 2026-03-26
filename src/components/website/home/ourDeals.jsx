@@ -2,6 +2,7 @@ import React from 'react'
 import SectionTag from './sectoinTag'
 import { Icon } from '@iconify/react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
 
 export default function OurDeals() {
 
@@ -28,6 +29,8 @@ export default function OurDeals() {
     }
   ]
 
+  const router = useRouter()
+
   return (
     <div className="py-12">
       
@@ -50,7 +53,7 @@ export default function OurDeals() {
         {data.map((item, i) => (
           <div
             key={i}
-            className={`relative rounded-2xl overflow-hidden p-6 bg-gradient-to-br ${item.gradient}`}
+            className={`relative rounded-2xl  hover:scale-105 transition-transform duration-300  cursor-pointer overflow-hidden p-6 bg-gradient-to-br ${item.gradient}`}
           >
             {/* decorative circles */}
             <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/10" />
@@ -75,7 +78,7 @@ export default function OurDeals() {
               </div>
 
               {/* Button */}
-              <button className="mt-6 flex items-center gap-1 w-fit bg-white text-orange-600 text-sm font-semibold px-4 py-2 rounded-lg hover:bg-orange-50 active:scale-95 transition">
+              <button onClick={()=>router.push("/coming")} className="mt-6  flex items-center gap-1 w-fit bg-white text-orange-600 text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 active:scale-95 transition">
                 Explore
                 <Icon icon="mdi:chevron-right" />
               </button>

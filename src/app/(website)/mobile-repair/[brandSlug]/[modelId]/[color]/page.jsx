@@ -8,7 +8,7 @@ import { Icon } from '@iconify/react';
 import { useParams, useRouter, usePathname } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import Image from 'next/image';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import LoginModal from './LoginModal';
 import { ServiceSelector } from './ServiceSelector';
 import { JobDetails } from './JobDetails';
@@ -20,30 +20,62 @@ import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Link from 'next/link';
+import { setAuth } from '@/store/auth';
+import { setCurrentUser } from '@/store/chat';
+import TermsModal from '@/components/website/home/termsModal';
 
 // Updated Yup schema (removed customServices)
 const schema = yup.object().shape({
-  description: yup.string().required('Description is required').min(10, 'Please provide more details (minimum 20 characters)'),
+  description: yup.string().required('Description is required').min(10, 'Please provide more details (minimum 10 characters)').max(1000, "Description is too long"),
+  
   deviceInfo: yup.object().shape({
     warrantyStatus: yup.string().required('Warranty status is required'),
   }),
   urgency: yup.string().required('Urgency level is required'),
   budget: yup.object().shape({
-    min: yup.number().min(0, 'Minimum budget cannot be negative').optional(),
-    max: yup.number().min(0, 'Maximum budget cannot be negative').optional()
-      .test('is-greater', 'Maximum budget must be greater than minimum', function (value) {
-        return !this.parent.min || !value || value >= this.parent.min;
-      }),
+    min: yup
+      .number()
+      .typeError("Minimum budget must be a number")
+      .min(0, "Minimum budget cannot be negative")
+      .nullable(),
+
+    max: yup
+      .number()
+      .typeError("Maximum budget must be a number")
+      .min(0, "Maximum budget cannot be negative")
+      .nullable()
+      .test(
+        "is-greater",
+        "Maximum budget must be greater than minimum",
+        function (value) {
+          const { min } = this.parent;
+          if (!min || !value) return true;
+          return value >= min;
+        }
+      ),
     currency: yup.string().required('Currency is required'),
   }),
   location: yup.object().shape({
-    address: yup.string().required('Address is required'),
-    city: yup.string().required('City is required'),
+ address: yup
+      .string()
+      .required("Address is required")
+      .min(10, "Address must be at least 10 characters")
+      .max(200, "Address is too long"),    city: yup.string().required('City is required'),
     district: yup.string().optional(),
-    zipCode: yup.string().optional(),
-    coordinates: yup.array().of(yup.number().optional()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
+
+    zipCode: yup
+      .string()
+      .matches(/^[0-9]{4,10}$/, "Invalid zip code")
+      .min(4, "Zip code must be at least 4 digits")
+      .max(10, "Zip code must be at most 10 digits")
+      .nullable(),    coordinates: yup.array().of(yup.number().optional()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
   }),
-  preferredDate: yup.date().min(new Date(), 'Preferred time must be in the future').required('Preferred time is required'),
+ 
+  preferredDate: yup
+    .date()
+    .typeError("Invalid date")
+    .min(new Date(), "Preferred date must be in the future")
+    .required("Preferred date is required"),
   servicePreference: yup.string().required('Service preference is required'),
   selectedServices: yup.array().min(1, 'At least one service must be selected').required('Please select at least one service'),
 });
@@ -57,10 +89,10 @@ const StepIndicator = ({ currentStep, steps }) => {
           <React.Fragment key={step.id}>
             <div className="flex flex-col items-center flex-1">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${currentStep > step.id
-                  ? 'bg-green-500 text-white'
-                  : currentStep === step.id
-                    ? 'bg-orange-500 text-white'
-                    : 'bg-gray-200 text-gray-500'
+                ? 'bg-green-500 text-white'
+                : currentStep === step.id
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-200 text-gray-500'
                 }`}>
                 {currentStep > step.id ? (
                   <Icon icon="mdi:check" className="text-xl" />
@@ -86,16 +118,23 @@ const StepIndicator = ({ currentStep, steps }) => {
 
 const CreateRepairJobForm = () => {
   const pathname = usePathname();
-  const STORAGE_KEY = `repair_form_${pathname}`;
-  const STEP_KEY = `repair_step_${pathname}`;
+  const STORAGE_KEY = `repair_form`;
+  const STEP_KEY = `repair_step`;
 
-  const [currentStep, setCurrentStep] = useState(1);
+  // const [currentStep, setCurrentStep] = useState(1);
+  const [currentStep, setCurrentStep] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedStep = localStorage.getItem(STEP_KEY);
+      return savedStep ? parseInt(savedStep, 10) : 1;
+    }
+    return 1;
+  });
   const [isGettingLocation, setIsGettingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [isTermsAgreed, setIsTermsAgreed] = useState(false);
   const [modelData, setModelData] = useState(null);
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [pendingFormData, setPendingFormData] = useState(null);
 
@@ -126,12 +165,6 @@ const CreateRepairJobForm = () => {
     }
   }, [modelId]);
 
-  // useEffect(() => {
-  //   if (!user || user.role !== "customer") {
-  //     setShowLoginModal(true);
-  //   }
-  // }, [user]);
-
   const {
     control,
     handleSubmit,
@@ -156,12 +189,12 @@ const CreateRepairJobForm = () => {
   const selectedServices = watch('selectedServices');
   const coordinates = watch('location.coordinates');
 
-  // Load saved form data and step from sessionStorage on mount
+  // Load saved form data and step from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedFormData = sessionStorage.getItem(STORAGE_KEY);
-      const savedStep = sessionStorage.getItem(STEP_KEY);
-
+      const savedFormData = localStorage.getItem(STORAGE_KEY);
+      const savedStep = localStorage.getItem(STEP_KEY);
+    
       if (savedFormData) {
         try {
           const parsedData = JSON.parse(savedFormData);
@@ -177,45 +210,25 @@ const CreateRepairJobForm = () => {
     }
   }, [reset]);
 
-  // Save form data to sessionStorage whenever it changes
+  // Save form data to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const subscription = watch((formData) => {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
       });
 
       return () => subscription.unsubscribe();
     }
   }, [watch]);
 
-  // Save current step to sessionStorage whenever it changes
+  // Save current step to localStorage whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem(STEP_KEY, currentStep.toString());
+      localStorage.setItem(STEP_KEY, currentStep.toString());
     }
   }, [currentStep]);
 
-  // Clear sessionStorage when navigating away from this page
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // This will be called when the page is being unloaded
-      // But we want to keep data on refresh, so we do nothing here
-    };
-
-    const handleRouteChange = () => {
-      // Clear data when route changes
-      if (typeof window !== 'undefined') {
-        sessionStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem(STEP_KEY);
-      }
-    };
-
-    // Listen for route changes (Next.js specific)
-    // This clears data when user navigates to a different page
-    return () => {
-      handleRouteChange();
-    };
-  }, [pathname]);
+  
 
   const reverseGeocode = async (latitude, longitude) => {
     try {
@@ -279,13 +292,11 @@ const CreateRepairJobForm = () => {
         setCurrentStep(2);
       }
     } else if (currentStep === 2) {
-      // Step 2 me sirf job details aur device info validate karo
       isValid = await trigger(['description', 'deviceInfo.warrantyStatus', 'urgency']);
       if (isValid) {
         setCurrentStep(3);
       }
     } else if (currentStep === 3) {
-      // Step 3 me location, preferredDate aur servicePreference validate karo
       isValid = await trigger(['location', 'preferredDate', 'servicePreference']);
       if (isValid) {
         setCurrentStep(4);
@@ -299,22 +310,35 @@ const CreateRepairJobForm = () => {
     }
   };
 
+  const [userData,setUserData]=useState(null)
+  const [showTermsModal, setShowTermsModal] = useState(false);
+
+  const dispatch=useDispatch()
   const onSubmit = async (formData) => {
-     if (!user) {
+   console.log('Form Data on Submit:', formData);
+   const submittedUserData=userData
+    console.log('submittedUserData Data on Submit:', submittedUserData);
+
+    const activeUser = submittedUserData?.user || user;
+    const activeToken = submittedUserData?.token || token;
+   
+    console.log('Active User:', activeUser);
+    console.log('Active Token:', activeToken);
+    console.log("is",activeUser?.role)
+
+    if (!activeUser) {
       toast.error('You must be logged in as a customer to post a repair job.');
       setPendingFormData(formData);
       setShowLoginModal(true);
       return;
     }
-    if (user.role !== "customer") {
-      toast.error('You role must be a customer to post a repair job.');
+
+    if (activeUser.role !== "customer") {
+      toast.error('Your role must be a customer to post a repair job.');
       setPendingFormData(formData);
       setShowLoginModal(true);
       return;
     }
-
-   
-    
 
     if (!isTermsAgreed) {
       alert('Please agree to the Terms and Conditions');
@@ -345,18 +369,21 @@ const CreateRepairJobForm = () => {
       };
 
       console.log('Complete Form Data:', submitData);
-
+      const usertoken=token||submittedUserData.token
+      console.log('Submitting with token:', usertoken);
       const response = await axiosInstance.post('/repair-jobs', submitData, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${usertoken}`,
         },
       });
 
+      console.log('API Response:', response.data);
       if (response.data.success) {
         toast.success(response.data.message);
-        // Clear sessionStorage after successful submission
-        sessionStorage.removeItem(STORAGE_KEY);
-        sessionStorage.removeItem(STEP_KEY);
+        // Clear localStorage after successful submission
+        localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STEP_KEY);
+        setPendingFormData(null);
         router.push('/my-account');
         setIsTermsAgreed(false);
       }
@@ -366,25 +393,24 @@ const CreateRepairJobForm = () => {
     }
   };
 
-  const handleLoginSuccess = (userData) => {
-    console.log('Login successful:', userData);
+  const handleLoginSuccess = (loginUserData) => {
+    console.log('Login successful:', loginUserData);
+    setUserData(loginUserData);
     setShowLoginModal(false);
-    if (pendingFormData) {
-      onSubmit(pendingFormData);
-      setPendingFormData(null);
-    }
+
+    dispatch(setAuth({
+      user: loginUserData.user,
+      token: loginUserData.token,
+      userType: loginUserData.user.role
+    }));
+    
+    dispatch(setCurrentUser(loginUserData.user));
   };
 
   const handleCloseLoginModal = () => {
     setShowLoginModal(false);
     setPendingFormData(null);
   };
-
-  useEffect(() => {
-    setTimeout(() => {
-      setLoading(false);
-    }, 2000);
-  }, []);
 
   return (
     <Loader loading={loading}>
@@ -396,16 +422,20 @@ const CreateRepairJobForm = () => {
           <div className="px-9 bg-white rounded-lg grid grid-cols-3 gap-4">
             <div className='col-span-2'>
               {/* Step Indicator */}
+              {currentStep > 1 && (
+                <button
+                  type="button"
+                  onClick={handlePrevious}
+                  className="flex items-center mb-5 gap-2 px-6 py-2 -mt-6 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
+                >
+                  <Icon icon="mdi:arrow-left" />
+                </button>
+              )}
               <StepIndicator currentStep={currentStep} steps={steps} />
-
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 {/* Step 1: Service Selection */}
                 {currentStep === 1 && (
                   <div className="p-4 bg-white rounded-lg border border-gray-200">
-                    {/* <div className="flex items-center gap-2 mb-4">
-                      <Icon icon="mdi:wrench" className="text-2xl text-orange-500" />
-                      <h3 className="text-xl font-semibold text-gray-900">Pick Your Repair Service</h3>
-                    </div> */}
                     <ServiceSelector
                       control={control}
                       errors={errors}
@@ -494,18 +524,25 @@ const CreateRepairJobForm = () => {
 
                     {/* Terms & Submit */}
                     <div className="bg-gray-50 p-4 rounded-lg">
-                      <div className="flex items-center gap-2 mb-3">
-                        <input
-                          type="checkbox"
-                          id="terms"
-                          checked={isTermsAgreed}
-                          onChange={(e) => setIsTermsAgreed(e.target.checked)}
-                          className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
-                        />
-                        <label htmlFor="/terms-and-conditions" className="text-sm text-gray-600">
-                          I agree to the <Link href="/terms-and-conditions" className="text-orange-500 hover:text-orange-600 underline">Terms and Conditions</Link>
-                        </label>
-                      </div>
+          <div className="flex items-center gap-2 mb-3">
+  <input
+    type="checkbox"
+    id="terms"
+    checked={isTermsAgreed}
+    onChange={(e) => setIsTermsAgreed(e.target.checked)}
+    className="w-4 h-4 text-orange-500 border-gray-300 rounded focus:ring-orange-500"
+  />
+  <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer">
+    I agree to the{' '}
+    <button
+      type="button"
+      onClick={() => setShowTermsModal(true)}
+      className="text-orange-500 hover:text-orange-600 underline font-medium"
+    >
+      Terms and Conditions
+    </button>
+  </label>
+</div>
                       <button
                         type="submit"
                         disabled={isSubmitting || !isTermsAgreed}
@@ -555,8 +592,8 @@ const CreateRepairJobForm = () => {
             </div>
 
             {/* Right Side - Device Info */}
-            <div className=" rounded-md bg-gray-50 border border-gray-200 h-fit overflow-hidden">
-              <div className="relative  p-8 flex justify-center items-center">
+            <div className="rounded-md bg-gray-50 border border-gray-200 h-fit overflow-hidden">
+              <div className="relative p-8 flex justify-center items-center">
                 {modelData?.icon ? (
                   <Image
                     src={modelData.icon}
@@ -573,13 +610,12 @@ const CreateRepairJobForm = () => {
                 )}
               </div>
 
-              <div className="p-3 bg-white rounded-md  border border-gray-100">
+              <div className="p-3 bg-white rounded-md border border-gray-100">
                 <h2 className="text-2xl capitalize font-semibold text-gray-900 mb-4">
                   {modelData?.name || 'Device Name'}
                 </h2>
 
                 <div className="space-y-4 text-base">
-                  {/* Brand */}
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Brand</span>
                     <span className="font-medium text-gray-800 px-3 py-1 bg-gray-100 rounded-full capitalize">
@@ -587,16 +623,13 @@ const CreateRepairJobForm = () => {
                     </span>
                   </div>
 
-                  {/* Color */}
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Color</span>
-
                     <div className="flex items-center gap-2">
                       <span
                         className="w-5 h-5 rounded-full border border-gray-300"
                         style={{ backgroundColor: color?.toLowerCase() || '#888' }}
                       ></span>
-
                       <span className="font-medium text-gray-800 capitalize">
                         {color || 'Not specified'}
                       </span>
@@ -604,9 +637,13 @@ const CreateRepairJobForm = () => {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
+
+          <TermsModal 
+            isOpen={showTermsModal}
+            onClose={() => setShowTermsModal(false)}
+          />
 
           <LoginModal
             isOpen={showLoginModal}

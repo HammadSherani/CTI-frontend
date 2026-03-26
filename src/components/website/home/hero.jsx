@@ -143,6 +143,7 @@ if(loading){
       src='/assets/home/line.png'
       width={500}
       height={500}
+      alt="line"
       className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[480px] opacity-90"
     />
   </motion.div>
@@ -156,15 +157,15 @@ if(loading){
     <div className="relative w-[260px] md:w-[360px] h-[260px] md:h-[360px]">
 
       <div className="absolute top-0 left-30">
-        <Image src="/assets/home/ellipse1.png" width={60} height={60} />
+        <Image src="/assets/home/ellipse1.png" width={60} height={60} alt="ellipse 1" />
       </div>
 
       <div className="absolute top-[35%] -left-[20%]">
-        <Image src="/assets/home/ellipse2.png" width={70} height={60} />
+        <Image src="/assets/home/ellipse2.png" width={70} height={60} alt="ellipse 2" />
       </div>
 
       <div className="absolute top-[45%] right-[0%]">
-        <Image src="/assets/home/ellipse3.png" width={80} height={60} />
+        <Image src="/assets/home/ellipse3.png" width={80} height={60} alt="ellipse 3" />
       </div>
 
     </div>

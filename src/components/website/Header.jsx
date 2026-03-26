@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 import Marquee from "react-fast-marquee";
 import ButtonSection from "./ButtonSection";
 import { AnimatePresence, motion } from "framer-motion";
+import GoogleTranslate from "../GoogleTranslate";
 
 /* ════════════════════════════════════════════
    MOCK SEARCH DATA  (replace with real API)
@@ -137,7 +138,7 @@ function SearchBar({ className = "" }) {
     setQuery(value);
     setFocused(false);
     inputRef.current?.blur();
-    router.push(`/coming-soon?q=${encodeURIComponent(value)}`)  
+    router.push(`/coming?q=${encodeURIComponent(value)}`)  
   };
 
   const handleSubmit = (e) => {
@@ -198,12 +199,15 @@ function AnnouncementBar() {
           <span className="text-orange-600 font-bold">24 hours</span>! Free doorstep pickup in select cities.
         </p>
         <div className="flex items-center gap-5">
+
           <Link href="/auth/register" className="flex items-center gap-1 hover:text-orange-600 transition-colors">
             <Icon icon="mdi:account-circle-outline" className="w-4 h-4" /> Login
           </Link>
           <a href="tel:+234567890" className="flex items-center gap-1 hover:text-orange-600 transition-colors">
             <Icon icon="mdi:phone" className="w-4 h-4" /> +234 567 890
           </a>
+                       <GoogleTranslate />
+
         </div>
       </div>
     </div>
@@ -292,9 +296,9 @@ function MobileMenu({ open, onClose }) {
   const navLinks = [
     { label: "Home",          href: "/",           icon: "mdi:home-outline"         },
     { label: "Mobile Repair", href: "/my-account/mobile-repair",     icon: "mynaui:mobile"     },
-    { label: "Buy Devices",   href: "/coming-soon",   icon: "mdi:shopping-outline"     },
+    { label: "Buy Devices",   href: "/coming",   icon: "mdi:shopping-outline"     },
     { label: "Academy",       href: "/academy",    icon: "mdi:school-outline"       },
-    { label: "Track Order",   href: "/coming-soon",     icon: "mdi:map-marker-path"      },
+    { label: "Track Order",   href: "/coming",     icon: "mdi:map-marker-path"      },
     { label: "Contact",       href: "/contact",    icon: "mdi:phone-outline"        },
   ];
 
@@ -320,9 +324,9 @@ function MobileMenu({ open, onClose }) {
 
         {/* Links */}
         <nav className="py-3 px-3">
-          {navLinks.map((link) => (
+          {navLinks.map((link,index) => (
             <Link
-              key={link.href}
+    key={`${link.href}-${index}`}
               href={link.href}
               onClick={onClose}
               className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-orange-50 hover:text-orange-600 text-gray-700 text-[14px] font-medium transition-colors group"
@@ -387,6 +391,8 @@ function PromoMarquee() {
 export function NavigationHeader() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+  const router = useRouter();
+  const pathName = usePathname();
 
   const navigationData = {
     mainNav: [
@@ -409,11 +415,11 @@ export function NavigationHeader() {
         href: "#",
         hasDropdown: true,
         dropdownItems: [
-          { name: "New Arrivals", href: "/coming-soon", icon: "mdi:star" },
-          { name: "Refurbished Devices", href: "/coming-soon", icon: "mdi:refresh" },
-          { name: "Accessories", href: "/coming-soon", icon: "mdi:headphones" },
-          { name: "Spare Parts", href: "/coming-soon", icon: "mdi:tools" },
-          { name: "Deals & Offers", href: "/coming-soon", icon: "mdi:tag" },
+          { name: "New Arrivals", href: "/coming", icon: "mdi:star" },
+          { name: "Refurbished Devices", href: "/coming", icon: "mdi:refresh" },
+          { name: "Accessories", href: "/coming", icon: "mdi:headphones" },
+          { name: "Spare Parts", href: "/coming", icon: "mdi:tools" },
+          { name: "Deals & Offers", href: "/coming", icon: "mdi:tag" },
         ],
       },
       { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
@@ -421,21 +427,22 @@ export function NavigationHeader() {
       { name: "About", href: "/about-us", hasDropdown: false },
       { name: "Support", href: "/live-support", hasDropdown: false },
     ],
-    ctaButtons: [
-      { name: "Contact Us", href: "/contact-us", icon: "mdi:phone" },
-      { name: "Login", href: "/login", icon: "mdi:account" },
-    ],
   };
 
-  // Scroll detection
+  // Scroll detection + Close dropdown on scroll
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
+      
+      // ←←← Yeh important hai: Scroll karte hi dropdown close ho jaye
+      if (openDropdown) {
+        setOpenDropdown(null);
+      }
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  }, [openDropdown]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -444,32 +451,55 @@ export function NavigationHeader() {
         setOpenDropdown(null);
       }
     };
+
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
+  // Hover handlers
+  const handleMouseEnter = (name) => {
+    setOpenDropdown(name);
+  };
+
+  const handleMouseLeave = () => {
+    setOpenDropdown(null);
+  };
+
+  const toggleDropdown = (name) => {
+    setOpenDropdown(openDropdown === name ? null : name);
+  };
+
+  const isHome = pathName === "/";
+
   return (
     <header
-      className={`fixed  left-0 w-full z-50 p-2 transition-all duration-300 ${
+      className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${
         isScrolled
-          ? "bg-white shadow-md  top-[98px]"
-          : "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[135px]   z-50"
+          ? "bg-white shadow-md top-[117px]"
+          : isHome
+          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[150px]"
+          : "bg-white top-[117px] text-gray-900 shadow-md"
       }`}
     >
       <div className="flex items-center justify-center">
         <nav className="hidden lg:flex items-center gap-1">
           {navigationData.mainNav.map((item) => (
-            <div key={item.name} className="relative dropdown-container">
+            <div 
+              key={item.name} 
+              className="relative dropdown-container"
+              onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.name)}
+              onMouseLeave={() => item.hasDropdown && handleMouseLeave()}
+            >
               {item.hasDropdown ? (
                 <>
                   <button
-                    onClick={() =>
-                      setOpenDropdown(openDropdown === item.name ? null : item.name)
-                    }
+                    onClick={() => toggleDropdown(item.name)}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                       isScrolled
                         ? "text-gray-900 hover:bg-gray-100"
-                        : "text-white hover:bg-white/10"
+                        : isHome
+                        ? "text-white hover:bg-white/10"
+                        : "text-gray-900 hover:bg-gray-100"
                     }`}
                   >
                     {item.name}
@@ -492,7 +522,9 @@ export function NavigationHeader() {
                         className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
                           isScrolled
                             ? "bg-white border-gray-200"
-                            : "bg-white/10 backdrop-blur-md border-white/20"
+                            : isHome
+                            ? "bg-white/10 backdrop-blur-md border-white/20"
+                            : "bg-white border-gray-200"
                         }`}
                       >
                         {item.dropdownItems.map((dropdownItem) => (
@@ -503,7 +535,9 @@ export function NavigationHeader() {
                             className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
                               isScrolled
                                 ? "text-gray-800 hover:bg-gray-100"
-                                : "text-white hover:bg-white/20"
+                                : isHome
+                                ? "text-white hover:bg-white/20"
+                                : "text-gray-900 hover:bg-gray-100"
                             }`}
                           >
                             <Icon icon={dropdownItem.icon} width={18} />
@@ -522,7 +556,9 @@ export function NavigationHeader() {
                   className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
                     isScrolled
                       ? "text-gray-900 hover:bg-gray-100"
-                      : "text-white hover:bg-white/10"
+                      : isHome
+                      ? "text-white hover:bg-white/10"
+                      : "text-gray-900 hover:bg-gray-100"
                   }`}
                 >
                   {item.name}
@@ -543,7 +579,7 @@ export function NavigationHeader() {
 export default function Header() {
   const [scrolled, setScrolled]           = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+ const isHome=usePathname() === "/";
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -558,16 +594,16 @@ export default function Header() {
 
   return (
     <>
-      <header className={`sticky top-0 z-50 bg-white transition-shadow duration-300 ${scrolled ? "shadow-md" : ""}`}>
+      <header className={`sticky top-0 z-30 bg-white transition-shadow duration-300 ${scrolled ? "" : ""}`}>
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       </header>
 <div className="relative z-0">
-      <PromoMarquee />
+  {isHome&&(
+    <PromoMarquee />
+  )}
 </div>
-<div className="sticky top-[16%] z-50 left-0">
 <NavigationHeader/>
-    </div>
       {/* Mobile Drawer */}
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>

@@ -161,3 +161,16 @@ body {
 }
 
 
+
+#google_translate_element {
+  background: white;
+  padding: 5px 10px;
+  border-radius: 8px;
+}
+
+#google_translate_element select {
+  border: none;
+  outline: none;
+  font-size: 14px;
+  cursor: pointer;
+}

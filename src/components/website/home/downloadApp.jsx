@@ -26,13 +26,13 @@ export default function AppDownloadBanner() {
         img="foot3.png" 
         title="App Store" 
         subtitle="Download on the" 
-        href="#"
+        href="/coming"
       />
       <StoreButton
         img="foot2.png" 
         title="Google Play" 
         subtitle="Get it on" 
-        href="#"
+        href="/coming"
       />
      
      </div>
@@ -46,7 +46,8 @@ export default function AppDownloadBanner() {
            alt="Person using mobile app"
            width={500}
            height={500}
-           className='object-contain'
+           className='object-contain scale-125 hover:scale-110 transition-transform duration-300'
+
            />            
           
           </div>

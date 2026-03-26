@@ -74,7 +74,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
       });
 
       const resData = response.data.data;
-
+   console.log("Login response data:", resData);
       // Check if user is customer
       if (resData?.user?.role !== "customer") {
         setErrorMessage("Only customers can post jobs. Please login with a customer account.");
@@ -82,14 +82,14 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
       }
 
       // Set auth in Redux
-      dispatch(setAuth({
-        user: resData.user,
-        token: resData.token,
-        userType: resData.user.role
-      }));
+      // dispatch(setAuth({
+      //   user: resData.user,
+      //   token: resData.token,
+      //   userType: resData.user.role
+      // }));
 
 
-      dispatch(setCurrentUser(resData.user));
+      // dispatch(setCurrentUser(resData.user));
 
       reset();
       onClose();

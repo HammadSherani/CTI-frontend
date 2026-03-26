@@ -10,56 +10,96 @@ import { useDispatch, useSelector } from 'react-redux'
 import axiosInstance from '@/config/axiosInstance'
 import { setUserDetails } from '@/store/auth'
 import handleError from '@/helper/handleError'
+import { usePathname } from 'next/navigation'
 
-function layout({ children }) {
-  const {userDetails, token} = useSelector(state => state.auth);  
+function Layout({ children }) {
+  const { token } = useSelector(state => state.auth);  
   const [loading, setLoading] = useState(false)
   const dispatch = useDispatch();
-  const fetchUserDetails = async () => {
-    try {
-      setLoading(true);
-      const { data } = await axiosInstance.get('/auth/user-details', {
-        headers: {
-          'Authorization': 'Bearer ' + token,
+  const pathname = usePathname();
+
+  const STORAGE_KEY = 'repair_form';
+  const STEP_KEY = 'repair_step';
+
+  // ✅ Fetch user (safe)
+  useEffect(() => {
+    if (!token) return;
+
+    let isMounted = true;
+
+    const fetchUserDetails = async () => {
+      try {
+        setLoading(true);
+
+        const { data } = await axiosInstance.get('/auth/user-details', {
+          headers: {
+            Authorization: 'Bearer ' + token,
+          },
+        });
+
+        if (isMounted) {
+          dispatch(setUserDetails(data.data));
         }
-      });
+      } catch (error) {
+        handleError(error);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
 
-      dispatch(setUserDetails(data.data));
+    fetchUserDetails();
 
+    return () => {
+      isMounted = false;
+    };
+  }, [token, dispatch]);
 
-      console.log(data);
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ✅ Scroll to top on route change
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [pathname]);
 
   useEffect(() => {
-    if(token){
-      fetchUserDetails();
+    return () => {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STEP_KEY);
+    };
+  }, [pathname]);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const savedFormData = localStorage.getItem(STORAGE_KEY);
+
+    if (savedFormData) {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STEP_KEY);
     }
-  }, [token])
+  }, []);
 
- 
+  const isHome = pathname === '/';
 
+  // ✅ AFTER ALL HOOKS
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-        <Loader loading={true}/>
+        <Loader loading={true} />
       </div>
-    )
+    );
   }
 
   return (
-    <div className='relative'>
+    <div className="relative">
       <WebsiteHeader />
-      {children}
+
+      <div className={isHome ? 'mt-0' : 'mt-16'}>
+        {children}
+      </div>
+
       <Chat />
       <Footer />
       <SelectCountry />
     </div>
-  )
+  );
 }
 
-export default layout
+export default Layout;

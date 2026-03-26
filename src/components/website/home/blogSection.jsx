@@ -32,8 +32,8 @@ export default function BlogSection() {
                       src={post.image || post.thumbnail || post.featuredImage}
                       alt={post.title || post.name || 'Blog post'}
                       fill
-                      className="object-cover"
-                      sizes="(max-width: 768px) 100vw, 33vw"
+                      className="object-cover  hover:scale-105 transition-transform duration-300"
+                      sizes="(max-width: 768px) 100vw, 33vw "
                     />
                   ) : (
                     <div className="h-full w-full flex items-center justify-center text-gray-400">No image</div>

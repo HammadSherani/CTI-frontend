@@ -66,8 +66,6 @@ export const ServicesSkeleton = () => {
               </div>
             ))}
 
-            {/* Button */}
-            <div className="w-32 h-10 bg-gray-300 rounded-xl"></div>
           </div>
         </div>
 

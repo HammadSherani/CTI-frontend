@@ -4,8 +4,15 @@ import SectionTag from './sectoinTag';
 
 import { motion } from 'framer-motion';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
+import { useRouter } from 'next/navigation';
 
 export default function StaticSections() {
+  const router=useRouter();
+  
+  const handleClick = (product) => {
+    router.push("/coming")
+    console.log('Product clicked:', product);
+  }
   return (
     <div className="max-w-7xl mx-auto ml-16 py-12 lg:py-20 space-y-48">
 
@@ -23,7 +30,7 @@ export default function StaticSections() {
             alt="Integrate Academy"
             width={520}
             height={380}
-            className="relative z-10 w-full max-w-[520px] object-contain drop-shadow-xl"
+            className="relative z-10 w-full max-w-[520px] object-contain drop-shadow-xl hover:scale-105 transition-transform duration-300 rounded-2xl"
             priority
           />
         </div>
@@ -49,18 +56,18 @@ export default function StaticSections() {
 
           <div className="flex flex-wrap items-center gap-4 mt-2">
             {/* Primary filled button */}
-            <button className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[13.5px] font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
+            <button   onClick={()=>router.push('/coming')} className="bg-orange-500 cursor-pointer hover:bg-orange-600 active:scale-95 text-white text-[13.5px] font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
               Review the trainings
             </button>
 
             {/* Ghost / text button with arrow */}
-            <button className="flex items-center gap-2 text-[13.5px] font-semibold text-gray-800 hover:text-orange-500 transition-colors duration-200 group">
+            <button onClick={()=>router.push('/academy')}  className="flex cursor-pointer items-center gap-2 text-[13.5px] font-semibold text-gray-800 hover:text-orange-500 transition-colors duration-200 group">
               <span className="flex items-center justify-center w-7 h-7 rounded-full border-2 border-gray-800 group-hover:border-orange-500 transition-colors">
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
                   <path d="M2 5h6M5.5 2.5L8 5l-2.5 2.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </span>
-              Promotional Video
+              Academy Videos
             </button>
           </div>
         </div>
@@ -90,12 +97,12 @@ export default function StaticSections() {
 
           <div className="flex flex-wrap items-center gap-4 mt-2">
             {/* Primary filled */}
-            <button className="bg-orange-500 hover:bg-orange-600 active:scale-95 text-white text-[13.5px] font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
+            <button onClick={()=>router.push('/auth/register')} className="bg-orange-500 cursor-pointer hover:bg-orange-600 active:scale-95 text-white text-[13.5px] font-semibold px-6 py-2.5 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md">
               Join as Repair Partner
             </button>
 
             {/* Outlined / ghost */}
-            <button className="text-[13.5px] font-semibold text-gray-700 hover:text-orange-500 border border-gray-300 hover:border-orange-400 px-5 py-2.5 rounded-lg transition-all duration-200">
+            <button onClick={()=>router.push('/auth/register')} className="text-[13.5px] cursor-pointer font-semibold text-gray-700 hover:text-orange-500 border border-gray-300 hover:border-orange-400 px-5 py-2.5 rounded-lg transition-all duration-200">
               Join as Seller
             </button>
           </div>
@@ -109,7 +116,7 @@ export default function StaticSections() {
             alt="Grow Your Business"
             width={520}
             height={380}
-            className="relative z-10 w-full max-w-[520px] object-cover rounded-2xl drop-shadow-xl"
+            className="relative z-10 w-full max-w-[520px] object-cover   hover:scale-105 transition-transform duration-300 rounded-2xl rounded-2xl drop-shadow-xl"
           />
           
         </div>
@@ -130,7 +137,7 @@ export default function StaticSections() {
             alt="Integrate Academy"
             width={520}
             height={380}
-            className="relative z-10 w-full max-w-[520px] object-contain drop-shadow-xl"
+            className="relative z-10 w-full max-w-[520px] object-contain drop-shadow-xl  hover:scale-105 transition-transform duration-300 rounded-2xl"
             priority
           />
           <div>
@@ -171,7 +178,7 @@ export default function StaticSections() {
 <div className="flex flex-wrap items-center gap-6 mt-4">
   <div>
     <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
-      <AnimatedNumber value={150000} duration={3} suffix="+" />
+      <AnimatedNumber value={150000} duration={1} suffix="+" />
     </h1>
     <p className="text-gray-500 text-sm">Happy Customers</p>
   </div>

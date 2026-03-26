@@ -229,7 +229,7 @@ function Testimonials() {
                 whileInView="visible"
                 viewport={{ once: true, margin: "-50px" }}
                 transition={{ delay: index * 0.1 }}
-                className="bg-teal-50/20 backdrop-blur-sm rounded-2xl p-6 border border-teal-200/30 h-[300px] mb-8 flex flex-col"
+                className="bg-teal-50/20  backdrop-blur-sm rounded-2xl p-6 border border-teal-200/30 cursor-pointer  hover:scale-105 transition-transform duration-300  h-[300px] mb-8 flex flex-col"
               >
                            <div className="flex flex-row items-center gap-3 mt-auto">
                   {(() => {
