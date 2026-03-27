@@ -5,9 +5,8 @@ import handleError from '@/helper/handleError';
 import { useParams, useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react'
 import { Icon } from '@iconify/react'
-import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
-import LoginModal from '../../mobile-repair/[brandSlug]/[modelId]/[color]/LoginModal';
+import LoginModal from '../../../(website)/mobile-repair/[brandSlug]/[modelId]/[color]/LoginModal';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
 import Loader from '@/components/Loader';

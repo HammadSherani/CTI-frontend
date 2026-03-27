@@ -26,7 +26,6 @@ function RepairmanLayout({ children }) {
 
       dispatch(setUserDetails(data.data));
 
-
       console.log(data);
     } catch (error) {
       handleError(error);

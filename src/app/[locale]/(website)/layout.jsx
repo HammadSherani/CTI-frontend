@@ -10,8 +10,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import axiosInstance from '@/config/axiosInstance'
 import { setUserDetails } from '@/store/auth'
 import handleError from '@/helper/handleError'
-import { usePathname } from 'next/navigation'
 import { useLocale } from 'next-intl'
+import { usePathname } from '@/i18n/navigation'
 
 function Layout({ children }) {
   const { token } = useSelector(state => state.auth);  
@@ -19,10 +19,11 @@ function Layout({ children }) {
   const dispatch = useDispatch();
   const pathname = usePathname();
 
+  const locale=useLocale();
+const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
   const STORAGE_KEY = 'repair_form';
   const STEP_KEY = 'repair_step';
 
-  // ✅ Fetch user (safe)
   useEffect(() => {
     if (!token) return;
 
@@ -55,7 +56,6 @@ function Layout({ children }) {
     };
   }, [token, dispatch]);
 
-  // ✅ Scroll to top on route change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [pathname]);
@@ -77,9 +77,6 @@ function Layout({ children }) {
     }
   }, []);
 
-  const locale=useLocale();
-const isHome = pathName === `/${locale}` || pathName === `/${locale}/`;
-  // ✅ AFTER ALL HOOKS
   if (loading) {
     return (
       <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
@@ -92,7 +89,7 @@ const isHome = pathName === `/${locale}` || pathName === `/${locale}/`;
     <div className="relative">
       <WebsiteHeader />
 
-      <div className={isHome ? 'mt-0' : 'mt-16'}>
+      <div className={isHome ? 'mt-0' : 'mt-14'}>
         {children}
       </div>
 

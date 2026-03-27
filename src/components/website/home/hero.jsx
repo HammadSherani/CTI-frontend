@@ -43,8 +43,6 @@ const dotCircleVariants = {
 };
 
 
-
-
 const Hero = () => {
   const { banners, loading } = useSelector((state) => state.home || {});
 

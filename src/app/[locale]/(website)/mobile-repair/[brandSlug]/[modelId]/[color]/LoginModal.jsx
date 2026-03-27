@@ -11,7 +11,6 @@ import handleError from "@/helper/handleError";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import Logins from "../../../../../../../public/assets/user/login.png"; 
 import Link from "next/link";
 import { setCurrentUser } from "@/store/chat";
 
@@ -265,7 +264,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       }}
                     >
                       <Image
-                        src={Logins}
+                        src='/assets/user/login.png'
                         alt="Login to Post Job"
                         className="w-full max-w-sm mx-auto mb-6 drop-shadow-2xl"
                         priority

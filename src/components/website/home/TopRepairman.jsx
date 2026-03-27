@@ -12,7 +12,8 @@ import 'swiper/css';
 import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import SectionTag from './sectoinTag';
-import { useRouter } from 'next/navigation';
+import { useRouter } from "@/i18n/navigation";
+
 import { toast } from 'react-toastify';
 
 export default function MeetOurProfessionals() {

@@ -3,9 +3,8 @@
 import { Icon } from "@iconify/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useSelector } from "react-redux";
-import { usePathname, useRouter } from "next/navigation";
+import { Link,usePathname, useRouter  } from "@/i18n/navigation";
 import Marquee from "react-fast-marquee";
 import ButtonSection from "./ButtonSection";
 import { AnimatePresence, motion } from "framer-motion";
