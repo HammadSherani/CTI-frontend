@@ -11,6 +11,7 @@ import axiosInstance from '@/config/axiosInstance'
 import { setUserDetails } from '@/store/auth'
 import handleError from '@/helper/handleError'
 import { usePathname } from 'next/navigation'
+import { useLocale } from 'next-intl'
 
 function Layout({ children }) {
   const { token } = useSelector(state => state.auth);  
@@ -76,8 +77,8 @@ function Layout({ children }) {
     }
   }, []);
 
-  const isHome = pathname === '/';
-
+  const locale=useLocale();
+const isHome = pathName === `/${locale}` || pathName === `/${locale}/`;
   // ✅ AFTER ALL HOOKS
   if (loading) {
     return (

@@ -10,6 +10,8 @@ import Marquee from "react-fast-marquee";
 import ButtonSection from "./ButtonSection";
 import { AnimatePresence, motion } from "framer-motion";
 import GoogleTranslate from "../GoogleTranslate";
+import CustomTranslate from "../Translate";
+import { useLocale, useTranslations } from "next-intl";
 
 /* ════════════════════════════════════════════
    MOCK SEARCH DATA  (replace with real API)
@@ -191,23 +193,35 @@ function SearchBar({ className = "" }) {
    ANNOUNCEMENT BAR
 ════════════════════════════════════════════ */
 function AnnouncementBar() {
+    const t = useTranslations("AnnouncementBar");
+const transformed = t.rich("message", {
+  hours: (chunks) => <span className="text-red-500 font-bold">{chunks}</span>
+});
   return (
-    <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
+   <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
       <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <p className="text-center sm:text-left">
-          Get your gadgets repaired in{" "}
-          <span className="text-orange-600 font-bold">24 hours</span>! Free doorstep pickup in select cities.
-        </p>
+             
+<p className="text-center sm:text-left">
+  {transformed} 
+</p>
         <div className="flex items-center gap-5">
-
-          <Link href="/auth/register" className="flex items-center gap-1 hover:text-orange-600 transition-colors">
-            <Icon icon="mdi:account-circle-outline" className="w-4 h-4" /> Login
+          <Link
+            href="/auth/register"
+            className="flex items-center gap-1 hover:text-orange-600 transition-colors"
+          >
+            <Icon icon="mdi:account-circle-outline" className="w-4 h-4" />
+            {t("login")}
           </Link>
-          <a href="tel:+234567890" className="flex items-center gap-1 hover:text-orange-600 transition-colors">
-            <Icon icon="mdi:phone" className="w-4 h-4" /> +234 567 890
-          </a>
-                       <GoogleTranslate />
 
+          <a
+            href="tel:+234567890"
+            className="flex items-center gap-1 hover:text-orange-600 transition-colors"
+          >
+            <Icon icon="mdi:phone" className="w-4 h-4" />
+            +234 567 890
+          </a>
+
+          <CustomTranslate />
         </div>
       </div>
     </div>
@@ -469,8 +483,8 @@ export function NavigationHeader() {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  const isHome = pathName === "/";
-
+  const locale=useLocale();
+const isHome = pathName === `/${locale}` || pathName === `/${locale}/`;
   return (
     <header
       className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${

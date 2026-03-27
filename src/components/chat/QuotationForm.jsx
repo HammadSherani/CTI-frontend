@@ -8,7 +8,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import PartModal from '@/app/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
+import PartModal from '@/app/[locale]/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
 import { useMultiLoading } from '@/hooks/useMultiloading';
 
 const quotationSchema = yup.object().shape({

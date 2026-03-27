@@ -1,0 +1,15 @@
+{
+  "greeting": "Bonjour",
+  "welcome": "Bienvenue dans mon application Next.js!",
+
+  "AnnouncementBar": {
+    "message": "Cihazlarınızı <hours>{hours}</hours> içinde tamir ettirin! Seçili şehirlerde ücretsiz kapıdan teslim alma.",
+    "hours": "24 saat",
+    "login": "Giriş Yap"
+  },
+  
+  "LanguageSwitcher": {
+    "language": "Dil",
+    "selectLanguage": "Dil Seçin"
+  }
+}

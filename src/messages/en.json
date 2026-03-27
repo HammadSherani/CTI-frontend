@@ -1,0 +1,16 @@
+{
+  "greeting": "Hello",
+  "welcome": "Welcome to my Next.js app!",
+
+  "AnnouncementBar": {
+    "message": "Get your gadgets repaired in  <hours>{hours}</hours>! Free doorstep pickup in select cities.",
+    "hours": "24 hours",
+    "login": "Login"
+  }, 
+  
+  "LanguageSwitcher": {
+    "language": "Language",
+    "selectLanguage": "Select Language"
+  }
+
+}
