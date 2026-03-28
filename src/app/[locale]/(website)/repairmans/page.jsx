@@ -43,7 +43,7 @@ export default function HireRepairman() {
     }
     start('states');
     try {
-      const res = await axiosInstance.get(`/public/states?country=${countryId}`);
+      const res = await axiosInstance.get(`/public/states/country/${countryId}`);
       setStates(res.data.data || []);
     } catch (err) {
       console.error("Failed to load states", err);
@@ -60,7 +60,7 @@ export default function HireRepairman() {
     }
     start('cities');
     try {
-      const res = await axiosInstance.get(`/public/cities?state=${stateId}`);
+      const res = await axiosInstance.get(`/public/cities/state/${stateId}`);
       setCities(res.data.data || []);
     } catch (err) {
       console.error("Failed to load cities", err);
