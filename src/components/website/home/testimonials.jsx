@@ -306,6 +306,8 @@ function Testimonials() {
   </div>
 </Marquee>
     </div>
+
+    
       {/* Custom styles */}
       <style jsx global>{`
         .swiper-custom-bullet {

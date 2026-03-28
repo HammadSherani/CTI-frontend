@@ -1,9 +1,7 @@
 "use client"
 import Image from 'next/image';
-import Link from 'next/link';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { usePathname } from 'next/navigation';
-import logo from "../../../../../public/assets/logo.png";
+import { usePathname,Link } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
@@ -84,7 +82,7 @@ function Header() {
         {/* Logo */}
         <Link href="/repair-man/dashboard" className="flex-shrink-0">
           <Image
-            src={logo}
+            src='/assets/logo.png'
             alt="RepairHub Logo"
             width={80}
             height={40}

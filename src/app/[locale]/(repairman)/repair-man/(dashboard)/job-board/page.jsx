@@ -5,10 +5,11 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter,Link } from '@/i18n/navigation';
+
 import Loader from '@/components/Loader';
 import SmallLoader from '@/components/SmallLoader';
+import { SearchableDropdown } from '@/components/dropdown';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('open');
@@ -23,9 +24,9 @@ const MyJobsPage = () => {
   const [cities, setCities] = useState([]);
   const [selectedState, setSelectedState] = useState('');
   const [selectedCity, setSelectedCity] = useState('');
-console.log('Selected State:', selectedState, 'Selected City:', selectedCity);
-console.log('States:', states);
-console.log('Cities:', cities);
+  console.log('Selected State:', selectedState, 'Selected City:', selectedCity);
+  console.log('States:', states);
+  console.log('Cities:', cities);
   const { token } = useSelector((state) => state.auth);
   // const router = useRouter();
 
@@ -34,19 +35,29 @@ console.log('Cities:', cities);
     setSelectedCity('');
   };
 
+  const urgencyOptions=[
+    { _id: 'all', name: 'All Priorities' },
+    { _id: 'high', name: 'High Priority' },
+    { _id: 'medium', name: 'Medium Priority' },
+    { _id: 'low', name: 'Low Priority' },
+  ]
   const fetchJobs = async () => {
     try {
-      setLoading(true);
       setError(null);
 
       const params = new URLSearchParams();
 
       if (selectedState) {
-        params.append('state', selectedState._id);
+        console.log("Appending state to params:", selectedState); 
+        params.append('state', selectedState);
       }
       if (selectedCity) {
         params.append('city', selectedCity);
       }
+      if (urgencyFilter && urgencyFilter !== 'all') {
+        params.append('urgency', urgencyFilter);
+      }
+      setLoading(true);
 
       const url = `/repairman/jobs?${params.toString()}`;
       // const url = `/repairman/jobs`;
@@ -360,13 +371,13 @@ console.log('Cities:', cities);
   return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8">
+          <div className="mb-8 ">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
-          <div className="mb-6  p-6 rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-3 gap-3 items-center">
-            <div className="relative flex-1 w-full col-span-2">
+          <div className="mb-6 p-3  rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-12 gap-3 items-center">
+            <div className="relative flex-1  w-full col-span-4">
               <input
                 type="text"
                 placeholder="Search jobs by title, client, or description..."
@@ -386,59 +397,50 @@ console.log('Cities:', cities);
                 </button>
               )}
             </div>
+<SearchableDropdown
+  label="State"
+  options={states}
+  value={selectedState} // 🔥 must be _id
+  onChange={(val) => {
+    console.log("STATE ID:", val); // check
+    setSelectedState(val);
+  }}
+  isSearch
+  icon="heroicons:map-pin" // 🔥 icon added
+/>
+<div className="col-span-2">
+  <SearchableDropdown
+    label="City"
+    options={cities}
+    value={selectedCity}
+    onChange={setSelectedCity}
+    isSearch
+    disabled={!cities.length}
+  />
+</div>
 
-            <select
-              value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
-              aria-label="Filter by urgency"
-            >
-              <option value="all">All Priorities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
 
-            <select
-              value={selectedState}
-              onChange={(e) => handleStateChange(e.target.value)}
-              
-              className="px-4 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
-              aria-label="Filter by state"
-            >
-              <option value="">All States</option>
-              {states.map((state) => (
-                <option key={state._id} value={state._id}>
-                  {state.name}
-                </option>
-              ))}
-            </select>
-
-            <div className='col-span-2 w-full flex items-center gap-4 flex-1'>
-
-              <select
-                value={selectedCity}
-                onChange={(e) => setSelectedCity(e.target.value)}
-                className="px-4 flex-1 w-full py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm "
-                aria-label="Filter by city"
-                disabled={!cities.length}
-              >
-                <option value="">All Cities</option>
-                {cities.map((city) => (
-                  <option key={city._id} value={city._id}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-
-              <button
+      <div className="col-span-2">
+  <SearchableDropdown
+    label="Priority"
+    options={urgencyOptions}
+    value={urgencyFilter}
+    onChange={setUrgencyFilter}
+    isSearch
+    disabled={!urgencyOptions.length}
+  />
+</div>      
+         
+<div className='col-span-2'>
+ <button
                 onClick={handleClearFilters}
-                className="px-4 py-2.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
+                className="px-10 py-2.5 rounded-lg border bg-primary-600 text-white border-gray-300 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
                 aria-label="Clear all filters"
               >
                 Clear Filters
               </button>
-            </div>
+   
+                </div>
 
 
 

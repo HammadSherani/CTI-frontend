@@ -3,8 +3,7 @@
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
