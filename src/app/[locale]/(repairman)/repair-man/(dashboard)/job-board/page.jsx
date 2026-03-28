@@ -41,50 +41,49 @@ const MyJobsPage = () => {
     { _id: 'medium', name: 'Medium Priority' },
     { _id: 'low', name: 'Low Priority' },
   ]
-  const fetchJobs = async () => {
-    try {
-      setError(null);
+const fetchJobs = async () => {
+  try {
+    setError(null);
+    setLoading(true);
 
-      const params = new URLSearchParams();
+    const params = new URLSearchParams();
 
-      if (selectedState) {
-        console.log("Appending state to params:", selectedState); 
-        params.append('state', selectedState);
-      }
-      if (selectedCity) {
-        params.append('city', selectedCity);
-      }
-      if (urgencyFilter && urgencyFilter !== 'all') {
-        params.append('urgency', urgencyFilter);
-      }
-      setLoading(true);
-
-      const url = `/repairman/jobs?${params.toString()}`;
-      // const url = `/repairman/jobs`;
-
-      const { data } = await axiosInstance.get(url, {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-        }
-      });
-
-      setJobs(data?.data?.jobs || []);
-      setStates(data?.data?.states || []);
-      setCities(data?.data?.cities || []);
-
-      if (!selectedState && data?.data?.selectedState) {
-        setSelectedState(data?.data?.selectedState);
-      }
-
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
-      const errorMessage = error?.response?.data?.message || 'Failed to load jobs. Please try again.';
-      setError(errorMessage);
-      handleError(error);
-    } finally {
-      setLoading(false);
+    if (selectedState) {
+      params.append('state', selectedState);
     }
-  };
+
+    if (selectedCity) {
+      params.append('city', selectedCity);
+    }
+
+    console.log('Selected urgency filter:', urgencyFilter);
+    if (urgencyFilter) {
+      console.log('Applying urgency filter:', urgencyFilter);
+      params.append('urgency', urgencyFilter);
+    }
+
+    const url = `/repairman/jobs?${params.toString()}`;
+
+    const { data } = await axiosInstance.get(url, {
+      headers: {
+        Authorization: 'Bearer ' + token,
+      },
+    });
+
+    setJobs(data?.data?.jobs || []);
+    setStates(data?.data?.states || []);
+    setCities(data?.data?.cities || []);
+
+  } catch (error) {
+    console.error('Error fetching jobs:', error);
+    const errorMessage =
+      error?.response?.data?.message || 'Failed to load jobs.';
+    setError(errorMessage);
+    handleError(error);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const refreshJobs = async () => {
     await fetchJobs();
@@ -111,12 +110,47 @@ const MyJobsPage = () => {
     return `${currency} ${amount.toLocaleString()}`;
   };
 
-  const getTimeRemaining = (timeRemaining) => {
-    if (timeRemaining > 24) {
-      return `${Math.floor(timeRemaining / 24)} days`;
-    }
-    return `${timeRemaining} hours`;
-  };
+ const getTimeRemaining = (expiresAt) => {
+  console.log("Calculating time remaining for:", expiresAt);
+  const expiryTime = new Date(expiresAt).getTime(); // 🔥 convert to ms
+
+  if (isNaN(expiryTime)) return null; // invalid date
+
+  const diff = expiryTime - Date.now();
+
+  if (diff <= 0) return "Expired";
+
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""}`;
+  }
+
+  return `${hours} hour${hours !== 1 ? "s" : ""}`;
+};
+
+  // Add this function in your component (outside JobCard)
+const getTimeAgo = (createdAt) => {
+  if (!createdAt) return "Recently";
+
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  
+  const diffInMs = now - createdDate;
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+  if (diffInHours < 1) {
+    return "just now";
+  }
+  if (diffInHours < 24) {
+    return `${diffInHours} hours`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days`;
+};
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -173,63 +207,20 @@ const MyJobsPage = () => {
     });
   }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
 
-  const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
-    const jobStatus = getJobStatus(job);
-    const urgency = getUrgencyLevel(job.urgencyScore);
-    const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
+const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
+  const jobStatus = getJobStatus(job);
+  const urgency = getUrgencyLevel(job.urgencyScore);
+  const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
-    return (
-      <div className=" bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm  hover:border-gray-300 transition-all duration-300 ease-in-out transform ">
-        <div className="">
-          <div className="flex items-start gap-4 p-3 pb-4">
-            <div className="relative">
-              {urgency === 'high' && (
-                <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-xs">!</span>
-                </div>
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-xs text-gray-500 mb-3">Posted {new Date(job.createdAt).toLocaleDateString()}</span>
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1">
-                  <h3 className="font-bold text-xl text-gray-900 mb-2 group-hover:text-primary-600 transition-colors">
-                    {job?.deviceInfo?.brand} {job?.deviceInfo?.model}
-                  </h3>
-                  <div className="text-sm text-gray-700 mb-2">
-                    <span className="font-bold">Budget Range</span> -
-                      <span className="ml-1">Est. Budget: {formatCurrency(job.budget?.min, job.budget?.currency)} - {formatCurrency(job.budget?.max, job.budget?.currency)}</span>
-                  </div>
-                </div>
-              </div>
-              <div className='mb-3'>
-                <span className='mb-3'>{job?.description}</span>
-              </div>
+  const Expired=  getTimeRemaining(job.expiresAt) === "Expird"
 
-              <div className="flex flex-wrap gap-2 mb-3">
-                {job.services?.map((service, index) => (
-                  <span
-                    key={index}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary-100 text-primary-800 border border-primary-200"
-                  >
-                    <Icon icon="heroicons:wrench-screwdriver" className="w-3 h-3 mr-1" />
-                    {service?.name}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-              <div className="flex items-center gap-1">
-                <Icon icon="heroicons:map-pin" className="w-4 h-4 text-gray-400" />
-                <span className="font-medium">{job.location?.address}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex px-6 py-3 flex-wrap items-center gap-3 text-sm">
+  return (
+    <div disabled={Expired} className={` ${Expired?"opacity-30 cursor-not-allowed":""}  bg-white  rounded-3xl overflow-hiddentransition-all duration-300`}>
+      {/* Header */}
+      <div className="px-3 pt-6 pb-4  ">
+        <div className="flex items-center -ml-5 justify-between  gap-3">
+        
+            <div className="flex px-6 py-3 flex-wrap items-center gap-3 text-sm">
             <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getStatusColor(jobStatus)}`}>
               <div className={`w-2 h-2 rounded-full mr-2 ${jobStatus === 'open' ? 'bg-green-400' :
                 jobStatus === 'in-progress' ? 'bg-yellow-400' : 'bg-gray-400'
@@ -241,17 +232,88 @@ const MyJobsPage = () => {
               <Icon icon="heroicons:clock" className="w-3 h-3 mr-1" />
               {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
             </span>
+{job.expiresAt && (
+  <span className="inline-flex items-center text-orange-600 font-medium">
+    <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
 
-            {job.timeRemaining && (
-              <span className="inline-flex items-center text-orange-600 font-medium">
-                <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
-                Expires in {getTimeRemaining(job.timeRemaining)}
-              </span>
+    {getTimeRemaining(job.expiresAt) === "Expired"
+      ? "Expired"
+      : `Expires in ${getTimeRemaining(job.expiresAt)}`}
+  </span>
+)}
+          </div>
+          <div className='p-1 -mt-3  flex items-center gap-2'>
+              <Icon icon="iconamoon:clock" className="text-3xl text-gray-600" />
+              <p className="text-xs text-zinc-500">Posted {new Date(job.createdAt).toLocaleDateString()}</p>
+        </div>
+        </div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center mt-2 gap-4">
+            <div className="w-10 h-10 bg-gray-100 r flex items-center justify-center p-2 rounded-full border-gray-300 border">
+              <Icon icon="mdi:cellphone" className="text-3xl text-orange-500" />
+            </div>
+            <div>
+              <h3 className="font-bold text-2xl text-black mt-1">
+                {job?.deviceInfo?.brand} {job?.deviceInfo?.model}
+              </h3>
+            </div>
+          </div>
+
+ 
+        </div>
+      </div>
+
+         <div className="flex gap-2 items-center ">
+            <div className="text-gray-500  text-md font-bold ml-5">TRY {job.budget?.min?.toLocaleString()} – {job.budget?.max?.toLocaleString()}</div>
+          {console.log(job,"jobs")}
+           {job.createdAt && (
+              <div className="text-orange-400 text-sm  font-medium">
+                Posted {getTimeAgo(job.createdAt)} ago
+              </div>
             )}
           </div>
-        </div>
+      {/* Description */}
+      <div className="px-6 py-6 text-gray-500 leading-relaxed text-[15.5px]">
+        {job?.description}
+        <span className="text-orange-500 cursor-pointer hover:underline ml-1">more</span>
+      </div>
 
-        <div className="p-6 pt-4 bg-gray-50 border-t border-gray-100">
+      {/* Tags */}
+      <div className="px-6 pb-6 flex flex-wrap gap-2">
+        {job.services?.map((service, index) => (
+          <span
+            key={index}
+            className="inline-flex items-center px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-900 border border-zinc-400"
+          >
+            {service?.name}
+          </span>
+        ))}
+        {urgency === 'high' && (
+          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-red-900/50 text-red-400 border border-red-800">
+            High Priority
+          </span>
+        )}
+        
+      </div> 
+      
+  
+
+      {/* Footer */}
+
+      <div className='px-6 py-5  border-t border-gray-300'>
+        <div className="flex items-center gap-2 text-gray-800">
+            <span>Offers Received: <span className="text-white">{job.offers?.length || 0}</span></span>
+          </div>
+     <div className=" flex items-center justify-between text-sm">
+          
+        <div className="flex items-center gap-6 text-zinc-400">
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:map-marker" className="text-xl text-primary-600" />
+            <span className="font-medium">{job.location?.address}</span>
+          </div>
+          
+        </div>
+  <div className="p-6 pt-4  border-t border-gray-100">
           <div className="flex flex-col sm:flex-row gap-3">
             {activeTab === 'open' && (
               <>
@@ -290,17 +352,27 @@ const MyJobsPage = () => {
               </>
             )}
 
-            <button className="flex-1 border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
+            {/* <button className="flex-1 border-2 border-gray-300 text-gray-700 py-3 px-6 rounded-xl font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
               <Link href={'/repair-man/job-board/' + job._id} className="flex items-center justify-center w-full h-full">
                 <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4 mr-2" />
                 View Details
               </Link>
-            </button>
+            </button> */}
           </div>
         </div>
+        <button  className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-2xl font-semibold transition-all active:scale-95">
+             <Link href={'/repair-man/job-board/' + job._id} className="flex items-center justify-center w-full h-full">
+                <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4 mr-2" />
+                View Details
+              </Link>
+          {/* Post Offers */}
+        </button>
       </div>
-    );
-  };
+      </div>
+ 
+    </div>
+  );
+};
 
   const EmptyState = ({ type }) => (
     <div className="text-center py-12">
@@ -376,86 +448,82 @@ const MyJobsPage = () => {
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
-          <div className="mb-6 p-3  rounded-md border border-gray-200 shadow-xs bg-white grid grid-cols-12 gap-3 items-center">
-            <div className="relative flex-1  w-full col-span-4">
-              <input
-                type="text"
-                placeholder="Search jobs by title, client, or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
-                aria-label="Search jobs"
-              />
-              <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                  aria-label="Clear search"
-                >
-                  <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-                </button>
-              )}
-            </div>
-<SearchableDropdown
-  label="State"
-  options={states}
-  value={selectedState} // 🔥 must be _id
-  onChange={(val) => {
-    console.log("STATE ID:", val); // check
-    setSelectedState(val);
-  }}
-  isSearch
-  icon="heroicons:map-pin" // 🔥 icon added
-/>
-<div className="col-span-2">
-  <SearchableDropdown
-    label="City"
-    options={cities}
-    value={selectedCity}
-    onChange={setSelectedCity}
-    isSearch
-    disabled={!cities.length}
-  />
+ <div className="mb-6 p-4 rounded-xl border border-gray-200 shadow-sm bg-white grid grid-cols-12 gap-4 items-center">
+
+  {/* Search */}
+  <div className="relative col-span-4">
+    <input
+      type="text"
+      placeholder="Search jobs..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
+    />
+
+    <Icon
+      icon="heroicons:magnifying-glass"
+      className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+    />
+
+    {searchQuery && (
+      <button
+        onClick={() => setSearchQuery("")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+      </button>
+    )}
+  </div>
+
+  {/* State */}
+  <div className="col-span-2">
+    <SearchableDropdown
+      label="State"
+      options={states}
+      value={selectedState}
+      onChange={setSelectedState}
+      isSearch
+      icon="heroicons:map-pin"
+    />
+  </div>
+
+  {/* City */}
+  <div className="col-span-2">
+    <SearchableDropdown
+      label="City"
+      options={cities}
+      value={selectedCity}
+      onChange={setSelectedCity}
+      isSearch
+      icon="heroicons:building-office"
+      disabled={!cities.length}
+    />
+  </div>
+
+  {/* Priority */}
+  <div className="col-span-2">
+    <SearchableDropdown
+      label="Priority"
+      options={urgencyOptions}
+      value={urgencyFilter}
+      onChange={setUrgencyFilter}
+      icon="heroicons:exclamation-triangle"
+    />
+  </div>
+
+  {/* Clear */}
+  <div className="col-span-2">
+    <button
+      onClick={handleClearFilters}
+      className="w-full py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition text-sm shadow-sm"
+    >
+      Clear Filters
+    </button>
+  </div>
+
 </div>
 
-
-      <div className="col-span-2">
-  <SearchableDropdown
-    label="Priority"
-    options={urgencyOptions}
-    value={urgencyFilter}
-    onChange={setUrgencyFilter}
-    isSearch
-    disabled={!urgencyOptions.length}
-  />
-</div>      
-         
-<div className='col-span-2'>
- <button
-                onClick={handleClearFilters}
-                className="px-10 py-2.5 rounded-lg border bg-primary-600 text-white border-gray-300 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
-                aria-label="Clear all filters"
-              >
-                Clear Filters
-              </button>
-   
-                </div>
-
-
-
-            {/* <button
-              onClick={refreshJobs}
-              className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
-              aria-label="Refresh jobs"
-            >
-              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-            </button> */}
-
-
-          </div>
-
-          <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className=" rounded-xl border border-gray-200 shadow-sm">
             <div className="border-b border-gray-200">
               <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px" role="tablist">
                 {[
@@ -484,7 +552,7 @@ const MyJobsPage = () => {
               </nav>
             </div>
 
-            <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
+            <div className="" role="tabpanel" id={`${activeTab}-panel`}>
               {filteredJobs.length > 0 ? (
                 <div className="space-y-6">
                   {filteredJobs.map((job) => (

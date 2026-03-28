@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import OfferCard from './OfferCard';
 import { toast } from 'react-toastify';
 import SmallLoader from '@/components/SmallLoader';
+import { SearchableDropdown } from '@/components/dropdown';
 
 // --- Reusable Pagination Component ---
 const Pagination = ({
@@ -144,6 +145,22 @@ const MyOffersPage = () => {
         getAlloffers(currentPage);
     }, [currentPage, statusFilter, refreshTrigger]);
 
+
+     const statusOptions = [
+        { _id: 'all', name: 'All Status' },
+        { _id: 'pending', name: 'Pending' },
+        { _id: 'accepted', name: 'Accepted' },
+        { _id: 'rejected', name: 'Rejected' },
+        { _id: 'expired', name: 'Expired' },
+        { _id: 'withdrawn', name: 'Withdrawn' },
+    ];
+
+     const urgencyOptions=[
+    { _id: 'all', name: 'All Priorities' },
+    { _id: 'high', name: 'High Priority' },
+    { _id: 'medium', name: 'Medium Priority' },
+    { _id: 'low', name: 'Low Priority' },
+  ]
     const handleStartJob = async (id) => {
         try {
             setIsChangeStatus(true);
@@ -198,6 +215,26 @@ const MyOffersPage = () => {
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
 
+    
+//     const sortedOffers = [...filteredOffers].sort((a, b) => {
+//   switch (sortBy) {
+//     case "latest":
+//       return new Date(b.createdAt) - new Date(a.createdAt);
+
+//     case "oldest":
+//       return new Date(a.createdAt) - new Date(b.createdAt);
+
+//     case "price_low":
+//       return (a.pricing?.totalPrice || 0) - (b.pricing?.totalPrice || 0);
+
+//     case "price_high":
+//       return (b.pricing?.totalPrice || 0) - (a.pricing?.totalPrice || 0);
+
+//     default:
+//       return 0;
+//   }
+// });
+
     // Empty State Component
     const EmptyState = () => (
         <div className="text-center py-16">
@@ -221,6 +258,11 @@ const MyOffersPage = () => {
         return <SmallLoader loading={loading} text="Fetching your offers..." />;
     }
 
+    {
+   
+       
+
+}
     return (
         <div className="min-h-screen bg-[#f8fafc]">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -244,38 +286,27 @@ const MyOffersPage = () => {
                         />
                     </div>
 
-                    {/* Status Dropdown (Replacing Tabs) */}
-                    <div className="lg:col-span-2">
-                        <select
-                            value={statusFilter}
-                            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-                            className="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium bg-white appearance-none cursor-pointer"
-                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
-                        >
-                            <option value="all">All Status</option>
-                            <option value="pending">Pending</option>
-                            <option value="accepted">Accepted</option>
-                            <option value="rejected">Rejected</option>
-                            {/* <option value="expired">Expired</option> */}
-                            <option value="withdrawn">Withdrawn</option>
-                        </select>
-                    </div>
+   <div className="col-span-2">
+       <SearchableDropdown
+         label="Status"
+         options={statusOptions}
+         value={statusFilter}
+         onChange={setStatusFilter}
+      
+       />
+     </div>
 
-                    {/* Urgency Dropdown */}
-                    <div className="lg:col-span-3">
-                        <select
-                            value={urgencyFilter}
-                            onChange={(e) => setUrgencyFilter(e.target.value)}
-                            className="w-full px-3 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm font-medium bg-white appearance-none cursor-pointer"
-                            style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'%236b7280\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\' /%3E%3C/svg%3E")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.75rem center', backgroundSize: '1rem' }}
-                        >
-                            <option value="all">All Priorities</option>
-                            <option value="urgent">Urgent</option>
-                            <option value="high">High</option>
-                            <option value="medium">Medium</option>
-                            <option value="low">Low</option>
-                        </select>
-                    </div>
+      <div className="col-span-3">
+       <SearchableDropdown
+         label="Urgency"
+         options={urgencyOptions}
+         value={urgencyFilter}
+         onChange={setUrgencyFilter}
+      
+       />
+     </div>
+
+
 
                     {/* Reset Button */}
                     <div className="lg:col-span-2">
@@ -287,6 +318,26 @@ const MyOffersPage = () => {
                         </button>
                     </div>
                 </div>
+{/* <div className="mb-10 flex justify-between items-center">
+  <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+    Showing {filteredOffers.length} offers
+  </h1>
+
+  <div className="flex items-center gap-3">
+    <span className="text-sm text-gray-500">Sort by:</span>
+
+    <select
+      value={sortBy}
+      onChange={(e) => setSortBy(e.target.value)}
+      className="px-4 py-2 rounded-lg border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+    >
+      <option value="latest">Latest</option>
+      <option value="oldest">Oldest</option>
+      <option value="price_low">Price: Low → High</option>
+      <option value="price_high">Price: High → Low</option>
+    </select>
+  </div>
+</div> */}
 
                 {/* Main Results Container */}
                 <div className="min-h-[400px]">
