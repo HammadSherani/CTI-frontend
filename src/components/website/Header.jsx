@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { useState, useEffect, useRef, useCallback } from "react";
 import Image from "next/image";
 import { useSelector } from "react-redux";
-import { Link,usePathname, useRouter  } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import Marquee from "react-fast-marquee";
 import ButtonSection from "./ButtonSection";
 import { AnimatePresence, motion } from "framer-motion";
@@ -16,16 +16,16 @@ import { useLocale, useTranslations } from "next-intl";
    MOCK SEARCH DATA  (replace with real API)
 ════════════════════════════════════════════ */
 const SEARCH_SUGGESTIONS = [
-  { id: 1,  type: "product",  icon: "mdi:cellphone",        label: "iPhone 14 Pro Max",         category: "Smartphones" },
-  { id: 2,  type: "product",  icon: "mdi:cellphone",        label: "Samsung Galaxy S24",         category: "Smartphones" },
-  { id: 3,  type: "product",  icon: "mdi:laptop",           label: "MacBook Pro 14\" Refurbished",category: "Laptops"     },
-  { id: 4,  type: "product",  icon: "mdi:tablet",           label: "iPad Air 5th Gen",           category: "Tablets"     },
-  { id: 5,  type: "repair",   icon: "mdi:tools",            label: "Screen Repair – iPhone 13",  category: "Repair"      },
-  { id: 6,  type: "repair",   icon: "mdi:battery-charging", label: "Battery Replacement",        category: "Repair"      },
-  { id: 7,  type: "repair",   icon: "mdi:wrench",           label: "Water Damage Repair",        category: "Repair"      },
-  { id: 8,  type: "product",  icon: "mdi:headphones",       label: "AirPods Pro 2nd Gen",        category: "Accessories" },
-  { id: 9,  type: "product",  icon: "mdi:watch",            label: "Apple Watch Series 9",       category: "Wearables"   },
-  { id: 10, type: "repair",   icon: "mdi:camera",           label: "Camera Lens Repair",         category: "Repair"      },
+  { id: 1, type: "product", icon: "mdi:cellphone", label: "iPhone 14 Pro Max", category: "Smartphones" },
+  { id: 2, type: "product", icon: "mdi:cellphone", label: "Samsung Galaxy S24", category: "Smartphones" },
+  { id: 3, type: "product", icon: "mdi:laptop", label: "MacBook Pro 14\" Refurbished", category: "Laptops" },
+  { id: 4, type: "product", icon: "mdi:tablet", label: "iPad Air 5th Gen", category: "Tablets" },
+  { id: 5, type: "repair", icon: "mdi:tools", label: "Screen Repair – iPhone 13", category: "Repair" },
+  { id: 6, type: "repair", icon: "mdi:battery-charging", label: "Battery Replacement", category: "Repair" },
+  { id: 7, type: "repair", icon: "mdi:wrench", label: "Water Damage Repair", category: "Repair" },
+  { id: 8, type: "product", icon: "mdi:headphones", label: "AirPods Pro 2nd Gen", category: "Accessories" },
+  { id: 9, type: "product", icon: "mdi:watch", label: "Apple Watch Series 9", category: "Wearables" },
+  { id: 10, type: "repair", icon: "mdi:camera", label: "Camera Lens Repair", category: "Repair" },
 ];
 
 const TRENDING = ["iPhone 15", "Samsung S24", "Screen Repair", "MacBook", "AirPods"];
@@ -37,7 +37,7 @@ function SearchSuggestions({ query, results, onSelect, onClose, visible }) {
   if (!visible) return null;
 
   const typeColor = { product: "text-blue-500", repair: "text-orange-500" };
-  const typeBg    = { product: "bg-blue-50",    repair: "bg-orange-50"   };
+  const typeBg = { product: "bg-blue-50", repair: "bg-orange-50" };
 
   return (
     <div className="absolute top-full left-0 right-0 mt-1.5 z-[200] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
@@ -119,12 +119,12 @@ function SearchSuggestions({ query, results, onSelect, onClose, visible }) {
    SEARCH BAR
 ════════════════════════════════════════════ */
 function SearchBar({ className = "" }) {
-  const [query, setQuery]       = useState("");
-  const [focused, setFocused]   = useState(false);
-  const [results, setResults]   = useState([]);
-  const router                  = useRouter();
-  const inputRef                = useRef(null);
-  const wrapRef                 = useRef(null);
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+  const [results, setResults] = useState([]);
+  const router = useRouter();
+  const inputRef = useRef(null);
+  const wrapRef = useRef(null);
 
   // Filter suggestions on query change
   useEffect(() => {
@@ -139,7 +139,7 @@ function SearchBar({ className = "" }) {
     setQuery(value);
     setFocused(false);
     inputRef.current?.blur();
-    router.push(`/coming?q=${encodeURIComponent(value)}`)  
+    router.push(`/coming?q=${encodeURIComponent(value)}`)
   };
 
   const handleSubmit = (e) => {
@@ -151,9 +151,8 @@ function SearchBar({ className = "" }) {
 
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`} ref={wrapRef}>
-      <div className={`flex items-center bg-white border-2 rounded-xl px-4 py-2.5 transition-all duration-200 ${
-        focused ? "border-orange-500 shadow-lg shadow-orange-100" : "border-gray-200 hover:border-gray-300"
-      }`}>
+      <div className={`flex items-center bg-white border-2 rounded-xl px-4 py-2.5 transition-all duration-200 ${focused ? "border-orange-500 shadow-lg shadow-orange-100" : "border-gray-200 hover:border-gray-300"
+        }`}>
         <input
           ref={inputRef}
           type="text"
@@ -170,8 +169,8 @@ function SearchBar({ className = "" }) {
           </button>
         )}
 
-  <button type="button" className="text-gray-400 hover:text-orange-500 transition-colors ml-1">
-                <Icon icon="mdi:magnify" className="w-5 h-5" />
+        <button type="button" className="text-gray-400 hover:text-orange-500 transition-colors ml-1">
+          <Icon icon="mdi:magnify" className="w-5 h-5" />
         </button>
         <button type="button" className="text-gray-400 hover:text-orange-500 transition-colors ml-1">
           <Icon icon="mdi:microphone-outline" className="w-5 h-5" />
@@ -192,17 +191,17 @@ function SearchBar({ className = "" }) {
    ANNOUNCEMENT BAR
 ════════════════════════════════════════════ */
 function AnnouncementBar() {
-    const t = useTranslations("AnnouncementBar");
-const transformed = t.rich("message", {
-  hours: (chunks) => <span className="text-red-500 font-bold">{chunks}</span>
-});
+  const t = useTranslations("AnnouncementBar");
+  const transformed = t.rich("message", {
+    hours: (chunks) => <span className="text-red-500 font-bold">{chunks}</span>
+  });
   return (
-   <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
+    <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
       <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
-             
-<p className="text-center sm:text-left">
-  {transformed} 
-</p>
+
+        <p className="text-center sm:text-left">
+          {transformed}
+        </p>
         <div className="flex items-center gap-5">
           <Link
             href="/auth/register"
@@ -287,9 +286,9 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
             )}
           </div> */}
 
-           <div className="flex gap-3 md:gap-5 text-xl items-center">
-          <ButtonSection />
-        </div>
+          <div className="flex gap-3 md:gap-5 text-xl items-center">
+            <ButtonSection />
+          </div>
         </div>
 
         {/* ── Mobile Search (below logo row) ── */}
@@ -305,14 +304,14 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
    MOBILE MENU DRAWER
 ════════════════════════════════════════════ */
 function MobileMenu({ open, onClose }) {
-  const {user}=useSelector(state=>state.auth) || {};
+  const { user } = useSelector(state => state.auth) || {};
   const navLinks = [
-    { label: "Home",          href: "/",           icon: "mdi:home-outline"         },
-    { label: "Mobile Repair", href: "/my-account/mobile-repair",     icon: "mynaui:mobile"     },
-    { label: "Buy Devices",   href: "/coming",   icon: "mdi:shopping-outline"     },
-    { label: "Academy",       href: "/academy",    icon: "mdi:school-outline"       },
-    { label: "Track Order",   href: "/coming",     icon: "mdi:map-marker-path"      },
-    { label: "Contact",       href: "/contact",    icon: "mdi:phone-outline"        },
+    { label: "Home", href: "/", icon: "mdi:home-outline" },
+    { label: "Mobile Repair", href: "/my-account/mobile-repair", icon: "mynaui:mobile" },
+    { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
+    { label: "Academy", href: "/academy", icon: "mdi:school-outline" },
+    { label: "Track Order", href: "/coming", icon: "mdi:map-marker-path" },
+    { label: "Contact", href: "/contact", icon: "mdi:phone-outline" },
   ];
 
   return (
@@ -337,9 +336,9 @@ function MobileMenu({ open, onClose }) {
 
         {/* Links */}
         <nav className="py-3 px-3">
-          {navLinks.map((link,index) => (
+          {navLinks.map((link, index) => (
             <Link
-    key={`${link.href}-${index}`}
+              key={`${link.href}-${index}`}
               href={link.href}
               onClick={onClose}
               className="flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-orange-50 hover:text-orange-600 text-gray-700 text-[14px] font-medium transition-colors group"
@@ -352,20 +351,20 @@ function MobileMenu({ open, onClose }) {
           ))}
         </nav>
 
-{!user&&(
- <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
-          <Link
-            href="/auth/register"
-            onClick={onClose}
-            className="flex items-center justify-center gap-2 w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl text-[14px] font-semibold transition-colors"
-          >
-            <Icon icon="mdi:rocket-launch-outline" className="w-4.5 h-4.5" />
-            Get Started Free
-          </Link>
-        </div>
-)}
+        {!user && (
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
+            <Link
+              href="/auth/register"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl text-[14px] font-semibold transition-colors"
+            >
+              <Icon icon="mdi:rocket-launch-outline" className="w-4.5 h-4.5" />
+              Get Started Free
+            </Link>
+          </div>
+        )}
         {/* CTA */}
-       
+
       </div>
     </>
   );
@@ -376,11 +375,11 @@ function MobileMenu({ open, onClose }) {
 ════════════════════════════════════════════ */
 function PromoMarquee() {
   const items = [
-    { icon: "mdi:truck-fast-outline",  text: "Free Shipping & Fast Delivery" },
-    { icon: "mdi:shield-check-outline",text: "1 Year Warranty"               },
-    { icon: "mdi:certificate-outline", text: "Premium Quality Refurbished"   },
-    { icon: "mdi:headset",             text: "24/7 Customer Support"         },
-    { icon: "mdi:lock-outline",        text: "Secure Payments"               },
+    { icon: "mdi:truck-fast-outline", text: "Free Shipping & Fast Delivery" },
+    { icon: "mdi:shield-check-outline", text: "1 Year Warranty" },
+    { icon: "mdi:certificate-outline", text: "Premium Quality Refurbished" },
+    { icon: "mdi:headset", text: "24/7 Customer Support" },
+    { icon: "mdi:lock-outline", text: "Secure Payments" },
   ];
 
   return (
@@ -462,7 +461,7 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
-      
+
       // ←←← Yeh important hai: Scroll karte hi dropdown close ho jaye
       if (openDropdown) {
         setOpenDropdown(null);
@@ -501,8 +500,7 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
   
   return (
     <header
-      className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${
-        isScrolled
+      className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${isScrolled
           ? "bg-white shadow-md top-[117px]"
           : isHome
           ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[160px]"
@@ -512,8 +510,8 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
       <div className="flex items-center justify-center">
         <nav className="hidden lg:flex items-center gap-1">
           {navigationData.mainNav.map((item) => (
-            <div 
-              key={item.name} 
+            <div
+              key={item.name}
               className="relative dropdown-container"
               onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.name)}
               onMouseLeave={() => item.hasDropdown && handleMouseLeave()}
@@ -522,20 +520,18 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
                 <>
                   <button
                     onClick={() => toggleDropdown(item.name)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                      isScrolled
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isScrolled
                         ? "text-gray-900 hover:bg-gray-100"
                         : isHome
-                        ? "text-white hover:bg-white/10"
-                        : "text-gray-900 hover:bg-gray-100"
-                    }`}
+                          ? "text-white hover:bg-white/10"
+                          : "text-gray-900 hover:bg-gray-100"
+                      }`}
                   >
                     {item.name}
                     <Icon
                       icon="mdi:chevron-down"
-                      className={`transition-transform duration-300 ${
-                        openDropdown === item.name ? "rotate-180" : ""
-                      }`}
+                      className={`transition-transform duration-300 ${openDropdown === item.name ? "rotate-180" : ""
+                        }`}
                       width={18}
                     />
                   </button>
@@ -547,26 +543,24 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: 10 }}
                         transition={{ duration: 0.2 }}
-                        className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
-                          isScrolled
+                        className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${isScrolled
                             ? "bg-white border-gray-200"
                             : isHome
-                            ? "bg-white/10 backdrop-blur-md border-white/20"
-                            : "bg-white border-gray-200"
-                        }`}
+                              ? "bg-white/10 backdrop-blur-md border-white/20"
+                              : "bg-white border-gray-200"
+                          }`}
                       >
                         {item.dropdownItems.map((dropdownItem) => (
                           <Link
                             key={dropdownItem.name}
                             href={dropdownItem.href}
                             onClick={() => setOpenDropdown(null)}
-                            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
-                              isScrolled
+                            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${isScrolled
                                 ? "text-gray-800 hover:bg-gray-100"
                                 : isHome
-                                ? "text-white hover:bg-white/20"
-                                : "text-gray-900 hover:bg-gray-100"
-                            }`}
+                                  ? "text-white hover:bg-white/20"
+                                  : "text-gray-900 hover:bg-gray-100"
+                              }`}
                           >
                             <Icon icon={dropdownItem.icon} width={18} />
                             <span className="text-sm font-medium">
@@ -581,13 +575,12 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
               ) : (
                 <Link
                   href={item.href}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                    isScrolled
+                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isScrolled
                       ? "text-gray-900 hover:bg-gray-100"
                       : isHome
-                      ? "text-white hover:bg-white/10"
-                      : "text-gray-900 hover:bg-gray-100"
-                  }`}
+                        ? "text-white hover:bg-white/10"
+                        : "text-gray-900 hover:bg-gray-100"
+                    }`}
                 >
                   {item.name}
                 </Link>
@@ -605,9 +598,9 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
    MAIN HEADER EXPORT
 ════════════════════════════════════════════ */
 export default function Header() {
-  const [scrolled, setScrolled]           = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
- const isHome=usePathname() === "/";
+  const isHome = usePathname() === "/";
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -626,12 +619,12 @@ export default function Header() {
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       </header>
-<div className="relative z-0">
-  {isHome&&(
-    <PromoMarquee />
-  )}
-</div>
-<NavigationHeader/>
+      <div className="relative z-0">
+        {isHome && (
+          <PromoMarquee />
+        )}
+      </div>
+      <NavigationHeader />
       {/* Mobile Drawer */}
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>

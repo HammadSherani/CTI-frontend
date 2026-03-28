@@ -42,7 +42,7 @@ const [currentPage, setCurrentPage] = useState(1);
     }
     start('states');
     try {
-      const res = await axiosInstance.get(`/public/states?country=${countryId}`);
+      const res = await axiosInstance.get(`/public/states/country/${countryId}`);
       setStates(res.data.data || []);
     } catch (err) {
       console.error("Failed to load states", err);
@@ -59,7 +59,7 @@ const [currentPage, setCurrentPage] = useState(1);
     }
     start('cities');
     try {
-      const res = await axiosInstance.get(`/public/cities?state=${stateId}`);
+      const res = await axiosInstance.get(`/public/cities/state/${stateId}`);
       setCities(res.data.data || []);
     } catch (err) {
       console.error("Failed to load cities", err);
@@ -81,7 +81,7 @@ const [currentPage, setCurrentPage] = useState(1);
       if (appliedFilters.categories?.length) params.append('specializations', appliedFilters.categories.join(','));
 
         params.append('page', currentPage);
-    params.append('limit', 2);
+    params.append('limit', 10);
 
       const res = await axiosInstance.get(`/public/repairmans?${params.toString()}`);
       
