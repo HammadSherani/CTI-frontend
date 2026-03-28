@@ -81,7 +81,7 @@ const [currentPage, setCurrentPage] = useState(1);
       if (appliedFilters.categories?.length) params.append('specializations', appliedFilters.categories.join(','));
 
         params.append('page', currentPage);
-    params.append('limit', 2);
+    params.append('limit', 10);
 
       const res = await axiosInstance.get(`/public/repairmans?${params.toString()}`);
       
