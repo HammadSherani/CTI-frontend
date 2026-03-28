@@ -405,8 +405,11 @@ export function NavigationHeader() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const router = useRouter();
-  const pathName = usePathname();
-
+  const pathname = usePathname();
+  console.log("Current pathname:", pathname);
+ const locale=useLocale();
+const isHome = ["/", `/${locale}`, `/${locale}/`].includes(pathname);
+console.log("Current pathname:", pathname, "Is home?", isHome);
   const navigationData = {
     mainNav: [
       { name: "Home", href: "/", hasDropdown: false },
@@ -438,7 +441,20 @@ export function NavigationHeader() {
       { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
       { name: "Academy", href: "/academy", hasDropdown: false },
       { name: "About", href: "/about-us", hasDropdown: false },
-      { name: "Support", href: "/live-support", hasDropdown: false },
+      {
+        name: "Support",
+        href: "/live-support",
+        hasDropdown: true,
+        dropdownItems: [
+          { name: "Privacy Policy", href: "/privacy-policy", icon: "mdi:shield-check-outline" },
+          { name: "Terms of Service", href: "/terms-of-service", icon: "mdi:file-document" },
+          { name: "Environmental Policy", href: "/e-waste-policy", icon: "mdi:leaf" },
+          { name: "How to return", href: "/how-to-return", icon: "mdi:file-document" },
+          { name: "FAQ", href: "/faq", icon: "mdi:help-circle" },
+          { name: "Refund Policy", href: "/refund-policy", icon: "mdi:currency-usd" },
+        ],
+      },
+      { name: "Teach Guide", href: "/tech-repair", hasDropdown: false },
     ],
   };
 
@@ -482,15 +498,14 @@ export function NavigationHeader() {
     setOpenDropdown(openDropdown === name ? null : name);
   };
 
-  const locale=useLocale();
-const isHome = pathName === `/${locale}` || pathName === `/${locale}/`;
+  
   return (
     <header
       className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${
         isScrolled
           ? "bg-white shadow-md top-[117px]"
           : isHome
-          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[150px]"
+          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[160px]"
           : "bg-white top-[117px] text-gray-900 shadow-md"
       }`}
     >

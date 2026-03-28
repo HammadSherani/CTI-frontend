@@ -5,9 +5,8 @@ import SubHeader from '@/components/SubHeader';
 import FilterSidebar from '@/components/FilterSidebar';
 import Loader from '@/components/Loader';
 import { Icon } from '@iconify/react';
-import { useMultiLoading } from '@/hooks/useMultiloading';   // Adjust path if needed
+import { useMultiLoading } from '@/hooks/useMultiloading';   
 import axiosInstance from '@/config/axiosInstance';
-
 const DEFAULT_PROFILE_IMG = "https://via.placeholder.com/400x300?text=Repairman";
 
 export default function HireRepairman() {
@@ -18,15 +17,15 @@ export default function HireRepairman() {
   const [cities, setCities] = useState([]);
   const [repairmen, setRepairmen] = useState([]);
   const [pagination, setPagination] = useState({ total: 0 });
-
+const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({});
   const [loadingRepairmen, setLoadingRepairmen] = useState(false);
-
+const [currentPage, setCurrentPage] = useState(1);
   // Fetch Countries
   const fetchCountries = useCallback(async () => {
     start('countries');
     try {
-      const res = await axiosInstance.get('/public/countries');   // Adjust endpoint
+      const res = await axiosInstance.get('/public/countries'); 
       setCountries(res.data.data || []);
     } catch (err) {
       console.error("Failed to load countries", err);
@@ -81,6 +80,9 @@ export default function HireRepairman() {
       if (appliedFilters.minRating) params.append('minRating', appliedFilters.minRating);
       if (appliedFilters.categories?.length) params.append('specializations', appliedFilters.categories.join(','));
 
+        params.append('page', currentPage);
+    params.append('limit', 2);
+
       const res = await axiosInstance.get(`/public/repairmans?${params.toString()}`);
       
       setRepairmen(res.data.data?.repairmans || []);
@@ -102,9 +104,14 @@ export default function HireRepairman() {
   // Handle filter changes from sidebar
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
-    fetchRepairmen(newFilters);
+      setPage(1); 
+  fetchRepairmen(newFilters, 1);
   };
 
+  const handlePageChange = (newPage) => {
+  setPage(newPage);
+  fetchRepairmen(filters, newPage);
+};
   // Load states when country changes
   useEffect(() => {
     if (filters.country) fetchStates(filters.country);
@@ -234,7 +241,54 @@ export default function HireRepairman() {
             )}
           </div>
         </div>
+
+
+{pagination.totalPages > 1 && (
+  <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+    
+    {/* Prev */}
+    <button
+      disabled={page === 1}
+      onClick={() => handlePageChange(page - 1)}
+      className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100"
+    >
+      Prev
+    </button>
+
+    {/* Page Numbers */}
+    {[...Array(pagination.totalPages)].map((_, i) => {
+      const p = i + 1;
+      return (
+        <button
+          key={p}
+          onClick={() => handlePageChange(p)}
+          className={`px-4 py-2 rounded-lg border ${
+            page === p
+              ? "bg-primary-600 text-white"
+              : "hover:bg-gray-100"
+          }`}
+        >
+          {p}
+        </button>
+      );
+    })}
+
+    {/* Next */}
+    <button
+      disabled={page === pagination.totalPages}
+      onClick={() => handlePageChange(page + 1)}
+      className="px-4 py-2 border rounded-lg disabled:opacity-50 hover:bg-gray-100"
+    >
+      Next
+    </button>
+
+  </div>
+)}
+
       </div>
+
+
+
       </>
   );
 }

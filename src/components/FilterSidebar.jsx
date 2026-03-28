@@ -15,20 +15,39 @@ function SearchableDropdown({ label, options, value, onChange, disabled }) {
 
   return (
     <div className="relative">
-      <label className="text-sm font-medium text-primary-600 block mb-1">{label}</label>
-      <button
-        disabled={disabled}
-        onClick={() => setOpen(!open)}
-        className="w-full border border-gray-300 rounded-lg px-4 py-3 flex justify-between items-center bg-white text-left hover:border-primary-500 disabled:opacity-60"
-      >
-        <span className="text-sm text-gray-700 truncate">
-          {selected ? selected.name : `Select ${label}`}
-        </span>
-        <Icon icon="mdi:chevron-down" />
-      </button>
+      <label className="text-sm font-medium text-primary-600 block mb-1">
+        {label}
+      </label>
+
+      <div className="relative">
+        <button
+          disabled={disabled}
+          onClick={() => setOpen(!open)}
+          className="w-full border border-gray-300 rounded-lg px-4 py-3 flex justify-between items-center bg-white text-left hover:border-primary-500 disabled:opacity-60"
+        >
+          <span className="text-sm text-gray-700 truncate">
+            {selected ? selected.name : `Select ${label}`}
+          </span>
+          <Icon icon="mdi:chevron-down" />
+        </button>
+
+        {/* ❌ Clear (cross icon) */}
+        {selected && (
+          <span
+            onClick={(e) => {
+              e.stopPropagation();
+              onChange("");
+            }}
+            className="absolute right-10 top-1/2 -translate-y-1/2 cursor-pointer text-gray-400 hover:text-red-500"
+          >
+            ✕
+          </span>
+        )}
+      </div>
 
       {open && (
         <div className="absolute z-50 w-full mt-1 bg-white border rounded-lg shadow-xl max-h-60 overflow-auto">
+          {/* Search */}
           <input
             type="text"
             placeholder="Search..."
@@ -36,22 +55,49 @@ function SearchableDropdown({ label, options, value, onChange, disabled }) {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full px-4 py-3 border-b outline-none sticky top-0 bg-white"
           />
+
+          {/* 🔥 Clear Button */}
+          {selected && (
+            <div
+              onClick={() => {
+                onChange("");
+                setSearch("");
+                setOpen(false);
+              }}
+              className="px-4 py-2 text-red-500 text-sm cursor-pointer hover:bg-red-50 border-b"
+            >
+              Clear Selection
+            </div>
+          )}
+
+          {/* Options */}
           {filtered.length > 0 ? (
             filtered.map((opt) => (
               <div
                 key={opt._id}
                 onClick={() => {
-                  onChange(opt._id);
+                  // 🔥 toggle select/unselect
+                  if (value === opt._id) {
+                    onChange("");
+                  } else {
+                    onChange(opt._id);
+                  }
                   setOpen(false);
                   setSearch("");
                 }}
-                className="px-4 py-3 hover:bg-primary-50 cursor-pointer text-sm"
+                className={`px-4 py-3 cursor-pointer text-sm ${
+                  value === opt._id
+                    ? "bg-primary-100 text-primary-700"
+                    : "hover:bg-primary-50 hover:text-primary-700"
+                }`}
               >
                 {opt.name}
               </div>
             ))
           ) : (
-            <div className="px-4 py-4 text-gray-500 text-sm">No matching {label.toLowerCase()} found</div>
+            <div className="px-4 py-4 text-gray-500 text-sm">
+              No matching {label.toLowerCase()} found
+            </div>
           )}
         </div>
       )}
@@ -115,20 +161,13 @@ export default function FilterSidebar({ onFiltersChange, countries = [], states 
       </div>
 
       {/* Country */}
-      <div>
-        <label className="text-sm font-medium mb-1 block">Country</label>
-        <select
-          value={selectedCountry}
-          onChange={(e) => setSelectedCountry(e.target.value)}
-          className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:border-primary-500"
-          disabled={loading}
-        >
-          <option value="">Select Country</option>
-          {countries.map(c => (
-            <option key={c._id} value={c._id}>{c.name}</option>
-          ))}
-        </select>
-      </div>
+     <SearchableDropdown
+        label="Country"
+        options={countries}
+        value={selectedCountry}
+        onChange={setSelectedCountry}
+        disabled={loading}
+      />
 
       {/* State */}
       <SearchableDropdown

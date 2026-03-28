@@ -3,7 +3,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname } from "@/i18n/navigation";
 import { clearAuth } from "../store/auth"; 
 import Loader from "./Loader";
 

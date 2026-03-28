@@ -5,15 +5,13 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
-import Logins from "../../../../../public/assets/user/signup.png";
-import Link from "next/link";
+import {Link,useRouter} from "@/i18n/navigation";
 import Image from "next/image";
-import axiosInstance from "../../../../../config/axiosInstance";
-import handleError from "../../../../../helper/handleError";
+import axiosInstance from "@/config/axiosInstance";
+import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
-import { setAuth } from "../../../../../store/auth";
+import { setAuth } from "@/store/auth";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -124,8 +122,10 @@ function Signup() {
             <div className="flex items-center justify-center h-full p-8">
               <div className="text-center">
                 <Image
-                  src={Logins}
+                  src='/assets/user/signup.png'
                   alt="Signup Illustration"
+                  width={300}
+                  height={500}
                   className="w-full max-w-md mx-auto mb-6 drop-shadow-2xl"
                   />
                 <div className="text-white">
@@ -422,9 +422,9 @@ function Signup() {
                   {/* Terms */}
                   <p className="mt-6 text-xs text-center text-gray-500">
                     By creating an account, you agree to our{" "}
-                    <a href="#" className="text-orange-500 hover:underline">Terms of Service</a>
+                    <Link href="/terms-and-conditions" className="text-orange-500 hover:underline">Terms of Service</Link>
                     {" "}and{" "}
-                    <a href="#" className="text-orange-500 hover:underline">Privacy Policy</a>
+                    <Link href="/privacy-policy" className="text-orange-500 hover:underline">Privacy Policy</Link>
                   </p>
 
                 </div>
