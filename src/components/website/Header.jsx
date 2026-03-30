@@ -453,7 +453,7 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
           { name: "Refund Policy", href: "/refund-policy", icon: "mdi:currency-usd" },
         ],
       },
-      { name: "Teach Guide", href: "/tech-repair", hasDropdown: false },
+      { name: "Blog", href: "/blog", hasDropdown: false },
     ],
   };
 

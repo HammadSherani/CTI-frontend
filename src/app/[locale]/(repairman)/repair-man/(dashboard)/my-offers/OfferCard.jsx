@@ -1,19 +1,24 @@
 import { Icon } from '@iconify/react';
-import React, { useState } from 'react';
+import React, { useState ,useRef,useEffect} from 'react';
 import EditOfferModal from './EditOfferModal';
-import Link from 'next/link';
+import { useRouter,Link } from '@/i18n/navigation';
+
 import WithdrawModal from './WithdrawModal';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { useRouter } from 'next/navigation';
 
 const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [iswithdrawModalOpen, setIswithdrawModalOpen] = useState(false)
     const { token } = useSelector((state) => state.auth);
+    const isDisabled = offer.isExpired;
+
+
+  const [showMore, setShowMore] = useState(false);
+  const textRef = useRef(null);
   const job=offer?.jobId;
   console.log(job,'job in offer');
     console.log(offer, 'offer');
@@ -86,7 +91,21 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
   return `${hours} hour${hours !== 1 ? "s" : ""}`;
 };
 
-  // Add this function in your component (outside JobCard)
+
+
+
+    console.log(isChangeStatus);
+const getUrgencyLevel = (urgencyScore) => {
+  if (typeof urgencyScore === "string") return urgencyScore;
+
+  if (urgencyScore >= 3) return "high";
+  if (urgencyScore >= 2) return "medium";
+  return "low";
+};
+
+    console.log(job,"job urgency in offer card");
+    const urgency = getUrgencyLevel(job.urgency);
+    console.log(urgency,"urgency in offer card");
 const getTimeAgo = (createdAt) => {
   if (!createdAt) return "Recently";
 
@@ -108,26 +127,44 @@ const getTimeAgo = (createdAt) => {
 };
 
 
-    console.log(isChangeStatus);
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      const isOverflowing = el.scrollHeight > el.clientHeight;
+      setShowMore(isOverflowing);
+    }
+  }, [job?.description]);
 
-    const getUrgencyLevel = (urgencyScore) => {
-        if (urgencyScore >= 3) return 'high';
-        if (urgencyScore >= 2) return 'medium';
-        return 'low';
-    };
-    const urgency = getUrgencyLevel(job.urgencyScore);
-const isDisabled = offer.isExpired;
     return (
         <div disabled={isDisabled} className={`   ${isDisabled ? 'opacity-50 pointer-events-none select-none' : 'hover:shadow-md'} bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200`}>
             {/* Header */}
      <div className="px-3 pt-6 pb-4  ">
-           <div className="flex items-center -ml-5 justify-between  gap-3">
+           <div className="flex items-center -mt-5 -ml-13 justify-between  gap-3">
+            
            
-              
-             <div className='p-1 -mt-3  ml-5 flex items-center gap-2'>
+                       <div className="flex px-6  -mt-4 py-3 flex-wrap items-center gap-3 text-sm">
+
+       <div className='p-1  ml-5 flex items-center gap-2'>
                  <Icon icon="iconamoon:clock" className="text-3xl text-gray-600" />
                  <p className="text-xs text-zinc-500">Posted {new Date(job.createdAt).toLocaleDateString()}</p>
            </div>
+                       <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getUrgencyColor(urgency)}`}>
+                         <Icon icon="heroicons:clock" className="w-3 h-3 mr-1" />
+                         {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+                       </span>
+           {job.expiresAt && (
+             <span className="inline-flex items-center text-orange-600 font-medium">
+               <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
+           
+               {getTimeRemaining(job.expiresAt) === "Expired"
+                 ? "Expired"
+                 : `Expires in ${getTimeRemaining(job.expiresAt)}`}
+             </span>
+           )}
+                     
+                     </div>
+              
+           
              <div className="text-right">
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(offer.status)}`}>
                         {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
@@ -177,10 +214,22 @@ const isDisabled = offer.isExpired;
             )}
           </div>
       {/* Description */}
-      <div className="px-6 py-6 text-gray-400 leading-relaxed text-[15.5px]">
-        {job?.description}
-        <span className="text-orange-500 cursor-pointer hover:underline ml-1">more</span>
-      </div>
+   <div className="px-6 py-6 mb-2 text-gray-400 leading-relaxed text-[15.5px]">
+  
+  <p ref={textRef} className="line-clamp-2 overflow-hidden">
+    {job?.description}
+  </p>
+
+  {showMore && (
+    <span
+      onClick={() => router.push(`/job-board/${job?._id}`)}
+      className="text-orange-500 cursor-pointer hover:underline ml-1"
+    >
+      more
+    </span>
+  )}
+
+</div>
 
       {/* Tags */}
       <div className="px-6 pb-6 flex flex-wrap gap-2">
@@ -193,11 +242,7 @@ const isDisabled = offer.isExpired;
             {service?.name||service._id||'Service'}
           </span>
         ))}
-        {urgency === 'high' && (
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-red-900/50 text-red-400 border border-red-800">
-            High Priority
-          </span>
-        )}
+       
         
       </div> 
 

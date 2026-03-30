@@ -6,7 +6,7 @@ import SectionTag from '@/components/website/home/sectoinTag';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 
-const PLACEHOLDER_IMG = "https://placehold.co/1200x600/1f2937/ffffff/png?text=Device+Repair";
+const PLACEHOLDER_IMG = "/assets/blog/1.png";
 
 export default function SmartphoneRepairGuideDetail() {
   return (

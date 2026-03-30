@@ -1,25 +1,32 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { useRouter,Link } from '@/i18n/navigation';
 
-import Loader from '@/components/Loader';
-import SmallLoader from '@/components/SmallLoader';
-import { SearchableDropdown } from '@/components/dropdown';
+import { Dropdown, UrgencyDropdown } from '@/components/dropdown';
+import { JobCardSkeleton } from '@/components/Skeltons';
+import { Pagination } from '@/components/pagination';
+import SearchInput from '@/components/SearchInput';
+import useDebounce from '@/hooks/useDebounce';
 
 const MyJobsPage = () => {
   const [activeTab, setActiveTab] = useState('open');
   const [searchQuery, setSearchQuery] = useState('');
+const debouncedSearch = useDebounce(searchQuery, 500);
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   // const [expandedJob, setExpandedJob] = useState(null);
   const [jobs, setJobs] = useState([]);
+  const [page, setPage] = useState(1);
+const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [showMore, setShowMore] = useState(false);
+  const textRef = useRef(null);
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
   const [selectedState, setSelectedState] = useState('');
@@ -35,16 +42,16 @@ const MyJobsPage = () => {
     setSelectedCity('');
   };
 
-  const urgencyOptions=[
-    { _id: 'all', name: 'All Priorities' },
-    { _id: 'high', name: 'High Priority' },
-    { _id: 'medium', name: 'Medium Priority' },
-    { _id: 'low', name: 'Low Priority' },
-  ]
+  console.log('Selected urgencyFilter:', urgencyFilter);
+
 const fetchJobs = async () => {
   try {
     setError(null);
     setLoading(true);
+
+        if (jobs.length === 0) {
+      setLoading(true);
+    }
 
     const params = new URLSearchParams();
 
@@ -59,8 +66,14 @@ const fetchJobs = async () => {
     console.log('Selected urgency filter:', urgencyFilter);
     if (urgencyFilter) {
       console.log('Applying urgency filter:', urgencyFilter);
-      params.append('urgency', urgencyFilter);
+      params.append('priority', urgencyFilter);
     }
+if (debouncedSearch) {
+  params.append("search", debouncedSearch);
+}
+    params.append('page', page);
+    params.append('limit', 6);
+
 
     const url = `/repairman/jobs?${params.toString()}`;
 
@@ -73,6 +86,7 @@ const fetchJobs = async () => {
     setJobs(data?.data?.jobs || []);
     setStates(data?.data?.states || []);
     setCities(data?.data?.cities || []);
+    setPagination(data?.pagination);
 
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -91,7 +105,7 @@ const fetchJobs = async () => {
 
   useEffect(() => {
     fetchJobs();
-  }, [selectedState, selectedCity]);
+  }, [selectedState, selectedCity,urgencyFilter, page,debouncedSearch]);
 
   const getJobStatus = (job) => {
     if (job.status === 'offers_received') {
@@ -100,11 +114,13 @@ const fetchJobs = async () => {
     return job.status;
   };
 
-  const getUrgencyLevel = (urgencyScore) => {
-    if (urgencyScore >= 3) return 'high';
-    if (urgencyScore >= 2) return 'medium';
-    return 'low';
-  };
+ const getUrgencyLevel = (urgencyScore) => {
+  if (typeof urgencyScore === "string") return urgencyScore;
+
+  if (urgencyScore >= 3) return "high";
+  if (urgencyScore >= 2) return "medium";
+  return "low";
+};
 
   const formatCurrency = (amount, currency="s") => {
     return `${currency} ${amount.toLocaleString()}`;
@@ -173,46 +189,53 @@ const getTimeAgo = (createdAt) => {
     }
   };
 
-  const categorizeJobs = (jobs) => {
-    const open = jobs.filter(job =>
-      job.status === 'offers_received' ||
-      job.status === 'in-progress' ||
-      job.status === 'accepted' ||
-      job.status === 'open' ||
-      job.status === 'pending'
-    );
+  // const categorizeJobs = (jobs) => {
+  //   const open = jobs.filter(job =>
+  //     job.status === 'offers_received' ||
+  //     job.status === 'in-progress' ||
+  //     job.status === 'accepted' ||
+  //     job.status === 'open' ||
+  //     job.status === 'pending'
+  //   );
 
-    const completed = jobs.filter(job => job.status === 'completed');
+  //   const completed = jobs.filter(job => job.status === 'completed');
 
-    return { open, completed };
-  };
+  //   return { open, completed };
+  // };
 
-  const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
+  // const categorizedJobs = useMemo(() => categorizeJobs(jobs), [jobs]);
 
-  const filteredJobs = useMemo(() => {
-    const jobsToFilter = categorizedJobs[activeTab] || [];
-    return jobsToFilter.filter((job) => {
-      const matchesSearch =
-        job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.turkishTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.turkishDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        job.location?.address?.toLowerCase().includes(searchQuery.toLowerCase());
+  // const filteredJobs = useMemo(() => {
+  //   const jobsToFilter = categorizedJobs[activeTab] || [];
+  //   return jobsToFilter.filter((job) => {
+  //     const matchesSearch =
+  //       job.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       job.turkishTitle?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       job.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       job.turkishDescription?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       job.customerId?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+  //       job.location?.address?.toLowerCase().includes(searchQuery.toLowerCase());
 
-      const jobUrgency = getUrgencyLevel(job.urgencyScore);
-      const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
+  //     const jobUrgency = getUrgencyLevel(job.urgencyScore);
+  //     const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
 
-      return matchesSearch && matchesUrgency;
-    });
-  }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
+  //     return matchesSearch && matchesUrgency;
+  //   });
+  // }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
 
 const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
   const jobStatus = getJobStatus(job);
-  const urgency = getUrgencyLevel(job.urgencyScore);
+  const urgency = getUrgencyLevel(job.urgency);
   const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
 
   const Expired=  getTimeRemaining(job.expiresAt) === "Expird"
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      const isOverflowing = el.scrollHeight > el.clientHeight;
+      setShowMore(isOverflowing);
+    }
+  }, [job?.description]);
 
   return (
     <div disabled={Expired} className={` ${Expired?"opacity-30 cursor-not-allowed":""}  bg-white  rounded-3xl overflow-hiddentransition-all duration-300`}>
@@ -273,10 +296,23 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
             )}
           </div>
       {/* Description */}
-      <div className="px-6 py-6 text-gray-500 leading-relaxed text-[15.5px]">
-        {job?.description}
-        <span className="text-orange-500 cursor-pointer hover:underline ml-1">more</span>
-      </div>
+     <div className="px-6 py-6 mb-2 text-gray-400 leading-relaxed text-[15.5px]">
+  
+  <p ref={textRef} className="line-clamp-2 overflow-hidden">
+    {job?.description}
+  </p>
+
+  {showMore && (
+    <span
+      onClick={() => router.push(`/job-board/${job?._id}`)}
+      className="text-orange-500 cursor-pointer hover:underline ml-1"
+    >
+      more
+    </span>
+  )}
+
+</div>
+
 
       {/* Tags */}
       <div className="px-6 pb-6 flex flex-wrap gap-2">
@@ -288,11 +324,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
             {service?.name}
           </span>
         ))}
-        {urgency === 'high' && (
-          <span className="inline-flex items-center px-4 py-1.5 rounded-full text-sm font-medium bg-red-900/50 text-red-400 border border-red-800">
-            High Priority
-          </span>
-        )}
+
         
       </div> 
       
@@ -402,12 +434,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
     </div>
   );
 
-  const getTabCounts = () => ({
-    open: categorizedJobs.open?.length || 0,
-    completed: categorizedJobs.completed?.length || 0,
-  });
-
-  const tabCounts = getTabCounts();
+  
 
   const handleClearFilters = () => {
     setSearchQuery('');
@@ -434,11 +461,6 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
     );
   }
 
-  if (loading) {
-    return (
-     <SmallLoader loading={loading} text='Loading Jobs...' />
-    );
-  }
 
   return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
@@ -448,36 +470,22 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>
 
- <div className="mb-6 p-4 rounded-xl border border-gray-200 shadow-sm bg-white grid grid-cols-12 gap-4 items-center">
+<div className="mb-6 p-4 rounded-xl border border-gray-200 shadow-sm bg-white 
+grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 items-center">
 
   {/* Search */}
-  <div className="relative col-span-4">
-    <input
-      type="text"
-      placeholder="Search jobs..."
-      value={searchQuery}
-      onChange={(e) => setSearchQuery(e.target.value)}
-      className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
-    />
-
-    <Icon
-      icon="heroicons:magnifying-glass"
-      className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-    />
-
-    {searchQuery && (
-      <button
-        onClick={() => setSearchQuery("")}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-      >
-        <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-      </button>
-    )}
+  <div className="relative col-span-1 sm:col-span-2 lg:col-span-4">
+   <SearchInput
+  value={searchQuery}
+  onChange={setSearchQuery}
+  placeholder="Search jobs..."
+  className="col-span-1 sm:col-span-2 lg:col-span-4"
+/>
   </div>
 
   {/* State */}
-  <div className="col-span-2">
-    <SearchableDropdown
+  <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+    <Dropdown
       label="State"
       options={states}
       value={selectedState}
@@ -488,8 +496,8 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
   </div>
 
   {/* City */}
-  <div className="col-span-2">
-    <SearchableDropdown
+  <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+    <Dropdown
       label="City"
       options={cities}
       value={selectedCity}
@@ -501,18 +509,15 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
   </div>
 
   {/* Priority */}
-  <div className="col-span-2">
-    <SearchableDropdown
-      label="Priority"
-      options={urgencyOptions}
-      value={urgencyFilter}
-      onChange={setUrgencyFilter}
-      icon="heroicons:exclamation-triangle"
+  <div className="col-span-1 sm:col-span-1 lg:col-span-2">
+    <UrgencyDropdown
+      urgencyFilter={urgencyFilter}
+      setUrgencyFilter={setUrgencyFilter}
     />
   </div>
 
   {/* Clear */}
-  <div className="col-span-2">
+  <div className="col-span-1 sm:col-span-2 lg:col-span-2">
     <button
       onClick={handleClearFilters}
       className="w-full py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition text-sm shadow-sm"
@@ -553,17 +558,27 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
             </div>
 
             <div className="" role="tabpanel" id={`${activeTab}-panel`}>
-              {filteredJobs.length > 0 ? (
-                <div className="space-y-6">
-                  {filteredJobs.map((job) => (
-                    <JobCard key={job._id} job={job} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState type={activeTab} />
-              )}
+              {loading ? (
+  <div className="space-y-6">
+    {[...Array(5)].map((_, i) => (
+      <JobCardSkeleton key={i} />
+    ))}
+  </div>
+) : jobs.length > 0 ? (
+  <div className="space-y-6">
+    {jobs.map((job) => (
+      <JobCard key={job._id} job={job} />
+    ))}
+  </div>
+) : (
+  <EmptyState type={activeTab} />
+)}
             </div>
           </div>
+          <Pagination
+  pagination={pagination}
+  onPageChange={(p) => setPage(p)}
+/>
         </div>
       </div>
   );
