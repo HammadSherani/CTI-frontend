@@ -47,10 +47,13 @@ const MyJobsPage = () => {
 
       const params = new URLSearchParams();
 
-      if (selectedState) {
-        console.log("Appending state to params:", selectedState); 
-        params.append('state', selectedState);
-      }
+      console.log("selectedState", selectedState);
+      
+
+        // if (selectedState) {
+        //   console.log("Appending state to params:", selectedState); 
+        //   params.append('state', selectedState);
+        // }
       if (selectedCity) {
         params.append('city', selectedCity);
       }
