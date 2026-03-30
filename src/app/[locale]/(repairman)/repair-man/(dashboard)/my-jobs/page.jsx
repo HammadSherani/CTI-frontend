@@ -9,6 +9,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { addChat } from '@/store/chat';
 import { useChat } from '@/hooks/useChat';
+import { UrgencyDropdown } from '@/components/dropdown';
 
 
 const MyJobsPage = () => {
@@ -626,79 +627,118 @@ console.log(customer,"cuistomer")
           <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
           <p className="text-gray-600 text-lg">Manage your repair bookings and track progress</p>
 
-          {summary && (
-            <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">Total Jobs</p>
-                <p className="text-2xl font-bold text-gray-900">{summary.totalJobs || 0}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">Job Postings</p>
-                <p className="text-2xl font-bold text-blue-600">{summary.jobPostingBookings || 0}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">Direct Messages</p>
-                <p className="text-2xl font-bold text-purple-600">{summary.directMessageBookings || 0}</p>
-              </div>
-              <div className="bg-white p-4 rounded-lg border border-gray-200">
-                <p className="text-sm text-gray-600">Active</p>
-                <p className="text-2xl font-bold text-green-600">{summary.activeBookings || 0}</p>
-              </div>
-            </div>
-          )}
-        </div>
+ {summary && (
+  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+    {[
+      {
+        label: "Total Jobs",
+        value: summary.totalJobs || 0,
+        color: "text-primary-600",
+        icon: "heroicons:briefcase",
+        iconBg: "bg-primary-50",
+      },
+      {
+        label: "Job Postings",
+        value: summary.jobPostingBookings || 0,
+        color: "text-primary-600",
+        icon: "heroicons:document-text",
+        iconBg: "bg-primary-50",
+      },
+      {
+        label: "Direct Messages",
+        value: summary.directMessageBookings || 0,
+        color: "text-primary-600",
+        icon: "heroicons:chat-bubble-left-right",
+        iconBg: "bg-primary-50",
+      },
+      {
+        label: "Active",
+        value: summary.activeBookings || 0,
+        color: "text-primary-600",
+        icon: "heroicons:check-circle",
+        iconBg: "bg-primary-50",
+      },
+    ].map((item, index) => (
+      <div
+        key={index}
+        className="bg-white p-4 py-8 rounded-lg border border-gray-200"
+      >
+        <p className="text-sm text-gray-500 mb-4">{item.label}</p>
 
-        <div className="mb-6 bg-white p-4 rounded-md border border-gray-200 shadow-xs grid sm:grid-cols-2 grid-cols-1 gap-4 items-center">
-          <div className="relative flex-1 w-full">
-            <input
-              type="text"
-              placeholder="Search jobs by service, client, or description..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm"
-              aria-label="Search jobs"
+        <div className="flex items-center justify-between gap-2">
+          <p className={`text-4xl font-bold ${item.color}`}>
+            {item.value}
+          </p>
+
+          <div className={`${item.iconBg} p-2 -mt-14 rounded-full`}>
+            <Icon
+              icon={item.icon}
+              className={`w-8 h-8 ${item.color}`}
             />
-            <Icon icon="heroicons:magnifying-glass" className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" aria-hidden="true" />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
-                aria-label="Clear search"
-              >
-                <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-              </button>
-            )}
-          </div>
-          <div className="flex flex-1 gap-4 w-full sm:w-auto">
-            <select
-              value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value)}
-              className="px-4 py-3 flex-1 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm shadow-sm w-full sm:w-auto"
-              aria-label="Filter by urgency"
-            >
-              <option value="all">All Priorities</option>
-              <option value="high">High</option>
-              <option value="medium">Medium</option>
-              <option value="low">Low</option>
-            </select>
-            <button
-              onClick={handleClearFilters}
-              className="px-4 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 shadow-sm"
-              aria-label="Clear all filters"
-            >
-              Clear Filters
-            </button>
-            {/* <button
-              onClick={() => fetchAllJobs()}
-              className="px-4 py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
-              aria-label="Refresh jobs"
-            >
-              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-            </button> */}
           </div>
         </div>
+      </div>
+    ))}
+  </div>
+)}
+        </div>
 
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+       <div className="mb-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
+  <div className="grid grid-cols-12  gap-4 items-center">
+
+    {/* Search Input */}
+    <div className="col-span-8 ">
+      <input
+        type="text"
+        placeholder="Search jobs by service, client, or description..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 bg-white
+        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
+        text-sm shadow-sm transition-all"
+      />
+
+      <Icon
+        icon="heroicons:magnifying-glass"
+        className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
+      />
+
+      {searchQuery && (
+        <button
+          onClick={() => setSearchQuery("")}
+          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition"
+        >
+          <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+        </button>
+      )}
+    </div>
+
+    {/* Dropdown */}
+    <div className="col-span-2 ">
+      <UrgencyDropdown
+        urgencyFilter={urgencyFilter}
+        setUrgencyFilter={setUrgencyFilter}
+      />
+    </div>
+
+    {/* Actions */}
+    <div className="col-span-2 ">
+      <button
+        onClick={handleClearFilters}
+        className="px-5 py-3 rounded-lg border border-primary-200 
+        text-primary-600 bg-primary-50 
+        hover:bg-primary-100 hover:border-primary-300
+        transition-all duration-200 text-sm 
+        focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
+      >
+        Clear Filters
+      </button>
+    </div>
+
+  </div>
+</div>
+
+        <div className="bg- rounded-xl border border-gray-200 ">
           <div className="border-b border-gray-200">
             <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px overflow-x-auto" role="tablist">
               {[

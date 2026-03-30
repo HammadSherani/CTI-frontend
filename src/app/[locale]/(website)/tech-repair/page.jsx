@@ -6,6 +6,7 @@ import SectionTag from '@/components/website/home/sectoinTag';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 import BrandsMarque from '@/components/brandsMarque';
+import { useRouter } from '@/i18n/navigation';
 
 const currentDate = "7th Mar 2026";
 
@@ -15,28 +16,28 @@ const trendingArticles = [
     id: 1,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance, and how to fix them easily.",
-    image: PLACEHOLDER_IMG,
+    image:  '/assets/blog/1.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 2,
     title: "New Smartphone Models Released This Month",
     description: "Discover the latest flagship phones from Apple, Samsung, and Google with exciting new features.",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/2.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 3,
     title: "Rising Demand for Mobile Repair Services",
     description: "Why more people are choosing repair over replacement in 2026 and what it means for the industry.",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/3.png' ||PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 4,
     title: "New Technologies Changing the Repair Industry",
     description: "AI diagnostics, modular phones, and advanced tools reshaping how we fix smartphones.",
-    image: PLACEHOLDER_IMG,
+    image:'/assets/blog/4.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
 ];
@@ -45,25 +46,25 @@ const latestNews = [
   {
     id: 1,
     title: "Apple iPhone 13 Mini Refurbished Deal – Limited Stock",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/5.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 2,
     title: "Apple iPhone 13 Mini Refurbished Deal – Best Price",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/6.png' ||PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 3,
     title: "Apple iPhone 13 Mini Refurbished Deal – Fast Delivery",
-    image: PLACEHOLDER_IMG,
+    image:'/assets/blog/7.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 4,
     title: "Apple iPhone 13 Mini Refurbished – Trusted Seller",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/8.png' ||PLACEHOLDER_IMG,
     date: currentDate,
   },
 ];
@@ -73,49 +74,50 @@ const blogs = [
     id: 1,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/9.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 2,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/10.png' ||PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 3,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/11.png' ||PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 4,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/12.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 5,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/13.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
   {
     id: 6,
     title: "Common Smartphone Problems and How to Fix Them",
     description: "Discover the most common smartphone issues such as battery drain, slow performance...",
-    image: PLACEHOLDER_IMG,
+    image: '/assets/blog/14.png' || PLACEHOLDER_IMG,
     date: currentDate,
   },
 ];
 
 export default function TechRepairGuide() {
+  const router=useRouter()
   const ArticleCard = ({ item, isLarge = false }) => (
-    <div className={`group  rounded-2xl overflow-hidden shadow hover:scale-[1.02] transition-transform duration-300 ${isLarge ? 'col-span-1' : ''}`}>
+    <div onClick={()=>router.push("blog/slug")} className={`group  rounded-2xl overflow-hidden shadow hover:scale-[1.02] transition-transform duration-300 ${isLarge ? 'col-span-1' : ''}`}>
       <div className="relative h-56">
         <Image
           src={item.image}
@@ -138,7 +140,7 @@ export default function TechRepairGuide() {
   );
 
   const BlogCard = ({ item }) => (
-    <div className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
+    <div onClick={()=>router.push("blog/slug")} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
       <div className="relative h-52">
         <Image
           src={item.image}
@@ -161,7 +163,7 @@ export default function TechRepairGuide() {
   );
 
  const Blog2Card = ({ item }) => (
-    <div className="group grid grid-cols-12 bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
+    <div onClick={()=>router.push("blog/slug")} className="group grid grid-cols-12 bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
       <div className="relative h-52 col-span-5">
         <Image
           src={item.image}

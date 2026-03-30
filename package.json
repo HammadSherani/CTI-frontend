@@ -21,6 +21,7 @@
     "@lexical/rich-text": "^0.38.2",
     "@lexical/selection": "^0.38.2",
     "@lexical/utils": "^0.38.2",
+    "@lottiefiles/dotlottie-react": "^0.18.8",
     "@reduxjs/toolkit": "^2.8.2",
     "@tiptap/extension-color": "^3.11.0",
     "@tiptap/extension-image": "^3.11.0",

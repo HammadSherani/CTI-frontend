@@ -1,20 +1,26 @@
 import { Icon } from '@iconify/react';
-import React, { useState } from 'react';
+import React, { useState ,useRef,useEffect} from 'react';
 import EditOfferModal from './EditOfferModal';
-import Link from 'next/link';
+import { useRouter,Link } from '@/i18n/navigation';
+
 import WithdrawModal from './WithdrawModal';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import { useRouter } from 'next/navigation';
 
 const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus }) => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState(false);
     const [iswithdrawModalOpen, setIswithdrawModalOpen] = useState(false)
     const { token } = useSelector((state) => state.auth);
+    const isDisabled = offer.isExpired;
 
+
+  const [showMore, setShowMore] = useState(false);
+  const textRef = useRef(null);
+  const job=offer?.jobId;
+  console.log(job,'job in offer');
     console.log(offer, 'offer');
 
     const router = useRouter();
@@ -64,73 +70,261 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
 
 
 
+ const getTimeRemaining = (expiresAt) => {
+  console.log("Calculating time remaining for:", expiresAt);
+  const expiryTime = new Date(expiresAt).getTime(); // 🔥 convert to ms
+
+  if (isNaN(expiryTime)) return null; // invalid date
+
+  const diff = expiryTime - Date.now();
+
+  if (diff <= 0) return "Expired";
+
+  const totalHours = Math.floor(diff / (1000 * 60 * 60));
+  const days = Math.floor(totalHours / 24);
+  const hours = totalHours % 24;
+
+  if (days > 0) {
+    return `${days} day${days > 1 ? "s" : ""}`;
+  }
+
+  return `${hours} hour${hours !== 1 ? "s" : ""}`;
+};
+
+
 
 
     console.log(isChangeStatus);
+const getUrgencyLevel = (urgencyScore) => {
+  if (typeof urgencyScore === "string") return urgencyScore;
 
+  if (urgencyScore >= 3) return "high";
+  if (urgencyScore >= 2) return "medium";
+  return "low";
+};
+
+    console.log(job,"job urgency in offer card");
+    const urgency = getUrgencyLevel(job.urgency);
+    console.log(urgency,"urgency in offer card");
+const getTimeAgo = (createdAt) => {
+  if (!createdAt) return "Recently";
+
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  
+  const diffInMs = now - createdDate;
+  const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+
+  if (diffInHours < 1) {
+    return "just now";
+  }
+  if (diffInHours < 24) {
+    return `${diffInHours} hours`;
+  }
+  
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days`;
+};
+
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) {
+      const isOverflowing = el.scrollHeight > el.clientHeight;
+      setShowMore(isOverflowing);
+    }
+  }, [job?.description]);
 
     return (
-        <div className="bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+        <div disabled={isDisabled} className={`   ${isDisabled ? 'opacity-50 pointer-events-none select-none' : 'hover:shadow-md'} bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200`}>
             {/* Header */}
-            <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-semibold text-primary-700">{clientInitials}</span>
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-lg text-gray-900 leading-tight">{jobTitle}</h3>
-                        <p className="text-sm text-gray-600">{offer.jobId?.deviceInfo?.color} {offer.jobId?.deviceInfo?.brand} {offer.jobId?.deviceInfo?.model}</p>
-                    </div>
-                </div>
-                <div className="text-right">
+     <div className="px-3 pt-6 pb-4  ">
+           <div className="flex items-center -mt-5 -ml-13 justify-between  gap-3">
+            
+           
+                       <div className="flex px-6  -mt-4 py-3 flex-wrap items-center gap-3 text-sm">
+
+       <div className='p-1  ml-5 flex items-center gap-2'>
+                 <Icon icon="iconamoon:clock" className="text-3xl text-gray-600" />
+                 <p className="text-xs text-zinc-500">Posted {new Date(job.createdAt).toLocaleDateString()}</p>
+           </div>
+                       <span className={`inline-flex items-center px-3 py-1.5 rounded-full font-medium ${getUrgencyColor(urgency)}`}>
+                         <Icon icon="heroicons:clock" className="w-3 h-3 mr-1" />
+                         {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+                       </span>
+           {job.expiresAt && (
+             <span className="inline-flex items-center text-orange-600 font-medium">
+               <Icon icon="heroicons:fire" className="w-4 h-4 mr-1" />
+           
+               {getTimeRemaining(job.expiresAt) === "Expired"
+                 ? "Expired"
+                 : `Expires in ${getTimeRemaining(job.expiresAt)}`}
+             </span>
+           )}
+                     
+                     </div>
+              
+           
+             <div className="text-right">
                     <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(offer.status)}`}>
                         {offer.status.charAt(0).toUpperCase() + offer.status.slice(1)}
                     </span>
                 </div>
-            </div>
+           </div>
+           <div className="flex items-center justify-between">
+             <div className="flex items-center mt-2 gap-4">
+               <div className="w-10 h-10 bg-gray-100 r flex items-center justify-center p-2 rounded-full border-gray-300 border">
+                 <Icon icon="mdi:cellphone" className="text-3xl text-orange-500" />
+               </div>
+               <div>
+                 <h3 className="font-bold text-2xl text-black mt-1">
+                   {job?.deviceInfo?.brand} {job?.deviceInfo?.model}
+                 </h3>
+               </div>
+             </div>
+    
+  <div className="flex items-center gap-3">
+  {job?.customerId?.profileImage ? (
+    <img
+      src={job.customerId.profileImage}
+      alt="Customer Avatar"
+      className="w-10 h-10 rounded-full object-cover"
+    />
+  ) : (
+    <div className="w-6 h-6 rounded-full  bg-primary-600 text-white flex items-center justify-center font-semibold uppercase">
+      {job?.customerId?.name?.charAt(0) || "C"}
+    </div>
+  )}
+
+  <div className="text-md font-medium capitalize text-gray-700">
+    {job?.customerId?.name || "Customer Name"}
+  </div>
+</div>
+           </div>
+         </div>
 
             {/* Content */}
-            <div className="grid grid-cols-2 gap-4 mb-3">
-                <div>
-                    <div className="flex items-center text-sm text-gray-600 mb-1">
-                        <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                        <span className="truncate">{location}</span>
-                    </div>
-                    {offer.jobId?.urgency && (
-                        <span className={`text-xs font-medium ${getUrgencyColor(offer.jobId.urgency)}`}>
-                            {offer.jobId.urgency.charAt(0).toUpperCase() + offer.jobId.urgency.slice(1)} Priority
-                        </span>
-                    )}
-                </div>
-                <div className="text-right">
-                    <p className="text-xl font-bold text-gray-900">{offer.pricing?.currency} {offer.pricing?.totalPrice?.toLocaleString()}</p>
-                    <p className="text-xs text-gray-600">Base: {offer.pricing?.currency} {offer.pricing?.basePrice} | Parts: {offer.pricing?.currency} {offer.pricing?.partsEstimate}</p>
-                </div>
-            </div>
-
-            {/* Offer Details - Compact */}
-            <div className="bg-gray-50 rounded-md p-3 mb-3">
-                <p className="text-sm text-gray-700 mb-2 line-clamp-2">{offer.description}</p>
-                <div className="grid grid-cols-3 gap-2 text-xs text-gray-600">
-                    <div><span className="font-medium">{offer.estimatedTime?.value} {offer.estimatedTime?.unit}</span></div>
-                    <div><span className="font-medium">{offer.warranty?.duration}d warranty</span></div>
-                    {/* <div><span className="font-medium">{offer.locationContext?.distance?.toFixed(1)} km</span></div> */}
-                </div>
-            </div>
-
-            {/* Expired Warning */}
-            {offer.isExpired && (
-                <div className="bg-red-50 border border-red-200 rounded-md p-2 mb-3 flex items-center">
-                    <Icon icon="heroicons:exclamation-triangle" className="w-4 h-4 text-red-600 mr-2" />
-                    <span className="text-sm font-medium text-red-700">This offer has expired</span>
-                </div>
+            <div className="flex gap-4 mb-1">
+               <div className="text-gray-500  text-md font-bold ml-5">TRY {job.budget?.min?.toLocaleString()} – {job.budget?.max?.toLocaleString()}</div>
+          {console.log(job,"jobs")}
+           {job.createdAt && (
+              <div className="text-orange-400 text-sm  font-medium">
+                Posted {getTimeAgo(job.createdAt)} ago
+              </div>
             )}
+          </div>
+      {/* Description */}
+   <div className="px-6 py-6 mb-2 text-gray-400 leading-relaxed text-[15.5px]">
+  
+  <p ref={textRef} className="line-clamp-2 overflow-hidden">
+    {job?.description}
+  </p>
 
-            {/* Footer */}
-            <div className="flex justify-between items-center text-xs text-gray-500 mb-3">
-                <span>Submitted: {new Date(offer.createdAt).toLocaleDateString()}</span>
-                <span>Viewed: {offer.viewedByCustomer ? 'Yes' : 'No'}</span>
-            </div>
+  {showMore && (
+    <span
+      onClick={() => router.push(`/job-board/${job?._id}`)}
+      className="text-orange-500 cursor-pointer hover:underline ml-1"
+    >
+      more
+    </span>
+  )}
+
+</div>
+
+      {/* Tags */}
+      <div className="px-6 pb-6 flex flex-wrap gap-2">
+        {job.services?.map((service, index) => (
+            console.log(service,"service in offer card"),
+          <span
+            key={index}
+            className="inline-flex items-center px-4 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-900 border border-zinc-400"
+          >
+            {service?.name||service._id||'Service'}
+          </span>
+        ))}
+       
+        
+      </div> 
+
+            
+
+
+
+
+        {/* Footer */}
+<div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-3">
+
+  {/* Top Info Row */}
+  <div className="flex justify-between items-center text-xs text-gray-500">
+    <span className="flex items-center gap-1">
+      <Icon icon="heroicons:calendar-days" className="w-4 h-4" />
+      Submitted: {new Date(offer.createdAt).toLocaleDateString()}
+    </span>
+
+    <span className={`flex items-center gap-1 ${offer.viewedByCustomer ? "text-green-600" : "text-gray-400"}`}>
+      <Icon icon={offer.viewedByCustomer ? "heroicons:eye" : "heroicons:eye-slash"} className="w-4 h-4" />
+      {offer.viewedByCustomer ? "Viewed" : "Not Viewed"}
+    </span>
+  </div>
+
+  {/* Buttons */}
+  <div className="flex flex-wrap gap-2">
+
+    {/* PENDING */}
+    {offer.status === 'pending' && !offer.isExpired && (
+      <>
+        <Link href={`/repair-man/my-offers/${offer._id}/edit`} className="flex-1 min-w-[120px]">
+          <button className="w-full flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+            <Icon icon="heroicons:pencil-square" className="w-4 h-4" />
+            Edit
+          </button>
+        </Link>
+
+        <Link href={`/repair-man/my-offers/${offer._id}/view`} className="flex-1 min-w-[120px]">
+          <button className="w-full flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+            <Icon icon="heroicons:eye" className="w-4 h-4" />
+            View
+          </button>
+        </Link>
+
+        <button
+          onClick={() => setIswithdrawModalOpen(!iswithdrawModalOpen)}
+          className="flex-1 min-w-[120px] flex items-center justify-center gap-2 border border-red-300 text-red-600 py-2.5 rounded-lg text-sm font-medium hover:bg-red-50 transition"
+        >
+          <Icon icon="heroicons:trash" className="w-4 h-4" />
+          Withdraw
+        </button>
+      </>
+    )}
+
+    {/* UNDER REVIEW */}
+    {offer.status === 'under_review' && (
+      <>
+        <button className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-700 transition">
+          <Icon icon="heroicons:chat-bubble-left-right" className="w-4 h-4" />
+          Message
+        </button>
+
+        <button className="flex-1 min-w-[120px] flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition">
+          <Icon icon="heroicons:eye" className="w-4 h-4" />
+          View
+        </button>
+      </>
+    )}
+
+    {/* ACCEPTED */}
+    {/* {offer.status === 'accepted' && (
+      <button
+        onClick={() => router.push(`/repair-man/my-offers/${offer._id}/view`)}
+        className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+      >
+        <Icon icon="heroicons:check-circle" className="w-4 h-4" />
+        View Accepted Offer
+      </button>
+    )} */}
+
+  </div>
+</div>
 
             {/* Actions */}
        <div className="flex gap-3 flex-1 w-full">
@@ -175,13 +369,15 @@ const OfferCard = ({ offer, handleUpdateOffer, handleStartJob, isChangeStatus })
   )}
 
   {offer.status === 'accepted' && (
-    <>
-      <button onClick={() => router.push(`/repair-man/my-offers/${offer._id}/view`)} className="flex-1 border border-gray-300 text-gray-700 py-2 px-3 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
-       
-        View Details For Accepting Offer
-      </button>
-    </>
-  )}
+  <button
+  disabled={isDisabled}
+  onClick={() => !isDisabled && router.push(`/repair-man/my-offers/${offer._id}/view`)}
+    className="w-full flex items-center justify-center gap-2 bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+  >
+    <Icon icon="heroicons:check-circle" className="w-4 h-4" />
+    View Accepted Offer
+  </button>
+)}
 
 </div>
 
