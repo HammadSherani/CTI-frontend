@@ -5,10 +5,8 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
-import Logins from "../../../../../public/assets/user/login.png";
-import Link from "next/link";
 import Image from "next/image";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams,Link } from "@/i18n/navigation";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
@@ -246,7 +244,7 @@ function ResetPasswordForm() {
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
               <Image
-                src={Logins}
+                src='/assets/user/login.png'
                 alt="Success Illustration"
                 className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
                 priority
@@ -320,7 +318,7 @@ function ResetPasswordForm() {
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
               <Image
-                src={Logins}
+                src='/assets/user/login.png'
                 alt="Reset Password Illustration"
                 className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
                 priority
