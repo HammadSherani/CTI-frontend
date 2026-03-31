@@ -5,7 +5,8 @@ import axiosInstance from "@/config/axiosInstance";
 import { useState, useEffect } from "react";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+// import { useRouter } from "next/navigation";
+import { useRouter } from '@/i18n/navigation';
 import PartModal from "./PartModal";
 
 const schema = yup.object({
@@ -711,7 +712,7 @@ export default function BidForm({
                         </div>
 
                         {/* Warranty Description */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-1 md:col-span-2">
                             <label htmlFor="warrantyDescription" className="block text-sm font-medium text-gray-700">
                                 Warranty Description
                             </label>

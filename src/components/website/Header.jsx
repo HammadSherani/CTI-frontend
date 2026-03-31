@@ -307,7 +307,7 @@ function MobileMenu({ open, onClose }) {
   const { user } = useSelector(state => state.auth) || {};
   const navLinks = [
     { label: "Home", href: "/", icon: "mdi:home-outline" },
-    { label: "Mobile Repair", href: "/my-account/mobile-repair", icon: "mynaui:mobile" },
+    // { label: "Mobile Repair", href: "/my-account/mobile-repair", icon: "mynaui:mobile" },
     { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
     { label: "Academy", href: "/academy", icon: "mdi:school-outline" },
     { label: "Track Order", href: "/coming", icon: "mdi:map-marker-path" },

@@ -7,7 +7,8 @@ import handleError from "@/helper/handleError";
 import Image from "next/image";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useRouter } from '@/i18n/navigation';
 import React, { useEffect, useState } from "react";
 
 // 🔹 Color Card Component

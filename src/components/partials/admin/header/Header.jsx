@@ -1,6 +1,6 @@
 "use client";
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import React, { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import logo from "../../../../../public/assets/logo.png";

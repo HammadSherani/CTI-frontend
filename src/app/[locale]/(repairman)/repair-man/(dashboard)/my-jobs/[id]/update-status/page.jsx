@@ -11,6 +11,7 @@ import DisputesModal from '@/components/partials/repairman/DisputesModal';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
 import { useMultiLoading } from '@/hooks/useMultiloading';
+import UpSellModal from '@/components/UpSellModal';
 
 function UpdateStatus() {
   const [job, setJob] = useState({});
@@ -20,6 +21,8 @@ function UpdateStatus() {
   const [updating, setUpdating] = useState(false);
   const [notes, setNotes] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUpSellModalOpen, setIsUpSellModalOpen] = useState(false);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const [statusUpdateResult, setStatusUpdateResult] = useState(null);
   const params = useParams();
@@ -57,10 +60,10 @@ function UpdateStatus() {
   }, [id]);
 
   const CustomerId = job?.customer?._id;
-  const {start,stop,multiloading}=useMultiLoading()
+  const { start, stop, multiloading } = useMultiLoading()
   const handleMessageSend = async () => {
     if (!user && !token) return;
-    
+
     try {
       start("Starting_chat");
       const { data } = await axiosInstance.post(
@@ -91,9 +94,9 @@ function UpdateStatus() {
         name: data?.chat?.user?.name,
         avatar: data?.chat?.user?.avatar,
       });
-  stop("Starting_chat");
+      stop("Starting_chat");
     } catch (error) {
-            stop("Starting_chat");
+      stop("Starting_chat");
       handleError(error);
     }
   };
@@ -170,6 +173,23 @@ function UpdateStatus() {
     return transitions[currentStatus] || [];
   };
 
+
+  const handleUpSellSubmit = async (data) => {
+    setIsSubmitting(true);
+    try {
+      // Aapka axios ya fetch call
+      // await axios.patch(`/api/bookings/revision/${bookingId}`, data);
+      console.log("Submitting Revision:", data);
+
+      setIsUpSellModalOpen(false); // Success ke baad modal close
+      // Alert ya Toast dikhayen
+    } catch (error) {
+      console.error("Revision failed", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const statusOptions = [
     { value: 'confirmed', label: 'Confirmed', description: 'Booking confirmed, ready to start' },
     { value: 'scheduled', label: 'Scheduled', description: 'Appointment scheduled with customer' },
@@ -220,12 +240,12 @@ function UpdateStatus() {
   const timeline = job.timeline || [];
   const tracking = job.tracking || {};
   const communication = job.communication || {};
-  
+
   // Determine booking source
   const isQuotationBased = job.type === 'quotation_booking' || job.bookingSource === 'direct_message';
-  
+
   // Get services from appropriate source
-  const services = isQuotationBased 
+  const services = isQuotationBased
     ? (quotationInfo.deviceInfo?.repairServices || [])
     : (jobInfo.services || []);
 
@@ -242,33 +262,33 @@ function UpdateStatus() {
     return deviceInfo.model;
   };
 
- const getServiceNames = () => {
-  // 🔥 FIX: Direct message walon ke liye repairServices use karo
-  if (deviceInfo.repairServices && deviceInfo.repairServices.length > 0) {
-    return deviceInfo.repairServices
-      .map(service => {
-        if (typeof service === 'object') return service.name || '';
-        return service;
-      })
-      .filter(Boolean)
-      .join(', ');
-  }
-  
-  // Job posting walon ke liye services use karo
-  if (services && services.length > 0) {
-    return services
-      .map(service => {
-        if (typeof service === 'object') return service.name || '';
-        return service;
-      })
-      .filter(Boolean)
-      .join(', ');
-  }
-  
-  return '';
-};
+  const getServiceNames = () => {
+    // 🔥 FIX: Direct message walon ke liye repairServices use karo
+    if (deviceInfo.repairServices && deviceInfo.repairServices.length > 0) {
+      return deviceInfo.repairServices
+        .map(service => {
+          if (typeof service === 'object') return service.name || '';
+          return service;
+        })
+        .filter(Boolean)
+        .join(', ');
+    }
 
-const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim() || 'Untitled Job';
+    // Job posting walon ke liye services use karo
+    if (services && services.length > 0) {
+      return services
+        .map(service => {
+          if (typeof service === 'object') return service.name || '';
+          return service;
+        })
+        .filter(Boolean)
+        .join(', ');
+    }
+
+    return '';
+  };
+
+  const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim() || 'Untitled Job';
   return (
     <>
       <div className="min-h-screen bg-gray-50">
@@ -292,11 +312,10 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                   {tracking.currentLocation?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                 </span>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                isQuotationBased 
-                  ? 'bg-purple-100 text-purple-700' 
-                  : 'bg-blue-100 text-blue-700'
-              }`}>
+              <span className={`px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
+                ? 'bg-purple-100 text-purple-700'
+                : 'bg-blue-100 text-blue-700'
+                }`}>
                 {isQuotationBased ? 'Direct Message' : 'Job Posting'}
               </span>
             </div>
@@ -350,10 +369,10 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                       {!isQuotationBased && jobInfo.location?.city && (
                         <span className="flex items-center">
                           <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" />
-                          { jobInfo.location?.city?.name || jobInfo.location.city}
+                          {jobInfo.location?.city?.name || jobInfo.location.city}
                         </span>
                       )}
-                      
+
                       {!isQuotationBased && jobInfo.urgency && (
                         <span className="flex items-center">
                           <Icon icon="heroicons:clock" className="w-4 h-4 mr-1" />
@@ -378,7 +397,7 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                     </p>
                   </div>
                 )}
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                   <div>
                     <h4 className="font-medium text-gray-900 mb-3">Device Information</h4>
@@ -393,22 +412,21 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                         {/* 🔥 FIXED: Using helper function */}
                         <span className="font-medium">{getModelName() || 'N/A'}</span>
                       </div>
-                      
+
                       {!isQuotationBased && deviceInfo.color && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Color:</span>
                           <span className="font-medium capitalize">{deviceInfo.color}</span>
                         </div>
                       )}
-                      
+
                       {!isQuotationBased && deviceInfo.warrantyStatus && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Warranty:</span>
-                          <span className={`px-2 py-1 rounded text-xs ${
-                            deviceInfo.warrantyStatus === 'active'
-                              ? 'bg-green-100 text-green-800'
-                              : 'bg-gray-100 text-gray-800'
-                          }`}>
+                          <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                            }`}>
                             {deviceInfo.warrantyStatus}
                           </span>
                         </div>
@@ -432,7 +450,7 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                           <span className="font-medium text-gray-400">To be scheduled</span>
                         </div>
                       )}
-                      
+
                       {bookingDetails.pricing?.basePrice !== undefined && (
                         <div className="flex justify-between">
                           <span className="text-gray-500">Base Price:</span>
@@ -441,14 +459,14 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                           </span>
                         </div>
                       )}
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-500">Parts Price:</span>
                         <span className="font-medium">
                           {formatCurrency(bookingDetails.pricing?.partsPrice || 0, bookingDetails.pricing?.currency)}
                         </span>
                       </div>
-                      
+
                       <div className="flex justify-between">
                         <span className="text-gray-500">Service Charge:</span>
                         <span className="font-medium">
@@ -594,23 +612,31 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Actions</h3>
 
                 <div className="space-y-3">
-                    <button onClick={handleMessageSend} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-                      <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
-  {multiloading["Starting_chat"] ? "Loading..." : "Chat with Customer"}
-                      
-                      {communication.unreadCount > 0 && (
-                        <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
-                          {communication.unreadCount}
-                        </span>
-                      )}
-                    </button>
+                  <button onClick={handleMessageSend} className="w-full flex items-center justify-center px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
+                    <Icon icon="heroicons:chat-bubble-left" className="w-5 h-5 mr-2" />
+                    {multiloading["Starting_chat"] ? "Loading..." : "Chat with Customer"}
 
-                  <button 
-                    onClick={() => setIsModalOpen(!isModalOpen)} 
+                    {communication.unreadCount > 0 && (
+                      <span className="ml-2 bg-red-500 text-white text-xs rounded-full px-2 py-1">
+                        {communication.unreadCount}
+                      </span>
+                    )}
+                  </button>
+
+                  <button
+                    onClick={() => setIsModalOpen(!isModalOpen)}
                     className="w-full cursor-pointer border border-gray-200 flex items-center justify-center px-4 py-3 bg-gray-100 rounded-lg transition-colors hover:bg-gray-200"
                   >
                     <Icon icon="mdi:scale-balance" className="w-5 h-5 mr-2" />
                     Create Disputes
+                  </button>
+
+                  <button
+                    onClick={() => setIsUpSellModalOpen(!isUpSellModalOpen)}
+                    className="w-full cursor-pointer border border-gray-200 flex items-center justify-center px-4 py-3 bg-gray-100 rounded-lg transition-colors hover:bg-gray-200"
+                  >
+                    <Icon icon="mdi:scale-balance" className="w-5 h-5 mr-2" />
+                    UpSell
                   </button>
                 </div>
               </div>
@@ -622,12 +648,11 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-gray-500">Status:</span>
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        job.payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${job.payment.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
                         job.payment.status === 'held' ? 'bg-orange-100 text-orange-700' :
-                        job.payment.status === 'released' ? 'bg-green-100 text-green-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
+                          job.payment.status === 'released' ? 'bg-green-100 text-green-700' :
+                            'bg-gray-100 text-gray-700'
+                        }`}>
                         {job.payment.status?.replace('_', ' ').toUpperCase()}
                       </span>
                     </div>
@@ -645,7 +670,7 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
                       <span className="font-medium">{bookingDetails.warranty.duration} days</span>
                     </div>
                     {bookingDetails.warranty.description && (
-                      <div className="flex justify-between">
+                      <div className="flex flex-col justify-between">
                         <span className="text-gray-500">Description:</span>
                         <span className="font-medium">{bookingDetails.warranty.description}</span>
                       </div>
@@ -680,6 +705,12 @@ const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim(
         </div>
       </div>
       <DisputesModal isOpen={isModalOpen} onClose={() => setIsModalOpen(!isModalOpen)} bookingId={id} />
+      <UpSellModal
+        isOpen={isUpSellModalOpen}
+        onClose={() => setIsUpSellModalOpen(false)}
+        onSubmit={handleUpSellSubmit}
+        isLoading={isSubmitting}
+      />
     </>
   );
 }
