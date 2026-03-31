@@ -5,8 +5,9 @@ import { usePathname } from "next/navigation";
 
 const servicePreferences = [
   { value: 'pickup', label: 'Pickup & Delivery', icon: 'mdi:truck-delivery' },
-  { value: 'drop-off', label: 'On-site Repair', icon: 'mdi:home-repair' },
+  { value: 'drop-off', label: 'On-site Repair', icon: 'material-symbols-light:home' },
 ];
+
 
 export const LocationPreferences = ({
   Controller,
@@ -390,7 +391,7 @@ export const LocationPreferences = ({
                 >
                   <Icon
                     icon={pref.icon}
-                    className={`text-xl mx-auto mb-2 ${
+                    className={`text-3xl mx-auto mb-2 ${
                       field.value === pref.value ? 'text-orange-500' : 'text-gray-400'
                     }`}
                   />

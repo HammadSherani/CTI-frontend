@@ -711,7 +711,7 @@ export default function BidForm({
                         </div>
 
                         {/* Warranty Description */}
-                        <div className="space-y-2">
+                        <div className="space-y-2 col-span-1 md:col-span-2">
                             <label htmlFor="warrantyDescription" className="block text-sm font-medium text-gray-700">
                                 Warranty Description
                             </label>

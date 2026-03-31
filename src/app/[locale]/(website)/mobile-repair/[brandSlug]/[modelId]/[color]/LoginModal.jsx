@@ -267,6 +267,8 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                         src='/assets/user/login.png'
                         alt="Login to Post Job"
                         className="w-full max-w-sm mx-auto mb-6 drop-shadow-2xl"
+                        width={500}
+                        height={500}
                         priority
                       />
                     </motion.div>

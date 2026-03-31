@@ -147,6 +147,7 @@ function Login() {
                 width={100}
                 height={100}
                 alt="logo"
+                className="cursor-pointer h-auto w-32 object-contain"
                 className="cursor-pointer object-contain"
               />
             </Link> */}

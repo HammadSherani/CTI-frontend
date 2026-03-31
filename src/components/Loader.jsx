@@ -26,8 +26,7 @@ function Loader({ loading, children }) {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {!loading && children}
+    {!loading && children}
     </>
   );
 }

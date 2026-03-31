@@ -1,6 +1,6 @@
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';           // ← Add this import
 import { useMultiLoading } from '@/hooks/useMultiloading';
