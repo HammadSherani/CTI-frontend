@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import Link from 'next/link';
+import {Link} from '@/i18n/navigation';
 
 function PartsOrder() {
     const [isLoading, setLoading] = useState(false);

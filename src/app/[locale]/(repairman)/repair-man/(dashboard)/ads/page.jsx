@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
-import { useRouter } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import useDebounce from '@/hooks/useDebounce'; // Adjust the import path as needed
 
 function Ads() {

@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 const StatCard = ({ icon, label, value, bgColor = "bg-primary-50", iconColor = "text-primary-600" }) => (
   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
     <div className="flex items-center gap-3">
@@ -60,7 +60,7 @@ const Badge = ({ children, variant = 'primary' }) => {
     info: 'bg-blue-50 text-blue-700 border-blue-200',
     default: 'bg-gray-50 text-gray-700 border-gray-200'
   };
-  
+
   return (
     <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant]}`}>
       {children}
@@ -73,7 +73,7 @@ function ProfilePage() {
   const [coverImage, setCoverImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState(null);
-const router = useRouter();
+  const router = useRouter();
   const { token } = useSelector(state => state.auth);
 
   const fetchData = async () => {
@@ -113,7 +113,7 @@ const router = useRouter();
             <Icon icon="heroicons:user-circle" className="w-20 h-20 text-gray-300 mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-gray-900 mb-2">No Profile Found</h2>
             <p className="text-gray-600 mb-6">We couldn't find any profile data. Please try again later.</p>
-            <button 
+            <button
               onClick={fetchData}
               className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
             >
@@ -149,9 +149,9 @@ const router = useRouter();
         <div className="absolute inset-0 overflow-hidden">
           {profile?.shopPhoto ? (
             <>
-              <img 
-                src={profile.shopPhoto||"N/A"} 
-                alt="Cover" 
+              <img
+                src={profile.shopPhoto || "N/A"}
+                alt="Cover"
                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
               />
               {/* Gradient Overlay */}
@@ -178,7 +178,7 @@ const router = useRouter();
             <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
             <span className="text-sm font-medium">Back to Dashboard</span>
           </button>
-          
+
           <div className="flex gap-2">
             <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
               <Icon icon="heroicons:bookmark" className="w-5 h-5" />
@@ -189,19 +189,19 @@ const router = useRouter();
           </div>
         </div>
 
-       {/* Cover Image Actions - Bottom Right */}
-<div className="absolute bottom-24 right-6 flex gap-3" style={{ zIndex: 100 }}> {/* Inline z-index */}
-  <button 
-    onClick={() => {
-      router.push('/repair-man/profile/edit-profile');
-    }}  
-    className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/30 font-medium flex items-center gap-2 cursor-pointer relative" /* Added relative */
-    type="button" /* Explicit button type */
-  >
-    <Icon icon="heroicons:pencil" className="w-5 h-5" />
-    Update Profile
-  </button> 
-</div>
+        {/* Cover Image Actions - Bottom Right */}
+        <div className="absolute bottom-24 right-6 flex gap-3" style={{ zIndex: 100 }}> {/* Inline z-index */}
+          <button
+            onClick={() => {
+              router.push('/repair-man/profile/edit-profile');
+            }}
+            className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/30 font-medium flex items-center gap-2 cursor-pointer relative" /* Added relative */
+            type="button" /* Explicit button type */
+          >
+            <Icon icon="heroicons:pencil" className="w-5 h-5" />
+            Update Profile
+          </button>
+        </div>
 
         {/* Profile Info Overlay - Bottom Left */}
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-24">
@@ -211,7 +211,7 @@ const router = useRouter();
               <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform hover:scale-105 transition-transform duration-300">
                 {profile?.profilePhoto ? (
                   <img
-                    src={profile.profilePhoto||"N/A"}
+                    src={profile.profilePhoto || "N/A"}
                     alt={profile.fullName}
                     className="w-full h-full object-cover"
                   />
@@ -245,7 +245,7 @@ const router = useRouter();
                   </span>
                 )}
               </div>
-              
+
               <div className="flex items-center gap-4 text-white/90">
                 <div className="flex items-center gap-1">
                   <Icon icon="heroicons:map-pin" className="w-4 h-4" />
@@ -295,7 +295,7 @@ const router = useRouter();
                     <span className="text-sm font-bold text-white">{completionPercentage}% Complete</span>
                   </div>
                   <div className="h-2.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                    <div 
+                    <div
                       className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500 relative"
                       style={{ width: `${completionPercentage}%` }}
                     >
@@ -341,28 +341,28 @@ const router = useRouter();
       <div className="container mx-auto px-6 pb-8">
         {/* Stats Grid */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard 
+          <StatCard
             icon="heroicons:star"
             label="Rating"
             value={profile?.rating ? `${profile.rating} (${profile.totalReviews || 0} reviews)` : 'No ratings'}
             bgColor="bg-yellow-50"
             iconColor="text-yellow-600"
           />
-          <StatCard 
+          <StatCard
             icon="heroicons:briefcase"
             label="Jobs Completed"
             value={profile?.totalJobs || 0}
             bgColor="bg-blue-50"
             iconColor="text-blue-600"
           />
-          <StatCard 
+          <StatCard
             icon="heroicons:clock"
             label="Experience"
             value={profile?.yearsOfExperience ? `${profile.yearsOfExperience} Years` : 'N/A'}
             bgColor="bg-purple-50"
             iconColor="text-purple-600"
           />
-          <StatCard 
+          <StatCard
             icon="heroicons:users"
             label="Happy Clients"
             value={profile?.totalClients || 0}
@@ -403,7 +403,7 @@ const router = useRouter();
                       {profile.workingHours.start || '09:00'} - {profile.workingHours.end || '18:00'}
                     </p>
                   </div>
-                  
+
                   {profile?.workingDays?.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-xl">
                       <p className="text-xs text-gray-500 font-medium mb-2">Working Days</p>
@@ -427,7 +427,7 @@ const router = useRouter();
                   {profile.certifications.map((cert, index) => (
                     <div key={index} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
                       <img
-                        src={cert||"N/A"}
+                        src={cert || "N/A"}
                         alt={`Certificate ${index + 1}`}
                         className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -449,7 +449,7 @@ const router = useRouter();
                   {profile.shopPhotos.map((photo, index) => (
                     <div key={index} className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square">
                       <img
-                        src={photo||"N/A"}
+                        src={photo || "N/A"}
                         alt={`Shop ${index + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
@@ -466,19 +466,19 @@ const router = useRouter();
             {/* Contact Information */}
             <SectionCard title="Contact Info" icon="heroicons:phone">
               <div className="space-y-2">
-                <InfoRow 
+                <InfoRow
                   icon="heroicons:phone"
                   label="Phone"
                   value={profile?.mobileNumber || user.phone}
                 />
-                <InfoRow 
+                <InfoRow
                   icon="heroicons:envelope"
                   label="Email"
                   value={profile?.emailAddress || user.email}
                   isVerified={user.isEmailVerified}
                 />
                 {profile?.whatsappNumber && (
-                  <InfoRow 
+                  <InfoRow
                     icon="ic:baseline-whatsapp"
                     label="WhatsApp"
                     value={profile.whatsappNumber}
@@ -510,14 +510,14 @@ const router = useRouter();
               <SectionCard title="Emergency Contact" icon="heroicons:phone-arrow-up-right">
                 <div className="space-y-3">
                   {profile.emergencyContactPerson && (
-                    <InfoRow 
+                    <InfoRow
                       icon="heroicons:user"
                       label="Contact Person"
                       value={profile.emergencyContactPerson}
                     />
                   )}
                   {profile.emergencyContactNumber && (
-                    <InfoRow 
+                    <InfoRow
                       icon="heroicons:phone"
                       label="Contact Number"
                       value={profile.emergencyContactNumber}
@@ -536,7 +536,7 @@ const router = useRouter();
                     {profile?.pickupService ? 'Available' : 'Not Available'}
                   </Badge>
                 </div>
-                
+
                 {profile?.homeService !== undefined && (
                   <div className="flex items-center justify-between p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
                     <span className="text-sm font-medium text-gray-700">Home Service</span>
@@ -554,13 +554,13 @@ const router = useRouter();
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Member Since</span>
                   <span className="text-sm font-medium">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { 
-                      month: 'long', 
-                      year: 'numeric' 
+                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
+                      month: 'long',
+                      year: 'numeric'
                     }) : 'N/A'}
                   </span>
                 </div>
-                
+
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Last Updated</span>
                   <span className="text-sm font-medium">
@@ -745,13 +745,13 @@ export default ProfilePage;
 //                 Update shop photo
 //               </button>
 
-              // <button
-              //   type="button"
-              //   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              // >
-              //   <Icon icon="heroicons:user" className="h-5 w-5" />
-              //   Update profile
-              // </button>
+// <button
+//   type="button"
+//   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+// >
+//   <Icon icon="heroicons:user" className="h-5 w-5" />
+//   Update profile
+// </button>
 //             </div>
 //           </div>
 //         </div>

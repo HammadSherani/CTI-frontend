@@ -2,12 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
-import { useRouter } from 'next/navigation';
+import { useRouter ,LInk} from '@/i18n/navigation';
 
 function Ads() {
     const router = useRouter();

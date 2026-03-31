@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
-import Link from 'next/link';
+import {Link} from '@/i18n/navigation';
 
 const ServiceCatalogPage = () => {
   const [activeTab, setActiveTab] = useState('all');

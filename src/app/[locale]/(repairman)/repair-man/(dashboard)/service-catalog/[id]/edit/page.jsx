@@ -8,7 +8,8 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
+import {  useParams } from 'next/navigation';
 import { toast } from 'react-toastify';
 
 // Validation Schema

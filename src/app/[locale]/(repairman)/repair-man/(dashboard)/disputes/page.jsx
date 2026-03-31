@@ -5,8 +5,7 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter,Link } from '@/i18n/navigation';
 import Loader from '@/components/Loader';
 
 function RepairmanDisptes() {

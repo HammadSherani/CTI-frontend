@@ -1,6 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
-
+import { Link } from '@/i18n/navigation';
 export const StoreButton = ({ img, title, subtitle, href }) => (
   <Link href={href} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 bg-gray-900 hover:opacity-90 text-white p-2 rounded-lg">
     <Image src={`/assets/logo/${img}`} alt={title} width={24} height={24} />

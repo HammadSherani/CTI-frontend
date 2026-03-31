@@ -1,10 +1,9 @@
 import { Icon } from "@iconify/react";
-import Link from "next/link";
 import Image from "next/image";
 import handleError from "@/helper/handleError";
 import axiosInstance from "@/config/axiosInstance";
 import { useCallback, useEffect, useState } from "react";
-
+import { Link } from "@/i18n/navigation";
 export function MobileRepairCategory() {
     const [brands, setBrands] = useState([])
     const fetchBrands = useCallback(async () => {

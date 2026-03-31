@@ -2,7 +2,7 @@ import React from 'react'
 import SectionTag from './sectoinTag'
 import { Icon } from '@iconify/react'
 import Image from 'next/image'
-import { useRouter } from 'next/navigation'
+import { useRouter } from '@/i18n/navigation'
 
 export default function OurDeals() {
 

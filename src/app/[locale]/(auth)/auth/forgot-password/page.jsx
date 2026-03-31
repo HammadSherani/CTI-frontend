@@ -5,11 +5,10 @@ import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
-import Logins from "../../../../../public/assets/user/login.png";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import Image from "next/image";
-import axiosInstance from "../../../../../config/axiosInstance";
-import handleError from "../../../../../helper/handleError";
+import axiosInstance from "@/config/axiosInstance";
+import handleError from "@/helper/handleError";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -66,15 +65,15 @@ function ForgotPassword() {
 
   if (isEmailSent) {
     return (
-    <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
-        
+      <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
+
         {/* Left Image Section */}
-       <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
+        <div className="hidden lg:flex lg:col-span-5 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
               <Image
-                src={Logins}
+                src='/assets/user/login.png'
                 alt="Password Reset Illustration"
                 className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
                 priority
@@ -97,7 +96,7 @@ function ForgotPassword() {
               </div>
             </div>
           </div>
-          
+
           {/* Decorative Elements */}
           <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
           <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -107,19 +106,19 @@ function ForgotPassword() {
         {/* Right Success Section */}
         <div className="col-span-1 lg:col-span-7 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">
-            
+
             {/* Language Switch */}
             <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
               <span className="flex items-center justify-end gap-2">
                 <Icon icon="mdi:web" className="text-base" />
-                English (UK) 
+                English (UK)
                 <Icon icon="mdi:chevron-down" className="text-xs" />
               </span>
             </div>
 
             {/* Main Content */}
             <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
-              
+
               {/* Success Header */}
               <div className="text-center mb-8">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
@@ -160,7 +159,7 @@ function ForgotPassword() {
                     Resend Email
                   </div>
                 </button>
-                
+
                 <Link href="/auth/login">
                   <button className="w-full py-4 font-bold text-white bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-[1.02] transition-all duration-200">
                     <div className="flex items-center justify-center">
@@ -197,14 +196,14 @@ function ForgotPassword() {
   return (
     <>
       <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">
-        
+
         {/* Left Image Section */}
         <div className="hidden lg:grid lg:col-span-6 bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden">
           <div className="absolute inset-0 bg-black/10"></div>
           <div className="flex items-center justify-center h-full p-8 relative z-10">
             <div className="text-center">
               <Image
-                src={Logins}
+                src='/assets/user/login.png'
                 alt="Forgot Password Illustration"
                 className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
                 priority
@@ -227,7 +226,7 @@ function ForgotPassword() {
               </div>
             </div>
           </div>
-          
+
           {/* Decorative Elements */}
           <div className="absolute top-10 left-10 w-20 h-20 bg-white/10 rounded-full"></div>
           <div className="absolute bottom-20 right-20 w-32 h-32 bg-white/5 rounded-full"></div>
@@ -237,19 +236,19 @@ function ForgotPassword() {
         {/* Right Form Section */}
         <div className="col-span-1 lg:col-span-6 flex items-center justify-center p-4 bg-gray-50">
           <div className="w-full max-w-md">
-            
+
             {/* Language Switch */}
             <div className="mb-8 text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
               <span className="flex items-center justify-end gap-2">
                 <Icon icon="mdi:web" className="text-base" />
-                English (UK) 
+                English (UK)
                 <Icon icon="mdi:chevron-down" className="text-xs" />
               </span>
             </div>
 
             {/* Main Content */}
             <div className="bg-white rounded-3xl shadow-2xl p-8 md:p-10">
-              
+
               {/* Header */}
               <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -265,7 +264,7 @@ function ForgotPassword() {
 
               {/* Reset Password Form */}
               <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-                
+
                 {/* Email Field */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -280,15 +279,14 @@ function ForgotPassword() {
                           {...field}
                           type="email"
                           placeholder="Enter your email address"
-                          className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${
-                            errors.email 
-                              ? "border-red-300 focus:border-red-500" 
+                          className={`w-full px-4 py-3 pl-12 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.email
+                              ? "border-red-300 focus:border-red-500"
                               : "border-gray-200 focus:border-orange-500"
-                          }`}
+                            }`}
                         />
-                        <Icon 
-                          icon="mdi:email-outline" 
-                          className="absolute left-4 top-3.5 text-gray-400 text-lg" 
+                        <Icon
+                          icon="mdi:email-outline"
+                          className="absolute left-4 top-3.5 text-gray-400 text-lg"
                         />
                       </div>
                     )}
@@ -336,8 +334,8 @@ function ForgotPassword() {
 
               {/* Back to Login */}
               <div className="mt-8 text-center">
-                <Link 
-                  href="/auth/login" 
+                <Link
+                  href="/auth/login"
                   className="font-bold text-orange-500 hover:text-orange-600 transition-colors inline-flex items-center gap-2"
                 >
                   <Icon icon="mdi:arrow-left" className="text-lg" />

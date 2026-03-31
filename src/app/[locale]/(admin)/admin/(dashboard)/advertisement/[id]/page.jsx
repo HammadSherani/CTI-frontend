@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
-import Link from 'next/link';
+import { Link, useRouter } from '@/i18n/navigation';
 
 function ViewAdvertisement() {
     const router = useRouter();
@@ -38,7 +38,7 @@ function ViewAdvertisement() {
             setLoading(false);
         }
     };
-    
+
     console.log('Fetched ad details:', ad);
     const getStatusColor = (status) => {
         const colors = {
@@ -60,7 +60,7 @@ function ViewAdvertisement() {
             minute: '2-digit'
         });
     };
-   const getCurrencySymbol = (currency) => {
+    const getCurrencySymbol = (currency) => {
         const symbols = {
             USD: '$',
             TRY: '₺',
@@ -122,11 +122,11 @@ function ViewAdvertisement() {
                                 <p className="text-gray-600 mt-1">View complete information about this advertisement</p>
                             </div>
                         </div>
-                     
+
                     </div>
                 </div>
 
-                
+
 
                 {/* Main Content */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -139,7 +139,7 @@ function ViewAdvertisement() {
                                     <Icon icon="mdi:briefcase" className="w-6 h-6 mr-2 text-primary-600" />
                                     Service Advertisement
                                 </h2>
-                                
+
                                 {/* Image */}
                                 <div className="mb-6">
                                     <img
@@ -176,11 +176,11 @@ function ViewAdvertisement() {
                                     <Icon icon="mdi:format-list-bulleted" className="w-6 h-6 mr-2 text-primary-600" />
                                     Service List ({ad.serviceList.length})
                                 </h2>
-                                
+
                                 <div className="space-y-4">
                                     {ad.serviceList.map((service, index) => (
-                                        <div 
-                                            key={service._id || index} 
+                                        <div
+                                            key={service._id || index}
                                             className="border border-gray-200 rounded-lg p-5 hover:shadow-md transition-shadow bg-gradient-to-r from-white to-gray-50"
                                         >
                                             {/* Service Header */}
@@ -188,11 +188,10 @@ function ViewAdvertisement() {
                                                 <div className="flex-1">
                                                     <h3 className="text-lg font-bold text-gray-900 mb-1">{service.title}</h3>
                                                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                                            service.status === 'active' ? 'bg-green-100 text-green-800' :
-                                                            service.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-gray-100 text-gray-800'
-                                                        }`}>
+                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${service.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                                service.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                                                                    'bg-gray-100 text-gray-800'
+                                                            }`}>
                                                             {service.status}
                                                         </span>
                                                         {service.isActive && (
@@ -312,137 +311,137 @@ function ViewAdvertisement() {
                         )}
 
                         {/* Profile Ad Details */}
-                      {/* Profile Ad Details */}
-{ad.type === 'profile' && (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-            <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-primary-600" />
-            Profile Advertisement
-        </h2>
-        
-        {/* Profile Header */}
-        <div className="flex items-center gap-6 mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg">
-            {ad.user_id?.repairmanProfile?.profilePhoto ? (
-                <img
-                    src={ad.user_id.repairmanProfile.profilePhoto}
-                    alt={ad.user_id?.repairmanProfile?.fullName || ad.user_id?.name}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-                />
-            ) : (
-                <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center">
-                    <Icon icon="mdi:account" className="w-12 h-12 text-primary-600" />
-                </div>
-            )}
-            <div className="flex-1">
-                <h3 className="text-2xl font-bold text-gray-900">
-                    {ad.user_id?.repairmanProfile?.fullName || ad.user_id?.name || 'N/A'}
-                </h3>
-                <p className="text-gray-600">{ad.user_id?.repairmanProfile?.shopName || 'N/A'}</p>
-                <div className="flex items-center gap-4 mt-2">
-                    <div className="flex items-center">
-                        <Icon icon="mdi:star" className="w-5 h-5 text-yellow-500 mr-1" />
-                        <span className="font-semibold">{ad.user_id?.repairmanProfile?.rating || 0}</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                        <Icon icon="mdi:briefcase" className="w-5 h-5 mr-1" />
-                        <span>{ad.user_id?.repairmanProfile?.totalJobs || 0} Jobs</span>
-                    </div>
-                    <div className="flex items-center text-gray-600">
-                        <Icon icon="mdi:clock" className="w-5 h-5 mr-1" />
-                        <span>{ad.user_id?.repairmanProfile?.yearsOfExperience || 0} Years</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+                        {/* Profile Ad Details */}
+                        {ad.type === 'profile' && (
+                            <div className="bg-white rounded-lg shadow-sm p-6">
+                                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
+                                    <Icon icon="mdi:account" className="w-6 h-6 mr-2 text-primary-600" />
+                                    Profile Advertisement
+                                </h2>
 
-        {/* Profile Details Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-                <label className="text-sm font-medium text-gray-500">Email</label>
-                <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.emailAddress || ad.user_id?.email || 'N/A'}</p>
-            </div>
-            <div>
-                <label className="text-sm font-medium text-gray-500">Phone</label>
-                <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.mobileNumber || ad.user_id?.phone || 'N/A'}</p>
-            </div>
-            <div>
-                <label className="text-sm font-medium text-gray-500">WhatsApp</label>
-                <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.whatsappNumber || 'N/A'}</p>
-            </div>
-            <div>
-                <label className="text-sm font-medium text-gray-500">City</label>
-                <p className="text-gray-900 mt-1">{ad.user_id?.city?.name || ad.user_id?.repairmanProfile?.city || 'N/A'}</p>
-            </div>
-            <div className="md:col-span-2">
-                <label className="text-sm font-medium text-gray-500">Address</label>
-                <p className="text-gray-900 mt-1">{ad.user_id?.address || ad.user_id?.repairmanProfile?.fullAddress || 'N/A'}</p>
-            </div>
-        </div>
+                                {/* Profile Header */}
+                                <div className="flex items-center gap-6 mb-6 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg">
+                                    {ad.user_id?.repairmanProfile?.profilePhoto ? (
+                                        <img
+                                            src={ad.user_id.repairmanProfile.profilePhoto}
+                                            alt={ad.user_id?.repairmanProfile?.fullName || ad.user_id?.name}
+                                            className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                                        />
+                                    ) : (
+                                        <div className="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center">
+                                            <Icon icon="mdi:account" className="w-12 h-12 text-primary-600" />
+                                        </div>
+                                    )}
+                                    <div className="flex-1">
+                                        <h3 className="text-2xl font-bold text-gray-900">
+                                            {ad.user_id?.repairmanProfile?.fullName || ad.user_id?.name || 'N/A'}
+                                        </h3>
+                                        <p className="text-gray-600">{ad.user_id?.repairmanProfile?.shopName || 'N/A'}</p>
+                                        <div className="flex items-center gap-4 mt-2">
+                                            <div className="flex items-center">
+                                                <Icon icon="mdi:star" className="w-5 h-5 text-yellow-500 mr-1" />
+                                                <span className="font-semibold">{ad.user_id?.repairmanProfile?.rating || 0}</span>
+                                            </div>
+                                            <div className="flex items-center text-gray-600">
+                                                <Icon icon="mdi:briefcase" className="w-5 h-5 mr-1" />
+                                                <span>{ad.user_id?.repairmanProfile?.totalJobs || 0} Jobs</span>
+                                            </div>
+                                            <div className="flex items-center text-gray-600">
+                                                <Icon icon="mdi:clock" className="w-5 h-5 mr-1" />
+                                                <span>{ad.user_id?.repairmanProfile?.yearsOfExperience || 0} Years</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
 
-        {/* Description */}
-        {ad.user_id?.repairmanProfile?.description && (
-            <div className="mb-6">
-                <label className="text-sm font-medium text-gray-500">About</label>
-                <p className="text-gray-700 mt-2 leading-relaxed">
-                    {ad.user_id.repairmanProfile.description}
-                </p>
-            </div>
-        )}
+                                {/* Profile Details Grid */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Email</label>
+                                        <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.emailAddress || ad.user_id?.email || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">Phone</label>
+                                        <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.mobileNumber || ad.user_id?.phone || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">WhatsApp</label>
+                                        <p className="text-gray-900 mt-1">{ad.user_id?.repairmanProfile?.whatsappNumber || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="text-sm font-medium text-gray-500">City</label>
+                                        <p className="text-gray-900 mt-1">{ad.user_id?.city?.name || ad.user_id?.repairmanProfile?.city || 'N/A'}</p>
+                                    </div>
+                                    <div className="md:col-span-2">
+                                        <label className="text-sm font-medium text-gray-500">Address</label>
+                                        <p className="text-gray-900 mt-1">{ad.user_id?.address || ad.user_id?.repairmanProfile?.fullAddress || 'N/A'}</p>
+                                    </div>
+                                </div>
 
-        {/* Specializations */}
-        {ad.user_id?.repairmanProfile?.specializations && ad.user_id.repairmanProfile.specializations.length > 0 && (
-            <div className="mb-6">
-                <label className="text-sm font-medium text-gray-500 mb-2 block">Specializations</label>
-                <div className="flex flex-wrap gap-2">
-                    {ad.user_id.repairmanProfile.specializations.map((spec, index) => (
-                        <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
-                            {spec}
-                        </span>
-                    ))}
-                </div>
-            </div>
-        )}
+                                {/* Description */}
+                                {ad.user_id?.repairmanProfile?.description && (
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-500">About</label>
+                                        <p className="text-gray-700 mt-2 leading-relaxed">
+                                            {ad.user_id.repairmanProfile.description}
+                                        </p>
+                                    </div>
+                                )}
 
-        {/* Working Hours & Days */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {ad.user_id?.repairmanProfile?.workingHours && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Working Hours</label>
-                    <div className="flex items-center text-gray-900">
-                        <Icon icon="mdi:clock-outline" className="w-5 h-5 mr-2 text-primary-600" />
-                        <span>
-                            {ad.user_id.repairmanProfile.workingHours.start} - {ad.user_id.repairmanProfile.workingHours.end}
-                        </span>
-                    </div>
-                </div>
-            )}
-            
-            {ad.user_id?.repairmanProfile?.workingDays && ad.user_id.repairmanProfile.workingDays.length > 0 && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                    <label className="text-sm font-medium text-gray-500 mb-2 block">Working Days</label>
-                    <div className="flex flex-wrap gap-1">
-                        {ad.user_id.repairmanProfile.workingDays.map((day, index) => (
-                            <span key={index} className="px-2 py-0.5 bg-white text-gray-700 rounded text-xs border border-gray-200">
-                                {day.substring(0, 3)}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-            )}
-        </div>
+                                {/* Specializations */}
+                                {ad.user_id?.repairmanProfile?.specializations && ad.user_id.repairmanProfile.specializations.length > 0 && (
+                                    <div className="mb-6">
+                                        <label className="text-sm font-medium text-gray-500 mb-2 block">Specializations</label>
+                                        <div className="flex flex-wrap gap-2">
+                                            {ad.user_id.repairmanProfile.specializations.map((spec, index) => (
+                                                <span key={index} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                                                    {spec}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
 
-        {/* KYC Status */}
-        <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
-            <Icon icon="mdi:shield-check" className="w-6 h-6 text-green-600" />
-            <div>
-                <p className="text-sm font-medium text-gray-900">KYC Status</p>
-                <p className="text-sm text-green-700">
-                    {ad.user_id?.repairmanProfile?.kycStatus === 'approved' ? 'Verified' : ad.user_id?.repairmanProfile?.kycStatus || 'Pending'}
-                </p>
-            </div>
-        </div>
-    </div>
-)}
+                                {/* Working Hours & Days */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                                    {ad.user_id?.repairmanProfile?.workingHours && (
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <label className="text-sm font-medium text-gray-500 mb-2 block">Working Hours</label>
+                                            <div className="flex items-center text-gray-900">
+                                                <Icon icon="mdi:clock-outline" className="w-5 h-5 mr-2 text-primary-600" />
+                                                <span>
+                                                    {ad.user_id.repairmanProfile.workingHours.start} - {ad.user_id.repairmanProfile.workingHours.end}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {ad.user_id?.repairmanProfile?.workingDays && ad.user_id.repairmanProfile.workingDays.length > 0 && (
+                                        <div className="bg-gray-50 p-4 rounded-lg">
+                                            <label className="text-sm font-medium text-gray-500 mb-2 block">Working Days</label>
+                                            <div className="flex flex-wrap gap-1">
+                                                {ad.user_id.repairmanProfile.workingDays.map((day, index) => (
+                                                    <span key={index} className="px-2 py-0.5 bg-white text-gray-700 rounded text-xs border border-gray-200">
+                                                        {day.substring(0, 3)}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* KYC Status */}
+                                <div className="flex items-center gap-4 p-4 bg-green-50 rounded-lg">
+                                    <Icon icon="mdi:shield-check" className="w-6 h-6 text-green-600" />
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-900">KYC Status</p>
+                                        <p className="text-sm text-green-700">
+                                            {ad.user_id?.repairmanProfile?.kycStatus === 'approved' ? 'Verified' : ad.user_id?.repairmanProfile?.kycStatus || 'Pending'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Performance Metrics */}
                         <div className="bg-white rounded-lg shadow-sm p-6">
@@ -481,14 +480,13 @@ function ViewAdvertisement() {
                                 <div>
                                     <label className="text-sm font-medium text-gray-500">Type</label>
                                     <div className="mt-1">
-                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                                            ad.type === 'service' 
-                                                ? 'bg-blue-100 text-blue-800' 
+                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${ad.type === 'service'
+                                                ? 'bg-blue-100 text-blue-800'
                                                 : 'bg-purple-100 text-purple-800'
-                                        }`}>
-                                            <Icon 
-                                                icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'} 
-                                                className="w-4 h-4 mr-1" 
+                                            }`}>
+                                            <Icon
+                                                icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'}
+                                                className="w-4 h-4 mr-1"
                                             />
                                             {ad.type === 'service' ? 'Service' : 'Profile'}
                                         </span>
@@ -515,7 +513,7 @@ function ViewAdvertisement() {
                         <div className="bg-white rounded-lg shadow-sm p-6">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4">Duration & Pricing</h3>
                             <div className="space-y-4">
-                                   <div className="bg-primary-50 p-4 rounded-lg">
+                                <div className="bg-primary-50 p-4 rounded-lg">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm text-gray-600">Total Cost</span>
                                         <span className="text-2xl font-bold text-primary-600">

@@ -2,11 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useRouter, useParams } from 'next/navigation';
+import {  useParams } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
-import Link from 'next/link';
 
 function ViewPart() {
   const [part, setPart] = useState(null);

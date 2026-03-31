@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import {useRouter} from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 

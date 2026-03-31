@@ -191,16 +191,18 @@ function SearchBar({ className = "" }) {
    ANNOUNCEMENT BAR
 ════════════════════════════════════════════ */
 function AnnouncementBar() {
-  const t = useTranslations("AnnouncementBar");
-  const transformed = t.rich("message", {
-    hours: (chunks) => <span className="text-red-500 font-bold">{chunks}</span>
-  });
+  const t = useTranslations("Home.AnnouncementBar");
+ 
   return (
     <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
       <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
 
-        <p className="text-center sm:text-left">
-          {transformed}
+       <p className="text-center sm:text-left">
+          {t.rich("message", {
+            hours: (chunks) => (
+              <span className="text-red-500 font-bold">{chunks}</span>
+            )
+          })}
         </p>
         <div className="flex items-center gap-5">
           <Link
@@ -374,12 +376,14 @@ function MobileMenu({ open, onClose }) {
    PROMO MARQUEE
 ════════════════════════════════════════════ */
 function PromoMarquee() {
+  const t = useTranslations("Home.PromoMarquee");
+
   const items = [
-    { icon: "mdi:truck-fast-outline", text: "Free Shipping & Fast Delivery" },
-    { icon: "mdi:shield-check-outline", text: "1 Year Warranty" },
-    { icon: "mdi:certificate-outline", text: "Premium Quality Refurbished" },
-    { icon: "mdi:headset", text: "24/7 Customer Support" },
-    { icon: "mdi:lock-outline", text: "Secure Payments" },
+    { icon: "mdi:truck-fast-outline",    text: t("shipping") },
+    { icon: "mdi:shield-check-outline",  text: t("warranty") },
+    { icon: "mdi:certificate-outline",   text: t("quality") },
+    { icon: "mdi:headset",               text: t("support") },
+    { icon: "mdi:lock-outline",          text: t("payments") },
   ];
 
   return (
@@ -399,7 +403,6 @@ function PromoMarquee() {
 
 
 
-
 export function NavigationHeader() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -407,7 +410,9 @@ export function NavigationHeader() {
   const pathname = usePathname();
   console.log("Current pathname:", pathname);
  const locale=useLocale();
-const isHome = ["/", `/${locale}`, `/${locale}/`].includes(pathname);
+   const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
+
+// const isHome = ["/", `/${locale}`, `/${locale}/`].includes(pathname);
 console.log("Current pathname:", pathname, "Is home?", isHome);
   const navigationData = {
     mainNav: [
@@ -600,7 +605,11 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
 export default function Header() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const isHome = usePathname() === "/";
+   const pathname = usePathname();
+  const locale = useLocale();
+  // const isHome = usePathname() === "/";
+    const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -621,7 +630,10 @@ export default function Header() {
       </header>
       <div className="relative z-0">
         {isHome && (
-          <PromoMarquee />
+          // <PromoMarquee />
+           <div className={`relative z-0 transition-opacity duration-300 ${isHome ? "opacity-100" : "opacity-0 pointer-events-none h-0 overflow-hidden"}`}>
+        <PromoMarquee />
+      </div>
         )}
       </div>
       <NavigationHeader />

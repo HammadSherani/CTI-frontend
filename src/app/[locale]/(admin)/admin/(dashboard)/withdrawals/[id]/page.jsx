@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
-import Link from "next/link";
+import {link} from '@/i18n/navigation';
 import { useParams } from "next/navigation";
 
 export default function WithdrawDetails() {

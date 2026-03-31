@@ -1,8 +1,7 @@
 import React from 'react'
 import { useSelector } from 'react-redux'
-import Link from 'next/link'
 import Image from 'next/image'
-
+import { Link } from '@/i18n/navigation';
 export default function BlogSection() {
 
   const { blogs } = useSelector((state) => state.home || {});

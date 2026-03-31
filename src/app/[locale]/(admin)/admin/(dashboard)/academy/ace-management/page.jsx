@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
@@ -58,11 +58,11 @@ function AcademyContentPage() {
             const data = response.data.data || [];
             setContent(data);
             setFilteredContent(data);
-            
+
             if (response.data.stats) {
                 setStats(response.data.stats);
             }
-            
+
             if (response.data.pagination) {
                 setPagination(response.data.pagination);
             }
@@ -461,11 +461,10 @@ function AcademyContentPage() {
                                                             <button
                                                                 onClick={() => !isUpdating && toggleActive(content._id, content.isActive)}
                                                                 disabled={isUpdating}
-                                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                                    content.isActive
-                                                                        ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
-                                                                        : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
-                                                                } transition-colors`}
+                                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${content.isActive
+                                                                    ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
+                                                                    : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
+                                                                    } transition-colors`}
                                                             >
                                                                 {isUpdating ? (
                                                                     <Icon icon="mdi:loading" className="w-3 h-3 mr-1 animate-spin" />

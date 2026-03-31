@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import SectionTag from "./sectoinTag";
 import { CustomDropdown } from "./customDropdown";
 import { ServicesSkeleton } from "../skeletons/home";

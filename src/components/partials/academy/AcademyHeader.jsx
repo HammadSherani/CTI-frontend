@@ -1,48 +1,39 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import { Icon } from '@iconify/react'
-import logo from '../../../../public/assets/logo.png'
 import Image from 'next/image'
-
+import { usePathname,useRouter ,Link} from '@/i18n/navigation'
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchCategory } from '@/store/academy'
-import { useRouter } from 'next/navigation'
 export default function AcademyHeader() {
   const pathname = usePathname()
+  const router = useRouter()
   const [open, setOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const dispatch = useDispatch()
-  const router = useRouter()
   const { academicCategories } = useSelector(s => s.academy || {})
 
   useEffect(() => {
     dispatch(fetchCategory())
   }, [dispatch])
+useEffect(() => {
+  if (!searchTerm.trim()) return;
 
-  // debounce search and update URL
-  useEffect(() => {
-    const t = setTimeout(() => {
-      const params = new URLSearchParams();
-      const term = searchTerm ? searchTerm.trim() : '';
-      // set search only when there's a term, otherwise omit it (clears param)
-      if (term) params.set('search', term);
-      // reset to first page when searching or clearing
-      params.set('page', '1');
-      const qs = params.toString();
-      const url = qs ? `/academy/academy-listing?${qs}` : `/academy/academy-listing`;
-      router.push(url);
-    }, 500)
-    return () => clearTimeout(t)
-  }, [searchTerm, router])
+  const t = setTimeout(() => {
+    const params = new URLSearchParams();
+    params.set('search', searchTerm.trim());
+    params.set('page', '1');
+    router.push(`/academy/academy-listing?${params.toString()}`);
+  }, 500);
 
+  return () => clearTimeout(t);
+}, [searchTerm]);
   const tabs = [
     { name: 'CTI Academy', href: '/academy' },
-    { name: 'Seller Panel', href: '/academy/seller-panel' },
-    { name: 'Seller Information Center', href: '/academy/seller-info-center' },
+    { name: 'Seller Panel', href: '/coming' },
+    { name: 'Seller Information Center', href: '/coming' },
   ]
 
   return (
@@ -73,7 +64,8 @@ export default function AcademyHeader() {
           
           {/* Logo */}
           <div onClick={() => router.push("/")} className="leading-tight cursor-pointer">
-            <Image src={logo} alt="logo" width={1000} height={1000} className='h-16 w-auto' />
+            <Image src="/assets/logo.png"
+            alt="logo" width={1000} height={1000} className='h-16 w-auto' />
             {/* <p className="text-sm text-orange-500">akademi</p> */}
           </div>
 

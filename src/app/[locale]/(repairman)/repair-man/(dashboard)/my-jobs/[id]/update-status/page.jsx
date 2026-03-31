@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useSelector, useDispatch } from 'react-redux'; // Add useDispatch
 import { toast } from 'react-toastify';
 import DisputesModal from '@/components/partials/repairman/DisputesModal';

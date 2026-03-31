@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
-import { useRouter } from "next/navigation";
+import {useRouter} from '@/i18n/navigation';
 
 function GetAllWithdrawRequest() {
   const [withdrawals, setWithdrawals] = useState([]);

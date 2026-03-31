@@ -3,7 +3,7 @@
 import React, { useRef } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 
 export default function AcademyMarquee() {
   const containerRef = useRef(null);
@@ -72,7 +72,7 @@ export default function AcademyMarquee() {
   return (
     <div
       ref={containerRef}
-      className="relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 py-12 md:py-16"
+      className="relative max-w-[1350px] mx-auto overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 py-12 md:py-16"
     >
       {/* Background Pattern */}
       <div
@@ -86,13 +86,16 @@ export default function AcademyMarquee() {
         }}
       />
 
+      <div className=''>
+
+
       {/* Title */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="relative z-10 mb-10 text-center px-4"
+        className="relative z-10 mb-10  text-center px-4"
       >
         <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-2">
           Master the Skills You Need
@@ -208,6 +211,8 @@ export default function AcademyMarquee() {
           View All Courses
         </motion.button>
       </motion.div>
+      </div>
+
     </div>
   );
 };

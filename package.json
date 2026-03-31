@@ -62,6 +62,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "baseline-browser-mapping": "^2.10.12",
     "eslint": "^9",
     "eslint-config-next": "^15.4.7",
     "tailwindcss": "^4"

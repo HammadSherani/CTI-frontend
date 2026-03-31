@@ -1,7 +1,8 @@
 "use client"
 import axiosInstance from '@/config/axiosInstance';
 import { useMultiLoading } from '@/hooks/useMultiloading';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import {useRouter} from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux';
 import { motion } from 'framer-motion';

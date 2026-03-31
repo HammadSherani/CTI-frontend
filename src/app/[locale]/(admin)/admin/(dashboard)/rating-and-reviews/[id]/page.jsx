@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 

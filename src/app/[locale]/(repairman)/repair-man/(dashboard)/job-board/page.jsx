@@ -371,7 +371,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
 
                 {['in-progress', 'accepted'].includes(job.status) && (
                   <>
-                    <button className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
+                    <button  className="flex-1 bg-gradient-to-r from-primary-600 to-primary-700 text-white py-3 px-6 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-800 transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                       <Icon icon="heroicons:arrow-path" className="w-4 h-4 inline mr-2" />
                       Update Progress
                     </button>
@@ -393,7 +393,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
           </div>
         </div>
         <button  className="bg-orange-500 hover:bg-orange-600 text-white px-8 py-3 rounded-2xl font-semibold transition-all active:scale-95">
-             <Link href={'/repair-man/job-board/' + job._id} className="flex items-center justify-center w-full h-full">
+             <Link  href={'/repair-man/job-board/' + job._id} className="flex items-center text-nowrap justify-center w-full h-full">
                 <Icon icon="heroicons:arrow-top-right-on-square" className="w-4 h-4 mr-2" />
                 View Details
               </Link>

@@ -7,8 +7,7 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
-import { useRouter } from 'next/navigation';
-
+import { useRouter } from '@/i18n/navigation';
 const schema = yup.object().shape({
   categoryId: yup.string().required('Category is required'),
   title: yup.string().required('Job title is required').min(5, 'Title must be at least 5 characters'),

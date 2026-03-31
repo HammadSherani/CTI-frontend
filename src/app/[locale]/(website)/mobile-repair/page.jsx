@@ -4,7 +4,7 @@ import Loader from '@/components/Loader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
 import Breadcrumb from '@/components/ui/Breadcrumb';

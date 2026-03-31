@@ -1,10 +1,9 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname } from "@/i18n/navigation";
 import { Icon } from "@iconify/react";
-
+import { Link } from "@/i18n/navigation";
 /**
  * Dynamic Breadcrumb with Home Icon for Next.js
  * Active segment gets text-primary-500

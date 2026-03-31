@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
@@ -125,7 +125,7 @@ function AdminRepairmanPage() {
         try {
             const repairman = repairmen.find(r => r._id === repairmanId);
             const newStatus = repairman.isActive ? 'inactive' : 'active';
-            
+
             // Replace with actual API call to update status
             await axiosInstance.patch(`/admin/repairman/${repairmanId}/status`, {
                 status: newStatus
@@ -134,7 +134,7 @@ function AdminRepairmanPage() {
                     'Authorization': `Bearer ${token}`
                 }
             });
-            
+
             toast.success(`Repairman status updated to ${newStatus}`);
             fetchRepairmen();
         } catch (error) {
@@ -178,11 +178,10 @@ function AdminRepairmanPage() {
                 <button
                     key={i}
                     onClick={() => handlePageChange(i)}
-                    className={`px-3 py-2 text-sm font-medium border-t border-b border-gray-300 hover:bg-gray-50 ${
-                        currentPage === i
+                    className={`px-3 py-2 text-sm font-medium border-t border-b border-gray-300 hover:bg-gray-50 ${currentPage === i
                             ? 'bg-primary-50 text-primary-600 border-primary-500'
                             : 'bg-white text-gray-500'
-                    }`}
+                        }`}
                 >
                     {i}
                 </button>
@@ -384,11 +383,10 @@ function AdminRepairmanPage() {
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <button
                                                         onClick={() => toggleActive(repairman._id)}
-                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            repairman.isActive
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${repairman.isActive
                                                                 ? 'bg-green-100 text-green-800 hover:bg-green-200'
                                                                 : 'bg-red-100 text-red-800 hover:bg-red-200'
-                                                        } transition-colors`}
+                                                            } transition-colors`}
                                                     >
                                                         <Icon
                                                             icon={repairman.isActive ? 'mdi:eye' : 'mdi:eye-off'}
@@ -407,7 +405,7 @@ function AdminRepairmanPage() {
                                                             <Icon icon="famicons:eye" className="w-5 h-5" />
                                                         </Link>
 
-                                                         <Link
+                                                        <Link
                                                             href={`/admin/repair-man/${repairman._id}/edit`}
                                                             className="text-primary-600 hover:text-primary-900 transition-colors"
                                                             title="Edit repairman"

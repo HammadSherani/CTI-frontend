@@ -5,7 +5,7 @@ import axiosInstance from "@/config/axiosInstance";
 import { useState, useEffect } from "react";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
-import { useRouter } from "next/navigation";
+import { useRouter } from "@/i18n/navigation";
 import PartModal from "./PartModal";
 
 const schema = yup.object({

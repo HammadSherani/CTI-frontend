@@ -1,12 +1,12 @@
 "use client";
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
 import Image from 'next/image';
 function PartOrderDetailPage() {
     const [loading, setLoading] = useState(true);

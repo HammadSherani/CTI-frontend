@@ -141,15 +141,15 @@ function Login() {
             </div>
 
             {/* Logo */}
-            <Link href="/" className="absolute top-10  right-14 z-50">
+            {/* <Link href="/" className="absolute top-10  right-14 z-50">
               <Image
                 src="/assets/logo/logo.png"
                 width={100}
                 height={100}
                 alt="logo"
-                className="cursor-pointer h-80"
+                className="cursor-pointer object-contain"
               />
-            </Link>
+            </Link> */}
             <div className="text-center">
               <Image
                 src='/assets/user/login.png'

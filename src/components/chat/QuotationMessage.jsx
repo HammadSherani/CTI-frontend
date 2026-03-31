@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useChat } from '@/hooks/useChat';
 import QuotationForm from './QuotationForm';
 import { toast } from 'react-toastify';
@@ -168,13 +168,13 @@ const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
                                 </>
                             )}
 
-                             <button
-                                        onClick={() => router.push(`/quotation/${quotationData.quotationId}`)}
-                                        className="p-1 hover:bg-gray-200 rounded"
-                                        title="View Quotation"
-                                    >
-                                       <Icon icon="mdi:eye" width={16} />
-                                    </button>
+                            <button
+                                onClick={() => router.push(`/quotation/${quotationData.quotationId}`)}
+                                className="p-1 hover:bg-gray-200 rounded"
+                                title="View Quotation"
+                            >
+                                <Icon icon="mdi:eye" width={16} />
+                            </button>
                             <button
                                 onClick={() => setShowDetails(!showDetails)}
                                 className="p-1 hover:bg-gray-200 rounded"
@@ -184,7 +184,7 @@ const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
                                     width={16}
                                 />
                             </button>
-                            
+
                         </div>
                     </div>
                 </div>

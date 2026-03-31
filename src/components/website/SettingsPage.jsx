@@ -2,7 +2,7 @@
 import { Icon } from '@iconify/react';
 import { useState,  useEffect } from 'react';
 import Button from '../ui/button';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';

@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import {  useSearchParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import axiosInstance from '@/config/axiosInstance';

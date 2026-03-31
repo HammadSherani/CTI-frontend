@@ -1,7 +1,6 @@
 // app/components/blog/BlogGrid.jsx
 import Image from 'next/image';
-import Link from 'next/link';
-
+import { Link } from '@/i18n/navigation';
 // Sample data for blog posts
 const posts = [
   {

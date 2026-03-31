@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
@@ -63,7 +64,7 @@ const userDetailsSchema = yup.object().shape({
             const phoneDigits = value.replace(/\D/g, '');
             return phoneDigits.length >= 10 && phoneDigits.length <= 15;
         }),
-        
+
     identityNumber: yup
         .string()
         .required('Identity number is required')
@@ -1126,19 +1127,18 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 Phone Number <span className="text-red-500">*</span>
                                             </label>
                                             <input
-  type="text"
-  id="phone"
-  {...registerUser('phone', {
-    onChange: (e) => {
-      e.target.value = e.target.value.replace(/[^0-9]/g, "");
-    }
-  })}
-  inputMode="numeric"
-  placeholder="+90 555 123 4567"
-  className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-    userErrors.phone ? 'border-red-500' : 'border-gray-200'
-  }`}
-/>
+                                                type="text"
+                                                id="phone"
+                                                {...registerUser('phone', {
+                                                    onChange: (e) => {
+                                                        e.target.value = e.target.value.replace(/[^0-9]/g, "");
+                                                    }
+                                                })}
+                                                inputMode="numeric"
+                                                placeholder="+90 555 123 4567"
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${userErrors.phone ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
+                                            />
 
                                             {userErrors.phone && (
                                                 <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
@@ -1147,42 +1147,41 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                                 </p>
                                             )}
                                         </div>
-<div>
-  <label
-    htmlFor="identityNumber"
-    className="block text-sm font-semibold text-gray-700 mb-2"
-  >
-    Identity Number <span className="text-red-500">*</span>
-  </label>
+                                        <div>
+                                            <label
+                                                htmlFor="identityNumber"
+                                                className="block text-sm font-semibold text-gray-700 mb-2"
+                                            >
+                                                Identity Number <span className="text-red-500">*</span>
+                                            </label>
 
-  <input
-    type="text"
-    id="identityNumber"
-    inputMode="numeric"
-    maxLength={11}
-    placeholder="12345678901"
-    {...registerUser('identityNumber', {
-      required: 'Identity Number is required',
-      onChange: (e) => {
-        e.target.value = e.target.value.replace(/[^0-9]/g, '');
-      },
-      pattern: {
-        value: /^[0-9]{11}$/,
-        message: 'Identity Number must be exactly 11 digits',
-      },
-    })}
-    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${
-      userErrors.identityNumber ? 'border-red-500' : 'border-gray-200'
-    }`}
-  />
+                                            <input
+                                                type="text"
+                                                id="identityNumber"
+                                                inputMode="numeric"
+                                                maxLength={11}
+                                                placeholder="12345678901"
+                                                {...registerUser('identityNumber', {
+                                                    required: 'Identity Number is required',
+                                                    onChange: (e) => {
+                                                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                                                    },
+                                                    pattern: {
+                                                        value: /^[0-9]{11}$/,
+                                                        message: 'Identity Number must be exactly 11 digits',
+                                                    },
+                                                })}
+                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${userErrors.identityNumber ? 'border-red-500' : 'border-gray-200'
+                                                    }`}
+                                            />
 
-  {userErrors.identityNumber && (
-    <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-      <Icon icon="lucide:alert-circle" className="w-4 h-4" />
-      {userErrors.identityNumber.message}
-    </p>
-  )}
-</div>
+                                            {userErrors.identityNumber && (
+                                                <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                                                    <Icon icon="lucide:alert-circle" className="w-4 h-4" />
+                                                    {userErrors.identityNumber.message}
+                                                </p>
+                                            )}
+                                        </div>
 
                                     </div>
 
@@ -1293,32 +1292,32 @@ function OfferPayment({ offerId, jobId, token, router }) {
                         {/* STEP 3: Payment Form */}
                         {currentStep === 3 && (
                             <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg shadow-sm p-8 border border-gray-100 animate-fadeIn">
-                         <div className="flex items-center justify-between mb-6">
-  
-  {/* Left Side Title */}
-  <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-    <Icon icon="lucide:credit-card" className="w-6 h-6 text-primary-600" />
-    Payment Method
-  </h2>
+                                <div className="flex items-center justify-between mb-6">
 
-  {/* Right Side Button */}
-  <button
-    type="button"
-    onClick={handlePrevStep}
-    className="inline-flex items-center gap-2 px-5 py-2.5 
+                                    {/* Left Side Title */}
+                                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                                        <Icon icon="lucide:credit-card" className="w-6 h-6 text-primary-600" />
+                                        Payment Method
+                                    </h2>
+
+                                    {/* Right Side Button */}
+                                    <button
+                                        type="button"
+                                        onClick={handlePrevStep}
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 
                bg-gray-100 text-gray-700 font-medium rounded-lg 
                hover:bg-gray-200 active:scale-95 transition-all duration-200"
-  >
-    <Icon icon="lucide:arrow-left" className="w-4 h-4" />
-    Back
-  </button>
+                                    >
+                                        <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+                                        Back
+                                    </button>
 
-</div>
+                                </div>
 
 
                                 {selectedPaymentMethod === 'card' && (
                                     <div className="space-y-6">
-                                        
+
                                         <div>
                                             <label htmlFor="cardNumber" className="block text-sm font-semibold text-gray-700 mb-2">
                                                 Card Number
@@ -1405,26 +1404,26 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     </div>
                                 )}
 
-                                
-                            {currentStep === 3 && (
-                                <button
-                                    onClick={handleSubmit(onSubmit)}
-                                    disabled={isProcessing || Object.keys(errors).length > 0}
-                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
-                                >
-                                    {isProcessing ? (
-                                        <>
-                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            Processing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                            Complete Payment
-                                        </>
-                                    )}
-                                </button>
-                            )}
+
+                                {currentStep === 3 && (
+                                    <button
+                                        onClick={handleSubmit(onSubmit)}
+                                        disabled={isProcessing || Object.keys(errors).length > 0}
+                                        className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
+                                    >
+                                        {isProcessing ? (
+                                            <>
+                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                Processing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Icon icon="lucide:shield-check" className="w-6 h-6" />
+                                                Complete Payment
+                                            </>
+                                        )}
+                                    </button>
+                                )}
 
                                 {/* <div className="flex gap-4 mt-6">
                                     <button
@@ -1537,7 +1536,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     {offer?.serviceOptions?.homeService && <p>✓ Home service available</p>}
                                 </div>
                             </div>
-{/* 
+                            {/* 
                             {currentStep === 3 && (
                                 <button
                                     onClick={handleSubmit(onSubmit)}

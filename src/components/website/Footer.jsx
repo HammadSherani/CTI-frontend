@@ -4,8 +4,7 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 import Marquee from 'react-fast-marquee';
-import Link from "next/link";
-import { useRouter } from 'next/navigation';
+import { useRouter ,Link} from '@/i18n/navigation';
 
 export default function Footer() {
   const footerData = {

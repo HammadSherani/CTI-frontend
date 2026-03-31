@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
@@ -21,7 +21,7 @@ function AcademyCategoryPage() {
     const [submitError, setSubmitError] = useState('');
     const [submitSuccess, setSubmitSuccess] = useState('');
     const { token } = useSelector((state) => state.auth);
-  const [pagination, setPagination] = useState({
+    const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
         itemsPerPage: 10,
@@ -64,8 +64,8 @@ function AcademyCategoryPage() {
     };
 
 
-    console.log(categories,"categoriwess")
-    console.log(pagination,"pagination")
+    console.log(categories, "categoriwess")
+    console.log(pagination, "pagination")
     const applyFilters = () => {
         let filtered = [...categories];
 
@@ -321,7 +321,7 @@ function AcademyCategoryPage() {
                             </select>
                         </div>
 
-                     
+
                         {/* Clear Filters */}
                         {(searchTerm || filterActive !== 'all' || filterFeatured !== 'all') && (
                             <button
@@ -340,7 +340,7 @@ function AcademyCategoryPage() {
                 </div>
 
                 {/* Stats */}
-          
+
 
                 {/* Table */}
                 <div className="bg-white mb-5 shadow-sm rounded-lg overflow-hidden">
@@ -366,7 +366,7 @@ function AcademyCategoryPage() {
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
                                             </th>
-                                           
+
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Created
                                             </th>
@@ -414,11 +414,10 @@ function AcademyCategoryPage() {
                                                             <button
                                                                 onClick={() => !isUpdating && toggleActive(category._id)}
                                                                 disabled={isUpdating}
-                                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                                    category.isActive
+                                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${category.isActive
                                                                         ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
                                                                         : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
-                                                                } transition-colors`}
+                                                                    } transition-colors`}
                                                             >
                                                                 {isUpdating ? (
                                                                     <Icon icon="mdi:loading" className="w-3 h-3 mr-1 animate-spin" />
@@ -430,7 +429,7 @@ function AcademyCategoryPage() {
                                                         );
                                                     })()}
                                                 </td>
-                                           
+
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-500">
                                                         {formatDate(category.createdAt)}
@@ -496,7 +495,7 @@ function AcademyCategoryPage() {
                     )}
                 </div>
 
-                      <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="mb-6 grid grid-cols-1 md:grid-cols-4 gap-6">
                     <div className="bg-white p-6 rounded-lg shadow-sm">
                         <div className="flex items-center">
                             <div className="flex-shrink-0">
@@ -539,13 +538,13 @@ function AcademyCategoryPage() {
                         </div>
                     </div>
 
-                 
+
                 </div>
 
-                
+
             </div>
 
-            
+
         </div>
     );
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import axiosInstance from '@/config/axiosInstance';
-import Link from 'next/link';
+import {Link} from '@/i18n/navigation';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';

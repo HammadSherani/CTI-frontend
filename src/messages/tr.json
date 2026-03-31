@@ -1,15 +1,23 @@
 {
   "greeting": "Bonjour",
   "welcome": "Bienvenue dans mon application Next.js!",
+ 
+  "Home": {
+    "AnnouncementBar": {
+      "message": "Cihazlarınızı <hours>24 saat</hours> içinde tamir ettirin! Seçili şehirlerde ücretsiz kapıdan teslim alma.",
+      "login": "Giriş Yap"
+    },
+    "LanguageSwitcher": {
+      "language": "Dil",
+      "selectLanguage": "Dil Seçin"
+    },
+    "PromoMarquee": {
+      "shipping": "Ücretsiz Kargo & Hızlı Teslimat",
+      "warranty": "1 Yıl Garanti",
+      "quality": "Premium Kalite Yenilenmiş",
+      "support": "7/24 Müşteri Desteği",
+      "payments": "Güvenli Ödemeler"
+    }
 
-  "AnnouncementBar": {
-    "message": "Cihazlarınızı <hours>{hours}</hours> içinde tamir ettirin! Seçili şehirlerde ücretsiz kapıdan teslim alma.",
-    "hours": "24 saat",
-    "login": "Giriş Yap"
-  },
-  
-  "LanguageSwitcher": {
-    "language": "Dil",
-    "selectLanguage": "Dil Seçin"
-  }
+}
 }

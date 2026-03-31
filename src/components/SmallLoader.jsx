@@ -1,19 +1,32 @@
-import { Icon } from '@iconify/react';
-import React from 'react';
+import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 function SmallLoader({ loading, text = "Loading..." }) {
   if (!loading) return null;
 
   return (
-    <div className="flex items-center justify-center  min-h-screen ">
-      <div className="text-center">
-        <Icon
-          icon="eos-icons:loading"
-          className="w-12 h-12 text-primary-600 animate-spin mx-auto mb-3"
-        />
-
-        <p className="text-gray-600 text-base">{text}</p>
-      </div>
+    <div style={{
+      position: "fixed",
+      inset: 0,
+      background: "rgba(255,255,255,0.85)",
+      backdropFilter: "blur(6px)",
+      zIndex: 9999,
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "8px",
+    }}>
+      <DotLottieReact
+        src="/assets/cti-loader.json"
+        loop
+        autoplay
+        style={{ width: 150, height: 150 }}
+      />
+      {text && (
+        <p style={{ fontSize: 14, color: "#f97316", fontWeight: 500 }}>
+          {text}
+        </p>
+      )}
     </div>
   );
 }

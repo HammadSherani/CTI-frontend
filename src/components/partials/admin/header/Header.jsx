@@ -1,8 +1,8 @@
 "use client";
 import Image from 'next/image';
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import React, { useState, useRef, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname } from '@/i18n/navigation';
 import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -105,8 +105,8 @@ function Header() {
           ]
         }
       ]
-    }, 
-     {
+    },
+    {
       name: "Academy",
       path: "#",
       icon: "mdi:school-outline",
@@ -119,9 +119,9 @@ function Header() {
             { name: "Ace Management", icon: "mdi:warehouse", path: "/admin/academy/ace-management" },
           ]
         },
-  
+
       ]
-    },    { name: "Withdrwals", path: `/admin/withdrawals/all-withdrawal-request`, icon: "mdi:cash" },
+    }, { name: "Withdrwals", path: `/admin/withdrawals/all-withdrawal-request`, icon: "mdi:cash" },
 
   ];
 
@@ -272,8 +272,8 @@ function Header() {
             {primaryNavLinks.map((link) => {
               if (link.name === "Catalog") {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
-                } else if (link.name === "Academy") {
-                  return renderNavLink(link, isAcademyDropdownOpen, setIsAcademyDropdownOpen, academyDropdownRef);
+              } else if (link.name === "Academy") {
+                return renderNavLink(link, isAcademyDropdownOpen, setIsAcademyDropdownOpen, academyDropdownRef);
               } else if (link.name === "Users") {
                 return renderNavLink(link, isUsersDropdownOpen, setIsUsersDropdownOpen, usersDropdownRef);
               } else if (link.name === "Parts Management") {

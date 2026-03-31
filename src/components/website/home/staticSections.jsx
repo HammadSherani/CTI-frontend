@@ -4,7 +4,7 @@ import SectionTag from './sectoinTag';
 
 import { motion } from 'framer-motion';
 import { AnimatedNumber } from '@/components/AnimatedNumber';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 
 export default function StaticSections() {
   const router=useRouter();

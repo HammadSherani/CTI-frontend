@@ -3,7 +3,7 @@
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import { Icon } from '@iconify/react';
-import { useRouter,Link } from '@/i18n/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -61,7 +61,6 @@ function ButtonSection() {
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // ✅ ALL HOOKS FIRST (FIXED)
   const handleLogout = useCallback(() => {
     dispatch(clearAuth());
   }, [dispatch]);
@@ -133,13 +132,13 @@ function ButtonSection() {
         </button>
 
         {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-64 z-40 bg-white rounded-xl shadow-lg border py-2">
+          <div className="absolute right-0 mt-2 w-64 z-40 bg-white rounded-xl shadow-xl py-2">
             {dropdownLinks.map((link) => (
               <Link
                 key={link.name}
                 href={link.path}
                 onClick={link.isLogout ? handleLogout : undefined}
-                className="flex items-center gap-3 px-4 py-2 text-sm hover:bg-gray-50"
+                className="flex items-center gap-3 text-gray-600 px-4 py-2 text-sm hover:bg-gray-100"
               >
                 <Icon icon={link.icon} className="w-4 h-4" />
                 {link.name}

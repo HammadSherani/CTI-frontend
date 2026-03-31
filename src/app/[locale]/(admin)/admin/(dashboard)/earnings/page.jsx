@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 function AdminEarningPage() {
   const [data, setData] = useState(null);
@@ -92,7 +92,7 @@ function AdminEarningPage() {
             <h1 className="text-3xl font-bold text-gray-900">Earnings Dashboard</h1>
             <p className="text-gray-600 mt-1">Overview of platform revenue and repairman earnings</p>
           </div>
-          
+
           {/* Quick Action Links */}
           <div className="flex gap-3">
             <Link

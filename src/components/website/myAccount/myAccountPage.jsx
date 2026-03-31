@@ -1,10 +1,9 @@
 'use client';
 import { Icon } from '@iconify/react';
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
-import { useRouter } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
 import Button from '@/components/ui/button';
 import axiosInstance from '@/config/axiosInstance';

@@ -5,7 +5,8 @@ import * as yup from "yup";
 import { useForm, Controller } from "react-hook-form";
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import {useRouter} from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -87,6 +88,7 @@ const schema = yup.object({
 });
 function EditOfferPage() {
     const [data, setData] = useState(null);
+    const [jobDetails, setJobDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const { id } = useParams();
@@ -192,19 +194,50 @@ function EditOfferPage() {
                     'Authorization': 'Bearer ' + token,
                 },
             });
-            
-            const offer = res.data.data.offer;
-            setData(offer);
 
+            console.log(' Successfully fetched offer details',res);
+            
+            const offer = res.data?.data?.offerDetails;
+            const jobInfo = res.data?.data?.job;
+            setJobDetails(jobInfo);
+            console.log(' jobDetails from API:', jobInfo);
+       console.log(' offerDetails from API:', offer);
+            setData(offer);
+            
+            // Helper function to extract numeric value from formatted price string
+            const extractPrice = (priceString) => {
+                if (typeof priceString === 'number') return priceString;
+                if (typeof priceString !== 'string') return 0;
+                // Remove currency symbol and thousands separator, keep decimal
+                const cleaned = priceString.replace(/₺|\s/g, '').replace(/\./g, '').replace(',', '.');
+                return parseFloat(cleaned) || 0;
+            };
+            
+            // Helper function to parse estimatedTime string like "20 days"
+            const parseEstimatedTime = (timeStr) => {
+                if (!timeStr) return { value: '', unit: 'days' };
+                const parts = timeStr.trim().split(' ');
+                return {
+                    value: parseInt(parts[0]) || '',
+                    unit: parts[1]?.toLowerCase() || 'days'
+                };
+            };
+            
             // Initialize form with existing data
-            setValue('basePrice', offer.pricing?.basePrice?.toString() || '');
+            const basePriceValue = offer.pricing?.basePrice ? extractPrice(offer.pricing.basePrice) : 0;
+            setValue('basePrice', basePriceValue.toString());
             setValue('partsQuality', offer.pricing?.partsQuality || 'original');
-            setValue('estimatedTime', offer.estimatedTime?.value?.toString() || '');
-            setValue('timeUnit', offer.estimatedTime?.unit || 'days');
+            
+            // Parse estimatedTime
+            const timeData = parseEstimatedTime(offer.estimatedTime);
+            setValue('estimatedTime', timeData.value.toString());
+            setValue('timeUnit', timeData.unit);
+            
             setValue('description', offer.description || '');
             setValue('warranty.duration', offer.warranty?.duration?.toString() || '');
             setValue('warranty.description', offer.warranty?.description || '');
             setValue('warranty.terms', offer.warranty?.terms || '');
+            
             // Format canStartBy for datetime-local input
             let canStartByValue = '';
             if (offer.availability?.canStartBy) {
@@ -216,12 +249,12 @@ function EditOfferPage() {
             setValue('serviceOptions.pickupCharge', offer.serviceOptions?.pickupCharge || 0);
             setValue('serviceOptions.dropOffAvailable', offer.serviceOptions?.dropOffLocation ? true : false);
             setValue('serviceOptions.dropOffLocation', offer.serviceOptions?.dropOffLocation || '');
-            setValue('isPartRequired', offer.isPartRequired);
+            setValue('isPartRequired', offer.requiredParts && offer.requiredParts.length > 0);
             setSelectedParts(offer.requiredParts || []);
             
             console.log('🔧 Loaded offer data:',offer);
             console.log('requiredParts:', offer.requiredParts);
-            console.log('isPartRequired:', offer.isPartRequired);
+            console.log('isPartRequired:', offer.requiredParts && offer.requiredParts.length > 0);
             
                 const totalPrice = offer.requiredParts?.reduce((sum, part) => sum + (part.price || 0), 0) || 0;
                 setValue('partsEstimate', totalPrice);
@@ -239,6 +272,8 @@ function EditOfferPage() {
         }
     }, [id, token]);
 
+    console.log( data?.pricing?.basePrice.toString(),"prisss")
+    console.log(data,"data from state")
     // Update partsEstimate whenever selectedParts changes
     useEffect(() => {
         setValue('partsEstimate', totalPartsPrice);
@@ -360,7 +395,7 @@ const formatDate = (dateString) => {
             <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Header Section */}
                 <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between mb-6">
                         <div>
                             <button 
                                 onClick={() => router.back()} 
@@ -372,8 +407,8 @@ const formatDate = (dateString) => {
                             <h1 className="text-3xl font-bold text-gray-900 mb-2">Edit Offer</h1>
                             <p className="text-gray-600">
                                 Device: <span className="font-semibold text-gray-800">
-                                    {data.jobDetails?.deviceInfo?.brand} {data.jobDetails?.deviceInfo?.model}
-                                </span> ({data.jobDetails?.deviceInfo?.color})
+                                    {jobDetails?.deviceInfo?.brand} {jobDetails?.deviceInfo?.model}
+                                </span> ({jobDetails?.deviceInfo?.color})
                             </p>
                         </div>
                         <div className="text-right">
@@ -385,9 +420,89 @@ const formatDate = (dateString) => {
                             }`}>
                                 {data.status}
                             </span>
-                            <p className="text-xs text-gray-500 mt-2">Offer ID: {data._id.slice(-8)}</p>
+                            <p className="text-xs text-gray-500 mt-2">Offer ID: {data.id.slice(-8)}</p>
                         </div>
                     </div>
+
+                    {/* {jobDetails && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Icon icon="heroicons:user" className="w-4 h-4 text-blue-600" />
+                                    Customer Information
+                                </h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium text-gray-700">Name:</span> <span className="text-gray-600">{jobDetails.customerId?.name}</span></p>
+                                    <p><span className="font-medium text-gray-700">Email:</span> <span className="text-gray-600">{jobDetails.customerId?.email}</span></p>
+                                    <p><span className="font-medium text-gray-700">Phone:</span> <span className="text-gray-600">{jobDetails.customerId?.phone}</span></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Icon icon="heroicons:map-pin" className="w-4 h-4 text-red-600" />
+                                    Location
+                                </h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium text-gray-700">Address:</span> <span className="text-gray-600">{jobDetails.location?.address}</span></p>
+                                    <p><span className="font-medium text-gray-700">City:</span> <span className="text-gray-600">{jobDetails.formattedLocation?.city}</span></p>
+                                    <p><span className="font-medium text-gray-700">Country:</span> <span className="text-gray-600">{jobDetails.formattedLocation?.country}</span></p>
+                                    <p><span className="font-medium text-gray-700">Zip:</span> <span className="text-gray-600">{jobDetails.location?.zipCode}</span></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 text-purple-600" />
+                                    Device Details
+                                </h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium text-gray-700">Brand:</span> <span className="text-gray-600">{jobDetails.deviceInfo?.brand} ({jobDetails.deviceInfo?.brandName})</span></p>
+                                    <p><span className="font-medium text-gray-700">Model:</span> <span className="text-gray-600">{jobDetails.deviceInfo?.model} ({jobDetails.deviceInfo?.modelName})</span></p>
+                                    <p><span className="font-medium text-gray-700">Color:</span> <span className="text-gray-600">{jobDetails.deviceInfo?.color}</span></p>
+                                    <p><span className="font-medium text-gray-700">Warranty:</span> <span className="text-gray-600">{jobDetails.deviceInfo?.warrantyStatus}</span></p>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Icon icon="heroicons:briefcase" className="w-4 h-4 text-green-600" />
+                                    Job Details
+                                </h3>
+                                <div className="space-y-2 text-sm">
+                                    <p><span className="font-medium text-gray-700">Urgency:</span> <span className="text-gray-600 capitalize">{jobDetails.urgency}</span></p>
+                                    <p><span className="font-medium text-gray-700">Budget:</span> <span className="text-gray-600">{jobDetails.budget?.min} - {jobDetails.budget?.max} {jobDetails.budget?.currency}</span></p>
+                                    <p><span className="font-medium text-gray-700">Expires:</span> <span className="text-gray-600">{formatDate(jobDetails.expiresAt)}</span></p>
+                                    <p><span className="font-medium text-gray-700">Status:</span> <span className="text-gray-600 capitalize">{jobDetails.status}</span></p>
+                                </div>
+                            </div>
+
+                            <div className="md:col-span-2">
+                                <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
+                                    <Icon icon="heroicons:wrench" className="w-4 h-4 text-orange-600" />
+                                    Job Description & Services
+                                </h3>
+                                <div className="space-y-3">
+                                    <div>
+                                        <p className="text-xs font-medium text-gray-700 mb-1">Description:</p>
+                                        <p className="text-sm text-gray-600 bg-white p-2 rounded border border-gray-200">{jobDetails.description}</p>
+                                    </div>
+                                    {jobDetails.services && jobDetails.services.length > 0 && (
+                                        <div>
+                                            <p className="text-xs font-medium text-gray-700 mb-1">Services Required:</p>
+                                            <div className="flex flex-wrap gap-2">
+                                                {jobDetails.services.map((service) => (
+                                                    <span key={service._id} className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                                        {service.name}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )} */}
                 </div>
 
                 {/* Error Summary */}
@@ -568,23 +683,37 @@ const formatDate = (dateString) => {
 
                                 {/* Selected Parts Display */}
                                 {selectedParts.length > 0 && (
-                                    <div className="md:col-span-2 p-4 bg-white border-2 border-gray-200 rounded-lg">
-                                        <h6 className="text-sm font-semibold text-gray-900 mb-3">Selected Parts</h6>
+                                    <div className="md:col-span-2 p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
+                                        <h6 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                                            <Icon icon="heroicons:check" className="w-5 h-5 text-green-600" />
+                                            Selected Parts ({selectedParts.length})
+                                        </h6>
                                         <div className="space-y-2">
                                             {selectedParts.map((part) => (
-                                                <div key={part._id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                                                <div key={part._id} className="flex items-center justify-between p-4 bg-white rounded-lg border border-blue-200 hover:shadow-md transition-shadow">
                                                     <div className="flex-1">
-                                                        <p className="text-sm font-medium text-gray-900">{part.name}</p>
-                                                        <div className="flex items-center gap-3 mt-1">
-                                                            <span className="text-xs text-gray-600">{part.brand?.name || 'N/A'} • {part.model?.name || 'N/A'}</span>
+                                                        <p className="text-sm font-semibold text-gray-900">{part.name}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 mt-2">
+                                                            {part.category && (
+                                                                <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                                                    {part.category}
+                                                                </span>
+                                                            )}
+                                                            {part.warranty && (
+                                                                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                                                                    Warranty: {part.warranty}
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</span>
+                                                    <div className="flex items-center gap-3 ml-4">
+                                                        <div className="text-right">
+                                                            <p className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</p>
+                                                        </div>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemovePart(part._id)}
-                                                            className="text-red-500 hover:text-red-700 transition-colors"
+                                                            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded transition-colors"
                                                         >
                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

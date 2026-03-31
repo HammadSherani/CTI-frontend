@@ -5,7 +5,8 @@ import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchAcademicData, fetchCategory } from '@/store/academy';
-import { useSearchParams, useRouter } from 'next/navigation';
+import {useSearchParams} from 'next/navigation';
+import {  useRouter } from '@/i18n/navigation';
 import SmallLoader from '@/components/SmallLoader';
 
 

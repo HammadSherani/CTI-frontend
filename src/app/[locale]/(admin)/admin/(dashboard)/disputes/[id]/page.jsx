@@ -2,8 +2,9 @@
 
 import axiosInstance from '@/config/axiosInstance'
 import handleError from '@/helper/handleError'
-import { useParams, useRouter } from 'next/navigation'
 import React, { useEffect, useState, useRef } from 'react'
+import { useParams } from 'next/navigation'
+import {useRouter} from '@/i18n/navigation'
 import { useSelector } from 'react-redux'
 import { toast } from 'react-toastify'
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge'

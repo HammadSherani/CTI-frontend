@@ -1,5 +1,4 @@
-import Link from "next/link";
-
+import { Link } from "@/i18n/navigation";
 function FreelancerSupportAcademySection() {
     return (
         <section className="relative bg-primary-50/70 py-24 px-6 overflow-hidden">

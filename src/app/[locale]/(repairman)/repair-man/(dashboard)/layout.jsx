@@ -3,6 +3,7 @@
 import FieldCorrections from '@/components/admin/FieldCorrection';
 import Chat from '@/components/chat/GlobalChat'
 import Header from '@/components/partials/repairman/header/Header'
+import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
 import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
@@ -47,12 +48,7 @@ function RepairmanLayout({ children }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-primary-600 mx-auto"></div>
-          <p className="mt-4 text-gray-700 font-medium">Loading your dashboard...</p>
-        </div>
-      </div>
+    <SmallLoader text='Loading'  loading={loading}/>
     );
   }
 

@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { Link ,useRouter} from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
-import Link from 'next/link';
 import useDebounce from '@/hooks/useDebounce';
 function ViewAdvertisement() {
     const router = useRouter();

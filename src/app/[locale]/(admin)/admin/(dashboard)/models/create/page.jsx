@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
-import { useRouter } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';

@@ -4,7 +4,7 @@ import axiosInstance from '@/config/axiosInstance'
 import handleError from '@/helper/handleError'
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
-import Link from 'next/link'
+import { Link } from '@/i18n/navigation'
 import { Icon } from '@iconify/react'
 
 function ServiceCatalog() {
@@ -19,7 +19,7 @@ function ServiceCatalog() {
     const [pagination, setPagination] = useState({ total: 0, page: 1, pages: 1 })
     const [stats, setStats] = useState({})
 
-    const {token} = useSelector((state) => state.auth)
+    const { token } = useSelector((state) => state.auth)
 
     // Debouncing effect for search
     useEffect(() => {
@@ -63,7 +63,7 @@ function ServiceCatalog() {
     }, [currentPage, debouncedSearch, status, serviceType, isActive])
 
     const getStatusColor = (status) => {
-        switch(status) {
+        switch (status) {
             case 'pending': return 'bg-yellow-100 text-yellow-800'
             case 'approved': return 'bg-green-100 text-green-800'
             case 'rejected': return 'bg-red-100 text-red-800'
@@ -196,9 +196,9 @@ function ServiceCatalog() {
                     <>
                         <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'>
                             {data.map((service) => (
-                                <Link 
-                                    href={`/admin/service-catalog/${service._id}`} 
-                                    key={service._id} 
+                                <Link
+                                    href={`/admin/service-catalog/${service._id}`}
+                                    key={service._id}
                                     className='bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 overflow-hidden cursor-pointer'
                                 >
                                     {/* Header */}
@@ -281,11 +281,11 @@ function ServiceCatalog() {
                             >
                                 <Icon icon="mdi:chevron-left" className="w-5 h-5" />
                             </button>
-                            
+
                             <span className="px-4 py-2 text-gray-700">
                                 Page {pagination.page} of {pagination.pages}
                             </span>
-                            
+
                             <button
                                 onClick={() => setCurrentPage(prev => Math.min(prev + 1, pagination.pages))}
                                 disabled={currentPage === pagination.pages}

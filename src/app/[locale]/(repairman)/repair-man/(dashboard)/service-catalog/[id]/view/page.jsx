@@ -5,8 +5,8 @@ import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
+import { useRouter, Link } from '@/i18n/navigation';
+import { useParams } from 'next/navigation';
 
 function ViewService() {
   const router = useRouter();
@@ -142,11 +142,11 @@ function ViewService() {
                 <p className="text-gray-600 text-lg">View complete information about this service</p>
               </div>
             </div>
-            
+
             {/* Action Buttons */}
             <div className="flex gap-3">
               <Link href={`/repair-man/service-catalog/${serviceId}/edit`}>
-                <button 
+                <button
                   disabled={service.status === 'approved'}
                   className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -154,7 +154,7 @@ function ViewService() {
                   Edit Service
                 </button>
               </Link>
-              <button 
+              <button
                 disabled={service.status === 'approved'}
                 className="border border-red-300 text-red-700 px-4 py-2 rounded-lg hover:bg-red-50 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
@@ -206,7 +206,7 @@ function ViewService() {
                 <Icon icon="heroicons:information-circle" className="w-6 h-6 mr-2 text-primary-600" />
                 Service Information
               </h2>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="text-sm font-medium text-gray-500 block mb-1">Service Title</label>
@@ -246,7 +246,7 @@ function ViewService() {
                 <Icon icon="heroicons:device-phone-mobile" className="w-6 h-6 mr-2 text-primary-600" />
                 Device Information
               </h2>
-              
+
               <div className="grid grid-cols-2 gap-6">
                 <div className="bg-gray-50 rounded-lg p-4">
                   <label className="text-sm font-medium text-gray-500 block mb-2">Brand</label>
@@ -328,7 +328,7 @@ function ViewService() {
             {/* Quick Stats */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Info</h3>
-              
+
               <div className="space-y-4">
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Service ID</span>
@@ -344,9 +344,8 @@ function ViewService() {
 
                 <div className="flex items-center justify-between py-2 border-b border-gray-100">
                   <span className="text-sm text-gray-600">Active</span>
-                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-                    service.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                  }`}>
+                  <span className={`text-xs font-medium px-2 py-1 rounded-full ${service.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                    }`}>
                     {service.isActive ? 'Yes' : 'No'}
                   </span>
                 </div>
@@ -363,7 +362,7 @@ function ViewService() {
             {/* Timestamps */}
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Timeline</h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
@@ -385,11 +384,11 @@ function ViewService() {
 
             <div className="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl border border-primary-200 p-6">
               <h3 className="text-lg font-bold text-gray-900 mb-4">Actions</h3>
-              
-              
+
+
               <div className="flex items-center flex-col gap-3 w-full">
                 <Link href={`/repair-man/service-catalog-catalog/${serviceId}/edit`} className='w-full'>
-                  <button 
+                  <button
                     disabled={service.status === 'approved'}
                     className="w-full bg-primary-600 w-full text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
@@ -405,7 +404,7 @@ function ViewService() {
                   </button>
                 </Link>
 
-                <button 
+                <button
                   disabled={service.status === 'approved'}
                   className="w-full bg-red-600 text-white px-4 py-3 rounded-lg hover:bg-red-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

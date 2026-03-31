@@ -11,7 +11,7 @@ import handleError from "@/helper/handleError";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
+import { Link } from '@/i18n/navigation'
 import { setCurrentUser } from "@/store/chat";
 
 // Validation schema
@@ -53,7 +53,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
       const originalStyle = window.getComputedStyle(document.body).overflow;
       // Disable scrolling
       document.body.style.overflow = 'hidden';
-      
+
       // Re-enable scrolling when modal closes
       return () => {
         document.body.style.overflow = originalStyle;
@@ -65,7 +65,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
     try {
       setErrorMessage("");
       console.log("Login submitted:", data);
-      
+
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
@@ -73,7 +73,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
       });
 
       const resData = response.data.data;
-   console.log("Login response data:", resData);
+      console.log("Login response data:", resData);
       // Check if user is customer
       if (resData?.user?.role !== "customer") {
         setErrorMessage("Only customers can post jobs. Please login with a customer account.");
@@ -92,10 +92,10 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
 
       reset();
       onClose();
-      
-    //   if (onSuccess) {
-        onSuccess(resData);
-    //   }
+
+      //   if (onSuccess) {
+      onSuccess(resData);
+      //   }
 
     } catch (error) {
       console.error("Login error:", error);
@@ -226,7 +226,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
             exit="exit"
             onClick={(e) => e.stopPropagation()}
           >
-            
+
             {/* Close Button */}
             <motion.button
               onClick={handleClose}
@@ -234,8 +234,8 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               initial={{ opacity: 0, rotate: -90 }}
-              animate={{ 
-                opacity: 1, 
+              animate={{
+                opacity: 1,
                 rotate: 0,
                 transition: { delay: 0.6, duration: 0.3 }
               }}
@@ -244,9 +244,9 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
             </motion.button>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 min-h-[500px]">
-              
+
               {/* Left Image Section */}
-              <motion.div 
+              <motion.div
                 className="bg-gradient-to-br from-orange-400 via-orange-500 to-orange-600 relative overflow-hidden"
                 variants={leftPanelVariants}
                 initial="hidden"
@@ -257,8 +257,8 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                   <div className="text-center">
                     <motion.div
                       initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ 
-                        opacity: 1, 
+                      animate={{
+                        opacity: 1,
                         scale: 1,
                         transition: { delay: 0.4, duration: 0.5, type: "spring", stiffness: 200 }
                       }}
@@ -271,22 +271,22 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       />
                     </motion.div>
                     <div className="text-white">
-                      <motion.h2 
+                      <motion.h2
                         className="text-2xl font-bold mb-3"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                          opacity: 1, 
+                        animate={{
+                          opacity: 1,
                           y: 0,
                           transition: { delay: 0.6, duration: 0.3 }
                         }}
                       >
                         Login to Post Job
                       </motion.h2>
-                      <motion.p 
+                      <motion.p
                         className="text-lg text-orange-100 mb-4"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                          opacity: 1, 
+                        animate={{
+                          opacity: 1,
                           y: 0,
                           transition: { delay: 0.7, duration: 0.3 }
                         }}
@@ -294,11 +294,11 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
 
                         Sign in to create and manage your repair jobs
                       </motion.p>
-                      <motion.div 
+                      <motion.div
                         className="flex items-center justify-center gap-4 text-orange-100 text-sm"
                         initial={{ opacity: 0, y: 20 }}
-                        animate={{ 
-                          opacity: 1, 
+                        animate={{
+                          opacity: 1,
                           y: 0,
                           transition: { delay: 0.8, duration: 0.3 }
                         }}
@@ -317,7 +317,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                 </div>
 
                 {/* Decorative Elements */}
-                <motion.div 
+                <motion.div
                   className="absolute top-8 left-8 w-16 h-16 bg-white/10 rounded-full"
                   animate={{
                     scale: [1, 1.2, 1],
@@ -329,7 +329,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                     ease: "easeInOut"
                   }}
                 ></motion.div>
-                <motion.div 
+                <motion.div
                   className="absolute bottom-16 right-16 w-24 h-24 bg-white/5 rounded-full"
                   animate={{
                     scale: [1, 1.1, 1],
@@ -342,7 +342,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                     delay: 1
                   }}
                 ></motion.div>
-                <motion.div 
+                <motion.div
                   className="absolute top-1/2 right-8 w-12 h-12 bg-white/10 rounded-full"
                   animate={{
                     scale: [1, 1.3, 1],
@@ -358,7 +358,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
               </motion.div>
 
               {/* Right Form Section */}
-              <motion.div 
+              <motion.div
                 className="flex items-center justify-center p-8 bg-gray-50"
                 variants={rightPanelVariants}
                 initial="hidden"
@@ -367,7 +367,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                 <div className="w-full max-w-sm">
 
                   {/* Header */}
-                  <motion.div 
+                  <motion.div
                     className="text-center mb-6"
                     custom={0}
                     variants={formItemVariants}
@@ -388,18 +388,18 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                   {/* Error Message */}
                   <AnimatePresence>
                     {errorMessage && (
-                      <motion.div 
+                      <motion.div
                         className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg"
                         initial={{ opacity: 0, height: 0, marginBottom: 0 }}
-                        animate={{ 
-                          opacity: 1, 
-                          height: "auto", 
+                        animate={{
+                          opacity: 1,
+                          height: "auto",
                           marginBottom: 16,
                           transition: { duration: 0.3 }
                         }}
-                        exit={{ 
-                          opacity: 0, 
-                          height: 0, 
+                        exit={{
+                          opacity: 0,
+                          height: 0,
                           marginBottom: 0,
                           transition: { duration: 0.2 }
                         }}
@@ -434,11 +434,10 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                               {...field}
                               type="email"
                               placeholder="Enter your email"
-                              className={`w-full px-4 py-2.5 pl-10 bg-white border-2 rounded-lg transition-all duration-200 focus:outline-none ${
-                                errors.email
+                              className={`w-full px-4 py-2.5 pl-10 bg-white border-2 rounded-lg transition-all duration-200 focus:outline-none ${errors.email
                                   ? "border-red-300 focus:border-red-500"
                                   : "border-gray-200 focus:border-orange-500"
-                              }`}
+                                }`}
                             />
                             <Icon
                               icon="mdi:email-outline"
@@ -449,7 +448,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       />
                       <AnimatePresence>
                         {errors.email && (
-                          <motion.p 
+                          <motion.p
                             className="mt-1 text-xs text-red-600 flex items-center gap-1"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -482,11 +481,10 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                               {...field}
                               type={showPassword ? "text" : "password"}
                               placeholder="Enter your password"
-                              className={`w-full px-4 py-2.5 pl-10 pr-10 bg-white border-2 rounded-lg transition-all duration-200 focus:outline-none ${
-                                errors.password
+                              className={`w-full px-4 py-2.5 pl-10 pr-10 bg-white border-2 rounded-lg transition-all duration-200 focus:outline-none ${errors.password
                                   ? "border-red-300 focus:border-red-500"
                                   : "border-gray-200 focus:border-orange-500"
-                              }`}
+                                }`}
                             />
                             <Icon
                               icon="mdi:lock-outline"
@@ -509,7 +507,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       />
                       <AnimatePresence>
                         {errors.password && (
-                          <motion.p 
+                          <motion.p
                             className="mt-1 text-xs text-red-600 flex items-center gap-1"
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -524,7 +522,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                     </motion.div>
 
                     {/* Remember Me */}
-                    <motion.div 
+                    <motion.div
                       className="flex items-center justify-between"
                       custom={3}
                       variants={formItemVariants}
@@ -541,12 +539,11 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                               type="checkbox"
                               className="sr-only"
                             />
-                            <motion.div 
-                              className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-all duration-200 ${
-                                field.value
+                            <motion.div
+                              className={`w-4 h-4 border-2 rounded flex items-center justify-center transition-all duration-200 ${field.value
                                   ? 'bg-orange-500 border-orange-500'
                                   : 'border-gray-300 hover:border-orange-300'
-                              }`}
+                                }`}
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                             >
@@ -605,7 +602,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                   </form>
 
                   {/* Sign Up Link */}
-                  <motion.div 
+                  <motion.div
                     className="mt-6 text-center"
                     custom={5}
                     variants={formItemVariants}
@@ -624,14 +621,14 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                       whileTap={{ scale: 0.95 }}
                     >
                       <Link href={"/auth/register"}>
-                      Create Account
+                        Create Account
                       </Link>
-                      
+
                     </motion.button>
                   </motion.div>
 
                   {/* Customer Notice */}
-                  <motion.div 
+                  <motion.div
                     className="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg"
                     custom={6}
                     variants={formItemVariants}

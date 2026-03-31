@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 
 function AdminAllEarning() {
   const [earnings, setEarnings] = useState([]);
@@ -37,7 +37,7 @@ function AdminAllEarning() {
       params.append("page", filters.page);
       params.append("limit", filters.limit);
       params.append("sort", filters.sort);
-      
+
       if (filters.startDate) params.append("startDate", filters.startDate);
       if (filters.endDate) params.append("endDate", filters.endDate);
       if (filters.status) params.append("status", filters.status);
@@ -172,7 +172,7 @@ function AdminAllEarning() {
             <Icon icon="solar:filter-bold" className="text-xl text-primary-600" />
             <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
@@ -316,11 +316,10 @@ function AdminAllEarning() {
                         <div>
                           <p className="text-sm font-medium text-gray-900">#{earning.booking?.id?.slice(-8) || "N/A"}</p>
                           <p className="text-xs text-gray-500 capitalize">{earning.booking?.serviceType || ""}</p>
-                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                            earning.booking?.status === 'closed' ? 'bg-gray-100 text-gray-800' :
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${earning.booking?.status === 'closed' ? 'bg-gray-100 text-gray-800' :
                             earning.booking?.status === 'delivered' ? 'bg-green-100 text-green-800' :
-                            'bg-blue-100 text-blue-800'
-                          }`}>
+                              'bg-blue-100 text-blue-800'
+                            }`}>
                             {earning.booking?.status || "N/A"}
                           </span>
                         </div>

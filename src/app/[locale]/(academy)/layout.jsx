@@ -1,4 +1,5 @@
 import AcademyHeader from '@/components/partials/academy/AcademyHeader'
+import Footer from '@/components/website/Footer'
 import React from 'react'
 
 function layout({ children }) {
@@ -6,7 +7,8 @@ function layout({ children }) {
         <div>
             <AcademyHeader />
             {children}
-            academy footer
+            {/* academy footer */}
+            <Footer/>
         </div>
     )
 }

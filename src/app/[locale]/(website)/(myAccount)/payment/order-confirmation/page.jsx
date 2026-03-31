@@ -4,9 +4,9 @@ import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
-import Link from 'next/link';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { format } from 'date-fns';

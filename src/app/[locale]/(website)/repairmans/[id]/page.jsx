@@ -2,7 +2,8 @@
 
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter,Link } from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react'
 import { Icon } from '@iconify/react'
 import { useDispatch, useSelector } from 'react-redux';
@@ -10,7 +11,6 @@ import LoginModal from '../../../(website)/mobile-repair/[brandSlug]/[modelId]/[
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
 import Loader from '@/components/Loader';
-import Link from 'next/link';
 
 function RepairmanDetail() {
     const [repairman, setRepairman] = useState(null);

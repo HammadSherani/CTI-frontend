@@ -2,15 +2,24 @@
   "greeting": "Hello",
   "welcome": "Welcome to my Next.js app!",
 
-  "AnnouncementBar": {
-    "message": "Get your gadgets repaired in  <hours>{hours}</hours>! Free doorstep pickup in select cities.",
-    "hours": "24 hours",
-    "login": "Login"
-  }, 
-  
-  "LanguageSwitcher": {
-    "language": "Language",
-    "selectLanguage": "Select Language"
+    "Home": {
+    "AnnouncementBar": {
+      "message": "Get your gadgets repaired in <hours>24 hours</hours>! Free doorstep pickup in select cities.",
+      "login": "Login"
+    },
+    "LanguageSwitcher": {
+      "language": "Language",
+      "selectLanguage": "Select Language"
+    },
+    "PromoMarquee": {
+      "shipping": "Free Shipping & Fast Delivery",
+      "warranty": "1 Year Warranty",
+      "quality": "Premium Quality Refurbished",
+      "support": "24/7 Customer Support",
+      "payments": "Secure Payments"
+    }
   }
 
+
+  
 }

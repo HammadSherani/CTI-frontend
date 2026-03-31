@@ -5,7 +5,8 @@ import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
 import { Icon } from '@iconify/react';
-import { useRouter, useParams } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
@@ -89,7 +90,7 @@ function EditBannerPage() {
       });
 
       const bannerData = response.data.data;
-      
+
       // Set form values
       setValue('label', bannerData.label || '');
       setValue('title', bannerData.title || '');
@@ -108,7 +109,7 @@ function EditBannerPage() {
       const errorMessage = error.response?.data?.message || 'Failed to load banner data';
       setSubmitError(errorMessage);
       toast.error(errorMessage);
-      
+
       // Redirect back if banner not found
       setTimeout(() => {
         router.push('/admin/banners');

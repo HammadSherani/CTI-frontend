@@ -2,7 +2,8 @@
 
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
+import {useRouter} from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
