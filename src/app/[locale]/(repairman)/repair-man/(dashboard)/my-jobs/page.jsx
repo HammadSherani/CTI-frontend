@@ -1,36 +1,454 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useDispatch, useSelector } from 'react-redux';
-import { useRouter,Link } from '@/i18n/navigation';
+import { useRouter, Link } from '@/i18n/navigation';
 import { addChat } from '@/store/chat';
 import { useChat } from '@/hooks/useChat';
 import { UrgencyDropdown } from '@/components/dropdown';
+import SummaryCards from '@/components/SumamryCards';
+import SearchInput from '@/components/SearchInput';
+import useDebounce from '@/hooks/useDebounce';
+import { JobCardSkeleton } from '@/components/Skeltons';
 
 
+// ─── JobCard ─────────────────────────────────────────────────────────────────
+const JobCard = ({ booking, handleMessageSend }) => {
+  const router  = useRouter();
+  const textRef = useRef(null);
+  const [showMore, setShowMore] = useState(false);
+
+  // Flatten for convenience
+  const job            = booking.jobDetails  || {};
+  const bookingDetails = booking.bookingDetails || {};
+  const bookingStatus  = bookingDetails.status || 'unknown';
+  const canUpdateStatus = booking.canUpdateStatus;
+  const canChat         = booking.canChat;
+  const isQuotationBased = booking.isQuotationBased || booking.bookingSource === 'direct_message';
+
+  // ── helpers ────────────────────────────────────────────────────────────────
+  const getBrandName = () => {
+    const b = job?.deviceInfo?.brand;
+    if (!b) return '';
+    return typeof b === 'object' ? b.name || '' : b;
+  };
+  const getModelName = () => {
+    const m = job?.deviceInfo?.model;
+    if (!m) return '';
+    return typeof m === 'object' ? m.name || '' : m;
+  };
+
+  const getUrgencyLevel = (score) => {
+    if (typeof score === 'string') return score;
+    if (score >= 3) return 'high';
+    if (score >= 2) return 'medium';
+    return 'low';
+  };
+
+  const getTimeRemaining = (expiresAt) => {
+    const t = new Date(expiresAt).getTime();
+    if (isNaN(t)) return null;
+    const diff = t - Date.now();
+    if (diff <= 0) return 'Expired';
+    const totalH = Math.floor(diff / (1000 * 60 * 60));
+    const days   = Math.floor(totalH / 24);
+    const hours  = totalH % 24;
+    if (days > 0) return `${days} day${days > 1 ? 's' : ''}`;
+    return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  };
+
+  const getTimeAgo = (createdAt) => {
+    if (!createdAt) return 'Recently';
+    const diff  = Date.now() - new Date(createdAt).getTime();
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    if (hours < 1) return 'just now';
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+    const days = Math.floor(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''} ago`;
+  };
+
+  const getBookingStatusColor = (s) => {
+    switch (s) {
+      case 'confirmed':           return 'bg-primary-100 text-primary-800';
+      case 'repairman_notified':  return 'bg-blue-100 text-blue-800';
+      case 'scheduled':           return 'bg-purple-100 text-purple-800';
+      case 'in_progress':         return 'bg-yellow-100 text-yellow-800';
+      case 'parts_needed':        return 'bg-orange-100 text-orange-800';
+      case 'quality_check':       return 'bg-indigo-100 text-indigo-800';
+      case 'completed':           return 'bg-green-100 text-green-800';
+      case 'delivered':           return 'bg-emerald-100 text-emerald-800';
+      case 'cancelled':           return 'bg-red-100 text-red-800';
+      case 'disputed':            return 'bg-red-100 text-red-700';
+      case 'closed':              return 'bg-gray-600 text-white';
+      default:                    return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getUrgencyColor = (u) => {
+    switch (u) {
+      case 'urgent': return 'text-red-600';
+      case 'high':   return 'text-orange-600';
+      case 'medium': return 'text-yellow-600';
+      case 'low':    return 'text-gray-500';
+      default:       return 'text-gray-500';
+    }
+  };
+
+  // ── derived ────────────────────────────────────────────────────────────────
+  const urgency      = isQuotationBased ? 'medium' : getUrgencyLevel(job?.urgency);
+  const timeLeft     = job?.expiresAt ? getTimeRemaining(job.expiresAt) : null;
+  const customerName = job?.customerId?.name || booking?.customer?.name || 'Customer';
+  const customerInitial = customerName.charAt(0).toUpperCase();
+  const isExpired    = timeLeft === 'Expired';
+  const hasDispute   = job?.hasActiveDispute || bookingStatus === 'disputed';
+  const isClosed     = bookingStatus === 'closed';
+  const isCompleted  = bookingStatus === 'completed' || bookingStatus === 'delivered';
+
+  const serviceType  = isQuotationBased
+    ? bookingDetails.serviceType
+    : job?.servicePreference;
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) setShowMore(el.scrollHeight > el.clientHeight);
+  }, [job?.description]);
+
+  return (
+    <div
+      className={`bg-white border border-gray-200 rounded-xl mb-4 shadow-sm transition-shadow duration-200
+        ${isExpired ? 'opacity-50 pointer-events-none select-none' : 'hover:shadow-md'}`}
+    >
+      {/* ── Top Meta Row ───────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center justify-between gap-2 px-5 pt-4 pb-2">
+        <div className="flex flex-wrap items-center gap-3">
+
+          {/* Posted date */}
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Icon icon="solar:clock-circle-linear" className="w-4 h-4" />
+            <span>Posted {getTimeAgo(job?.createdAt)}</span>
+          </div>
+
+          {/* Urgency */}
+          {!isQuotationBased && (
+            <span className={`inline-flex items-center gap-1 text-xs font-medium ${getUrgencyColor(urgency)}`}>
+              <Icon icon="solar:flame-bold-duotone" className="w-3.5 h-3.5" />
+              {urgency.charAt(0).toUpperCase() + urgency.slice(1)} Priority
+            </span>
+          )}
+
+          {/* Expiry */}
+          {timeLeft && (
+            <span className={`inline-flex items-center gap-1 text-xs font-medium
+              ${timeLeft === 'Expired' ? 'text-red-500' : 'text-orange-500'}`}>
+              <Icon icon="solar:hourglass-bold-duotone" className="w-3.5 h-3.5" />
+              {timeLeft === 'Expired' ? 'Expired' : `Expires in ${timeLeft}`}
+            </span>
+          )}
+
+          {/* Service type */}
+          {serviceType && (
+            <span className="inline-flex items-center gap-1 text-xs font-medium bg-blue-50 text-blue-700 px-2.5 py-1 rounded-full">
+              <Icon
+                icon={serviceType === 'pickup' ? 'solar:delivery-bold-duotone' : 'solar:map-point-bold-duotone'}
+                className="w-3.5 h-3.5"
+              />
+              {serviceType === 'pickup' ? 'Pickup' : 'Drop-off'}
+            </span>
+          )}
+        </div>
+
+        {/* Right badges */}
+        <div className="flex items-center gap-2">
+          {/* Booking status */}
+          <span className={`inline-block px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${getBookingStatusColor(bookingStatus)}`}>
+            {bookingStatus.replace(/_/g, ' ')}
+          </span>
+          {/* Source badge */}
+          <span className="inline-block bg-gray-100 text-gray-600 px-2.5 py-1 rounded-full text-xs font-medium capitalize">
+            {isQuotationBased ? 'Direct Message' : 'Job Posting'}
+          </span>
+        </div>
+      </div>
+
+      {/* ── Device + Customer ──────────────────────────────────────────── */}
+      <div className="flex items-center justify-between px-5 py-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 bg-orange-50 border border-orange-200 rounded-full flex items-center justify-center flex-shrink-0">
+            <Icon icon="solar:smartphone-bold-duotone" className="w-6 h-6 text-orange-500" />
+          </div>
+          <div>
+            <h3 className="font-bold text-xl text-gray-900 leading-tight capitalize">
+              {getBrandName()} {getModelName()}
+              {job?.deviceInfo?.color && (
+                <span className="text-sm font-normal text-gray-400 ml-2">· {job.deviceInfo.color}</span>
+              )}
+            </h3>
+            {job?.deviceInfo?.warrantyStatus && job.deviceInfo.warrantyStatus !== 'unknown' && (
+              <span className="text-[11px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded">
+                Warranty: {job.deviceInfo.warrantyStatus}
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {job?.customerId?.profileImage ? (
+            <img src={job.customerId.profileImage} alt={customerName} className="w-9 h-9 rounded-full object-cover" />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary-600 text-white flex items-center justify-center font-semibold text-sm uppercase">
+              {customerInitial}
+            </div>
+          )}
+          <span className="text-sm font-medium text-gray-700 capitalize hidden sm:block">{customerName}</span>
+        </div>
+      </div>
+
+      {/* ── Pricing + Budget ───────────────────────────────────────────── */}
+      <div className="flex items-center gap-4 px-5 pb-2">
+        <div className="flex items-center gap-1.5">
+          {isQuotationBased ? (
+            <span className="text-sm font-bold text-gray-700">
+              {bookingDetails.pricing?.currency || 'TRY'} {bookingDetails.pricing?.totalAmount?.toLocaleString()}
+            </span>
+          ) : (
+            <span className="text-sm font-bold text-gray-700">
+              {job?.budget?.currency || 'TRY'} {job?.budget?.min?.toLocaleString()} – {job?.budget?.max?.toLocaleString()}
+            </span>
+          )}
+        </div>
+
+      
+
+        {/* Quotation extras */}
+        {isQuotationBased && job?.estimatedDuration && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Icon icon="solar:clock-circle-bold-duotone" className="w-3.5 h-3.5" />
+            Est. {job.estimatedDuration} days
+          </div>
+        )}
+        {isQuotationBased && job?.warranty?.duration && (
+          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+            <Icon icon="solar:shield-check-bold-duotone" className="w-3.5 h-3.5" />
+            Warranty: {job.warranty.duration} days
+          </div>
+        )}
+      </div>
+
+      {/* ── Description ────────────────────────────────────────────────── */}
+      {job?.description && (
+        <div className="px-5 py-3">
+          <p ref={textRef} className="text-gray-400 text-[15px] leading-relaxed line-clamp-2 overflow-hidden">
+            {job.description}
+          </p>
+          {showMore && (
+            <span
+              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}`)}
+              className="text-orange-500 cursor-pointer hover:underline text-sm"
+            >
+              more
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* ── Service Tags ───────────────────────────────────────────────── */}
+      {job?.services?.length > 0 && (
+        <div className="px-5 pb-4 flex flex-wrap gap-2">
+          {job.services.map((service, i) => (
+            <span
+              key={service._id || i}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-50 text-gray-800 border border-zinc-300"
+            >
+              <Icon icon="solar:settings-bold-duotone" className="w-3.5 h-3.5 text-gray-400" />
+              {service?.name || service}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* ── Location ───────────────────────────────────────────────────── */}
+      {(job?.location?.city?.name || job?.location?.state?.name) && (
+        <div className="px-5 pb-3 flex items-center gap-1.5 text-xs text-gray-500">
+          <Icon icon="solar:map-point-bold-duotone" className="w-4 h-4 text-gray-400" />
+          <span>{[job.location.city?.name, job.location.state?.name].filter(Boolean).join(', ')}</span>
+        </div>
+      )}
+
+      {/* ── Info box: pickup / drop-off ─────────────────────────────────── */}
+      {job?.isPickUp && job?.pickUpAddress ? (
+        <div className="mx-5 mb-3 bg-green-50 border border-green-200 rounded-lg p-3 flex items-start gap-2">
+          <Icon icon="solar:delivery-bold-duotone" className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-green-800 mb-0.5">Pickup Address</p>
+            <p className="text-xs text-green-700 line-clamp-2">{job.pickUpAddress}</p>
+          </div>
+        </div>
+      ) : job?.location?.address ? (
+        <div className="mx-5 mb-3 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-start gap-2">
+          <Icon icon="solar:map-point-bold-duotone" className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="text-xs font-semibold text-blue-800 mb-0.5">Drop-off Location</p>
+            <p className="text-xs text-blue-700 line-clamp-2">{job.location.address}</p>
+          </div>
+        </div>
+      ) : null}
+
+      {/* ── Parts quality (quotation only) ─────────────────────────────── */}
+      {isQuotationBased && job?.partsQuality && (
+        <div className="mx-5 mb-3 flex items-center gap-1.5 text-xs text-gray-500">
+          <Icon icon="solar:box-bold-duotone" className="w-4 h-4 text-gray-400" />
+          Parts quality: <span className="font-medium text-gray-700 capitalize ml-1">{job.partsQuality}</span>
+        </div>
+      )}
+
+      {/* ── Closed notice ──────────────────────────────────────────────── */}
+      {isClosed && (
+        <div className="mx-5 mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200 flex items-center gap-2">
+          <Icon icon="solar:archive-bold-duotone" className="w-4 h-4 text-gray-500" />
+          <span className="text-xs text-gray-500">This job has been closed and archived.</span>
+        </div>
+      )}
+
+      {/* ── Footer ─────────────────────────────────────────────────────── */}
+      <div className="mt-2 pt-4 border-t border-gray-100 px-5 pb-4 flex flex-col gap-3">
+
+        {/* Info row */}
+        {/* <div className="flex flex-wrap justify-between items-center text-xs text-gray-400 gap-2">
+          <span className="flex items-center gap-1.5">
+            <Icon icon="solar:calendar-bold-duotone" className="w-4 h-4" />
+            Created: {new Date(job?.createdAt || booking.timeline?.confirmedAt).toLocaleDateString()}
+          </span>
+          {job?.preferredTime && (
+            <span className="flex items-center gap-1.5">
+              <Icon icon="solar:alarm-bold-duotone" className="w-4 h-4" />
+              Preferred: {new Date(job.preferredTime).toLocaleDateString()}
+            </span>
+          )}
+          {booking.timeline?.confirmedAt && (
+            <span className="flex items-center gap-1.5">
+              <Icon icon="solar:check-circle-bold-duotone" className="w-4 h-4 text-green-500" />
+              Confirmed: {new Date(booking.timeline.confirmedAt).toLocaleDateString()}
+            </span>
+          )}
+        </div> */}
+
+        {/* ── Action Buttons ──────────────────────────────────────────── */}
+        <div className="flex flex-wrap gap-2">
+
+          {/* View & Update Status — only when canUpdateStatus is true */}
+          {canUpdateStatus && (
+            <button
+              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}/update-status`)}
+              className="flex-1 min-w-[160px] flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-700 transition"
+            >
+              <Icon icon="solar:pen-new-square-bold-duotone" className="w-4 h-4" />
+              View & Update Status
+            </button>
+          )}
+
+          {/* View Details — completed / delivered / closed */}
+          {(isCompleted || isClosed) && (
+            <button
+              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}/detail`)}
+              className="flex-1 min-w-[120px] flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+            >
+              <Icon icon="solar:eye-bold-duotone" className="w-4 h-4" />
+              View Details
+            </button>
+          )}
+
+          {/* Message Client — when canChat and not closed */}
+          {canChat && !isClosed && (
+            <button
+              onClick={() => handleMessageSend?.(booking.customer?._id || job?.customerId?._id)}
+              className="flex-1 min-w-[120px] flex items-center justify-center gap-2 border border-gray-300 text-gray-700 py-2.5 rounded-lg text-sm font-medium hover:bg-gray-50 transition"
+            >
+              <Icon icon="solar:chat-round-dots-bold-duotone" className="w-4 h-4" />
+              Message Client
+            </button>
+          )}
+
+          {/* See Dispute */}
+          {hasDispute && (
+            <button
+              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}/dispute`)}
+              className="flex-1 min-w-[120px] flex items-center justify-center gap-2 bg-red-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-red-700 transition"
+            >
+              <Icon icon="solar:shield-warning-bold-duotone" className="w-4 h-4" />
+              See Dispute
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+
+// ─── EmptyState ───────────────────────────────────────────────────────────────
+const EmptyState = ({ type, onRefresh }) => {
+  const iconMap = {
+    active:    'solar:wrench-bold-duotone',
+    completed: 'solar:check-circle-bold-duotone',
+    cancelled: 'solar:close-circle-bold-duotone',
+    disputed:  'solar:shield-warning-bold-duotone',
+    closed:    'solar:lock-bold-duotone',
+  };
+  const msgMap = {
+    active:    "You don't have any active jobs at the moment.",
+    completed: "You haven't completed any jobs yet.",
+    cancelled: "No cancelled jobs found.",
+    disputed:  "No disputed jobs found.",
+    closed:    "No closed jobs found.",
+  };
+
+  return (
+    <div className="text-center py-14">
+      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Icon icon={iconMap[type] || 'solar:question-circle-bold-duotone'} className="w-8 h-8 text-gray-400" />
+      </div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">No {type} jobs</h3>
+      <p className="text-gray-500 mb-5 max-w-sm mx-auto text-sm">{msgMap[type]}</p>
+      <button
+        onClick={onRefresh}
+        className="inline-flex items-center gap-2 bg-primary-600 text-white px-5 py-2 rounded-lg hover:bg-primary-700 transition text-sm"
+      >
+        <Icon icon="solar:refresh-bold-duotone" className="w-4 h-4" />
+        Refresh Jobs
+      </button>
+    </div>
+  );
+};
+
+
+// ─── MyJobsPage ───────────────────────────────────────────────────────────────
 const MyJobsPage = () => {
-  const [activeTab, setActiveTab] = useState('active');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab]       = useState('active');
+  const [searchQuery, setSearchQuery]   = useState('');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
-  const [isOpen, setIsOpen] = useState(false);
+  const [allJobs, setAllJobs]           = useState([]);
+  const [loading, setLoading]           = useState(true);
+  const [error, setError]               = useState(null);
+  const [summary, setSummary]           = useState({});
+  const [page]                          = useState(1);
 
-  const [allJobs, setAllJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [summary, setSummary] = useState({});
   const { user, token } = useSelector((state) => state.auth);
-
+  const debouncedSearch = useDebounce(searchQuery, 500);
+  const dispatch = useDispatch();
+  const { selectChat, openChat } = useChat();
 
   const fetchAllJobs = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get("/repairman/my-booking", {
-        headers: {
-          'Authorization': 'Bearer ' + token,
-        }
+      let url = `/repairman/my-booking?page=${page}&limit=10`;
+      if (debouncedSearch) url += `&search=${debouncedSearch}`;
+      if (urgencyFilter !== 'all') url += `&priority=${urgencyFilter}`;
+
+      const { data } = await axiosInstance.get(url, {
+        headers: { Authorization: 'Bearer ' + token },
       });
 
       if (data.success) {
@@ -40,42 +458,24 @@ const MyJobsPage = () => {
       } else {
         setError('Failed to load jobs');
       }
-    } catch (error) {
-      console.error('Error fetching jobs:', error);
+    } catch (err) {
       setError('Failed to load jobs. Please try again.');
-      handleError(error);
+      handleError(err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAllJobs();
-  }, []);
+  useEffect(() => { fetchAllJobs(); }, [debouncedSearch, urgencyFilter]);
 
-  const dispatch = useDispatch();
-
-  const { selectChat, openChat } = useChat();
-
-
-  const handleMessageSend = async (id) => {
-    if (!user && !token) {
-      setIsOpen(true);
-      return;
-    }
+  const handleMessageSend = async (customerId) => {
+    if (!user || !token) return;
     try {
       const { data } = await axiosInstance.post(
-        `/chat/start`,
-        { repairmanId: id },
-        {
-          headers: {
-            Authorization: "Bearer " + token,
-          },
-        }
+        '/chat/start',
+        { repairmanId: customerId },
+        { headers: { Authorization: 'Bearer ' + token } }
       );
-
-      console.log('Chat started, response:', data);
-
       const newChat = {
         id: data?.chat._id,
         chatId: data?.chat._id,
@@ -84,684 +484,151 @@ const MyJobsPage = () => {
         userId: data?.chat?.user?._id,
         lastMessage: '',
         timestamp: new Date().toISOString(),
-        online: false
+        online: false,
       };
-
       dispatch(addChat(newChat));
-      console.log('Chat added to list:', newChat);
-
       openChat();
-
-      selectChat({
-        id: data?.chat._id,
-        name: data?.chat?.user?.name,
-        avatar: data?.chat?.user?.avatar,
-      });
-
-      console.log('Chat selected');
-
-    } catch (error) {
-      handleError(error);
+      selectChat({ id: data?.chat._id, name: data?.chat?.user?.name, avatar: data?.chat?.user?.avatar });
+    } catch (err) {
+      handleError(err);
     }
   };
 
-  const getBookingStatus = (job) => {
-    return job.bookingDetails?.status || 'unknown';
-  };
-
-  const getUrgencyLevel = (urgency) => {
-    if (typeof urgency === 'string') {
-      return urgency.toLowerCase();
-    }
-    if (urgency >= 3) return 'high';
-    if (urgency >= 2) return 'medium';
-    return 'low';
-  };
-
-  const formatCurrency = (amount, currency = 'TRY') => {
-    return `${currency} ${amount?.toLocaleString() || 0}`;
-  };
-
-  const getTimeRemaining = (expiresAt) => {
-    if (!expiresAt) return null;
-    const now = new Date();
-    const expires = new Date(expiresAt);
-    const diffInHours = Math.ceil((expires - now) / (1000 * 60 * 60));
-
-    if (diffInHours <= 0) return 'Expired';
-    if (diffInHours > 24) {
-      return `${Math.floor(diffInHours / 24)} days`;
-    }
-    return `${diffInHours} hours`;
-  }
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'confirmed': return 'bg-primary-100 text-primary-800';
-      case 'repairman_notified': return 'bg-blue-100 text-blue-800';
-      case 'scheduled': return 'bg-purple-100 text-purple-800';
-      case 'in_progress': return 'bg-yellow-100 text-yellow-800';
-      case 'parts_needed': return 'bg-orange-100 text-orange-800';
-      case 'quality_check': return 'bg-indigo-100 text-indigo-800';
-      case 'completed': return 'bg-green-100 text-green-800';
-      case 'delivered': return 'bg-green-100 text-green-800';
-      case 'cancelled': return 'bg-red-100 text-red-800';
-      case 'disputed': return 'bg-red-100 text-red-800';
-      case 'closed': return 'bg-gray-600 text-white';
-      default: return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  const getUrgencyColor = (urgency) => {
-    switch (urgency) {
-      case 'high': return 'text-red-600';
-      case 'medium': return 'text-yellow-600';
-      case 'low': return 'text-gray-600';
-      default: return 'text-gray-600';
-    }
-  };
-
+  // Categorize by bookingDetails.status
   const categorizedJobs = useMemo(() => {
-    const active = allJobs.filter(job => [
-      'confirmed', 'repairman_notified', 'scheduled', 'in_progress', 'parts_needed', 'quality_check'
-    ].includes(job.bookingDetails?.status));
-
-    const completed = allJobs.filter(job => [
-      'completed', 'delivered'
-    ].includes(job.bookingDetails?.status));
-
-    const cancelled = allJobs.filter(job =>
-      job.bookingDetails?.status === 'cancelled'
-    );
-
-    const disputed = allJobs.filter(job =>
-      job.bookingDetails?.status === 'disputed'
-    );
-
-    const closed = allJobs.filter(job =>
-      job.bookingDetails?.status === 'closed'
-    );
-
+    const active    = allJobs.filter(j => ['confirmed','repairman_notified','scheduled','in_progress','parts_needed','quality_check'].includes(j.bookingDetails?.status));
+    const completed = allJobs.filter(j => ['completed','delivered'].includes(j.bookingDetails?.status));
+    const cancelled = allJobs.filter(j => j.bookingDetails?.status === 'cancelled');
+    const disputed  = allJobs.filter(j => j.bookingDetails?.status === 'disputed');
+    const closed    = allJobs.filter(j => j.bookingDetails?.status === 'closed');
     return { active, completed, cancelled, disputed, closed };
   }, [allJobs]);
 
+  // Filter within the active tab
   const filteredJobs = useMemo(() => {
-    const jobsToFilter = categorizedJobs[activeTab] || [];
-    return jobsToFilter.filter((job) => {
-      const jobDetails = job.jobDetails || {};
-      const customer = job.customer || {};
-      const deviceInfo = jobDetails.deviceInfo || {};
+    return (categorizedJobs[activeTab] || []).filter((booking) => {
+      const job     = booking.jobDetails || {};
+      const device  = job.deviceInfo || {};
 
-      const isQuotationBased = job.bookingSource === 'direct_message';
-console.log(deviceInfo,"check filtering ")
-console.log(jobDetails,"jobDetails")
-console.log(customer,"cuistomer")
-      const matchesSearch =
-        jobDetails.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        customer.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        jobDetails.location?.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        deviceInfo.brand?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        deviceInfo.model?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        jobDetails.services?.some(service =>
-          service.toLowerCase().includes(searchQuery.toLowerCase())
-        );
+      const getBrand = () => typeof device.brand === 'object' ? device.brand.name || '' : device.brand || '';
+      const getModel = () => typeof device.model === 'object' ? device.model.name || '' : device.model || '';
 
-      const jobUrgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
-      const matchesUrgency = urgencyFilter === 'all' || jobUrgency === urgencyFilter;
+      const matchesSearch = !searchQuery ||
+        job.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        booking.customer?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getBrand().toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getModel().toLowerCase().includes(searchQuery.toLowerCase()) ||
+        job.services?.some(s => (s.name || s).toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const urgency = booking.isQuotationBased ? 'medium' : (typeof job.urgency === 'string' ? job.urgency : job.urgency >= 3 ? 'high' : job.urgency >= 2 ? 'medium' : 'low');
+      const matchesUrgency = urgencyFilter === 'all' || urgency === urgencyFilter;
 
       return matchesSearch && matchesUrgency;
     });
   }, [activeTab, searchQuery, urgencyFilter, categorizedJobs]);
 
-  const JobCard = ({ job }) => {
-    const jobDetails = job.jobDetails || {};
-    const bookingDetails = job.bookingDetails || {};
-    const customer = job.customer || {};
-    const deviceInfo = jobDetails.deviceInfo || {};
-
-    const isQuotationBased = job.bookingSource === 'direct_message';
-    const isPickupService = jobDetails.isPickUp || false;
-    const pickupAddress = jobDetails.pickUpAddress || '';
-
-    const status = getBookingStatus(job);
-    const urgency = isQuotationBased ? 'medium' : getUrgencyLevel(jobDetails.urgency);
-    const customerInitials = customer.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
-  const getBrandName = () => {
-    if (!deviceInfo.brand) return '';
-    if (typeof deviceInfo.brand === 'object') return deviceInfo.brand.name || '';
-    return deviceInfo.brand;
+  const tabCounts = {
+    active:    categorizedJobs.active?.length    || 0,
+    completed: categorizedJobs.completed?.length || 0,
+    cancelled: categorizedJobs.cancelled?.length || 0,
+    disputed:  categorizedJobs.disputed?.length  || 0,
+    closed:    categorizedJobs.closed?.length    || 0,
   };
 
-  const getModelName = () => {
-    if (!deviceInfo.model) return '';
-    if (typeof deviceInfo.model === 'object') return deviceInfo.model.name || '';
-    return deviceInfo.model;
-  };
+const summaryData = [
+  {
+    label: "Total Jobs",
+    value: summary?.totalJobs || 0,
+    icon: "mdi:briefcase-variant-outline",
+  },
+  {
+    label: "Job Postings",
+    value: summary?.jobPostingBookings || 0,
+    icon: "mdi:clipboard-text-outline",
+  },
+  {
+    label: "Direct Messages",
+    value: summary?.directMessageBookings || 0,
+    icon: "mdi:chat-processing-outline",
+  },
+  {
+    label: "Active",
+    value: summary?.activeBookings || 0,
+    icon: "mdi:check-circle-outline",
+  },
+];
 
-  const getServiceNames = () => {
-    if (!jobDetails.services) return '';
-    return jobDetails.services
-      .map(service => {
-        if (typeof service === 'object') return service.name || '';
-        return service;
-      })
-      .filter(Boolean)
-      .join(', ');
-  };
-
-  const title = `${getBrandName()} ${getModelName()} - ${getServiceNames()}`.trim() || 'Untitled Job';
-
-    const router = useRouter();
-
-    return (
-      <div className="bg-white border border-gray-200 rounded-xl p-6 mb-6 transition-all duration-300 ease-in-out">
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-4">
-          <div className="flex items-start space-x-4 w-full">
-            <div className="w-14 h-14 bg-gradient-to-br from-primary-100 to-primary-200 rounded-full flex items-center justify-center flex-shrink-0">
-              <span className="text-base font-semibold text-primary-700">{customerInitials}</span>
-            </div>
-             <div className="flex-1">
-            <h3 className="font-bold text-xl text-gray-900 mb-1">
-              {title}
-            </h3>
-            <p className="text-sm text-gray-600 mb-2">Client: {customer.name || 'Anonymous'}</p>
-
-            <div className="flex items-center gap-2 mb-2">
-              <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${isQuotationBased
-                ? 'bg-purple-100 text-purple-700'
-                : 'bg-blue-100 text-blue-700'
-                }`}>
-                {isQuotationBased ? 'Direct Message' : 'Job Posting'}
-              </span>
-
-              {!isQuotationBased && isPickupService && (
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
-                  <Icon icon="heroicons:truck" className="w-3 h-3 inline mr-1" />
-                  Pickup Required
-                </span>
-              )}
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center text-sm text-gray-500 space-y-2 sm:space-y-0 sm:space-x-4">
-              {!isQuotationBased && jobDetails.location?.city && (
-                <span className="flex items-center">
-                  <Icon icon="heroicons:map-pin" className="w-4 h-4 mr-1" aria-hidden="true" />
-                  {jobDetails.location.city?.name} , {jobDetails.location?.state?.name}
-                </span>
-              )}
-
-              {!isQuotationBased && (
-                <span className={`font-medium ${getUrgencyColor(urgency)}`}>
-                  {urgency?.charAt(0).toUpperCase() + urgency?.slice(1)} Priority
-                </span>
-              )}
-
-              {bookingDetails.serviceType && (
-                <span className="flex items-center">
-                  <Icon icon="heroicons:truck" className="w-4 h-4 mr-1" aria-hidden="true" />
-                  {bookingDetails.serviceType.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              )}
-
-              {isQuotationBased && jobDetails.partsQuality && (
-                <span className="flex items-center">
-                  <Icon icon="heroicons:wrench-screwdriver" className="w-4 h-4 mr-1" aria-hidden="true" />
-                  {jobDetails.partsQuality.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-        <div className="text-right w-full sm:w-auto">
-          <p className="text-2xl font-bold text-gray-900 whitespace-nowrap">
-            {formatCurrency(
-              bookingDetails.pricing?.totalAmount,
-              bookingDetails.pricing?.currency
-            )}
-          </p>
-
-          <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)} mt-2`}>
-            {status?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-          </span>
-
-          {!isQuotationBased && jobDetails.expiresAt && (
-            <p className="text-sm text-gray-500 mt-1">
-              {getTimeRemaining(jobDetails.expiresAt)}
-            </p>
-          )}
-
-          {isQuotationBased && jobDetails.warranty?.duration && (
-            <p className="text-sm text-gray-500 mt-1">
-              Warranty: {jobDetails.warranty.duration} days
-            </p>
-          )}
-        </div>
+  if (error) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center">
+        <Icon icon="solar:shield-warning-bold-duotone" className="w-12 h-12 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
+        <p className="text-gray-500 mb-4">{error}</p>
+        <button onClick={fetchAllJobs} className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition text-sm">
+          Try Again
+        </button>
       </div>
-
-      {deviceInfo && (deviceInfo.brand || deviceInfo.model) && (
-        <div className="mb-4">
-          <div className="flex items-center space-x-4 text-sm text-gray-600">
-            <span className="flex items-center">
-              <Icon icon="heroicons:device-phone-mobile" className="w-4 h-4 mr-1" />
-              {/* FIX: Use helper functions here too */}
-              {getBrandName()} {getModelName()}
-            </span>
-            {deviceInfo.color && (
-              <span className="capitalize">{deviceInfo.color}</span>
-            )}
-            {deviceInfo.warrantyStatus && (
-              <span className={`px-2 py-1 rounded text-xs ${deviceInfo.warrantyStatus === 'active'
-                ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-800'
-                }`}>
-                Warranty: {deviceInfo.warrantyStatus}
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-
-        {(() => {
-          // FOR QUOTATION-BASED JOBS
-          if (isQuotationBased) {
-            const serviceType = bookingDetails.serviceType;
-            const locationAddress = jobDetails.location?.address || '';
-
-            if (serviceType === 'pickup' && locationAddress) {
-              return (
-                <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <Icon icon="heroicons:truck" className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-green-800 mb-1">Pickup Address:</p>
-                      <p className="text-sm text-green-700">{locationAddress}</p>
-                      {bookingDetails.pricing?.serviceCharge > 0 && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Pickup Charge: {formatCurrency(bookingDetails.pricing.serviceCharge, bookingDetails.pricing?.currency)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            if (serviceType === 'drop-off' && locationAddress) {
-              return (
-                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <Icon icon="heroicons:map-pin" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-800 mb-1">Drop-off Location:</p>
-                      <p className="text-sm text-blue-700">{locationAddress}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-          }
-          else {
-            if (isPickupService && pickupAddress) {
-              return (
-                <div className="mb-4 bg-green-50 border border-green-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <Icon icon="heroicons:truck" className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-green-800 mb-1">Pickup Address:</p>
-                      <p className="text-sm text-green-700">{pickupAddress}</p>
-                      {bookingDetails.pricing?.serviceCharge > 0 && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Pickup Charge: {formatCurrency(bookingDetails.pricing.serviceCharge, bookingDetails.pricing?.currency)}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-
-            if (!isPickupService && jobDetails.location?.address) {
-              return (
-                <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
-                  <div className="flex items-start space-x-2">
-                    <Icon icon="heroicons:map-pin" className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-800 mb-1">Drop-off Location:</p>
-                      <p className="text-sm text-blue-700">{jobDetails.location.address}</p>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-          }
-
-          return null;
-        })()}
-
-        {bookingDetails.scheduledDate && (
-          <div className="mb-4">
-            <div className="flex items-center text-sm text-gray-600">
-              <Icon icon="heroicons:calendar" className="w-4 h-4 mr-2" />
-              <span>Scheduled: {new Date(bookingDetails.scheduledDate).toLocaleString()}</span>
-            </div>
-          </div>
-        )}
-
-        {isQuotationBased && jobDetails.estimatedDuration && (
-          <div className="mb-4">
-            <div className="flex items-center text-sm text-gray-600">
-              <Icon icon="heroicons:clock" className="w-4 h-4 mr-2" />
-              <span>Estimated Duration: {jobDetails.estimatedDuration} days</span>
-            </div>
-          </div>
-        )}
-
-        {jobDetails.description && (
-          <div className="mb-4">
-            <p className="text-sm text-gray-600">
-              {jobDetails.description}
-            </p>
-          </div>
-        )}
-
-        {!isQuotationBased && jobDetails.images && jobDetails.images.length > 0 && (
-          <div className="mb-4">
-            <span className="text-sm font-medium text-gray-700 block mb-2">Images:</span>
-            <div className="flex space-x-2 overflow-x-auto">
-              {jobDetails.images.map((image, index) => (
-                <img
-                  key={image._id || index}
-                  src={image.url}
-                  alt={`Job image ${index + 1}`}
-                  className="w-20 h-20 object-cover rounded-lg flex-shrink-0"
-                  onError={(e) => {
-                    e.target.style.display = 'none';
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 mt-4">
-          {job.canUpdateStatus && activeTab === 'active' && (
-            <button
-              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/update-status`)}
-              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-              View And Update Status
-            </button>
-          )}
-
-          {(status === 'completed' || status === 'delivered' || status === 'closed') && (
-            <button
-              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/detail`)}
-              className="flex-1 bg-primary-500 text-white py-2 px-4 rounded-lg hover:bg-primary-600 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
-              <Icon icon="heroicons:eye" className="w-4 h-4 mr-2 inline" />
-              View Details
-            </button>
-          )}
-
-{console.log('Job eligible for chat:', job)}
-          {job.canChat && status !== 'closed' && (
-            <button
-              onClick={() => handleMessageSend(job?.jobDetails?.customerId?._id)}
-              className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
-              <Icon icon="heroicons:chat-bubble-left" className="w-4 h-4 mr-2 inline" />
-              Message Client
-            </button>
-          )}
-
-          {(jobDetails.hasActiveDispute || job.bookingDetails.status === "disputed") && (
-            <button
-              onClick={() => router.push(`/repair-man/my-jobs/${job._id}/dispute`)}
-              className="flex-1 bg-gradient-to-r from-red-600 to-red-700 text-white py-2 px-4 rounded-lg hover:from-red-700 hover:to-red-800 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
-              <Icon icon="mdi:scale-balance" className="w-4 h-4 mr-2 inline" />
-              See Dispute
-            </button>
-          )}
-        </div>
-
-        {status === 'closed' && (
-          <div className="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
-            <div className="flex items-center text-gray-600">
-              <Icon icon="heroicons:information-circle" className="w-5 h-5 mr-2" />
-              <span className="text-sm">This job has been closed and archived.</span>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const EmptyState = ({ type }) => (
-    <div className="text-center py-12">
-      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-        <Icon
-          icon={
-            type === 'active' ? 'heroicons:wrench-screwdriver' :
-              type === 'completed' ? 'heroicons:check-circle' :
-                type === 'cancelled' ? 'heroicons:x-circle' :
-                  type === 'disputed' ? 'heroicons:exclamation-triangle' :
-                    type === 'closed' ? 'heroicons:lock-closed' :
-                      'heroicons:exclamation-triangle'
-          }
-          className="w-8 h-8 text-gray-400"
-          aria-hidden="true"
-        />
-      </div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">
-        No {type} jobs
-      </h3>
-      <p className="text-gray-600 mb-4 max-w-md mx-auto">
-        {type === 'active' ? 'You don\'t have any active jobs at the moment.' :
-          type === 'completed' ? 'You haven\'t completed any jobs yet.' :
-            type === 'cancelled' ? 'No cancelled jobs found.' :
-              type === 'disputed' ? 'No disputed jobs found.' :
-                type === 'closed' ? 'No closed jobs found. Closed jobs are archived for record keeping.' :
-                  'No jobs found.'}
-      </p>
-      <button
-        onClick={() => fetchAllJobs()}
-        className="bg-gradient-to-r from-primary-600 to-primary-700 text-white px-6 py-2 rounded-lg hover:from-primary-700 hover:to-primary-800 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
-      >
-        <Icon icon="heroicons:arrow-path" className="w-4 h-4 mr-2 inline" />
-        Refresh Jobs
-      </button>
     </div>
   );
 
-  const getTabCounts = () => ({
-    active: categorizedJobs.active?.length || 0,
-    completed: categorizedJobs.completed?.length || 0,
-    cancelled: categorizedJobs.cancelled?.length || 0,
-    disputed: categorizedJobs.disputed?.length || 0,
-    closed: categorizedJobs.closed?.length || 0,
-  });
-
-  const tabCounts = getTabCounts();
-
-  const handleClearFilters = () => {
-    setSearchQuery('');
-    setUrgencyFilter('all');
-  };
-
-  const handleTabChange = (tabId) => {
-    setActiveTab(tabId);
-  };
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="heroicons:arrow-path" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-          <p className="text-gray-600">Loading jobs...</p>
-        </div>
-      </div>
-    );
-  };
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <Icon icon="heroicons:exclamation-triangle" className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Error Loading Jobs</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => fetchAllJobs()}
-            className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
-          <p className="text-gray-600 text-lg">Manage your repair bookings and track progress</p>
-
- {summary && (
-  <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
-    {[
-      {
-        label: "Total Jobs",
-        value: summary.totalJobs || 0,
-        color: "text-primary-600",
-        icon: "heroicons:briefcase",
-        iconBg: "bg-primary-50",
-      },
-      {
-        label: "Job Postings",
-        value: summary.jobPostingBookings || 0,
-        color: "text-primary-600",
-        icon: "heroicons:document-text",
-        iconBg: "bg-primary-50",
-      },
-      {
-        label: "Direct Messages",
-        value: summary.directMessageBookings || 0,
-        color: "text-primary-600",
-        icon: "heroicons:chat-bubble-left-right",
-        iconBg: "bg-primary-50",
-      },
-      {
-        label: "Active",
-        value: summary.activeBookings || 0,
-        color: "text-primary-600",
-        icon: "heroicons:check-circle",
-        iconBg: "bg-primary-50",
-      },
-    ].map((item, index) => (
-      <div
-        key={index}
-        className="bg-white p-4 py-8 rounded-lg border border-gray-200"
-      >
-        <p className="text-sm text-gray-500 mb-4">{item.label}</p>
-
-        <div className="flex items-center justify-between gap-2">
-          <p className={`text-4xl font-bold ${item.color}`}>
-            {item.value}
-          </p>
-
-          <div className={`${item.iconBg} p-2 -mt-14 rounded-full`}>
-            <Icon
-              icon={item.icon}
-              className={`w-8 h-8 ${item.color}`}
-            />
+          <h1 className="text-3xl font-bold text-gray-900 mb-1">My Jobs</h1>
+          <p className="text-gray-500">Manage your repair bookings and track progress</p>
+          <div className="mt-4">
+            <SummaryCards data={summaryData} />
           </div>
         </div>
-      </div>
-    ))}
-  </div>
-)}
+
+        {/* Filters */}
+        <div className="mb-6 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+          <div className="grid grid-cols-12 gap-3 items-center">
+            <div className="col-span-12 sm:col-span-8">
+              <SearchInput value={searchQuery} onChange={setSearchQuery} placeholder="Search by device, customer, service..." />
+            </div>
+            <div className="col-span-6 sm:col-span-2">
+              <UrgencyDropdown urgencyFilter={urgencyFilter} setUrgencyFilter={setUrgencyFilter} />
+            </div>
+            <div className="col-span-6 sm:col-span-2">
+              <button
+                onClick={() => { setSearchQuery(''); setUrgencyFilter('all'); }}
+                className="w-full py-2.5 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition text-sm font-medium"
+              >
+                Clear Filters
+              </button>
+            </div>
+          </div>
         </div>
 
-       <div className="mb-6 bg-white p-5 rounded-xl border border-gray-200 shadow-sm">
-  <div className="grid grid-cols-12  gap-4 items-center">
-
-    {/* Search Input */}
-    <div className="col-span-8 ">
-      <input
-        type="text"
-        placeholder="Search jobs by service, client, or description..."
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 bg-white
-        focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
-        text-sm shadow-sm transition-all"
-      />
-
-      <Icon
-        icon="heroicons:magnifying-glass"
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
-      />
-
-      {searchQuery && (
-        <button
-          onClick={() => setSearchQuery("")}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary-600 transition"
-        >
-          <Icon icon="heroicons:x-mark" className="w-5 h-5" />
-        </button>
-      )}
-    </div>
-
-    {/* Dropdown */}
-    <div className="col-span-2 ">
-      <UrgencyDropdown
-        urgencyFilter={urgencyFilter}
-        setUrgencyFilter={setUrgencyFilter}
-      />
-    </div>
-
-    {/* Actions */}
-    <div className="col-span-2 ">
-      <button
-        onClick={handleClearFilters}
-        className="px-5 py-3 rounded-lg border border-primary-200 
-        text-primary-600 bg-primary-50 
-        hover:bg-primary-100 hover:border-primary-300
-        transition-all duration-200 text-sm 
-        focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm"
-      >
-        Clear Filters
-      </button>
-    </div>
-
-  </div>
-</div>
-
-        <div className="bg- rounded-xl border border-gray-200 ">
+        {/* Tabs + Cards */}
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          {/* Tab bar */}
           <div className="border-b border-gray-200">
-            <nav className="flex space-x-2 sm:space-x-8 px-4 sm:px-6 -mb-px overflow-x-auto" role="tablist">
+            <nav className="flex space-x-1 px-4 -mb-px overflow-x-auto scrollbar-hide" role="tablist">
               {[
-                { id: 'active', label: 'Active Jobs', count: tabCounts.active },
-                { id: 'completed', label: 'Completed', count: tabCounts.completed },
-                { id: 'cancelled', label: 'Cancelled', count: tabCounts.cancelled },
-                { id: 'disputed', label: 'Disputed', count: tabCounts.disputed },
-                { id: 'closed', label: 'Closed', count: tabCounts.closed },
+                { id: 'active',    label: 'Active'    },
+                { id: 'completed', label: 'Completed' },
+                { id: 'cancelled', label: 'Cancelled' },
+                { id: 'disputed',  label: 'Disputed'  },
+                { id: 'closed',    label: 'Closed'    },
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`py-4 px-2 sm:px-4 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap ${activeTab === tab.id
-                    ? 'border-primary-500 text-primary-600'
-                    : 'border-transparent text-gray-600 hover:text-gray-800 hover:border-gray-300'
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-4 px-3 text-sm font-semibold border-b-2 transition-all duration-200 whitespace-nowrap
+                    ${activeTab === tab.id
+                      ? 'border-primary-500 text-primary-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-800 hover:border-gray-300'
                     }`}
-                  role="tab"
-                  aria-selected={activeTab === tab.id}
-                  aria-controls={`${tab.id}-panel`}
                 >
                   {tab.label}
-                  {tab.count > 0 && (
-                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs font-medium">
-                      {tab.count}
+                  {tabCounts[tab.id] > 0 && (
+                    <span className="ml-2 bg-gray-100 text-gray-600 py-0.5 px-2 rounded-full text-xs">
+                      {tabCounts[tab.id]}
                     </span>
                   )}
                 </button>
@@ -769,18 +636,26 @@ console.log(customer,"cuistomer")
             </nav>
           </div>
 
-          <div className="p-4 sm:p-6" role="tabpanel" id={`${activeTab}-panel`}>
-            {filteredJobs.length > 0 ? (
-              <div className="space-y-6">
-                {filteredJobs.map((job) => (
-                  <JobCard key={job._id} job={job} />
+          {/* Job list */}
+          <div className="p-4 sm:p-6">
+            {loading ? (
+              <JobCardSkeleton />
+            ) : filteredJobs.length > 0 ? (
+              <div className="space-y-4">
+                {filteredJobs.map((booking) => (
+                  <JobCard
+                    key={booking._id}
+                    booking={booking}          
+                    handleMessageSend={handleMessageSend}
+                  />
                 ))}
               </div>
             ) : (
-              <EmptyState type={activeTab} />
+              <EmptyState type={activeTab} onRefresh={fetchAllJobs} />
             )}
           </div>
         </div>
+
       </div>
     </div>
   );

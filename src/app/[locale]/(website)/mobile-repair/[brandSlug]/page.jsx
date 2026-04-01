@@ -8,7 +8,6 @@ import Image from "next/image";
 import {Link} from '@/i18n/navigation';
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
-import { Link  } from "@/i18n/navigation";
 import React, { useEffect, useState } from "react";
 
 // 🔹 Model Card (Same Style as Brand Card)

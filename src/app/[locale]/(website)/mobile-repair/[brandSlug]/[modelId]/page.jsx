@@ -5,7 +5,7 @@ import Breadcrumb from "@/components/ui/Breadcrumb";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import Image from "next/image";
-import { Link, useRouter } from '@/i18n/navigation';
+import {  useRouter } from '@/i18n/navigation';
 import { motion } from "framer-motion";
 import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";

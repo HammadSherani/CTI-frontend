@@ -8,7 +8,7 @@ import { useSelector } from "react-redux";
 import OfferCard from "./OfferCard";
 import { toast } from "react-toastify";
 import SmallLoader from "@/components/SmallLoader";
-import { CustomDropdown } from "@/components/dropdown";
+import { CustomDropdown, UrgencyDropdown } from "@/components/dropdown";
 import SearchInput from "@/components/SearchInput";
 import useDebounce from "@/hooks/useDebounce";
 import { Pagination } from "@/components/pagination";
@@ -153,6 +153,7 @@ const MyOffersPage = () => {
     { value: "all", label: "All Status" },
     { value: "pending", label: "Pending" },
     { value: "accepted", label: "Accepted" },
+    { value: "confirmed", label: "Confirmed" },
     { value: "rejected", label: "Rejected" },
     { value: "withdrawn", label: "Withdrawn" },
   ];
@@ -196,7 +197,7 @@ const MyOffersPage = () => {
         </div>
 
         {/* Filters */}
-        <div className="mb-8 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4  border-gray-200 shadow-sm bg-white  shadow-sm rounded-2xl border">
+        <div className="mb-8 grid grid-cols-1 lg:grid-cols-12 gap-4 p-4  border-gray-200  bg-white  shadow-sm rounded-2xl border">
 
           <div className="lg:col-span-5">
             <SearchInput
@@ -216,12 +217,10 @@ const MyOffersPage = () => {
           </div>
 
           <div className="col-span-3">
-            <CustomDropdown
-              label="Urgency"
-              options={urgencyOptions}
-              value={urgencyFilter}
-              onChange={setUrgencyFilter}
-            />
+            <UrgencyDropdown
+                 urgencyFilter={urgencyFilter}
+                 setUrgencyFilter={setUrgencyFilter}
+               />
           </div>
 
           <div className="lg:col-span-2">

@@ -133,7 +133,7 @@ function RepairmanLayout({ children }) {
   }
 
   return (
-    <div className='relative'>
+    <div className='relative '>
       <Header />
       {children}
       <Chat />

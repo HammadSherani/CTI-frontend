@@ -5,7 +5,7 @@ import createMiddleware from 'next-intl/middleware';
 const intlMiddleware = createMiddleware({
   locales: ['en', 'tr'],
   defaultLocale: 'en',
-  localePrefix: 'as-needed' 
+  localePrefix: 'always' 
 });
 export function middleware(request) {
     const { pathname } = request.nextUrl;
