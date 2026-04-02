@@ -2,763 +2,448 @@
 
 import React, { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import handleError from '@/helper/handleError';
-import { useRouter,Link } from '@/i18n/navigation';
-import useDebounce from '@/hooks/useDebounce'; // Adjust the import path as needed
+import { Link } from '@/i18n/navigation';
+import SearchInput from '@/components/SearchInput';
+import { CustomDropdown } from '@/components/dropdown';
+import useDebounce from '@/hooks/useDebounce';
+import SummaryCards, { SummaryCardSkeleton } from '@/components/SumamryCards';
 
-function Ads() {
-    const router = useRouter();
+
+
+
+
+
+
+
+// ─── Table Skeleton ───────────────────────────────────────────────
+function TableSkeleton() {
+    return (
+        <div className="divide-y divide-gray-100">
+            {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4" style={{ animationDelay: `${i * 0.07}s` }}>
+                    {/* image placeholder */}
+                    <div className="w-12 h-12 bg-gray-200 rounded-lg animate-pulse shrink-0" style={{ animationDelay: `${i * 0.07}s` }} />
+                    {/* title + desc */}
+                    <div className="flex-1 space-y-1.5">
+                        <div className="h-3 w-36 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                        <div className="h-2.5 w-48 bg-gray-100 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                    </div>
+                    <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                    <div className="h-6 w-16 bg-gray-200 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                    <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                    <div className="h-7 w-14 bg-gray-100 rounded-lg animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+
+// ─── Status Badge ─────────────────────────────────────────────────
+function StatusBadge({ status }) {
+    const map = {
+        pending: 'bg-amber-50 text-amber-700',
+        approved: 'bg-green-50 text-green-700',
+        suspended: 'bg-red-50 text-red-700',
+        block: 'bg-red-50 text-red-700',
+        disabled: 'bg-gray-100 text-gray-600',
+    };
+    const cls = map[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+            {status?.charAt(0).toUpperCase() + status?.slice(1)}
+        </span>
+    );
+}
+
+function TypeBadge({ type }) {
+    const map = {
+        profile: 'bg-purple-50 text-purple-700',
+        service: 'bg-blue-50 text-blue-700',
+    };
+    const cls = map[type?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+            {type?.charAt(0).toUpperCase() + type?.slice(1)}
+        </span>
+    );
+}
+
+
+// ─── Main Component ───────────────────────────────────────────────
+function Advertisements() {
+    const [isLoading, setLoading] = useState(false);
     const [ads, setAds] = useState([]);
-    const [loading, setLoading] = useState(false);
+    const [summary, setSummary] = useState(null);
+    const [pagination, setPagination] = useState({
+        currentPage: 1, totalPages: 1, totalItems: 0,
+        hasNext: false, hasPrev: false
+    });
+    const [currentPage, setCurrentPage] = useState(1);
+    const [error, setError] = useState(null);
+
     const [searchTerm, setSearchTerm] = useState('');
     const debouncedSearch = useDebounce(searchTerm, 500);
-    const [filterStatus, setFilterStatus] = useState('');
-    const [filterType, setFilterType] = useState('');
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
-    const [showRescheduleModal, setShowRescheduleModal] = useState(false);
-    const [isRescheduling, setIsRescheduling] = useState(false);
-    const [selectedAd, setSelectedAd] = useState(null);
-    const [isDeleting, setIsDeleting] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalCounts, setTotalCounts] = useState({
-        pending: 0,
-        approve: 0,
-        suspended: 0,
-        block: 0
-    });
-    const [pagination, setPagination] = useState({
-        totalPages: 1,
-        totalItems: 0,
-        itemsPerPage: 10
-    });
+    const [filterStatus, setFilterStatus] = useState('all');
+    const [filterType, setFilterType] = useState('all');
 
-    const { token } = useSelector((state) => state.auth);
+    const { token } = useSelector(state => state.auth);
 
-    // Reset to page 1 when debounced search or filters change
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [debouncedSearch, filterStatus, filterType]);
-
-    // Fetch ads when debounced search, filters, or page change
     useEffect(() => {
         fetchAds();
-    }, [debouncedSearch, filterStatus, filterType, currentPage]);
+    }, [currentPage, debouncedSearch, filterStatus, filterType]);
 
     const fetchAds = async () => {
         try {
             setLoading(true);
-
-            // Build query params
-            const params = new URLSearchParams();
-            params.append('page', currentPage);
-            params.append('limit', 10);
-
-            if (debouncedSearch) {
-                params.append('search', debouncedSearch);
-            }
-            if (filterType) {
-                params.append('type', filterType);
-            }
-            if (filterStatus) {
-                params.append('status', filterStatus);
-            }
-
-            const { data } = await axiosInstance.get(`/repairman/advertisements?${params.toString()}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+            const params = new URLSearchParams({
+                page: currentPage.toString(),
+                limit: '10',
+                ...(debouncedSearch && { search: debouncedSearch }),
+                ...(filterStatus !== 'all' && { status: filterStatus }),
+                ...(filterType !== 'all' && { type: filterType }),
             });
 
-            console.log(data, "Fetched advertisements");
+            const { data } = await axiosInstance.get(`/repairman/advertisements?${params}`, {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
 
-            setAds(data.advertisements || []);
-            setTotalCounts(data.totalCounts || {
-                pending: 0,
-                approve: 0,
-                suspended: 0,
-                block: 0
-            });
-            setPagination({
-                totalPages: data.pagination?.totalPages || 1,
-                totalItems: data.pagination?.totalItems || 0,
-                itemsPerPage: data.pagination?.itemsPerPage || 10
-            });
-        } catch (error) {
-            handleError(error);
-            setAds([]);
+            if (data.success) {
+                setAds(data.advertisements || []);
+                setSummary(data.summary || null);
+                setPagination({
+                    ...data.pagination,
+                    hasNext: data.pagination.currentPage < data.pagination.totalPages,
+                    hasPrev: data.pagination.currentPage > 1,
+                });
+                setError(null);
+            } else {
+                setError('Failed to load advertisements');
+            }
+        } catch (err) {
+            console.error('Error fetching advertisements:', err);
+            setError('Failed to load advertisements. Please try again.');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleDeleteAd = async () => {
-        if (!selectedAd) return;
+    const statusOptions = [
+        { value: 'all', label: 'All Statuses' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'approved', label: 'Approved' },
+        { value: 'suspended', label: 'Suspended' },
+        { value: 'block', label: 'Blocked' },
+        { value: 'disabled', label: 'Disabled' },
+    ];
 
-        try {
-            setIsDeleting(true);
+    const typeOptions = [
+        { value: 'all', label: 'All Types' },
+        { value: 'profile', label: 'Profile' },
+        { value: 'service', label: 'Service' },
+    ];
 
-            // Optimistic update
-            const deletedStatus = selectedAd.status;
-            const updatedAds = ads.filter(a => a._id !== selectedAd._id);
-            setAds(updatedAds);
 
-            // Update totalCounts
-            let statusKey = deletedStatus;
-            if (statusKey === 'approved') statusKey = 'approve';
-            const newTotalCounts = { ...totalCounts };
-            if (newTotalCounts.hasOwnProperty(statusKey)) {
-                newTotalCounts[statusKey] = Math.max(0, newTotalCounts[statusKey] - 1);
-            }
-            setTotalCounts(newTotalCounts);
+    console.log(summary, "sumary")
 
-            // Update pagination
-            const newTotalItems = pagination.totalItems - 1;
-            const newTotalPages = Math.ceil(newTotalItems / pagination.itemsPerPage);
-            setPagination({
-                ...pagination,
-                totalItems: newTotalItems,
-                totalPages: newTotalPages
-            });
-
-            // If page is now empty and not first page, go to previous
-            if (updatedAds.length === 0 && currentPage > 1) {
-                setCurrentPage(currentPage - 1);
-            }
-
-            // Perform actual delete
-            await axiosInstance.delete(`/repairman/advertisements/delete/${selectedAd._id}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            toast.success('Advertisement deleted successfully');
-        } catch (error) {
-            // Revert on error by refetching
-            toast.error('Failed to delete advertisement');
-            handleError(error);
-            fetchAds();
-        } finally {
-            setIsDeleting(false);
-            setShowDeleteModal(false);
-            setSelectedAd(null);
-        }
+    const SummaryData = [
+        {
+            label: 'Total Ads',
+            value: summary?.totalAds || 0,
+            icon: 'mdi:bullhorn-outline',
+        },
+        {
+            label: 'Approved',
+            value: summary?.approved || 0,
+            icon: 'mdi:check-circle-outline',
+        },
+        {
+            label: 'Pending',
+            value: summary?.pending || 0,
+            icon: 'mdi:progress-clock',
+        },
+        {
+            label: 'Suspended',
+            value: summary?.suspended || 0,
+            icon: 'mdi:pause-circle-outline',
+        },
+    ];
+    const handleClearFilters = () => {
+        setSearchTerm('');
+        setFilterStatus('all');
+        setFilterType('all');
+        setCurrentPage(1);
     };
 
+    const renderPagination = () => {
+        if (pagination.totalPages <= 1) return null;
 
-    
-    const handleRescheduleAd = async () => {
-    if (!selectedAd) return;
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(pagination.totalPages, start + maxVisible - 1);
+        if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
-    try {
-        setIsRescheduling(true);
-
-        await axiosInstance.post(
-            `/repairman/advertisements/${selectedAd._id}`,
-            {}, // body (empty)
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`
-                }
-            }
+        return (
+            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                    Showing{' '}
+                    <span className="font-medium text-gray-700">{((currentPage - 1) * 10) + 1}</span>
+                    {' '}to{' '}
+                    <span className="font-medium text-gray-700">{Math.min(currentPage * 10, pagination.totalItems)}</span>
+                    {' '}of{' '}
+                    <span className="font-medium text-gray-700">{pagination.totalItems}</span> results
+                </p>
+                <div className="flex gap-1">
+                    <button
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        disabled={!pagination.hasPrev}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Previous
+                    </button>
+                    {Array.from({ length: end - start + 1 }, (_, i) => start + i).map(p => (
+                        <button
+                            key={p}
+                            onClick={() => setCurrentPage(p)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${currentPage === p
+                                    ? 'bg-blue-50 text-blue-600 border-blue-200'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                }`}
+                        >
+                            {p}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={!pagination.hasNext}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
         );
-
-        toast.success('Advertisement Rescheduled successfully');
-        fetchAds();
-    } catch (error) {
-        toast.error('Failed to reschedule advertisement');
-        handleError(error);
-        fetchAds();
-    } finally {
-        setIsRescheduling(false);
-        setShowRescheduleModal(false);
-        setSelectedAd(null);
-    }
-};
-
-
-    const getStatusColor = (status) => {
-        const colors = {
-            'pending': 'bg-yellow-100 text-yellow-800',
-            'approved': 'bg-green-100 text-green-800',
-            'suspended': 'bg-red-100 text-red-800',
-            'expired': 'bg-gray-100 text-gray-800',
-            'suspended': 'bg-orange-100 text-orange-800',
-            'block': 'bg-red-100 text-red-800'
-        };
-        return colors[status] || 'bg-gray-100 text-gray-800';
-    };
-
-    const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
-    const getCurrencySymbol = (currency) => {
-        const symbols = {
-            USD: '$',
-            EUR: '€',
-            PKR: '₨',
-            TRY: '₺',
-        };
-        return symbols[currency] || currency;
-    };
-
-    const truncateText = (text, maxLength = 60) => {
-        if (!text) return 'N/A';
-        return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
-    };
-
-    const stats = {
-        total: pagination.totalItems,
-        approved: totalCounts.approve || 0,
-        pending: totalCounts.pending || 0,
-        suspended: totalCounts.suspended || 0
-    };
-
-    const renderSkeletonRows = () => {
-        return Array.from({ length: 5 }).map((_, index) => (
-            <tr key={index} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                    <div className="h-16 w-16 bg-gray-200 rounded-lg animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="h-5 w-20 bg-gray-200 rounded-full animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="h-4 w-32 bg-gray-200 rounded animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="h-4 w-48 bg-gray-200 rounded animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="h-4 w-28 bg-gray-200 rounded animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse"></div>
-                </td>
-                <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
-                        <div className="h-5 w-5 bg-gray-200 rounded animate-pulse"></div>
-                    </div>
-                </td>
-            </tr>
-        ));
     };
 
     return (
         <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto space-y-4">
+
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">My Advertisements</h1>
-                            <p className="text-gray-600 mt-1">Manage your service and profile advertisements</p>
-                        </div>
-                        <Link
-                            href="/repair-man/ads/create"
-                            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                        >
-                            <Icon icon="mdi:plus" className="w-5 h-5" />
-                            Create Advertisement
-                        </Link>
-                    </div>
+                <div className="bg-white rounded-xl border border-gray-200 px-6 py-4">
+                    <h1 className="text-2xl font-semibold text-gray-900">Advertisements</h1>
+                    <p className="text-sm text-gray-500 mt-0.5">Manage and review all advertisements</p>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:chart-line" className="w-8 h-8 text-primary-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Ads</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {stats.total}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
+                
 
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:check-circle" className="w-8 h-8 text-green-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Approved</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {stats.approved}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:clock-outline" className="w-8 h-8 text-yellow-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Pending</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {stats.pending}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:close-circle" className="w-8 h-8 text-red-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Suspended</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {stats.suspended}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                {/* Summary Cards */}
+                {summary.length === 0 && isLoading ? <SummaryCardSkeleton /> : <SummaryCards data={SummaryData} />}
 
                 {/* Filters */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                        {/* Search */}
-                        <div>
-                            <div className="relative">
-                                <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    placeholder="Search advertisements..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                <div className="bg-white rounded-xl border border-gray-200 px-6 py-4">
+                    <div className="grid grid-cols-12  gap-3">
+                        <div className="col-span-6">
+                            <SearchInput
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                placeholder="Search by title, repairman, city..."
+                            />
+                        </div>
+                        <div className='col-span-2'>
+                        <CustomDropdown
+                            label="Status"
+                            options={statusOptions}
+                            value={filterStatus}
+                            onChange={setFilterStatus}
+                            />
+                            </div>
+                            <div className="col-span-2">
+                                <CustomDropdown
+                                    label="Type"
+                                    options={typeOptions}
+                                    value={filterType}
+                                    onChange={setFilterType}
                                 />
                             </div>
-                        </div>
-
-                        {/* Type Filter */}
-                        <div>
-                            <select
-                                value={filterType}
-                                onChange={(e) => setFilterType(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="">All Types</option>
-                                <option value="service">Service</option>
-                                <option value="profile">Profile</option>
-                            </select>
-                        </div>
-
-                        {/* Status Filter */}
-                        <div>
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="">All Status</option>
-                                <option value="pending">Pending</option>
-                                <option value="approved">Approved</option>
-                                <option value="suspended">suspended</option>
-                            </select>
+                           
+                                <div className='col-span-2'>
+                    <button
+      onClick={handleClearFilters}
+      className="w-full py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition text-sm shadow-sm"
+      >
+      Clear Filters
+    </button>
                         </div>
                     </div>
                 </div>
 
-                {/* Ads Table */}
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Image
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Type
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Title/Name
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Description
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Duration
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Status
-                                    </th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                        Actions
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {loading ? (
-                                    renderSkeletonRows()
-                                ) : (
-                                    ads.map((ad) => (
-                                        <tr key={ad._id} className="hover:bg-gray-50">
-                                            {/* Image */}
-                                            <td className="px-6 py-4">
-                                                <div className="flex-shrink-0 h-16 w-16">
-                                                    {ad.type === 'service' && ad.image ? (
-                                                        <img
-                                                            src={ad.image}
-                                                            alt={ad.title || 'Service'}
-                                                            className="h-16 w-16 rounded-lg object-cover border-2 border-gray-200"
-                                                        />
-                                                    ) : ad.type === 'profile' ? (
-                                                        <img
-                                                            src={ad.user_id?.repairmanProfile?.profilePhoto}
-                                                            alt={ad.user_id?.repairmanProfile?.fullName || 'profile'}
-                                                            className="h-16 w-16 rounded-lg object-cover border-2 border-gray-200"
-                                                        />
-                                                    ) : (
-                                                        <div className="h-16 w-16 rounded-lg bg-gray-100 flex items-center justify-center">
-                                                            <Icon icon="mdi:image" className="w-8 h-8 text-gray-400" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            {/* Type */}
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${ad.type === 'service'
-                                                        ? 'bg-blue-100 text-blue-800'
-                                                        : 'bg-purple-100 text-purple-800'
-                                                    }`}>
-                                                    <Icon
-                                                        icon={ad.type === 'service' ? 'mdi:briefcase' : 'mdi:account'}
-                                                        className="w-3 h-3 mr-1"
-                                                    />
-                                                    {ad.type === 'service' ? 'Service' : 'Profile'}
-                                                </span>
-                                            </td>
-
-                                            {/* Title/Name */}
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-900">
-                                                        {ad.type === 'service'
-                                                            ? (ad.title || 'Untitled Service')
-                                                            : ad.user_id?.repairmanProfile?.fullName || 'Unnamed Profile'}
-                                                    </div>
-                                                    {ad.type === 'service' && ad.city?.name && (
-                                                        <div className="text-gray-500 text-xs flex items-center mt-1">
-                                                            <Icon icon="mdi:map-marker" className="w-3 h-3 mr-1" />
-                                                            {ad.city.name}
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </td>
-
-                                            {/* Description */}
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm text-gray-600 max-w-xs">
-                                                    {truncateText(ad.description || ad.user_id?.repairmanProfile?.description)}
-                                                </div>
-                                            </td>
-
-                                            {/* Duration */}
-                                            <td className="px-6 py-4">
-                                                <div className="text-sm">
-                                                    <div className="font-medium text-gray-900 flex items-center">
-                                                        <Icon icon="mdi:calendar-clock" className="w-4 h-4 mr-1 text-gray-400" />
-                                                        {ad.duration?.totalDays || 0} days
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-1">
-                                                        {formatDate(ad.duration?.startDate)} - {formatDate(ad.duration?.endDate)}
-                                                    </div>
-                                                    <div className="text-xs font-medium text-primary-600 mt-1">
-                                                        {getCurrencySymbol(ad.currency)}{ad.budget?.totalPrice || 0}
-                                                    </div>
-                                                </div>
-                                            </td>
-
-                                            {/* Status */}
-                                            <td className="px-6 py-4">
-                                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(ad.status)}`}>
-                                                    {ad.status === 'approved' && <Icon icon="mdi:check-circle" className="w-3 h-3 mr-1" />}
-                                                    {ad.status === 'pending' && <Icon icon="mdi:clock-outline" className="w-3 h-3 mr-1" />}
-                                                    {ad.status === 'suspended' && <Icon icon="mdi:close-circle" className="w-3 h-3 mr-1" />}
-                                                    {ad.status.charAt(0).toUpperCase() + ad.status.slice(1)}
-                                                </span>
-                                            </td>
-
-                                            {/* Actions */}
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <div className="flex items-center gap-2">
-                                                    <button
-                                                        onClick={() => router.push(`/repair-man/ads/${ad._id}`)}
-                                                        className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                        title="View Details"
-                                                    >
-                                                        <Icon icon="mdi:eye" className="w-5 h-5" />
-                                                    </button>
-
-                                                    {ad.type !== 'profile' && ad.status == 'pending' && (
-                                                        <button
-                                                            onClick={() => router.push(`/repair-man/ads/edit/${ad._id}`)}
-                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                            title="Edit"
-                                                        >
-                                                            <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-                                                    {ad.status === 'suspended' && (
-                                                        <button
-                                                            onClick={() => router.push(`/repair-man/ads/suspend/${ad._id}`)}
-                                                            className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                            title="Suspend"
-                                                        >
-
-                                                            <Icon icon="fluent:text-change-reject-20-regular" className="w-5 h-5" />
-                                                        </button>
-                                                    )}
-
-  {ad.status === 'disabled' && (
-                                                       
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedAd(ad);
-                                                            setShowRescheduleModal(true);
-                                                        }}
-                                                        className="text-red-600 hover:text-red-900 transition-colors"
-                                                        title="Reschedule"
-                                                    >
-                                                        <Icon icon="tabler:clock" className="w-5 h-5" />
-                                                    </button>
-                                                    )}
-
-
-
-
-
-                                                    <button
-                                                        onClick={() => {
-                                                            setSelectedAd(ad);
-                                                            setShowDeleteModal(true);
-                                                        }}
-                                                        className="text-red-600 hover:text-red-900 transition-colors"
-                                                        title="Delete"
-                                                    >
-                                                        <Icon icon="mdi:delete" className="w-5 h-5" />
-                                                    </button>
-                                                </div>
-                                            </td>
+                {/* Table */}
+                <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                    {isLoading ? (
+                        <TableSkeleton />
+                    ) : (
+                        <>
+                            <div className="overflow-x-auto">
+                                <table className="min-w-full">
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-100">
+                                            {['Ad', 'Repairman', 'Budget', 'Duration', 'Type', 'Status', 'City', 'Date', 'Actions'].map(h => (
+                                                <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                                                    {h}
+                                                </th>
+                                            ))}
                                         </tr>
-                                    ))
+                                    </thead>
+                                    <tbody className="divide-y divide-gray-100">
+                                        {ads.map((ad) => {
+                                            const profile = ad.user_id?.repairmanProfile;
+                                            const dateStr = new Date(ad.createdAt).toLocaleDateString('en-GB', {
+                                                day: '2-digit', month: 'short', year: 'numeric'
+                                            });
+
+                                            return (
+                                                <tr key={ad._id} className="hover:bg-gray-50 transition-colors">
+
+                                                    {/* Ad image + title */}
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-3">
+                                                            {ad.image ? (
+                                                                <img
+                                                                    src={ad.image}
+                                                                    alt={ad.title || 'Ad'}
+                                                                    className="w-11 h-11 rounded-lg object-cover border border-gray-200 shrink-0"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-11 h-11 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center shrink-0">
+                                                                    <Icon icon="mdi:image-off-outline" className="w-5 h-5 text-gray-400" />
+                                                                </div>
+                                                            )}
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-900 max-w-[140px] truncate">
+                                                                    {ad.title || <span className="text-gray-400 italic">No title</span>}
+                                                                </p>
+                                                                {ad.description && (
+                                                                    <p className="text-xs text-gray-500 max-w-[140px] truncate mt-0.5">
+                                                                        {ad.description}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Repairman */}
+                                                    <td className="px-5 py-4">
+                                                        <div className="flex items-center gap-2.5">
+                                                            {profile?.profilePhoto ? (
+                                                                <img
+                                                                    src={profile.profilePhoto}
+                                                                    alt={ad.user_id?.name}
+                                                                    className="w-8 h-8 rounded-full object-cover border border-gray-200 shrink-0"
+                                                                />
+                                                            ) : (
+                                                                <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                                                    <span className="text-xs font-medium text-blue-700">
+                                                                        {ad.user_id?.name?.charAt(0).toUpperCase()}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <div>
+                                                                <p className="text-sm font-medium text-gray-900 leading-tight">{ad.user_id?.name}</p>
+                                                                <p className="text-xs text-gray-500">{profile?.shopName}</p>
+                                                            </div>
+                                                        </div>
+                                                    </td>
+
+                                                    {/* Budget */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <p className="text-sm font-semibold text-gray-900">
+                                                            {ad.budget?.currencyCode} {ad.budget?.totalPrice?.toLocaleString()}
+                                                        </p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {ad.budget?.currencyCode} {ad.budget?.perDay}/day
+                                                        </p>
+                                                    </td>
+
+                                                    {/* Duration */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <p className="text-sm font-medium text-gray-900">{ad.duration?.totalDays} days</p>
+                                                        <p className="text-xs text-gray-400">
+                                                            {new Date(ad.duration?.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                            {' – '}
+                                                            {new Date(ad.duration?.endDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                                        </p>
+                                                    </td>
+
+                                                    {/* Type */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <TypeBadge type={ad.type} />
+                                                    </td>
+
+                                                    {/* Status */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <StatusBadge status={ad.status} />
+                                                    </td>
+
+                                                    {/* City */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        {ad.city ? (
+                                                            <div className="flex items-center gap-1 text-xs text-gray-600">
+                                                                <Icon icon="mdi:map-marker-outline" className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                                                                {ad.city.name}
+                                                            </div>
+                                                        ) : (
+                                                            <span className="text-xs text-gray-400 italic">—</span>
+                                                        )}
+                                                    </td>
+
+                                                    {/* Date */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <span className="text-xs text-gray-500">{dateStr}</span>
+                                                    </td>
+
+                                                    {/* Actions */}
+                                                    <td className="px-5 py-4 whitespace-nowrap">
+                                                        <Link href={`/repair-man/ads/${ad._id}`}>
+                                                            <button className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+                                                                <Icon icon="mdi:eye-outline" className="w-3.5 h-3.5" />
+                                                                View
+                                                            </button>
+                                                        </Link>
+                                                    </td>
+
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+
+                                {!isLoading && ads.length === 0 && (
+                                    <div className="text-center py-16">
+                                        <Icon icon="mdi:advertisement-off" className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-sm font-medium text-gray-600">No advertisements found</p>
+                                        <p className="text-xs text-gray-400 mt-1">
+                                            {searchTerm || filterStatus !== 'all' || filterType !== 'all'
+                                                ? 'Try adjusting your filters.'
+                                                : 'No advertisements have been created yet.'}
+                                        </p>
+                                    </div>
                                 )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {!loading && ads.length === 0 && (
-                        <div className="text-center py-12">
-                            <Icon icon="mdi:chart-line-variant" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                            <h3 className="text-lg font-medium text-gray-900 mb-2">No advertisements found</h3>
-                            <p className="text-gray-500 mb-4">
-                                {searchTerm || filterStatus || filterType
-                                    ? 'Try adjusting your filters.'
-                                    : 'Create your first advertisement to get started.'
-                                }
-                            </p>
-                            {!searchTerm && !filterStatus && !filterType && (
-                                <Link
-                                    href="/repair-man/ads/create"
-                                    className="inline-flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors"
-                                >
-                                    <Icon icon="mdi:plus" className="w-5 h-5" />
-                                    Create Advertisement
-                                </Link>
-                            )}
-                        </div>
-                    )}
-
-                    {/* Pagination */}
-                    {!loading && ads.length > 0 && pagination.totalPages > 1 && (
-                        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                            <div className="text-sm text-gray-700">
-                                Showing <span className="font-medium">{((currentPage - 1) * pagination.itemsPerPage) + 1}</span> to{' '}
-                                <span className="font-medium">
-                                    {Math.min(currentPage * pagination.itemsPerPage, pagination.totalItems)}
-                                </span> of{' '}
-                                <span className="font-medium">{pagination.totalItems}</span> results
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                                    disabled={currentPage === 1}
-                                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Icon icon="mdi:chevron-left" className="w-5 h-5" />
-                                </button>
 
-                                {[...Array(pagination.totalPages)].map((_, idx) => {
-                                    const pageNum = idx + 1;
-                                    // Show first, last, current, and pages around current
-                                    if (
-                                        pageNum === 1 ||
-                                        pageNum === pagination.totalPages ||
-                                        (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
-                                    ) {
-                                        return (
-                                            <button
-                                                key={pageNum}
-                                                onClick={() => setCurrentPage(pageNum)}
-                                                className={`px-3 py-1 border rounded-md text-sm font-medium ${currentPage === pageNum
-                                                        ? 'bg-primary-600 text-white border-primary-600'
-                                                        : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-                                                    }`}
-                                            >
-                                                {pageNum}
-                                            </button>
-                                        );
-                                    } else if (
-                                        pageNum === currentPage - 2 ||
-                                        pageNum === currentPage + 2
-                                    ) {
-                                        return <span key={pageNum} className="px-2 text-gray-500">...</span>;
-                                    }
-                                    return null;
-                                })}
-
-                                <button
-                                    onClick={() => setCurrentPage(prev => Math.min(pagination.totalPages, prev + 1))}
-                                    disabled={currentPage === pagination.totalPages}
-                                    className="px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    <Icon icon="mdi:chevron-right" className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
+                            {renderPagination()}
+                        </>
                     )}
                 </div>
+
             </div>
-
-            {/* Delete Confirmation Modal */}
-            {showDeleteModal && (
-                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Delete Advertisement</h3>
-                                <p className="text-sm text-gray-600">Are you sure you want to delete this ad?</p>
-                            </div>
-                        </div>
-
-                        {selectedAd && (
-                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                    <span className="font-medium">
-                                        {selectedAd.type === 'service'
-                                            ? (selectedAd.title || 'Untitled Service')
-                                            : 'Profile Advertisement'}
-                                    </span>
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    This action cannot be undone.
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowDeleteModal(false);
-                                    setSelectedAd(null);
-                                }}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                disabled={isDeleting}
-                                onClick={handleDeleteAd}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                                {isDeleting ? "Deleting..." : "Delete"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-
-
-  {/* Resheule Confirmation Modal */}
-            {showRescheduleModal && (
-                <div className="fixed inset-0  bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
-                        <div className="flex items-center gap-4 mb-4">
-                            <div className="flex-shrink-0 w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                                <Icon icon="mdi:alert-circle" className="w-6 h-6 text-red-600" />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Reschedule Advertisement</h3>
-                                <p className="text-sm text-gray-600">Are you sure you want to reschedule this ad?</p>
-                            </div>
-                        </div>
-
-                        {selectedAd && (
-                            <div className="mb-4 p-4 bg-gray-50 rounded-lg">
-                                <p className="text-sm text-gray-700">
-                                    <span className="font-medium">
-                                        {selectedAd.type === 'service'
-                                            ? (selectedAd.title || 'Untitled Service')
-                                            : 'Profile Advertisement'}
-                                    </span>
-                                </p>
-                                <p className="text-xs text-gray-500 mt-1">
-                                    This action cannot be undone.
-                                </p>
-                            </div>
-                        )}
-
-                        <div className="flex gap-3">
-                            <button
-                                onClick={() => {
-                                    setShowRescheduleModal(false);
-                                    setSelectedAd(null);
-                                }}
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                disabled={isRescheduling}
-                                onClick={handleRescheduleAd}
-                                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                                {isRescheduling ? "Rescheduling..." : "Reschedule"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-
-
-
         </div>
     );
 }
 
-export default Ads;
+export default Advertisements;

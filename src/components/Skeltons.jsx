@@ -24,3 +24,15 @@ export const JobCardSkeleton = () => {
     </div>
   );
 };
+
+
+export const SummaryCardSkeleton = () => (
+  <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
+    <div className="flex justify-between items-center mb-3">
+      <div className="w-10 h-10 bg-gray-200 rounded-xl" />
+      <div className="w-8 h-6 bg-gray-200 rounded" />
+    </div>
+    <div className="w-20 h-4 bg-gray-200 rounded mb-2" />
+    <div className="w-16 h-3 bg-gray-200 rounded" />
+  </div>
+);

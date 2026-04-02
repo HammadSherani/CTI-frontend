@@ -5,17 +5,78 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
-import {Link} from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
+import SummaryCards, { SummaryCardSkeleton } from '@/components/SumamryCards';
+import SearchInput from '@/components/SearchInput';
+import { CustomDropdown } from '@/components/dropdown';
 
+
+// ─── Table Skeleton ───────────────────────────────────────────────
+function TableSkeleton() {
+    return (
+        <div className="divide-y divide-gray-100">
+            {[...Array(6)].map((_, i) => (
+                <div key={i} className="flex items-center gap-4 px-6 py-4">
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                    <div className="flex-1 space-y-1.5">
+                        <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                        <div className="h-2.5 w-40 bg-gray-100 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                    </div>
+                    <div className="h-3 w-20 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                    <div className="h-3 w-16 bg-gray-200 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                    <div className="h-6 w-20 bg-gray-200 rounded-full animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                    <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.05}s` }} />
+                    <div className="h-3 w-16 bg-gray-100 rounded animate-pulse" style={{ animationDelay: `${i * 0.07 + 0.1}s` }} />
+                    <div className="h-7 w-14 bg-gray-100 rounded-lg animate-pulse" style={{ animationDelay: `${i * 0.07}s` }} />
+                </div>
+            ))}
+        </div>
+    );
+}
+
+
+// ─── Status Badge ─────────────────────────────────────────────────
+function StatusBadge({ status }) {
+    const map = {
+        pending:          'bg-amber-50 text-amber-700',
+        processing:       'bg-blue-50 text-blue-700',
+        shipped:          'bg-purple-50 text-purple-700',
+        delivered:        'bg-green-50 text-green-700',
+        cancelled:        'bg-red-50 text-red-700',
+        confirmed:        'bg-teal-50 text-teal-700',
+        'ready-for-pickup': 'bg-orange-50 text-orange-700',
+    };
+    const cls = map[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+            {status?.charAt(0).toUpperCase() + status?.slice(1)}
+        </span>
+    );
+}
+
+function PaymentBadge({ status }) {
+    const map = {
+        pending:  'bg-amber-50 text-amber-700',
+        partial:  'bg-orange-50 text-orange-700',
+        paid:     'bg-green-50 text-green-700',
+        refunded: 'bg-red-50 text-red-700',
+    };
+    const cls = map[status?.toLowerCase()] || 'bg-gray-100 text-gray-600';
+    return (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+            {status}
+        </span>
+    );
+}
+
+
+// ─── Main Component ───────────────────────────────────────────────
 function PartsOrder() {
     const [isLoading, setLoading] = useState(false);
     const [partsOrders, setPartsOrders] = useState([]);
     const [pagination, setPagination] = useState({
-        currentPage: 1,
-        totalPages: 1,
-        totalOrders: 0,
-        hasNext: false,
-        hasPrev: false
+        currentPage: 1, totalPages: 1, totalOrders: 0, hasNext: false, hasPrev: false
     });
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('all');
@@ -24,17 +85,16 @@ function PartsOrder() {
     const [currentPage, setCurrentPage] = useState(1);
     const [error, setError] = useState(null);
     const { token } = useSelector(state => state.auth);
+    const [summaryData, setSummaryData] = useState(null);
 
-    useEffect(() => {
-        fetchPartsOrders();
-    }, [currentPage, searchTerm, filterStatus, filterPaymentStatus, filterShippingMethod]);
+    useEffect(() => { fetchPartsOrders(); }, [currentPage, searchTerm, filterStatus, filterPaymentStatus, filterShippingMethod]);
 
     const fetchPartsOrders = async () => {
         try {
             setLoading(true);
             const params = new URLSearchParams({
                 page: currentPage.toString(),
-                limit: '10',
+                limit: '5',
                 ...(searchTerm && { search: searchTerm }),
                 ...(filterStatus !== 'all' && { orderStatus: filterStatus }),
                 ...(filterPaymentStatus !== 'all' && { paymentStatus: filterPaymentStatus }),
@@ -42,14 +102,13 @@ function PartsOrder() {
             });
 
             const { data } = await axiosInstance.get(`/repairman/parts/orders?${params}`, {
-                headers: {
-                    'Authorization': 'Bearer ' + token,
-                }
+                headers: { 'Authorization': 'Bearer ' + token }
             });
 
             if (data.success) {
                 setPartsOrders(data.parts || []);
                 setPagination(data.pagination || {});
+                setSummaryData(data.summary || null);
                 setError(null);
             } else {
                 setError('Failed to load parts orders');
@@ -64,416 +123,264 @@ function PartsOrder() {
         }
     };
 
-    const getStatusColor = (status) => {
-        const statusColors = {
-            pending: 'bg-yellow-100 text-yellow-800',
-            processing: 'bg-blue-100 text-blue-800',
-            shipped: 'bg-purple-100 text-purple-800',
-            delivered: 'bg-green-100 text-green-800',
-            cancelled: 'bg-red-100 text-red-800'
-        };
-        return statusColors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
-    };
+    const summaryCards = [
+        { label: 'Total Orders',    value: summaryData?.totalOrders || 0,              icon: 'mdi:clipboard-text-outline' },
+        { label: 'Pending Orders',  value: summaryData?.pendingOrders || 0,            icon: 'mdi:progress-clock' },
+        { label: 'Delivered Orders',value: summaryData?.deliveredOrders || 0,          icon: 'mdi:truck-delivery-outline' },
+        { label: 'Total Amount',    value: `$${(summaryData?.totalAmount || 0).toLocaleString()}`, icon: 'mdi:cash-multiple' },
+    ];
 
-    const getPaymentStatusColor = (status) => {
-        const statusColors = {
-            pending: 'bg-yellow-100 text-yellow-800',
-            partial: 'bg-orange-100 text-orange-800',
-            paid: 'bg-green-100 text-green-800',
-            refunded: 'bg-red-100 text-red-800'
-        };
-        return statusColors[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
-    };
+    const statusOptions = [
+        { value: 'all', label: 'All Statuses' },
+        { value: 'pending', label: 'Pending' },
+        { value: 'processing', label: 'Processing' },
+        { value: 'shipped', label: 'Shipped' },
+        { value: 'delivered', label: 'Delivered' },
+        { value: 'cancelled', label: 'Cancelled' },
+    ];
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-    };
+    const paymentStatusOptions = [
+        { value: 'all', label: 'All Payments' },
+        { value: 'Pending', label: 'Pending' },
+        { value: 'Partial', label: 'Partial' },
+        { value: 'Paid', label: 'Paid' },
+        { value: 'Refunded', label: 'Refunded' },
+    ];
 
+    const shippingOptions = [
+        { value: 'all', label: 'All Methods' },
+        { value: 'Pickup', label: 'Pickup' },
+        { value: 'Delivery', label: 'Delivery' },
+        { value: 'Courier', label: 'Courier' },
+    ];
+
+      const handleClearFilters = () => {
+    setSearchTerm('');
+    setFilterStatus('all');
+    setFilterPaymentStatus('all');
+    setFilterShippingMethod('all');
+};
     const renderPagination = () => {
         if (pagination.totalPages <= 1) return null;
 
         const pages = [];
-        const maxVisiblePages = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
-        let endPage = Math.min(pagination.totalPages, startPage + maxVisiblePages - 1);
-
-        if (endPage - startPage < maxVisiblePages - 1) {
-            startPage = Math.max(1, endPage - maxVisiblePages + 1);
-        }
-
-        pages.push(
-            <button
-                key="prev"
-                onClick={() => handlePageChange(currentPage - 1)}
-                disabled={!pagination.hasPrev}
-                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-l-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                Previous
-            </button>
-        );
-
-        for (let i = startPage; i <= endPage; i++) {
-            pages.push(
-                <button
-                    key={i}
-                    onClick={() => handlePageChange(i)}
-                    className={`px-3 py-2 text-sm font-medium border-t border-b border-gray-300 hover:bg-gray-50 ${currentPage === i
-                            ? 'bg-primary-50 text-primary-600 border-primary-500'
-                            : 'bg-white text-gray-500'
-                        }`}
-                >
-                    {i}
-                </button>
-            );
-        }
-
-        pages.push(
-            <button
-                key="next"
-                onClick={() => handlePageChange(currentPage + 1)}
-                disabled={!pagination.hasNext}
-                className="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-r-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-                Next
-            </button>
-        );
+        const maxVisible = 5;
+        let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let end = Math.min(pagination.totalPages, start + maxVisible - 1);
+        if (end - start < maxVisible - 1) start = Math.max(1, end - maxVisible + 1);
 
         return (
-            <div className="flex items-center justify-between mt-6 px-8 py-2">
-                <div className="text-sm text-gray-700">
-                    Showing <span className="font-medium">{((currentPage - 1) * 10) + 1}</span> to{' '}
-                    <span className="font-medium">
-                        {Math.min(currentPage * 10, pagination.totalOrders)}
-                    </span> of{' '}
-                    <span className="font-medium">{pagination.totalOrders}</span> results
+            <div className="flex items-center justify-between px-6 py-3 border-t border-gray-100">
+                <p className="text-xs text-gray-500">
+                    Showing{' '}
+                    <span className="font-medium text-gray-700">{((currentPage - 1) * 10) + 1}</span>
+                    {' '}to{' '}
+                    <span className="font-medium text-gray-700">{Math.min(currentPage * 10, pagination.totalOrders)}</span>
+                    {' '}of{' '}
+                    <span className="font-medium text-gray-700">{pagination.totalOrders}</span> results
+                </p>
+                <div className="flex gap-1">
+                    <button
+                        onClick={() => setCurrentPage(p => p - 1)}
+                        disabled={!pagination.hasPrev}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Previous
+                    </button>
+                    {Array.from({ length: end - start + 1 }, (_, i) => start + i).map(p => (
+                        <button
+                            key={p}
+                            onClick={() => setCurrentPage(p)}
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg border transition-colors ${
+                                currentPage === p
+                                    ? 'bg-blue-50 text-blue-600 border-blue-200'
+                                    : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                            }`}
+                        >
+                            {p}
+                        </button>
+                    ))}
+                    <button
+                        onClick={() => setCurrentPage(p => p + 1)}
+                        disabled={!pagination.hasNext}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Next
+                    </button>
                 </div>
-                <div className="flex">{pages}</div>
             </div>
         );
     };
 
-
     return (
         <div className="min-h-screen bg-gray-50 p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-7xl mx-auto space-y-4">
+
                 {/* Header */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-900">Parts Orders</h1>
-                            <p className="text-gray-600 mt-1">Manage and track parts orders</p>
-                        </div>
-                    </div>
+                <div className="bg-white rounded-xl border border-gray-200 px-6 py-4">
+                    <h1 className="text-2xl font-semibold text-gray-900">Parts Orders</h1>
+                    <p className="text-sm text-gray-500 mt-0.5">Manage and track parts orders</p>
                 </div>
-{console.log("Parts Orders:", partsOrders)
-        }
-                {/* Error Message */}
+
+                {/* Error */}
                 {error && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                        <div className="flex items-center">
-                            <Icon icon="mdi:alert-circle" className="w-5 h-5 text-red-600 mr-2" />
-                            <p className="text-red-800">{error}</p>
-                        </div>
+                    <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                        <Icon icon="mdi:alert-circle" className="w-4 h-4 text-red-500 shrink-0" />
+                        <p className="text-sm text-red-700">{error}</p>
                     </div>
                 )}
 
-                {/* Filters and Search */}
-                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4">
-                        {/* Search */}
-                        <div className="xl:col-span-1">
-                            <div className="relative">
-                                <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                <input
-                                    type="text"
-                                    placeholder="Search by order number..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                                />
-                            </div>
-                        </div>
+                {/* Summary Cards */}
+                {isLoading ? <SummaryCardSkeleton /> : <SummaryCards data={summaryCards} />}
 
-                        {/* Order Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:package-variant" className="text-gray-400 w-5 h-5" />
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="all">All Orders</option>
-                                <option value="pending">Pending</option>
-                                <option value="processing">Processing</option>
-                                <option value="shipped">Shipped</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
-                            </select>
+                {/* Filters */}
+                <div className="bg-white rounded-xl border border-gray-200 px-6 py-4">
+                    <div className="grid grid-cols-12  gap-3">
+                        <div className="col-span-4">
+                            <SearchInput
+                                value={searchTerm}
+                                onChange={setSearchTerm}
+                                placeholder="Search parts, customer..."
+                            />
                         </div>
-
-                        {/* Payment Status Filter */}
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:cash" className="text-gray-400 w-5 h-5" />
-                            <select
-                                value={filterPaymentStatus}
-                                onChange={(e) => setFilterPaymentStatus(e.target.value)}
-                                className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="all">All Payments</option>
-                                <option value="Pending">Pending</option>
-                                <option value="Partial">Partial</option>
-                                <option value="Paid">Paid</option>
-                                <option value="Refunded">Refunded</option>
-                            </select>
+                        <div className="col-span-2">
+                            <CustomDropdown label="Status" options={statusOptions} value={filterStatus} onChange={setFilterStatus} />
                         </div>
-
-                        {/* Shipping Method Filter */}
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:truck" className="text-gray-400 w-5 h-5" />
-                            <select
-                                value={filterShippingMethod}
-                                onChange={(e) => setFilterShippingMethod(e.target.value)}
-                                className="px-3 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                            >
-                                <option value="all">All Methods</option>
-                                <option value="Pickup">Pickup</option>
-                                <option value="Delivery">Delivery</option>
-                                <option value="Courier">Courier</option>
-                            </select>
+                            <div className="col-span-2">
+                        <CustomDropdown label="All Payments" options={paymentStatusOptions} value={filterPaymentStatus} onChange={setFilterPaymentStatus} />
                         </div>
+                        <div className="col-span-2">
+                        <CustomDropdown label="All Methods" options={shippingOptions} value={filterShippingMethod} onChange={setFilterShippingMethod} />
+                        </div>
+                        <div className='col-span-2'>
+                    <button
+      onClick={handleClearFilters}
+      className="w-full py-3 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition text-sm shadow-sm"
+      >
+      Clear Filters
+    </button>
+        </div>
                     </div>
                 </div>
 
-                {/* Orders Table */}
-                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                {/* Table */}
+                <div className="bg-white rounded-xl border mb-10 border-gray-200 overflow-hidden">
                     {isLoading ? (
-                        <div className="flex items-center justify-center py-20">
-                            <div className="text-center">
-                                <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin mx-auto mb-4" />
-                                <p className="text-gray-600">Loading orders...</p>
-                            </div>
-                        </div>
+                        <TableSkeleton />
                     ) : (
                         <>
                             <div className="overflow-x-auto">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Order #
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Customer
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Items
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Amount
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Payment
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Status
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Shipping
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Date
-                                            </th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                Actions
-                                            </th>
+                                <table className="min-w-full">
+                                    <thead>
+                                        <tr className="bg-gray-50 border-b border-gray-100">
+                                            {['Order #', 'Customer', 'Items', 'Amount', 'Payment', 'Status', 'Shipping', 'Date', 'Actions'].map(h => (
+                                                <th key={h} className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                                                    {h}
+                                                </th>
+                                            ))}
                                         </tr>
                                     </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
+                                    <tbody className="divide-y divide-gray-100">
                                         {partsOrders.map((order) => (
-                                            <tr key={order._id} className="hover:bg-gray-50">
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {order.orderNumber}
-                                                    </div>
+                                            <tr key={order._id} className="hover:bg-gray-50 transition-colors">
 
+                                                {/* Order # */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <span className="text-xs font-medium text-gray-500">{order.orderNumber}</span>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        {order.customer?.name}
-                                                    </div>
-                                                    <div className="text-sm text-gray-500">
-                                                        {order.customer?.email}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        {order.customer?.phone}
-                                                    </div>
+
+                                                {/* Customer */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm font-medium text-gray-900 leading-tight">{order.customer?.name}</p>
+                                                    <p className="text-xs text-gray-500 mt-0.5">{order.customer?.email}</p>
+                                                    <p className="text-xs text-gray-400">{order.customer?.phone}</p>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className="text-sm text-gray-900">
-                                                        {order.items?.length} item(s)
-                                                    </div>
+
+                                                {/* Items */}
+                                                <td className="px-5 py-4">
+                                                    <p className="text-sm font-medium text-gray-900">{order.items?.length} item{order.items?.length !== 1 ? 's' : ''}</p>
                                                     {order.items?.slice(0, 2).map((item, idx) => (
-                                                        <div key={idx} className="text-xs text-gray-500 truncate max-w-xs">
-                                                            {item.partName} x{item.quantity}
-                                                        </div>
+                                                        <p key={idx} className="text-xs text-gray-500 truncate max-w-[140px]">
+                                                            {item.partName} ×{item.quantity}
+                                                        </p>
                                                     ))}
                                                     {order.items?.length > 2 && (
-                                                        <div className="text-xs text-gray-500">
-                                                            +{order.items.length - 2} more
-                                                        </div>
+                                                        <p className="text-xs text-gray-400">+{order.items.length - 2} more</p>
                                                     )}
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="text-sm font-medium text-gray-900">
-                                                        ${order.totalAmount?.toLocaleString()}
-                                                    </div>
+
+                                                {/* Amount */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <p className="text-sm font-semibold text-gray-900">${order.totalAmount?.toLocaleString()}</p>
+                                                    <p className="text-xs text-gray-400">Sub: ${order.subtotal?.toLocaleString()}</p>
                                                     {order.discount > 0 && (
-                                                        <div className="text-xs text-green-600">
-                                                            -${order.discount} discount
-                                                        </div>
+                                                        <p className="text-xs text-green-600">-${order.discount} off</p>
                                                     )}
-                                                    <div className="text-xs text-gray-500">
-                                                        Subtotal: ${order.subtotal?.toLocaleString()}
+                                                </td>
+
+                                                {/* Payment */}
+                                                <td className="px-5 py-4">
+                                                    <PaymentBadge status={order.paymentStatus} />
+                                                </td>
+
+                                                {/* Status */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <StatusBadge status={order.orderStatus} />
+                                                </td>
+
+                                                {/* Shipping */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <div className="flex items-center gap-1.5 text-sm text-gray-700">
+                                                        <Icon
+                                                            icon={order.shippingMethod === 'Pickup' ? 'mdi:store-outline' : 'mdi:truck-outline'}
+                                                            className="w-4 h-4 text-gray-400 shrink-0"
+                                                        />
+                                                        <span className="text-xs">{order.shippingMethod}</span>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-4">
-                                                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-1 ${getPaymentStatusColor(order.paymentStatus)}`}>
-                                                        {order.paymentStatus}
-                                                    </div>
-                                                    {/* <div className="text-xs text-gray-500">
-                                                        Paid: ${order.paidAmount?.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500">
-                                                        Due: ${order.remainingAmount?.toLocaleString()}
-                                                    </div>
-                                                    <div className="text-xs font-medium text-primary-600">
-                                                        {order.paymentPercentage}% paid
-                                                    </div> */}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)}`}>
-                                                        {order.orderStatus}
+
+                                                {/* Date */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <span className="text-xs text-gray-500">
+                                                        {new Date(order.createdAt).toLocaleDateString('en-GB', {
+                                                            day: '2-digit', month: 'short', year: 'numeric'
+                                                        })}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center text-sm text-gray-900">
-                                                        <Icon
-                                                            icon={order.shippingMethod === 'Pickup' ? 'mdi:store' : 'mdi:truck'}
-                                                            className="w-4 h-4 mr-1"
-                                                        />
-                                                        {order.shippingMethod}
-                                                    </div>
-                                                    {/* <div className="text-xs text-gray-500">
-                                                        {order.paymentMethod}
-                                                    </div> */}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {new Date(order.createdAt).toLocaleDateString()}
-                                                </td>
-                                                <td className="px-6 py-4 whitespace-nowrap">
-                                                    <div className="flex items-center gap-2">
-                                                        <Link href={`/repair-man/parts-order/${order?._id}`}>
-                                                        <button
-                                                            className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                            title="View details"
-                                                        >
-                                                            <Icon icon="mdi:eye" className="w-5 h-5" />
-                                                        </button>
-                                                        </Link>
-                                                        {/* <Link href={`/repair-man/parts-order/${order?._id}`}>
-                                                            <button
-                                                                className="text-blue-600 hover:text-blue-900 transition-colors"
-                                                                title="Edit order"
-                                                            >
-                                                                <Icon icon="mdi:pencil" className="w-5 h-5" />
-                                                            </button>
-                                                        </Link> */}
 
-                                                    </div>
+                                                {/* Actions */}
+                                                <td className="px-5 py-4 whitespace-nowrap">
+                                                    <Link href={`/repair-man/parts-order/${order?._id}`}>
+                                                        <button className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">
+                                                            <Icon icon="mdi:eye-outline" className="w-3.5 h-3.5" />
+                                                            View
+                                                        </button>
+                                                    </Link>
                                                 </td>
+
                                             </tr>
                                         ))}
                                     </tbody>
                                 </table>
 
-                                {!isLoading && partsOrders.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <Icon icon="mdi:package-variant" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No orders found</h3>
-                                        <p className="text-gray-500">
+                                {partsOrders.length === 0 && (
+                                    <div className="text-center py-16">
+                                        <Icon icon="mdi:package-variant-closed" className="w-10 h-10 text-gray-300 mx-auto mb-3" />
+                                        <p className="text-sm font-medium text-gray-600">No orders found</p>
+                                        <p className="text-xs text-gray-400 mt-1">
                                             {searchTerm || filterStatus !== 'all' || filterPaymentStatus !== 'all' || filterShippingMethod !== 'all'
-                                                ? 'Try adjusting your search or filters.'
-                                                : 'No orders have been placed yet.'
-                                            }
+                                                ? 'Try adjusting your filters.'
+                                                : 'No orders have been placed yet.'}
                                         </p>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Pagination */}
-                            {!isLoading && renderPagination()}
+                            {renderPagination()}
                         </>
                     )}
                 </div>
 
-                {/* Stats */}
-                <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:package-variant" className="w-8 h-8 text-primary-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Orders</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {isLoading ? '...' : pagination.totalOrders || partsOrders.length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:clock-outline" className="w-8 h-8 text-yellow-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Pending Orders</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {isLoading ? '...' : partsOrders.filter(order => order.orderStatus === 'pending').length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:cash-check" className="w-8 h-8 text-green-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Amount</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {isLoading ? '...' : `$${partsOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0).toLocaleString()}`}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-white p-6 rounded-lg shadow-sm">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <Icon icon="mdi:truck-delivery" className="w-8 h-8 text-blue-600" />
-                            </div>
-                            <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Delivered</p>
-                                <p className="text-2xl font-semibold text-gray-900">
-                                    {isLoading ? '...' : partsOrders.filter(order => order.orderStatus === 'delivered').length}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
             </div>
         </div>
     );

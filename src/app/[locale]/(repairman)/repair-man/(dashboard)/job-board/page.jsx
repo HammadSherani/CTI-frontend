@@ -227,6 +227,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
   const jobStatus = getJobStatus(job);
   const urgency = getUrgencyLevel(job.urgency);
   const customerInitials = job.customerId?.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'CU';
+ const router=useRouter()
 
   const Expired=  getTimeRemaining(job.expiresAt) === "Expird"
   useEffect(() => {
@@ -236,9 +237,8 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
       setShowMore(isOverflowing);
     }
   }, [job?.description]);
-
   return (
-    <div disabled={Expired} className={` ${Expired?"opacity-30 cursor-not-allowed":""}  bg-white  rounded-3xl overflow-hiddentransition-all duration-300`}>
+    <div onClick={()=>router.push(`/repair-man/job-board/${job?._id}`)} disabled={Expired} className={` ${Expired?"opacity-30 cursor-not-allowed":""} hover:bg-gray-50 bg-white  rounded-3xl overflow-hiddentransition-all duration-300`}>
       {/* Header */}
       <div className="px-3 pt-6 pb-4  ">
         <div className="flex items-center -ml-5 justify-between  gap-3">
@@ -465,7 +465,7 @@ const JobCard = ({ job, expandedJob, setExpandedJob, activeTab }) => {
   return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="mb-8 ">
+          <div className="bg-white rounded-xl border border-gray-200 px-6 py-4 mb-10 ">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">My Jobs</h1>
             <p className="text-gray-600 text-lg">Manage your repair jobs and track progress with ease</p>
           </div>

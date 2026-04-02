@@ -29,3 +29,21 @@ export default function SummaryCards({ data = [] }) {
     </div>
   );
 }
+
+
+
+export function SummaryCardSkeleton() {
+    return (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 flex flex-col gap-3">
+                    <div className="h-3 w-24 bg-gray-200 rounded animate-pulse" />
+                    <div className="flex justify-between items-end">
+                        <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
+                        <div className="h-9 w-9 bg-gray-100 rounded-lg animate-pulse" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}

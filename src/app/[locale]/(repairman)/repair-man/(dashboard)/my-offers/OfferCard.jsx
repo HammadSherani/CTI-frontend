@@ -137,7 +137,7 @@ const getTimeAgo = (createdAt) => {
   }, [job?.description]);
 
     return (
-        <div disabled={isDisabled} className={`   ${isDisabled ? 'opacity-50 pointer-events-none select-none' : 'hover:shadow-md'} bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow duration-200`}>
+        <div disabled={isDisabled} className={`${isDisabled ? 'opacity-50 pointer-events-none select-none' : 'hover:shadow-md'} bg-white border border-gray-200 rounded-lg p-4 mb-4 shadow-sm hover:shadow-md transition-shadow hover:bg-gray-50 duration-200`}>
             {/* Header */}
      <div className="px-3 pt-6 pb-4  ">
            <div className="flex items-center -mt-5 -ml-13 justify-between  gap-3">
@@ -301,7 +301,7 @@ const getTimeAgo = (createdAt) => {
           {offerStatus === 'accepted' && (
             <button
               onClick={() => router.push(`/repair-man/my-offers/${offer._id}/view`)}
-              className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+              className="flex-1 min-w-[140px] flex items-center justify-center gap-2 bg-primary-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-primary-700 transition"
             >
               <Icon icon="solar:check-circle-bold-duotone" className="w-4 h-4" />
               Please Confirm Offer
