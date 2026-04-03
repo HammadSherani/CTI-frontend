@@ -1,26 +1,29 @@
 import { Icon } from "@iconify/react";
 
+
 export default function SummaryCards({ data = [] }) {
   if (!data.length) return null;
 
   return (
-    <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4">
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {data.map((item, index) => (
         <div
           key={index}
-          className="bg-white p-4 py-8 rounded-lg border border-gray-200"
+          className="bg-white p-4 sm:p-5 lg:p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
         >
-          <p className="text-sm text-gray-500 mb-4">{item.label}</p>
+          <p className="text-xs sm:text-sm text-gray-500 mb-3 sm:mb-4">
+            {item.label}
+          </p>
 
-          <div className="flex items-center justify-between gap-2">
-            <p className={`text-4xl font-bold text-primary-600  `}>
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-2xl sm:text-3xl lg:text-4xl font-bold text-primary-600 break-words">
               {item.value}
             </p>
 
-            <div className={`bg-primary-100  p-2 -mt-14 rounded-full`}>
+            <div className="bg-primary-100 p-2 sm:p-3 rounded-full shrink-0">
               <Icon
                 icon={item.icon}
-                className={`w-6 h-6 text-primary-600`}
+                className="w-5 h-5 sm:w-6 sm:h-6 text-primary-600"
               />
             </div>
           </div>
@@ -29,7 +32,6 @@ export default function SummaryCards({ data = [] }) {
     </div>
   );
 }
-
 
 
 export function SummaryCardSkeleton() {

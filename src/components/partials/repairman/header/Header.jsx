@@ -83,7 +83,7 @@ function Header() {
   }, []);
 
   return (
-    <header className="border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-[#F8FAFB]">
+    <header className="border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-[#F8FAFB]">
       <div className="flex items-center p-3 gap-2 justify-start">
 
         {/* Welcome Card */}

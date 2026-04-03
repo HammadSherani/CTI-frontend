@@ -5,6 +5,7 @@ import Chat from '@/components/chat/GlobalChat'
 import Header from '@/components/partials/repairman/header/Header'
 import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
+import handleError from '@/helper/handleError';
 import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
 import React, { useEffect, useState } from 'react'

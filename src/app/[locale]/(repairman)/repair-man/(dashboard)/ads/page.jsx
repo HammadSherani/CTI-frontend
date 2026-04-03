@@ -243,7 +243,7 @@ function Advertisements() {
                 
 
                 {/* Summary Cards */}
-                {summary.length === 0 && isLoading ? <SummaryCardSkeleton /> : <SummaryCards data={SummaryData} />}
+                {summary?.length === 0 && isLoading ? <SummaryCardSkeleton /> : <SummaryCards data={SummaryData} />}
 
                 {/* Filters */}
                 <div className="bg-white rounded-xl border border-gray-200 px-6 py-4">
