@@ -7,6 +7,7 @@ import Loader from '@/components/Loader';
 import { Icon } from '@iconify/react';
 import { useMultiLoading } from '@/hooks/useMultiloading';   
 import axiosInstance from '@/config/axiosInstance';
+import { useRouter } from '@/i18n/navigation';
 const DEFAULT_PROFILE_IMG = "https://via.placeholder.com/400x300?text=Repairman";
 
 export default function HireRepairman() {
@@ -135,8 +136,11 @@ const [currentPage, setCurrentPage] = useState(1);
     ? profile.specializations.slice(0, 2).join(" • ")
     : "General Repair";
 
+    const router = useRouter();
+    console.log("reparimen",repairmen)
+
   return (
-    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
+    <div onClick={()=>router.push(`/repairmans/${repairman._id}`)} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
       
       {/* Photo — tall, full width */}
       <div className="h-64 w-full overflow-hidden">

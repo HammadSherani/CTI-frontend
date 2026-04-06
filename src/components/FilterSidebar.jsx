@@ -212,8 +212,7 @@ export default function FilterSidebar({ onFiltersChange, countries = [], states 
         {selectedRating > 0 && <p className="text-xs text-gray-500 mt-1">≥ {selectedRating} stars</p>}
       </div>
 
-      {/* Verified Only */}
-      <div className="flex items-center gap-2 pt-2">
+      {/* <div className="flex items-center gap-2 pt-2">
         <input
           type="checkbox"
           id="verified"
@@ -222,7 +221,7 @@ export default function FilterSidebar({ onFiltersChange, countries = [], states 
           className="accent-primary-600 w-4 h-4"
         />
         <label htmlFor="verified" className="text-sm cursor-pointer">Verified Only</label>
-      </div>
+      </div> */}
     </div>
   );
 }

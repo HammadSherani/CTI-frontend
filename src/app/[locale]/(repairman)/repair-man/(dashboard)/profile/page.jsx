@@ -6,6 +6,10 @@ import { useSelector } from 'react-redux';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useRouter } from '@/i18n/navigation';
+import Image from 'next/image';
+
+// ─── Small reusable components ───────────────────────────────────────────────
+
 const StatCard = ({ icon, label, value, bgColor = "bg-primary-50", iconColor = "text-primary-600" }) => (
   <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
     <div className="flex items-center gap-3">
@@ -29,9 +33,7 @@ const SectionCard = ({ title, icon, children, action }) => (
       </div>
       {action && action}
     </div>
-    <div className="p-6">
-      {children}
-    </div>
+    <div className="p-6">{children}</div>
   </div>
 );
 
@@ -57,32 +59,866 @@ const Badge = ({ children, variant = 'primary' }) => {
     primary: 'bg-primary-50 text-primary-700 border-primary-200',
     success: 'bg-green-50 text-green-700 border-green-200',
     warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-    info: 'bg-blue-50 text-blue-700 border-blue-200',
-    default: 'bg-gray-50 text-gray-700 border-gray-200'
+    info: 'bg-primary-50 text-primary-700 border-primary-200',
+    danger: 'bg-red-50 text-red-700 border-red-200',
+    default: 'bg-gray-50 text-gray-700 border-gray-200',
   };
-
   return (
-    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant]}`}>
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant] || variants.default}`}>
       {children}
     </span>
   );
 };
 
+// ─── Tag Input ────────────────────────────────────────────────────────────────
+
+const TagInput = ({ tags, onChange }) => {
+  const [input, setInput] = useState('');
+  const addTag = (val) => {
+    const trimmed = val.trim().replace(/,$/, '');
+    if (trimmed && !tags.includes(trimmed)) onChange([...tags, trimmed]);
+    setInput('');
+  };
+  const removeTag = (i) => onChange(tags.filter((_, idx) => idx !== i));
+  const handleKey = (e) => {
+    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(input); }
+    else if (e.key === 'Backspace' && !input && tags.length) removeTag(tags.length - 1);
+  };
+  return (
+    <div
+      className="flex flex-wrap gap-1.5 p-2 border border-gray-200 rounded-lg cursor-text min-h-[42px] items-center focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 transition-all"
+      onClick={() => document.getElementById('tag-bare-input')?.focus()}
+    >
+      {tags.map((t, i) => (
+        <span key={i} className="flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
+          {t}
+          <button type="button" onClick={() => removeTag(i)} className="text-primary-400 hover:text-primary-700 leading-none text-sm ml-0.5">×</button>
+        </span>
+      ))}
+      <input
+        id="tag-bare-input"
+        className="border-none outline-none text-sm text-gray-800 bg-transparent min-w-[80px] flex-1"
+        value={input}
+        onChange={(e) => setInput(e.target.value)}
+        onKeyDown={handleKey}
+        onBlur={() => input && addTag(input)}
+        placeholder={tags.length === 0 ? 'Add skill and press Enter...' : ''}
+      />
+    </div>
+  );
+};
+
+// ─── Safe Image ───────────────────────────────────────────────────────────────
+// Prevents crash when src is null/undefined
+const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
+  if (!src) return null;
+  return (
+    <div className="mt-3">
+      <Image
+        src={src}
+        alt={alt || 'image'}
+        width={width}
+        height={height}
+        className={className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'}
+        unoptimized
+      />
+    </div>
+  );
+};
+
+// ─── Education Modal ──────────────────────────────────────────────────────────
+
+const EducationModal = ({ isOpen, onClose, onSave, initialData, isSaving }) => {
+  const [form, setForm] = useState({ title: 'Bachelors in Software Engineering', institution: 'University of Karachi', startYear: '2018', endYear: '2022', description: 'I successfully completed my degree in Software Engineering' });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({
+        title: initialData?.title || 'Bachelors in Software Engineering',
+        institution: initialData?.institution || 'University of Karachi',
+        startYear: initialData?.startYear || '2018',
+        endYear: initialData?.endYear || '2022',
+        description: initialData?.description || 'I successfully completed my degree in Software Engineering',
+      });
+      setImagePreview(initialData?.educationImage || null);
+      setImageFile(null);
+    }
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+  const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <Icon icon="heroicons:academic-cap" className="w-5 h-5 text-primary-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Education' : 'Add Education'}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Degree / Title *</label>
+            <input type="text" value={form.title} onChange={(e) => setField('title', e.target.value)} placeholder="e.g. Diploma in Electronics Repair" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Institution *</label>
+            <input type="text" value={form.institution} onChange={(e) => setField('institution', e.target.value)} placeholder="e.g. Technical Institute Karachi" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Start Year</label>
+              <input type="number" value={form.startYear} onChange={(e) => setField('startYear', e.target.value)} placeholder="2018" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">End Year <span className="text-gray-400 font-normal">(blank = Present)</span></label>
+              <input type="number" value={form.endYear} onChange={(e) => setField('endYear', e.target.value)} placeholder="2021" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Description</label>
+            <textarea value={form.description} onChange={(e) => setField('description', e.target.value)} rows={3} placeholder="Describe your education..." className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all resize-none" />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Certificate Image</label>
+            <div className="flex items-center gap-4">
+              {imagePreview && (
+                <div className="relative">
+                  <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                  <button type="button" onClick={() => { setImagePreview(null); setImageFile(null); }} className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors">
+                    <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              <label className={`flex-1 px-4 py-2 border-2 border-dashed rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all ${imagePreview ? 'border-primary-400 bg-primary-50' : 'border-gray-300'}`}>
+                <div className="flex items-center justify-center gap-2">
+                  <Icon icon="heroicons:cloud-arrow-up" className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">{imageFile ? 'Change Image' : 'Upload Image'}</span>
+                </div>
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, max 5MB</p>
+          </div>
+        </div>
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button onClick={onClose} className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors">Cancel</button>
+          <button onClick={() => onSave(form, imageFile)} disabled={isSaving || !form.title || !form.institution} className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2">
+            {isSaving && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+            {initialData ? 'Save Changes' : 'Add Education'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Experience Modal ─────────────────────────────────────────────────────────
+
+const ExperienceModal = ({ isOpen, onClose, onSave, initialData, isSaving }) => {
+  const [form, setForm] = useState({ 
+    title: 'Mobile Repair Specialist', 
+    companyName: 'Click To Integrate', 
+    startYear: '2024', 
+    endYear: '', 
+    description: '', 
+    bullets: '',
+    useBulletPoints: true
+  });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Safely handle bullets data - ensure it's always a string for the textarea
+      let bulletsValue = '';
+      let useBulletPointsValue = true;
+      
+      if (initialData) {
+        // Check if bullets exists and is an array
+        if (initialData.bullets && Array.isArray(initialData.bullets)) {
+          bulletsValue = initialData.bullets.join('\n');
+          useBulletPointsValue = true;
+        } 
+        // Check if bullets exists as a string
+        else if (initialData.bullets && typeof initialData.bullets === 'string') {
+          bulletsValue = initialData.bullets;
+          useBulletPointsValue = true;
+        }
+        // Check if description exists
+        else if (initialData.description && initialData.description.trim() !== '') {
+          bulletsValue = '';
+          useBulletPointsValue = false;
+        }
+      }
+      
+      setForm({
+        title: initialData?.title || 'Mobile Repair Specialist',
+        companyName: initialData?.companyName || 'Click To Integrate',
+        startYear: initialData?.startYear || '2024',
+        endYear: initialData?.endYear || '',
+        description: initialData?.description || 'I am working as a mobile repair specialist at Click To Integrate since 2024',
+        bullets: bulletsValue,
+        useBulletPoints: useBulletPointsValue
+      });
+      setImagePreview(initialData?.experienceImage || null);
+      setImageFile(null);
+    }
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+  
+  const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)); }
+  };
+
+  const handleSaveClick = () => {
+    onSave(form, imageFile);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <Icon icon="heroicons:briefcase" className="w-5 h-5 text-primary-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Experience' : 'Add Experience'}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Job Title *</label>
+            <input 
+              type="text" 
+              value={form.title} 
+              onChange={(e) => setField('title', e.target.value)} 
+              placeholder="e.g. Mobile Repair Technician" 
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Company / Shop Name *</label>
+            <input 
+              type="text" 
+              value={form.companyName} 
+              onChange={(e) => setField('companyName', e.target.value)} 
+              placeholder="e.g. Cti Mobile Repair" 
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+            />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Start Year</label>
+              <input 
+                type="number" 
+                value={form.startYear} 
+                onChange={(e) => setField('startYear', e.target.value)} 
+                placeholder="2021" 
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">End Year <span className="text-gray-400 font-normal">(blank = Present)</span></label>
+              <input 
+                type="number" 
+                value={form.endYear} 
+                onChange={(e) => setField('endYear', e.target.value)} 
+                placeholder="2023" 
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+              />
+            </div>
+          </div>
+
+
+        
+      
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Description</label>
+              <textarea 
+                value={form.description} 
+                onChange={(e) => setField('description', e.target.value)} 
+                rows={4} 
+                placeholder="Write a detailed description of your role and responsibilities..." 
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all resize-none" 
+              />
+              <p className="text-xs text-gray-400 mt-1">Write a complete description of your experience</p>
+            </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Work Certificate / Image</label>
+            <div className="flex items-center gap-4">
+              {imagePreview && (
+                <div className="relative">
+                  <img src={imagePreview} alt="Preview" className="w-20 h-20 object-cover rounded-lg border border-gray-200" />
+                  <button 
+                    type="button" 
+                    onClick={() => { setImagePreview(null); setImageFile(null); }} 
+                    className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              <label className={`flex-1 px-4 py-2 border-2 border-dashed rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all ${imagePreview ? 'border-primary-400 bg-primary-50' : 'border-gray-300'}`}>
+                <div className="flex items-center justify-center gap-2">
+                  <Icon icon="heroicons:cloud-arrow-up" className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">{imageFile ? 'Change Image' : 'Upload Image'}</span>
+                </div>
+                <input type="file" className="hidden" accept="image/*" onChange={handleImageChange} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, max 5MB</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button 
+            onClick={onClose} 
+            className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSaveClick} 
+            disabled={isSaving || !form.title || !form.companyName || !form.description.trim() || !imagePreview} 
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+            {initialData ? 'Save Changes' : 'Add Experience'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Delete Confirm Modal ─────────────────────────────────────────────────────
+
+const DeleteModal = ({ isOpen, onClose, onConfirm, itemName, isDeleting }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+        <div className="p-6 text-center">
+          <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="heroicons:trash" className="w-7 h-7 text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Delete Item</h3>
+          <p className="text-sm text-gray-500 mb-6">Are you sure you want to delete <span className="font-medium text-gray-800">"{itemName}"</span>? This cannot be undone.</p>
+          <div className="flex gap-3">
+            <button onClick={onClose} className="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
+            <button onClick={onConfirm} disabled={isDeleting} className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              {isDeleting && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+              Delete
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Education Section ────────────────────────────────────────────────────────
+
+const EducationSection = ({ education = [], onUpdate, token }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editIndex, setEditIndex] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, index: null, name: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openAdd = () => { setEditItem(null); setEditIndex(null); setModalOpen(true); };
+  const openEdit = (item, index) => { setEditItem(item); setEditIndex(index); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditItem(null); setEditIndex(null); };
+
+  const handleSave = async (form, imageFile) => {
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+
+      const newItem = {
+        title: form.title,
+        institution: form.institution,
+        startYear: form.startYear ? parseInt(form.startYear) : undefined,
+        endYear: form.endYear ? parseInt(form.endYear) : null,
+        description: form.description||"",
+      };
+
+      let updatedList;
+      let targetIndex;
+
+      // ✅ FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
+      if (editIndex !== null) {
+        updatedList = education.map((item, i) => {
+          if (i === editIndex) {
+            return { ...item, ...newItem, educationImage: imageFile ? URL.createObjectURL(imageFile) : item.educationImage };
+          }
+          return item;
+        });
+        targetIndex = editIndex;
+      } else {
+        const itemWithImage = { ...newItem };
+        // Only set image preview if file is selected
+        if (imageFile) {
+          itemWithImage.educationImage = URL.createObjectURL(imageFile);
+        }
+        updatedList = [...education, itemWithImage];
+        targetIndex = updatedList.length - 1;
+      }
+
+      // ✅ IMMEDIATE UPDATE: show in UI instantly with blob URL
+
+      // Send the full updated array as JSON string
+      formData.append('education', JSON.stringify(updatedList.map(item => {
+        const { educationImage, ...rest } = item;
+        return rest;
+      })));
+
+      if (imageFile) {
+        formData.append('educationImages', imageFile);
+        formData.append('educationImageIndexes', String(targetIndex));
+      }
+
+      const response = await axiosInstance.put('/repairman/profile', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      console.log('Server response:', response);
+      if(response.status === 200) {
+      closeModal();
+  onUpdate(updatedList);
+      }
+    } catch (err) {
+      handleError(err);
+      // Revert to original on error
+      setIsSaving(false);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const updatedList = education.filter((_, i) => i !== deleteModal.index);
+      await axiosInstance.put(
+        '/repairman/profile',
+        { education: JSON.stringify(updatedList) },
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      onUpdate(updatedList); // optimistic update — no refetch needed
+      setDeleteModal({ open: false, index: null, name: '' });
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <SectionCard
+        title="Education"
+        icon="heroicons:academic-cap"
+        action={
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 transition-colors">
+            <Icon icon="heroicons:plus" className="w-3.5 h-3.5" /> Add Education
+          </button>
+        }
+      >
+        {education.length === 0 ? (
+          <div className="text-center py-8">
+            <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">No education added yet</p>
+            <button onClick={openAdd} className="mt-3 text-primary-600 text-sm font-medium hover:underline">+ Add your first education</button>
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
+            <div className="space-y-0">
+              {education.map((item, index) => (
+                <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
+                  <div className="relative z-10 flex-shrink-0 mt-1">
+                    <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
+                  </div>
+                  <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                          {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
+                        </span>
+                        <button onClick={() => openEdit(item, index)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                          <Icon icon="heroicons:pencil-square" className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                        <button onClick={() => setDeleteModal({ open: true, index, name: item.title })} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                          <Icon icon="heroicons:trash" className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-primary-600 font-medium mb-2">{item.institution}</p>
+                    {item.description && <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>}
+                    {/* ✅ Safe image — won't crash if null */}
+                    <SafeImage src={item.educationImage} alt="Education certificate" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <EducationModal isOpen={modalOpen} onClose={closeModal} onSave={handleSave} initialData={editItem} isSaving={isSaving} />
+      <DeleteModal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, index: null, name: '' })} onConfirm={handleDelete} itemName={deleteModal.name} isDeleting={isDeleting} />
+    </>
+  );
+};
+
+// ─── Experience Section ───────────────────────────────────────────────────────
+
+const ExperienceSection = ({ experience = [], onUpdate, token }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editIndex, setEditIndex] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, index: null, name: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openAdd = () => { setEditItem(null); setEditIndex(null); setModalOpen(true); };
+  const openEdit = (item, index) => { setEditItem(item); setEditIndex(index); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditItem(null); setEditIndex(null); };
+
+  const handleSave = async (form, imageFile) => {
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+
+      const newItem = {
+        title: form.title,
+        companyName: form.companyName,
+        startYear: form.startYear ? parseInt(form.startYear) : undefined,
+        endYear: form.endYear ? parseInt(form.endYear) : null,
+        description: form.description||"",
+      };
+
+      let updatedList;
+      let targetIndex;
+
+      // ✅ FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
+      if (editIndex !== null) {
+        updatedList = experience.map((item, i) => {
+          if (i === editIndex) {
+            return { ...item, ...newItem, experienceImage: imageFile ? URL.createObjectURL(imageFile) : item.experienceImage };
+          }
+          return item;
+        });
+        targetIndex = editIndex;
+      } else {
+        const itemWithImage = { ...newItem };
+        if (imageFile) {
+          itemWithImage.experienceImage = URL.createObjectURL(imageFile);
+        }
+        updatedList = [...experience, itemWithImage];
+        targetIndex = updatedList.length - 1;
+      }
+
+    
+
+      // Send data without image blob references
+      formData.append('experience', JSON.stringify(updatedList.map(item => {
+        const { experienceImage, ...rest } = item;
+        return rest;
+      })));
+
+      if (imageFile) {
+        formData.append('experienceImages', imageFile);
+        formData.append('experienceImageIndexes', String(targetIndex));
+      }
+
+      const response = await axiosInstance.put('/repairman/profile', formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if(response.status === 200) {
+        onUpdate(updatedList);
+        closeModal();
+      }
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const updatedList = experience.filter((_, i) => i !== deleteModal.index);
+      await axiosInstance.put(
+        '/repairman/profile',
+        { experience: JSON.stringify(updatedList) },
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      onUpdate(updatedList);
+      setDeleteModal({ open: false, index: null, name: '' });
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <SectionCard
+        title="Experience"
+        icon="heroicons:briefcase"
+        action={
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 transition-colors">
+            <Icon icon="heroicons:plus" className="w-3.5 h-3.5" /> Add Experience
+          </button>
+        }
+      >
+        {experience.length === 0 ? (
+          <div className="text-center py-8">
+            <Icon icon="heroicons:briefcase" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">No experience added yet</p>
+            <button onClick={openAdd} className="mt-3 text-primary-600 text-sm font-medium hover:underline">+ Add your first experience</button>
+          </div>
+        ) : (
+          <div className="relative">
+            <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
+            <div className="space-y-0">
+              {experience.map((item, index) => (
+                <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
+                  <div className="relative z-10 flex-shrink-0 mt-1">
+                    <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
+                  </div>
+                  <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <h4 className="text-md font-semibold text-gray-900">{item.title}</h4>
+                      <div className="flex items-center gap-1 flex-shrink-0">
+                        <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                          {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
+                        </span>
+                        <button onClick={() => openEdit(item, index)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors" title="Edit">
+                          <Icon icon="heroicons:pencil-square" className="w-3.5 h-3.5 text-gray-500" />
+                        </button>
+                        <button onClick={() => setDeleteModal({ open: true, index, name: item.title })} className="p-1.5 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
+                          <Icon icon="heroicons:trash" className="w-3.5 h-3.5 text-red-400" />
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-primary-600 font-medium mb-2">{item.companyName}</p>
+                    {item.bullets?.length > 0 ? (
+                      <ul className="space-y-1 mb-2">
+                        {item.bullets.map((b, bi) => (
+                          <li key={bi} className="flex items-start gap-2 text-xs text-gray-500">
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />{b}
+                          </li>
+                        ))}
+                      </ul>
+                    ) : item.description ? (
+                      <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>
+                    ) : null}
+                    <SafeImage src={item.experienceImage} alt="Experience certificate" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </SectionCard>
+
+      <ExperienceModal isOpen={modalOpen} onClose={closeModal} onSave={handleSave} initialData={editItem} isSaving={isSaving} />
+      <DeleteModal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, index: null, name: '' })} onConfirm={handleDelete} itemName={deleteModal.name} isDeleting={isDeleting} />
+    </>
+  );
+};
+
+// ─── Service Catalog Section ──────────────────────────────────────────────────
+
+const statusVariant = { pending: 'warning', approved: 'success', rejected: 'danger' };
+
+const ServiceCatalogSection = ({ serviceCatalog }) => {
+  const [activeTab, setActiveTab] = useState('all');
+  if (!serviceCatalog) return null;
+
+  const tabs = [
+    { key: 'all', label: 'All', count: serviceCatalog.stats?.total || 0 },
+    { key: 'approved', label: 'Approved', count: serviceCatalog.stats?.approved || 0 },
+    { key: 'pending', label: 'Pending', count: serviceCatalog.stats?.pending || 0 },
+    { key: 'rejected', label: 'Rejected', count: serviceCatalog.stats?.rejected || 0 },
+  ];
+
+  const services = serviceCatalog[activeTab] || [];
+
+  const statusConfig = {
+    approved: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
+    pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+    rejected: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' }
+  };
+
+  return (
+    <SectionCard title="Service Catalog" icon="heroicons:wrench-screwdriver">
+      {/* Tabs */}
+      <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3 flex-wrap">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+              activeTab === tab.key
+                ? 'bg-primary-600 text-white shadow-sm'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            {tab.label}
+            <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
+              {tab.count}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {services.length === 0 ? (
+        <div className="text-center py-8">
+          <Icon icon="heroicons:wrench-screwdriver" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+          <p className="text-sm text-gray-400">No services in this category</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {services.map((service) => (
+            <div 
+              key={service._id} 
+              className="group flex gap-4 bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
+            >
+              {/* Image Section - Left side */}
+              <div className="relative w-32 md:w-40 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
+                {service.images && service.images.length > 0 ? (
+                  <img 
+                    src={service.images[0]} 
+                    alt={service.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Icon icon="heroicons:device-phone-mobile" className="w-8 h-8 text-gray-300" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Content Section - Right side */}
+              <div className="flex-1 p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="flex-1">
+                    <h4 className="text-base font-semibold text-gray-900 mb-1">
+                      {service.title}
+                    </h4>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Icon icon="heroicons:device-phone-mobile" className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-600">
+                          {service.deviceInfo?.modelId?.brandId?.name} {service.deviceInfo?.modelId?.name}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                      {service.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${statusConfig[service.status]?.bg} ${statusConfig[service.status]?.text}`}>
+                      <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[service.status]?.dot}`}></span>
+                      {service.status?.charAt(0).toUpperCase() + service.status?.slice(1)}
+                    </span>
+                    <span className="text-lg font-bold text-primary-600">
+                      {service.pricing?.currency} {service.pricing?.total?.toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1.5">
+                      <Icon icon="heroicons:banknotes" className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs text-gray-500">
+                        Base: {service.pricing?.currency} {service.pricing?.basePrice?.toLocaleString()}
+                      </span>
+                    </div>
+                    {service.pricing?.partsPrice > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <Icon icon="heroicons:cog" className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                          Parts: {service.pricing?.currency} {service.pricing?.partsPrice?.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Icon icon="heroicons:calendar" className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs text-gray-400">
+                      {new Date(service.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </SectionCard>
+  );
+};
+// ─── Profile Page ─────────────────────────────────────────────────────────────
+
 function ProfilePage() {
-  const [profileImage, setProfileImage] = useState(null);
-  const [coverImage, setCoverImage] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [data, setData] = useState(null);
+  const [education, setEducation] = useState([]);
+  const [experience, setExperience] = useState([]);
   const router = useRouter();
-  const { token } = useSelector(state => state.auth);
+  const { token } = useSelector((state) => state.auth);
 
   const fetchData = async () => {
     try {
       setIsLoading(true);
-      const { data } = await axiosInstance.get(`/repairman/profile`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const { data } = await axiosInstance.get('/repairman/profile', {
+        headers: { Authorization: `Bearer ${token}` },
       });
       setData(data.data);
+      setEducation(data.data.user.repairmanProfile?.education || []);
+      setExperience(data.data.user.repairmanProfile?.experience || []);
     } catch (error) {
       handleError(error);
     } finally {
@@ -90,9 +926,7 @@ function ProfilePage() {
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useEffect(() => { fetchData(); }, []);
 
   if (isLoading) {
     return (
@@ -108,148 +942,81 @@ function ProfilePage() {
   if (!data) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center max-w-md mx-auto px-4">
-          <div className="bg-white rounded-2xl p-8 shadow-xl">
-            <Icon icon="heroicons:user-circle" className="w-20 h-20 text-gray-300 mx-auto mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">No Profile Found</h2>
-            <p className="text-gray-600 mb-6">We couldn't find any profile data. Please try again later.</p>
-            <button
-              onClick={fetchData}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors"
-            >
-              <Icon icon="heroicons:arrow-path" className="w-5 h-5" />
-              Retry
-            </button>
-          </div>
+        <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-md mx-auto px-4">
+          <Icon icon="heroicons:user-circle" className="w-20 h-20 text-gray-300 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">No Profile Found</h2>
+          <p className="text-gray-600 mb-6">We couldn't find any profile data. Please try again later.</p>
+          <button onClick={fetchData} className="inline-flex items-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors">
+            <Icon icon="heroicons:arrow-path" className="w-5 h-5" /> Retry
+          </button>
         </div>
       </div>
     );
   }
 
-  const { user, profileStatus } = data;
+  const { user, profileStatus, serviceCatalog } = data;
   const profile = user.repairmanProfile || {};
-  // Calculate profile completion percentage
-  const calculateProfileCompletion = () => {
-    const fields = [
-      profile.fullName, profile.mobileNumber, profile.description,
-      profile.specializations?.length, profile.workingHours,
-      profile.city, profile.district, profile.isKycCompleted
-    ];
-    const completed = fields.filter(Boolean).length;
-    return Math.round((completed / fields.length) * 100);
-  };
-
-  const completionPercentage = calculateProfileCompletion();
+  const completionPercentage = profileStatus?.completionPercentage ?? 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-      {/* Enhanced Cover Image Section */}
+
+      {/* ── Cover / Hero ── */}
       <div className="relative h-[400px] group">
-        {/* Background with Parallax Effect */}
         <div className="absolute inset-0 overflow-hidden">
           {profile?.shopPhoto ? (
             <>
-              <img
-                src={profile.shopPhoto || "N/A"}
-                alt="Cover"
-                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
-              />
-              {/* Gradient Overlay */}
+              <img src={profile.shopPhoto} alt="Cover" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
             </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900">
-              {/* Animated Pattern */}
               <div className="absolute inset-0 opacity-10">
-                <div className="absolute inset-0" style={{
-                  backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
-                  backgroundSize: '40px 40px'
-                }} />
+                <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }} />
               </div>
-              {/* Gradient Overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             </div>
           )}
         </div>
-
-        {/* Top Navigation Bar */}
         <div className="absolute top-0 left-0 right-0 px-6 py-4 flex justify-between items-center">
           <button className="flex items-center gap-2 text-white/90 hover:text-white bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl hover:bg-black/30 transition-all">
             <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
             <span className="text-sm font-medium">Back to Dashboard</span>
           </button>
-
           <div className="flex gap-2">
-            <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
-              <Icon icon="heroicons:bookmark" className="w-5 h-5" />
-            </button>
-            <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
-              <Icon icon="heroicons:share" className="w-5 h-5" />
-            </button>
+        
+            
           </div>
         </div>
-
-        {/* Cover Image Actions - Bottom Right */}
-        <div className="absolute bottom-24 right-6 flex gap-3" style={{ zIndex: 100 }}> {/* Inline z-index */}
-          <button
-            onClick={() => {
-              router.push('/repair-man/profile/edit-profile');
-            }}
-            className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/30 font-medium flex items-center gap-2 cursor-pointer relative" /* Added relative */
-            type="button" /* Explicit button type */
-          >
-            <Icon icon="heroicons:pencil" className="w-5 h-5" />
-            Update Profile
+        <div className="absolute bottom-24 right-6 flex gap-3" style={{ zIndex: 100 }}>
+          <button onClick={() => router.push('/repair-man/profile/edit-profile')} className="px-6 py-3 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/30 font-medium flex items-center gap-2 cursor-pointer" type="button">
+            <Icon icon="heroicons:pencil" className="w-5 h-5" /> Update Profile
           </button>
         </div>
-
-        {/* Profile Info Overlay - Bottom Left */}
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-24">
           <div className="flex items-end gap-6">
-            {/* Profile Image with Border Animation */}
             <div className="relative">
               <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform hover:scale-105 transition-transform duration-300">
-                {profile?.profilePhoto ? (
-                  <img
-                    src={profile.profilePhoto || "N/A"}
-                    alt={profile.fullName}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <span className="text-5xl font-bold text-white">
-                      {user.name?.split(' ').map(n => n[0]).join('').toUpperCase()}
-                    </span>
-                  </div>
-                )}
+                {profile?.profilePhoto
+                  ? <img src={profile.profilePhoto} alt={profile.fullName} className="w-full h-full object-cover" />
+                  : <div className="w-full h-full flex items-center justify-center"><span className="text-5xl font-bold text-white">{user.name?.split(' ').map((n) => n[0]).join('').toUpperCase()}</span></div>}
               </div>
-              <button className="absolute -bottom-2 -right-2 p-2.5 bg-primary-600 rounded-xl shadow-lg hover:bg-primary-700 transition-all border-2 border-white">
-                <Icon icon="heroicons:camera" className="w-4 h-4 text-white" />
-              </button>
-              <div className="absolute -top-2 -right-2">
-                {user.isEmailVerified && (
-                  <div className="bg-green-500 rounded-full p-1.5 border-2 border-white">
-                    <Icon icon="heroicons:check" className="w-3 h-3 text-white" />
-                  </div>
-                )}
-              </div>
+           
+              {user.isEmailVerified && (
+                <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1.5 border-2 border-white">
+                  <Icon icon="heroicons:check" className="w-3 h-3 text-white" />
+                </div>
+              )}
             </div>
-
-            {/* Basic Info */}
             <div className="flex-1 text-white">
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-4xl font-bold">{profile?.fullName || user.name}</h1>
-                {profile?.shopName && (
-                  <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-sm border border-white/30">
-                    {profile.shopName}
-                  </span>
-                )}
+                {profile?.shopName && <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-sm border border-white/30">{profile.shopName}</span>}
               </div>
-
-              <div className="flex items-center gap-4 text-white/90">
+              <div className="flex items-center gap-4 text-white/90 flex-wrap">
                 <div className="flex items-center gap-1">
                   <Icon icon="heroicons:map-pin" className="w-4 h-4" />
-                  <span className="text-sm">{profile?.city || 'City not set'}, {profile?.district || 'District not set'}</span>
+                  <span className="text-sm">{user.city?.name || 'City not set'}{user.state?.name ? `, ${user.state.name}` : ''}{user.country?.name ? `, ${user.country.name}` : ''}</span>
                 </div>
                 {profile?.yearsOfExperience && (
                   <div className="flex items-center gap-1">
@@ -262,9 +1029,7 @@ function ProfilePage() {
                   <span className="text-sm">{profile?.totalJobs || 0} Jobs Completed</span>
                 </div>
               </div>
-
-              {/* Rating Badge */}
-              <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-2 mt-3 flex-wrap">
                 <div className="flex items-center gap-1 bg-yellow-400/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-400/30">
                   <Icon icon="heroicons:star" className="w-4 h-4 text-yellow-400" />
                   <span className="font-semibold text-white">{profile?.rating || '0.0'}</span>
@@ -273,15 +1038,13 @@ function ProfilePage() {
                 {profile?.isKycCompleted && (
                   <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-green-500/30">
                     <Icon icon="heroicons:check-badge" className="w-4 h-4 text-green-400" />
-                    <span className="text-xs text-white">KYC Verified</span>
+                    <span className="text-xs text-white">Verified</span>
                   </div>
                 )}
               </div>
             </div>
           </div>
         </div>
-
-        {/* Profile Completion Bar */}
         <div className="absolute bottom-0 left-0 right-0">
           <div className="bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-12 pb-4">
             <div className="container mx-auto px-6">
@@ -295,165 +1058,97 @@ function ProfilePage() {
                     <span className="text-sm font-bold text-white">{completionPercentage}% Complete</span>
                   </div>
                   <div className="h-2.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500 relative"
-                      style={{ width: `${completionPercentage}%` }}
-                    >
+                    <div className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500 relative" style={{ width: `${completionPercentage}%` }}>
                       <div className="absolute inset-0 bg-white/20 animate-pulse" />
                     </div>
                   </div>
                 </div>
-                {profileStatus?.message && (
-                  <Badge variant={profileStatus.status === 'complete' ? 'success' : 'warning'}>
-                    {profileStatus.message}
-                  </Badge>
-                )}
+                {profileStatus?.message && <Badge variant={profileStatus.isComplete ? 'success' : 'warning'}>{profileStatus.message}</Badge>}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Alert for incomplete bank details */}
+      {/* ── Bank alert ── */}
       {!profile.isPaymentInformationCompleted && (
         <div className="container mx-auto px-6 -mt-4 mb-6 relative z-10">
-          <div className="animate-slideDown">
-            <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-500 rounded-xl p-4 shadow-lg">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
-                </div>
-                <div className="flex-1">
-                  <h4 className="font-semibold text-gray-900 mb-1">Complete Your Bank Details</h4>
-                  <p className="text-sm text-gray-600 mb-3">Add your bank information to start receiving payments</p>
-                  <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium inline-flex items-center gap-2">
-                    <Icon icon="heroicons:banknotes" className="w-4 h-4" />
-                    Add Bank Details
-                  </button>
-                </div>
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-500 rounded-xl p-4 shadow-lg">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-orange-100 rounded-lg"><Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" /></div>
+              <div className="flex-1">
+                <h4 className="font-semibold text-gray-900 mb-1">Complete Your Bank Details</h4>
+                <p className="text-sm text-gray-600 mb-3">Add your bank information to start receiving payments</p>
+                <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium inline-flex items-center gap-2">
+                  <Icon icon="heroicons:banknotes" className="w-4 h-4" /> Add Bank Details
+                </button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Rest of the content remains the same... */}
-      <div className="container mx-auto px-6 pb-8">
-        {/* Stats Grid */}
+      {/* ── Body ── */}
+      <div className="container mx-auto px-6 pb-8 mt-3">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard
-            icon="heroicons:star"
-            label="Rating"
-            value={profile?.rating ? `${profile.rating} (${profile.totalReviews || 0} reviews)` : 'No ratings'}
-            bgColor="bg-yellow-50"
-            iconColor="text-yellow-600"
-          />
-          <StatCard
-            icon="heroicons:briefcase"
-            label="Jobs Completed"
-            value={profile?.totalJobs || 0}
-            bgColor="bg-blue-50"
-            iconColor="text-blue-600"
-          />
-          <StatCard
-            icon="heroicons:clock"
-            label="Experience"
-            value={profile?.yearsOfExperience ? `${profile.yearsOfExperience} Years` : 'N/A'}
-            bgColor="bg-purple-50"
-            iconColor="text-purple-600"
-          />
-          <StatCard
-            icon="heroicons:users"
-            label="Happy Clients"
-            value={profile?.totalClients || 0}
-            bgColor="bg-green-50"
-            iconColor="text-green-600"
-          />
+          <StatCard icon="heroicons:star" label="Rating" value={profile?.rating ? `${profile.rating} (${profile.totalReviews || 0} reviews)` : 'No ratings'} bgColor="bg-yellow-50" iconColor="text-yellow-600" />
+          <StatCard icon="heroicons:briefcase" label="Jobs Completed" value={profile?.totalJobs || 0} bgColor="bg-primary-50" iconColor="text-primary-600" />
+          <StatCard icon="heroicons:clock" label="Experience" value={profile?.yearsOfExperience ? `${profile.yearsOfExperience} Years` : 'N/A'} bgColor="bg-purple-50" iconColor="text-purple-600" />
+          <StatCard icon="heroicons:users" label="Happy Clients" value={profile?.totalClients || 0} bgColor="bg-green-50" iconColor="text-green-600" />
         </div>
 
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
+          {/* ── Left column ── */}
           <div className="lg:col-span-2 space-y-6">
-            {/* About Section */}
             {profile?.description && (
               <SectionCard title="About Me" icon="heroicons:information-circle">
                 <p className="text-gray-700 leading-relaxed">{profile.description}</p>
               </SectionCard>
             )}
-
-            {/* Specializations */}
             {profile?.specializations?.length > 0 && (
               <SectionCard title="Specializations" icon="heroicons:bolt">
                 <div className="flex flex-wrap gap-2">
-                  {profile.specializations.map((spec, index) => (
-                    <Badge key={index} variant="primary">{spec}</Badge>
-                  ))}
+                  {profile.specializations.map((spec, i) => <Badge key={i} variant="primary">{spec}</Badge>)}
                 </div>
               </SectionCard>
             )}
 
-            {/* Working Hours */}
+            {/* ✅ Education — no refetch, updates in place */}
+            <EducationSection education={education} onUpdate={setEducation} token={token} />
+
+            {/* ✅ Experience — no refetch, updates in place */}
+            <ExperienceSection experience={experience} onUpdate={setExperience} token={token} />
+
+            {/* ✅ Service Catalog */}
+            <ServiceCatalogSection serviceCatalog={serviceCatalog} />
+
             {profile?.workingHours && (
               <SectionCard title="Working Hours" icon="heroicons:clock">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 p-4 rounded-xl">
                     <p className="text-xs text-primary-600 font-medium mb-1">Business Hours</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {profile.workingHours.start || '09:00'} - {profile.workingHours.end || '18:00'}
-                    </p>
+                    <p className="text-lg font-semibold text-gray-900">{profile.workingHours.start || '09:00'} - {profile.workingHours.end || '18:00'}</p>
                   </div>
-
                   {profile?.workingDays?.length > 0 && (
                     <div className="bg-gray-50 p-4 rounded-xl">
                       <p className="text-xs text-gray-500 font-medium mb-2">Working Days</p>
                       <div className="flex flex-wrap gap-1">
-                        {profile.workingDays.map((day, index) => (
-                          <span key={index} className="px-2 py-1 bg-white border border-gray-200 rounded-md text-xs">
-                            {day.slice(0, 3)}
-                          </span>
-                        ))}
+                        {profile.workingDays.map((day, i) => <span key={i} className="px-2 py-1 bg-white border border-gray-200 rounded-md text-xs">{day.slice(0, 3)}</span>)}
                       </div>
                     </div>
                   )}
                 </div>
               </SectionCard>
             )}
-
-            {/* Certifications */}
-            {profile?.certifications?.length > 0 && (
+            {profile?.certifications?.filter(Boolean).length > 0 && (
               <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {profile.certifications.map((cert, index) => (
-                    <div key={index} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
-                      <img
-                        src={cert || "N/A"}
-                        alt={`Certificate ${index + 1}`}
-                        className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                  {profile.certifications.filter(Boolean).map((cert, i) => (
+                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
+                      <img src={cert} alt={`Certificate ${i + 1}`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button className="p-2 bg-white rounded-lg">
-                          <Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" />
-                        </button>
+                        <button className="p-2 bg-white rounded-lg"><Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" /></button>
                       </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )}
-
-            {/* Shop Photos */}
-            {profile?.shopPhotos?.length > 0 && (
-              <SectionCard title="Shop Gallery" icon="heroicons:photo">
-                <div className="grid grid-cols-3 gap-4">
-                  {profile.shopPhotos.map((photo, index) => (
-                    <div key={index} className="relative group rounded-xl overflow-hidden border border-gray-200 aspect-square">
-                      <img
-                        src={photo || "N/A"}
-                        alt={`Shop ${index + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                   ))}
                 </div>
@@ -461,41 +1156,28 @@ function ProfilePage() {
             )}
           </div>
 
-          {/* Right Column - Sidebar */}
+          {/* ── Right sidebar ── */}
           <div className="space-y-6">
-            {/* Contact Information */}
             <SectionCard title="Contact Info" icon="heroicons:phone">
               <div className="space-y-2">
-                <InfoRow
-                  icon="heroicons:phone"
-                  label="Phone"
-                  value={profile?.mobileNumber || user.phone}
-                />
-                <InfoRow
-                  icon="heroicons:envelope"
-                  label="Email"
-                  value={profile?.emailAddress || user.email}
-                  isVerified={user.isEmailVerified}
-                />
-                {profile?.whatsappNumber && (
-                  <InfoRow
-                    icon="ic:baseline-whatsapp"
-                    label="WhatsApp"
-                    value={profile.whatsappNumber}
-                  />
-                )}
+                <InfoRow icon="heroicons:phone" label="Phone" value={profile?.mobileNumber || user.phone} />
+                <InfoRow icon="heroicons:envelope" label="Email" value={profile?.emailAddress || user.email} isVerified={user.isEmailVerified} />
+                {profile?.whatsappNumber && <InfoRow icon="ic:baseline-whatsapp" label="WhatsApp" value={profile.whatsappNumber} />}
               </div>
             </SectionCard>
-
-            {/* Location Details */}
             <SectionCard title="Location" icon="heroicons:map-pin">
               <div className="space-y-3">
                 <div className="p-4 bg-gradient-to-br from-primary-50 to-primary-100/50 rounded-xl">
                   <p className="text-xs text-primary-600 font-medium mb-1">Full Address</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {profile?.fullAddress || 'Address not provided'}
-                  </p>
+                  <p className="text-sm font-medium text-gray-900">{profile?.fullAddress || user.address || 'Address not provided'}</p>
                 </div>
+                {(user.city?.name || user.state?.name || user.country?.name) && (
+                  <div className="flex flex-col gap-1.5 p-3 bg-gray-50 rounded-lg">
+                    {user.city?.name && <div className="flex justify-between"><span className="text-xs text-gray-400">City</span><span className="text-xs font-medium text-gray-700">{user.city.name}</span></div>}
+                    {user.state?.name && <div className="flex justify-between"><span className="text-xs text-gray-400">State</span><span className="text-xs font-medium text-gray-700">{user.state.name}</span></div>}
+                    {user.country?.name && <div className="flex justify-between"><span className="text-xs text-gray-400">Country</span><span className="text-xs font-medium text-gray-700">{user.country.name}</span></div>}
+                  </div>
+                )}
                 {profile?.zipCode && (
                   <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <span className="text-xs text-gray-500">ZIP Code</span>
@@ -504,78 +1186,53 @@ function ProfilePage() {
                 )}
               </div>
             </SectionCard>
-
-            {/* Emergency Contact */}
             {(profile?.emergencyContactPerson || profile?.emergencyContactNumber) && (
               <SectionCard title="Emergency Contact" icon="heroicons:phone-arrow-up-right">
                 <div className="space-y-3">
-                  {profile.emergencyContactPerson && (
-                    <InfoRow
-                      icon="heroicons:user"
-                      label="Contact Person"
-                      value={profile.emergencyContactPerson}
-                    />
-                  )}
-                  {profile.emergencyContactNumber && (
-                    <InfoRow
-                      icon="heroicons:phone"
-                      label="Contact Number"
-                      value={profile.emergencyContactNumber}
-                    />
-                  )}
+                  {profile.emergencyContactPerson && <InfoRow icon="heroicons:user" label="Contact Person" value={profile.emergencyContactPerson} />}
+                  {profile.emergencyContactNumber && <InfoRow icon="heroicons:phone" label="Contact Number" value={profile.emergencyContactNumber} />}
                 </div>
               </SectionCard>
             )}
-
-            {/* Services */}
             <SectionCard title="Services" icon="heroicons:wrench-screwdriver">
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
                   <span className="text-sm font-medium text-gray-700">Pickup Service</span>
-                  <Badge variant={profile?.pickupService ? 'success' : 'default'}>
-                    {profile?.pickupService ? 'Available' : 'Not Available'}
-                  </Badge>
+                  <Badge variant={profile?.pickupService ? 'success' : 'default'}>{profile?.pickupService ? 'Available' : 'Not Available'}</Badge>
                 </div>
-
                 {profile?.homeService !== undefined && (
                   <div className="flex items-center justify-between p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
                     <span className="text-sm font-medium text-gray-700">Home Service</span>
-                    <Badge variant={profile.homeService ? 'success' : 'default'}>
-                      {profile.homeService ? 'Available' : 'Not Available'}
-                    </Badge>
+                    <Badge variant={profile.homeService ? 'success' : 'default'}>{profile.homeService ? 'Available' : 'Not Available'}</Badge>
                   </div>
                 )}
               </div>
             </SectionCard>
-
-            {/* Account Info */}
+            {profile?.brandsWorkedWith?.length > 0 && (
+              <SectionCard title="Brands Worked With" icon="heroicons:tag">
+                <div className="flex flex-wrap gap-2">
+                  {profile.brandsWorkedWith.map((brand) => <Badge key={brand._id} variant="info">{brand.name}</Badge>)}
+                </div>
+              </SectionCard>
+            )}
             <SectionCard title="Account Information" icon="heroicons:user-circle">
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Member Since</span>
-                  <span className="text-sm font-medium">
-                    {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {
-                      month: 'long',
-                      year: 'numeric'
-                    }) : 'N/A'}
-                  </span>
+                  <span className="text-sm font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
                 </div>
-
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Last Updated</span>
-                  <span className="text-sm font-medium">
-                    {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}
-                  </span>
+                  <span className="text-sm font-medium">{user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}</span>
                 </div>
-
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="text-center p-2 bg-green-50 rounded-lg">
                     <div className={`text-xs font-medium ${user.isEmailVerified ? 'text-green-600' : 'text-gray-400'}`}>
                       {user.isEmailVerified ? '✓ Email Verified' : '○ Email Unverified'}
                     </div>
                   </div>
-                  <div className="text-center p-2 bg-blue-50 rounded-lg">
-                    <div className={`text-xs font-medium ${user.isProfileComplete ? 'text-blue-600' : 'text-gray-400'}`}>
+                  <div className="text-center p-2 bg-primary-50 rounded-lg">
+                    <div className={`text-xs font-medium ${user.isProfileComplete ? 'text-primary-600' : 'text-gray-400'}`}>
                       {user.isProfileComplete ? '✓ Profile Complete' : '○ Profile Incomplete'}
                     </div>
                   </div>
@@ -590,404 +1247,3 @@ function ProfilePage() {
 }
 
 export default ProfilePage;
-
-// "use client"
-
-// import React, { useEffect, useState } from 'react';
-// import { Icon } from '@iconify/react';
-// import { useSelector } from 'react-redux';
-// import handleError from '@/helper/handleError';
-// import axiosInstance from '@/config/axiosInstance';
-
-// function ProfilePage() {
-//   const [profileImage, setProfileImage] = useState(null);
-//   const [coverImage, setCoverImage] = useState(null);
-//   const [isLoading, setIsLoading] = useState(false)
-//   const [data, setData] = useState(null)
-
-//   const { token } = useSelector(state => state.auth)
-
-//   const fetchData = async () => {
-//     try {
-//       setIsLoading(true)
-//       const { data } = await axiosInstance.get(`/repairman/profile`, {
-//         headers: {
-//           'Authorization': `Bearer ${token}`
-//         }
-//       })
-//       setData(data.data)
-//     } catch (error) {
-//       handleError(error)
-//     } finally {
-//       setIsLoading(false)
-//     }
-//   }
-
-//   useEffect(() => {
-//     fetchData()
-//   }, [])
-
-//   if (isLoading) {
-//     return (
-//       <div className="flex justify-center items-center min-h-screen">
-//         <Icon icon="eos-icons:loading" className="text-4xl text-primary-500" />
-//       </div>
-//     )
-//   }
-
-//   if (!data) {
-//     return (
-//       <div className="flex justify-center items-center min-h-screen">
-//         <div className="text-lg">No profile data found</div>
-//       </div>
-//     )
-//   }
-
-//   const { user, profileStatus } = data
-//   const profile = user.repairmanProfile
-
-//   return (
-//     <div className="min-h-screen bg-gray-50">
-//       <div className="relative">
-//         <div
-//           className="h-96 bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 relative overflow-hidden"
-//           style={{
-//             backgroundImage: profile?.shopPhoto
-//               ? `url(${profile.shopPhoto})`
-//               : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-//             backgroundSize: 'cover',
-//             backgroundPosition: 'center'
-//           }}
-//         >
-//           {/* Overlay for better text visibility */}
-//           {profile?.shopPhoto && (
-//             <div className="absolute inset-0 bg-black/10"></div>
-//           )}
-//         </div>
-
-//         {/* Profile Section */}
-//         <div className="relative -mt-[200px] mx-auto px-6">
-//           <div className="flex items-end justify-between">
-//             <div className="flex flex-col md:flex-row items-start space-y-6 md:space-y-0 md:space-x-4 min-w-[500px]">
-
-//               {/* Profile Image */}
-//               <div className="flex items-center gap-3 bg-white/90 p-6 rounded-md w-full">
-//                 <div className='relative'>
-//                   <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-200">
-//                     {profile?.profilePhoto ? (
-//                       <img
-//                         src={profile.profilePhoto}
-//                         alt="Profile"
-//                         className="w-full h-full object-cover"
-//                       />
-//                     ) : (
-//                       <div className="w-full h-full bg-primary-100 flex items-center justify-center">
-//                         <span className="text-3xl font-bold text-primary-600">
-//                           {user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-//                         </span>
-//                       </div>
-//                     )}
-//                   </div>
-//                 </div>
-
-//                 <div className="">
-//                   <div className="flex items-center space-x-3 mb-2">
-//                     <h1 className="text-3xl font-bold text-gray-900">{profile?.fullName || user.name}</h1>
-//                     <button className="text-gray-400 hover:text-gray-600">
-//                       <Icon icon="heroicons:share" className="w-5 h-5" />
-//                     </button>
-//                   </div>
-
-//                   {/* Rating and Stats */}
-//                   <div className="flex items-center space-x-6 mb-4">
-//                     <div className="flex items-center space-x-2">
-//                       <div className="flex">
-//                         {[...Array(5)].map((_, i) => (
-//                           <Icon
-//                             key={i}
-//                             icon="heroicons:star"
-//                             className={`w-4 h-4 ${i < Math.floor(profile?.rating || 0) ? 'text-yellow-400' : 'text-gray-300'}`}
-//                           />
-//                         ))}
-//                       </div>
-//                       <span className="text-sm font-medium">{profile?.rating || 0}</span>
-//                     </div>
-
-//                     <div className="flex items-center space-x-1">
-//                       <Icon icon="heroicons:briefcase" className="w-4 h-4 text-gray-500" />
-//                       <span className="text-sm">{profile?.totalJobs || 0} Jobs</span>
-//                     </div>
-
-//                     {profile?.yearsOfExperience && (
-//                       <div className="flex items-center space-x-1">
-//                         <Icon icon="heroicons:clock" className="w-4 h-4 text-gray-500" />
-//                         <span className="text-sm">{profile.yearsOfExperience} Years</span>
-//                       </div>
-//                     )}
-//                   </div>
-
-//                   <h2 className="text-xl text-gray-700 mb-2 font-medium">{profile?.shopName}</h2>
-
-//                   <div className="flex items-center space-x-2 text-sm text-gray-600">
-//                     <Icon icon="heroicons:map-pin" className="w-4 h-4" />
-//                     <span>{profile?.city}, {profile?.district}</span>
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             <div className="flex items-end gap-3">
-//               <button
-//                 type="button"
-//                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg shadow-sm text-sm font-medium bg-white border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-//               >
-//                 <Icon icon="heroicons:camera" className="h-5 w-5" />
-//                 Update shop photo
-//               </button>
-
-// <button
-//   type="button"
-//   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow hover:brightness-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-// >
-//   <Icon icon="heroicons:user" className="h-5 w-5" />
-//   Update profile
-// </button>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-
-//       {/* Verifications Section */}
-//       {/* <div className="max-w-7xl mx-auto px-6 py-6">
-//         <div className="bg-white rounded-lg shadow-sm p-6">
-//           <h3 className="text-lg font-semibold text-gray-900 mb-4">Verifications & Status</h3>
-//           <div className="flex items-center space-x-6">
-//             <div className={`flex items-center space-x-2 ${user.isEmailVerified ? 'text-green-600' : 'text-gray-400'}`}>
-//               <Icon icon="heroicons:envelope" className="w-5 h-5" />
-//               <span className="text-sm">Email Verified</span>
-//             </div>
-//             <div className={`flex items-center space-x-2 ${user.isProfileComplete ? 'text-green-600' : 'text-gray-400'}`}>
-//               <Icon icon="heroicons:user" className="w-5 h-5" />
-//               <span className="text-sm">Profile Complete</span>
-//             </div>
-//             <div className={`flex items-center space-x-2 ${profile?.isKycCompleted ? 'text-green-600' : 'text-gray-400'}`}>
-//               <Icon icon="heroicons:identification" className="w-5 h-5" />
-//               <span className="text-sm">KYC {profile?.kycStatus || 'Pending'}</span>
-//             </div>
-//             <div className={`flex items-center space-x-2 ${user.isActive ? 'text-green-600' : 'text-gray-400'}`}>
-//               <Icon icon="heroicons:check-circle" className="w-5 h-5" />
-//               <span className="text-sm">Account {user.status}</span>
-//             </div>
-//           </div>
-//         </div>
-//       </div> */}
-
-//       <div className="max-w-7xl mx-auto px-6 pb-8 pt-10">
-
-//         {!profile.isPaymentInformationCompleted && (
-//           <div className="flex items-start mb-4 gap-3 border-l-4 border-red-600 bg-red-50 text-red-800 rounded-md p-4 shadow-sm">
-//             <Icon icon="mdi:alert-circle-outline" className="w-6 h-6 mt-0.5 text-red-600" />
-//             <div>
-//               <p className="font-semibold">Incomplete Bank Details</p>
-//               <p className="text-sm">Your bank information is missing some details. Please complete it to continue.</p>
-//             </div>
-//           </div>
-//         )}
-
-
-
-//         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-
-//           {/* Main Column */}
-//           <div className="lg:col-span-2 space-y-8">
-
-//             {/* About Section */}
-//             {profile?.description && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h3 className="text-xl font-semibold text-gray-900 mb-4">About</h3>
-//                 <p className="text-gray-700 leading-relaxed">{profile.description}</p>
-//               </div>
-//             )}
-
-//             {/* Specializations */}
-//             {profile?.specializations && profile.specializations.length > 0 && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Specializations</h3>
-//                 <div className="flex flex-wrap gap-3">
-//                   {profile.specializations.map((spec, index) => (
-//                     <span
-//                       key={index}
-//                       className="px-4 py-2 bg-primary-100 text-primary-800 rounded-lg font-medium"
-//                     >
-//                       {spec}
-//                     </span>
-//                   ))}
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Working Hours */}
-//             {profile?.workingHours && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Working Hours</h3>
-//                 <div className="space-y-4">
-//                   <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-//                     <div className="flex items-center space-x-3">
-//                       <Icon icon="heroicons:clock" className="w-6 h-6 text-primary-600" />
-//                       <div>
-//                         <p className="font-medium text-gray-900">Business Hours</p>
-//                         <p className="text-sm text-gray-600">
-//                           {profile.workingHours.start} - {profile.workingHours.end}
-//                         </p>
-//                       </div>
-//                     </div>
-//                   </div>
-
-//                   {profile?.workingDays && profile.workingDays.length > 0 && (
-//                     <div className="p-4 bg-gray-50 rounded-lg">
-//                       <p className="font-medium text-gray-900 mb-2">Working Days</p>
-//                       <div className="flex flex-wrap gap-2">
-//                         {profile.workingDays.map((day, index) => (
-//                           <span
-//                             key={index}
-//                             className="px-3 py-1 bg-white border border-gray-200 rounded-md text-sm"
-//                           >
-//                             {day}
-//                           </span>
-//                         ))}
-//                       </div>
-//                     </div>
-//                   )}
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Shop Photo */}
-//             {profile?.shopPhoto && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Additional Shop Photos</h3>
-//                 <div className="rounded-lg overflow-hidden">
-//                   <img
-//                     src={profile.shopPhoto}
-//                     alt="Shop"
-//                     className="w-full h-64 object-cover"
-//                   />
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Certifications */}
-//             {profile?.certifications && profile.certifications.length > 0 && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h3 className="text-xl font-semibold text-gray-900 mb-6">Certifications</h3>
-//                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-//                   {profile.certifications.map((cert, index) => (
-//                     <div key={index} className="border border-gray-200 rounded-lg overflow-hidden">
-//                       <img
-//                         src={cert}
-//                         alt={`Certificate ${index + 1}`}
-//                         className="w-full h-48 object-cover"
-//                       />
-//                     </div>
-//                   ))}
-//                 </div>
-//               </div>
-//             )}
-//           </div>
-
-//           {/* Sidebar */}
-//           <div className="space-y-6">
-
-//             {/* Contact Information */}
-//             <div className="bg-white rounded-lg shadow-sm p-6">
-//               <h4 className="font-semibold text-gray-900 mb-4">Contact Information</h4>
-//               <div className="space-y-3">
-//                 <div className="flex items-center space-x-3">
-//                   <Icon icon="heroicons:phone" className="w-5 h-5 text-gray-400" />
-//                   <div>
-//                     <p className="text-sm text-gray-600">Phone</p>
-//                     <p className="font-medium">{profile?.mobileNumber || user.phone}</p>
-//                   </div>
-//                 </div>
-//                 <div className="flex items-center space-x-3">
-//                   <Icon icon="heroicons:envelope" className="w-5 h-5 text-gray-400" />
-//                   <div>
-//                     <p className="text-sm text-gray-600">Email</p>
-//                     <p className="font-medium">{profile?.emailAddress || user.email}</p>
-//                   </div>
-//                 </div>
-//                 {profile?.whatsappNumber && (
-//                   <div className="flex items-center space-x-3">
-//                     <Icon icon="ic:baseline-whatsapp" className="w-5 h-5 text-green-600" />
-//                     <div>
-//                       <p className="text-sm text-gray-600">WhatsApp</p>
-//                       <p className="font-medium">{profile.whatsappNumber}</p>
-//                     </div>
-//                   </div>
-//                 )}
-//               </div>
-//             </div>
-
-//             {/* Location */}
-//             <div className="bg-white rounded-lg shadow-sm p-6">
-//               <h4 className="font-semibold text-gray-900 mb-4">Location</h4>
-//               <div className="space-y-3">
-//                 <div className="flex items-start space-x-3">
-//                   <Icon icon="heroicons:map-pin" className="w-5 h-5 text-gray-400 mt-1" />
-//                   <div>
-//                     <p className="text-sm text-gray-900">{profile?.fullAddress}</p>
-//                     {profile?.zipCode && (
-//                       <p className="text-sm text-gray-600 mt-1">Zip: {profile.zipCode}</p>
-//                     )}
-//                   </div>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Emergency Contact */}
-//             {profile?.emergencyContactPerson && (
-//               <div className="bg-white rounded-lg shadow-sm p-6">
-//                 <h4 className="font-semibold text-gray-900 mb-4">Emergency Contact</h4>
-//                 <div className="space-y-2">
-//                   <p className="font-medium text-gray-900">{profile.emergencyContactPerson}</p>
-//                   <p className="text-sm text-gray-600">{profile.emergencyContactNumber}</p>
-//                 </div>
-//               </div>
-//             )}
-
-//             {/* Additional Services */}
-//             <div className="bg-white rounded-lg shadow-sm p-6">
-//               <h4 className="font-semibold text-gray-900 mb-4">Services</h4>
-//               <div className="space-y-3">
-//                 <div className="flex items-center justify-between">
-//                   <span className="text-sm text-gray-600">Pickup Service</span>
-//                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${profile?.pickupService ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-//                     }`}>
-//                     {profile?.pickupService ? 'Available' : 'Not Available'}
-//                   </span>
-//                 </div>
-//               </div>
-//             </div>
-
-//             {/* Profile Status */}
-//             <div className="bg-white rounded-lg shadow-sm p-6">
-//               <h4 className="font-semibold text-gray-900 mb-4">Account Info</h4>
-//               <div className="space-y-2 text-sm">
-//                 <div className="flex justify-between">
-//                   <span className="text-gray-600">Member Since</span>
-//                   <span className="font-medium">{new Date(user.createdAt).toLocaleDateString()}</span>
-//                 </div>
-//                 <div className="flex justify-between">
-//                   <span className="text-gray-600">Last Updated</span>
-//                   <span className="font-medium">{new Date(user.updatedAt).toLocaleDateString()}</span>
-//                 </div>
-//               </div>
-//             </div>
-//           </div>
-//         </div>
-//       </div>
-//     </div>
-//   );
-// }
-
-// export default ProfilePage;

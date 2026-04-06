@@ -1,11 +1,11 @@
-"use client"
+"use client";
 
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useParams } from 'next/navigation';
-import { useRouter,Link } from '@/i18n/navigation';
-import React, { useEffect, useState } from 'react'
-import { Icon } from '@iconify/react'
+import { useRouter, Link } from '@/i18n/navigation';
+import React, { useEffect, useState } from 'react';
+import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import LoginModal from '../../../(website)/mobile-repair/[brandSlug]/[modelId]/[color]/LoginModal';
 import { useChat } from '@/hooks/useChat';
@@ -15,16 +15,13 @@ import Loader from '@/components/Loader';
 function RepairmanDetail() {
     const [repairman, setRepairman] = useState(null);
     const [loading, setLoading] = useState(true);
-    // const [activeTab, setActiveTab] = useState('overview');
     const [isOpen, setIsOpen] = useState(false);
     const params = useParams();
     const router = useRouter();
     const { id } = params;
-    const dispatch = useDispatch()
+    const dispatch = useDispatch();
 
     const { user, token } = useSelector((state) => state.auth);
-
-
     const { selectChat, openChat } = useChat();
 
     const getRepairman = async () => {
@@ -37,16 +34,15 @@ function RepairmanDetail() {
         } finally {
             setLoading(false);
         }
-    }
+    };
 
     useEffect(() => {
         if (id) {
             getRepairman();
         }
-    }, [id])
+    }, [id]);
 
-
-    const handleMessageSend = async (id) => {
+    const handleMessageSend = async (repairmanId) => {
         if (!user && !token) {
             setIsOpen(true);
             return;
@@ -54,7 +50,7 @@ function RepairmanDetail() {
         try {
             const { data } = await axiosInstance.post(
                 `/chat/start`,
-                { repairmanId: id },
+                { repairmanId: repairmanId },
                 {
                     headers: {
                         Authorization: "Bearer " + token,
@@ -62,32 +58,24 @@ function RepairmanDetail() {
                 }
             );
 
-            console.log('Chat started, response:', data);
-
             const newChat = {
                 id: data?.chat._id,
                 chatId: data?.chat._id,
                 name: data?.chat?.user?.name || repairman?.repairmanProfile?.fullName,
                 avatar: data?.chat?.user?.avatar || repairman?.repairmanProfile?.profilePhoto,
-                userId: data?.chat?.user?._id || id,
+                userId: data?.chat?.user?._id || repairmanId,
                 lastMessage: '',
                 timestamp: new Date().toISOString(),
                 online: false
             };
 
             dispatch(addChat(newChat));
-            console.log('Chat added to list:', newChat);
-
             openChat();
-
             selectChat({
                 id: data?.chat._id,
                 name: data?.chat?.user?.name || repairman?.repairmanProfile?.fullName,
                 avatar: data?.chat?.user?.avatar || repairman?.repairmanProfile?.profilePhoto,
             });
-
-            console.log('Chat selected');
-
         } catch (error) {
             handleError(error);
         }
@@ -98,517 +86,534 @@ function RepairmanDetail() {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
-        })
+        });
+    };
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading repairman details...</p>
+                </div>
+            </div>
+        );
     }
 
-    // if (loading) {
-    //     return (
-    //         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    //             <div className="text-center">
-    //                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-    //                 <p className="text-gray-600">Loading repairman details...</p>
-    //             </div>
-    //         </div>
-    //     )
-    // }
+    if (!repairman) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <Icon icon="mdi:account-alert" className="w-24 h-24 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Repairman Not Found</h3>
+                    <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
+                    <button
+                        onClick={() => router.back()}
+                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                    >
+                        Go Back
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
-    // if (!repairman) {
-    //     return (
-    //         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-    //             <div className="text-center">
-    //                 <Icon icon="mdi:account-alert" className="w-24 h-24 text-gray-400 mx-auto mb-4" />
-    //                 <h3 className="text-xl font-semibold text-gray-900 mb-2">Repairman Not Found</h3>
-    //                 <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
-    //                 <button
-    //                     onClick={() => router.back()}
-    //                     className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-    //                 >
-    //                     Go Back
-    //                 </button>
-    //             </div>
-    //         </div>
-    //     )
-    // }
+    const profile = repairman.repairmanProfile;
+    const reviewStats = repairman.reviewStats;
+    const reviews = repairman.reviews;
 
-    // const profile = repairman.repairmanProfile;
+    const calculateProfileCompletion = () => {
+        if (!profile) return 0;
+        const fields = [
+            profile.fullName, 
+            profile.mobileNumber, 
+            profile.description,
+            profile.specializations?.length, 
+            profile.workingHours,
+            profile.city, 
+            profile.district, 
+            profile.isKycCompleted
+        ];
+        const completed = fields.filter(Boolean).length;
+        return Math.round((completed / fields.length) * 100);
+    };
+
+    const completionPercentage = calculateProfileCompletion();
+
+    const StatCard = ({ icon, label, value, bgColor = "bg-primary-50", iconColor = "text-primary-600" }) => (
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
+            <div className="flex items-center gap-3">
+                <div className={`${bgColor} p-3 rounded-xl`}>
+                    <Icon icon={icon} className={`w-5 h-5 ${iconColor}`} />
+                </div>
+                <div>
+                    <p className="text-xs text-gray-500 font-medium">{label}</p>
+                    <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
+                </div>
+            </div>
+        </div>
+    );
+
+const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
+  if (!src) return null;
+  return (
+    <div className="mt-3">
+      <Image
+        src={src}
+        alt={alt || 'image'}
+        width={width}
+        height={height}
+        className={className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'}
+        unoptimized
+      />
+    </div>
+  );
+};
+
+    // const EducationSection = ({ education = []}) => {
+    //   return (
+    //     <>
+    //       <SectionCard
+    //         title="Education"
+    //         icon="heroicons:academic-cap"
+           
+    //       >
+    //         {education.length === 0 ? (
+    //           <div className="text-center py-8">
+    //             <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+    //             <p className="text-sm text-gray-400">No education added yet</p>
+    //           </div>
+    //         ) : (
+    //           <div className="relative">
+    //             <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
+    //             <div className="space-y-0">
+    //               {education.map((item, index) => (
+    //                 <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
+    //                   <div className="relative z-10 flex-shrink-0 mt-1">
+    //                     <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
+    //                   </div>
+    //                   <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
+    //                     <div className="flex items-start justify-between gap-3 mb-1">
+    //                       <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+    //                       <div className="flex items-center gap-1 flex-shrink-0">
+    //                         <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+    //                           {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
+    //                         </span>
+                          
+    //                       </div>
+    //                     </div>
+    //                     <p className="text-xs text-primary-600 font-medium mb-2">{item.institution}</p>
+    //                     {item.description && <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>}
+    //                     {/* ✅ Safe image — won't crash if null */}
+    //                     <SafeImage src={item.educationImage} alt="Education certificate" />
+    //                   </div>
+    //                 </div>
+    //               ))}
+    //             </div>
+    //           </div>
+    //         )}
+    //       </SectionCard>
+    
+    //     </>
+    //   );
+    // };
+
+
+    const SectionCard = ({ title, icon, children, action }) => (
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    {icon && <Icon icon={icon} className="w-5 h-5 text-primary-600" />}
+                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+                </div>
+                {action && action}
+            </div>
+            <div className="p-6">
+                {children}
+            </div>
+        </div>
+    );
+
+    const InfoRow = ({ icon, label, value, isVerified }) => (
+        <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+            <div className={`p-2 rounded-lg ${value ? 'bg-primary-50' : 'bg-gray-100'}`}>
+                <Icon icon={icon} className={`w-4 h-4 ${value ? 'text-primary-600' : 'text-gray-400'}`} />
+            </div>
+            <div className="flex-1">
+                <p className="text-xs text-gray-500 font-medium">{label}</p>
+                <div className="flex items-center gap-2">
+                    <p className="text-sm font-medium text-gray-900">{value || 'Not provided'}</p>
+                    {isVerified && value && (
+                        <Icon icon="heroicons:check-badge-20-solid" className="w-4 h-4 text-green-500" />
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+
+    const Badge = ({ children, variant = 'primary' }) => {
+        const variants = {
+            primary: 'bg-primary-50 text-primary-700 border-primary-200',
+            success: 'bg-green-50 text-green-700 border-green-200',
+            warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+            info: 'bg-blue-50 text-blue-700 border-blue-200',
+            default: 'bg-gray-50 text-gray-700 border-gray-200'
+        };
+
+        return (
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant]}`}>
+                {children}
+            </span>
+        );
+    };
 
     return (
-
-        <Loader loading={loading}>
-            <div className="min-h-screen bg-gray-50">
-                <div className="max-w-7xl mx-auto px-4 py-8">
-
-                    <div>
-                        {/* Breadcrumb */}
-
-                        <div className="flex items-center space-x-2 mb-4">
-                            <Link href="/" className="text-gray-600 hover:text-gray-800">
-                                <Icon icon="mdi:home" className="inline w-4 h-4 mr-1" />
-                                Home
-                            </Link>
-                            <span className="text-gray-500">/</span>
-                            <Link
-                                href="/repairmans"
-                                className="text-gray-500 hover:text-gray-600 transition-colors"
-                            >
-                                Repairman
-                            </Link>
-                            <span className="text-gray-500">/</span>
-                            <span className="text-gray-500 capitalize">{repairman?.repairmanProfile?.shopName}</span>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+            {/* Enhanced Cover Image Section */}
+            <div className="relative h-[400px] group">
+                {/* Background with Parallax Effect */}
+                <div className="absolute inset-0 overflow-hidden">
+                    {profile?.shopPhoto ? (
+                        <>
+                            <img
+                                src={profile.shopPhoto}
+                                alt="Cover"
+                                className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
+                            />
+                            {/* Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900">
+                            {/* Animated Pattern */}
+                            <div className="absolute inset-0 opacity-10">
+                                <div className="absolute inset-0" style={{
+                                    backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)',
+                                    backgroundSize: '40px 40px'
+                                }} />
+                            </div>
+                            {/* Gradient Overlay */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
                         </div>
+                    )}
+                </div>
 
+                {/* Top Navigation Bar */}
+                <div className="absolute top-0 left-0 right-0 px-6 py-4 flex justify-between items-center">
+                    <button 
+                        onClick={() => router.back()}
+                        className="flex items-center gap-2 text-white/90 hover:text-white bg-black/20 backdrop-blur-md px-4 py-2 rounded-xl hover:bg-black/30 transition-all"
+                    >
+                        <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
+                        <span className="text-sm font-medium">Go Back</span>
+                    </button>
 
-                    </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                        <div className="lg:col-span-2">
-                            <div className=" rounded-lg bg-white p-6 mb-6">
-                                <div className="flex items-start space-x-6">
-                                    <img
-                                        src={repairman?.repairmanProfile?.profilePhoto}
-                                        alt={repairman?.repairmanProfile?.fullName}
-                                        className="w-32 h-32 rounded-full object-cover"
-                                        onError={(e) => {
-                                            e.target.src = 'https://via.placeholder.com/150x150?text=No+Image'
-                                        }}
-                                    />
-                                    <div className="flex-1">
-                                        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                                            {repairman?.repairmanProfile?.fullName}
-                                        </h1>
-
-                                        <div className="flex items-center space-x-4 text-sm text-gray-500 mb-4">
-                                            <div className="flex items-center">
-                                                <Icon icon="mdi:map-marker" className="w-4 h-4 mr-1" />
-                                                {repairman?.city?.name}, {repairman?.state?.name}
-                                            </div>
-
-                                        </div>
-                                        <div className="flex items-center space-x-6">
-                                            <div className="flex items-center">
-                                                <div className="flex text-yellow-400 mr-2">
-                                                    {[...Array(5)].map((_, i) => (
-                                                        <Icon key={i} icon="mdi:star" className="w-4 h-4" />
-                                                    ))}
-                                                </div>
-                                                <span className="font-semibold text-gray-900">{repairman?.repairmanProfile?.rating}</span>
-                                                <span className="text-gray-500 ml-1">({repairman?.repairmanProfile?.totalJobs})</span>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                </div>
-                            </div>
-
-                            {/* About Section */}
-                            <div className="bg-white rounded-lg  p-6 mb-6">
-                                <h2 className="text-xl font-semibold text-gray-900 mb-4">About me</h2>
-                                <p className="text-gray-700 leading-relaxed mb-4">
-                                    {repairman?.repairmanProfile?.description}
-                                </p>
-                                <button className="text-green-600 hover:text-green-700 font-medium">
-                                    Read more
-                                </button>
-                            </div>
-
-                            {/* Skills Section */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                                <h2 className="text-xl font-semibold text-gray-900 mb-4">Skills</h2>
-                                <div className="flex flex-wrap gap-3">
-                                    {repairman?.repairmanProfile?.specializations.map((skill, index) => (
-                                        <span
-                                            key={index}
-                                            className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition-colors cursor-pointer"
-                                        >
-                                            {skill}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-white rounded-lg shadow-sm p-6">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-xl font-semibold text-gray-900">
-                                        {repairman?.reviewStats.totalReviews} {repairman?.reviewStats.totalReviews === 1 ? 'Review' : 'Reviews'}
-                                    </h2>
-                                    <div className="flex items-center">
-                                        <div className="flex text-yellow-400 mr-2">
-                                            {[...Array(5)].map((_, i) => (
-                                                <Icon
-                                                    key={i}
-                                                    icon={i < Math.floor(repairman?.reviewStats.averageRating) ? "mdi:star" : "mdi:star-outline"}
-                                                    className="w-4 h-4"
-                                                />
-                                            ))}
-                                        </div>
-                                        <span className="font-semibold text-gray-900">
-                                            {repairman?.reviewStats.averageRating.toFixed(1)}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Rating Breakdown */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                                    <div>
-                                        <div className="space-y-2">
-                                            {[5, 4, 3, 2, 1].map((star) => {
-                                                const count = repairman?.reviewStats.ratingDistribution[star] || 0;
-                                                const percentage = repairman?.reviewStats.totalReviews > 0
-                                                    ? (count / repairman?.reviewStats.totalReviews) * 100
-                                                    : 0;
-
-                                                return (
-                                                    <div key={star} className="flex items-center">
-                                                        <span className="text-sm text-gray-600 w-12">{star} Star{star !== 1 ? 's' : ''}</span>
-                                                        <div className="flex-1 bg-gray-200 rounded-full h-2 mx-3">
-                                                            <div
-                                                                className="bg-gray-800 h-2 rounded-full transition-all duration-300"
-                                                                style={{ width: `${percentage}%` }}
-                                                            ></div>
-                                                        </div>
-                                                        <span className="text-sm text-gray-600">({count})</span>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900 mb-3">Rating Breakdown</h3>
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Service quality</span>
-                                                <div className="flex items-center">
-                                                    <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Communication</span>
-                                                <div className="flex items-center">
-                                                    <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
-                                                </div>
-                                            </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-sm text-gray-600">Value for money</span>
-                                                <div className="flex items-center">
-                                                    <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" />
-                                                    <span className="text-sm ml-1">{repairman?.reviewStats.averageRating.toFixed(1)}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Individual Reviews */}
-                                {repairman?.reviews && repairman?.reviews.length > 0 ? (
-                                    <div className="space-y-6">
-                                        {repairman?.reviews.map((review) => (
-                                            <div key={review._id} className="border-b pb-6 last:border-b-0">
-                                                <div className="flex items-start space-x-3">
-                                                    <img
-                                                        src="https://via.placeholder.com/40x40?text=U"
-                                                        alt={review.customerId?.name || 'User'}
-                                                        className="w-10 h-10 rounded-full"
-                                                    />
-                                                    <div className="flex-1">
-                                                        <div className="flex items-center space-x-2 mb-1">
-                                                            <span className="font-medium text-gray-900">
-                                                                {review.customerId?.name || 'Anonymous'}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center mb-2">
-                                                            <div className="flex text-yellow-400 mr-2">
-                                                                {[...Array(5)].map((_, i) => (
-                                                                    <Icon
-                                                                        key={i}
-                                                                        icon={i < review.overallRating ? "mdi:star" : "mdi:star-outline"}
-                                                                        className="w-4 h-4"
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                            <span className="text-sm text-gray-500">
-                                                                {formatDate(review.createdAt)}
-                                                            </span>
-                                                        </div>
-                                                        <p className="text-gray-700 text-sm leading-relaxed mb-3">
-                                                            {review.reviewText}
-                                                        </p>
-
-                                                        {/* Repairman Response */}
-                                                        {review.repairmanResponse && (
-                                                            <div className="mt-3 ml-4 pl-4 border-l-2 border-green-600 bg-green-50 p-3 rounded-r-lg">
-                                                                <div className="flex items-center mb-2">
-                                                                    <Icon icon="mdi:reply" className="w-4 h-4 text-green-600 mr-2" />
-                                                                    <span className="font-medium text-gray-900 text-sm">
-                                                                        Response from {repairman?.repairmanProfile?.fullName}
-                                                                    </span>
-                                                                    <span className="text-xs text-gray-500 ml-2">
-                                                                        {formatDate(review.repairmanResponse.respondedAt)}
-                                                                    </span>
-                                                                </div>
-                                                                <p className="text-gray-700 text-sm">
-                                                                    {review.repairmanResponse.text}
-                                                                </p>
-                                                            </div>
-                                                        )}
-
-                                                        <div className="flex items-center space-x-4 mt-3 text-sm text-gray-500">
-                                                            <span>Helpful?</span>
-                                                            <button className="flex items-center hover:text-gray-700">
-                                                                <Icon icon="mdi:thumb-up-outline" className="w-4 h-4 mr-1" />
-                                                                Yes {review.helpfulVotes > 0 && `(${review.helpfulVotes})`}
-                                                            </button>
-                                                            <button className="flex items-center hover:text-gray-700">
-                                                                <Icon icon="mdi:thumb-down-outline" className="w-4 h-4 mr-1" />
-                                                                No
-                                                            </button>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8">
-                                        <Icon icon="mdi:comment-alert-outline" className="w-16 h-16 text-gray-300 mx-auto mb-3" />
-                                        <p className="text-gray-500">No reviews yet</p>
-                                    </div>
-                                )}
-
-                                {repairman?.reviews && repairman?.reviews.length > 0 && (
-                                    <button className="mt-6 px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors w-full">
-                                        Show More Reviews
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Right Sidebar */}
-                        <div className="space-y-6">
-                            {/* Contact Card */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 ">
-                                <div className="flex items-center space-x-3 mb-4">
-                                    <img
-                                        src={repairman?.repairmanProfile?.profilePhoto}
-                                        alt={repairman?.repairmanProfile?.fullName}
-                                        className="w-12 h-12 rounded-full object-cover"
-                                    />
-                                    <div>
-                                        <h3 className="font-semibold text-gray-900">{repairman?.repairmanProfile?.fullName}</h3>
-                                        <div className="flex items-center">
-                                            <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                                            <span className="text-sm text-gray-600">Offline • 02:04 AM local time</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-3">
-                                    {/* <button 
-                                    onClick={() => handleCall(profile.mobileNumber)}
-                                    className="w-full py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
-                                >
-                                    <Icon icon="mdi:phone" className="w-5 h-5 mr-2" />
-                                    Call Now
-                                </button> */}
-
-                                    {/* <button
-                                        onClick={() => handleWhatsApp(profile.whatsappNumber)}
-                                        className="w-full py-3 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
-                                    >
-                                        <Icon icon="mdi:whatsapp" className="w-5 h-5 mr-2" />
-                                        WhatsApp
-                                    </button> */}
-
-                                    <button
-                                        onClick={() => handleMessageSend(repairman._id)}
-                                        className="w-full cursor-pointer py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center justify-center"
-                                    >
-                                        <Icon icon="mdi:email" className="w-5 h-5 mr-2" />
-                                        Send Message
-                                    </button>
-
-                                    {/* <button 
-                                    onClick={handleHire}
-                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors flex items-center justify-center"
-                                >
-                                    <Icon icon="mdi:account-plus" className="w-5 h-5 mr-2" />
-                                    Hire Now
-                                </button> */}
-                                </div>
-                            </div>
-
-                            {/* Shop Information */}
-                            <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h3 className="font-semibold text-gray-900 mb-4">Shop Information</h3>
-
-                                {repairman?.repairmanProfile?.shopPhoto && (
-                                    <div className="mb-4">
-                                        <img
-                                            src={repairman?.repairmanProfile?.shopPhoto}
-                                            alt={repairman?.repairmanProfile?.shopName}
-                                            className="w-full h-32 object-cover rounded-lg"
-                                            onError={(e) => {
-                                                e.target.src = 'https://via.placeholder.com/300x150?text=No+Shop+Image'
-                                            }}
-                                        />
-                                    </div>
-                                )}
-
-                                <div className="space-y-3">
-                                    <div className="flex items-start">
-                                        <Icon icon="mdi:store" className="w-4 h-4 text-gray-500 mr-2 mt-1 flex-shrink-0" />
-                                        <div>
-                                            <p className="font-medium text-gray-900">{repairman?.repairmanProfile?.shopName}</p>
-                                        </div>
-                                    </div>
-
-                                    {/* <div className="flex items-start">
-                                        <Icon icon="mdi:map-marker" className="w-4 h-4 text-gray-500 mr-2 mt-1 flex-shrink-0" />
-                                        <div>
-                                            <p className="text-sm text-gray-700">{profile.fullAddress}</p>
-                                            <p className="text-xs text-gray-500">{profile.city}, {profile.district} - {profile.zipCode}</p>
-                                        </div>
-                                    </div> */}
-
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:clock" className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className="text-sm text-gray-700">
-                                            {repairman?.repairmanProfile?.workingHours.start} - {repairman?.repairmanProfile?.workingHours.end}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:calendar" className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className="text-sm text-gray-700">
-                                            {repairman?.repairmanProfile?.workingDays.join(', ')}
-                                        </span>
-                                    </div>
-
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:truck" className="w-4 h-4 text-gray-500 mr-2" />
-                                        <span className={`text-sm ${repairman?.repairmanProfile?.pickupService ? 'text-green-600' : 'text-red-600'}`}>
-                                            Pickup Service: {repairman?.repairmanProfile?.pickupService ? 'Available' : 'Not Available'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Contact Information */}
-                            {/* <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h3 className="font-semibold text-gray-900 mb-4">Contact Details</h3>
-                                <div className="space-y-3">
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:phone" className="w-4 h-4 text-gray-500 mr-3" />
-                                        <span className="text-sm text-gray-700">{profile.mobileNumber}</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:whatsapp" className="w-4 h-4 text-gray-500 mr-3" />
-                                        <span className="text-sm text-gray-700">{profile.whatsappNumber}</span>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Icon icon="mdi:email" className="w-4 h-4 text-gray-500 mr-3" />
-                                        <span className="text-sm text-gray-700">{profile.emailAddress}</span>
-                                    </div>
-                                </div>
-                            </div> */}
-
-                            {/* Emergency Contact */}
-                            {/* <div className="bg-white rounded-lg shadow-sm p-6">
-                            <h3 className="font-semibold text-gray-900 mb-4">Emergency Contact</h3>
-                            <div className="space-y-3">
-                                <div className="flex items-center">
-                                    <Icon icon="mdi:account" className="w-4 h-4 text-gray-500 mr-3" />
-                                    <span className="text-sm text-gray-700">{profile.emergencyContactPerson}</span>
-                                </div>
-                                <div className="flex items-center">
-                                    <Icon icon="mdi:phone-alert" className="w-4 h-4 text-gray-500 mr-3" />
-                                    <span className="text-sm text-gray-700">{profile.emergencyContactNumber}</span>
-                                </div>
-                            </div>
-                        </div> */}
-
-                            {/* Account Status */}
-                            <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h3 className="font-semibold text-gray-900 mb-4">Account Status</h3>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600">Email Verified</span>
-                                        <div className="flex items-center">
-                                            <Icon
-                                                icon={repairman?.isEmailVerified ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman?.isEmailVerified ? 'text-green-600' : 'text-red-600'}`}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600">Profile Complete</span>
-                                        <div className="flex items-center">
-                                            <Icon
-                                                icon={repairman?.isProfileComplete ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman?.isProfileComplete ? 'text-green-600' : 'text-red-600'}`}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-sm text-gray-600">Documents</span>
-                                        <div className="flex items-center">
-                                            <Icon
-                                                icon={repairman?.isDocumentComplete ? "mdi:check-circle" : "mdi:close-circle"}
-                                                className={`w-4 h-4 ${repairman?.isDocumentComplete ? 'text-green-600' : 'text-red-600'}`}
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="pt-2 border-t">
-                                        <div className="flex justify-between">
-                                            <span className="text-sm text-gray-600">Member Since</span>
-                                            <span className="text-sm text-gray-900 font-medium">{formatDate(repairman?.createdAt)}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Stats */}
-                            {/* <div className="bg-white rounded-lg shadow-sm p-6">
-                                <h3 className="font-semibold text-gray-900 mb-4">Statistics</h3>
-                                <div className="space-y-4">
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-900">{profile.totalJobs}</div>
-                                        <div className="text-sm text-gray-600">Total Jobs</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-900">{profile.rating}/5</div>
-                                        <div className="text-sm text-gray-600">Average Rating</div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="text-2xl font-bold text-gray-900">{profile.yearsOfExperience || 'N/A'}</div>
-                                        <div className="text-sm text-gray-600">Years Experience</div>
-                                    </div>
-                                </div>
-                            </div> */}
-                        </div>
-                    </div>
-
-                    {/* Message Box */}
-                    <div className="fixed bottom-8 right-8">
-                        <button className="bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg transition-colors">
-                            <Icon icon="mdi:message" className="w-6 h-6" />
+                    <div className="flex gap-2">
+                        <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
+                            <Icon icon="heroicons:bookmark" className="w-5 h-5" />
                         </button>
+                        <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
+                            <Icon icon="heroicons:share" className="w-5 h-5" />
+                        </button>
+                    </div>
+                </div>
+
+                {/* Profile Info Overlay - Bottom Left */}
+                <div className="absolute bottom-0 left-0 right-0 px-6 pb-24">
+                    <div className="flex items-end gap-6">
+                        {/* Profile Image with Border Animation */}
+                        <div className="relative">
+                            <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform hover:scale-105 transition-transform duration-300">
+                                {profile?.profilePhoto ? (
+                                    <img
+                                        src={profile.profilePhoto}
+                                        alt={profile.fullName}
+                                        className="w-full h-full object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                        <span className="text-5xl font-bold text-white">
+                                            {profile?.fullName?.split(' ').map(n => n[0]).join('').toUpperCase() || 'R'}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+                            <div className="absolute -top-2 -right-2">
+                                {repairman.isEmailVerified && (
+                                    <div className="bg-green-500 rounded-full p-1.5 border-2 border-white">
+                                        <Icon icon="heroicons:check" className="w-3 h-3 text-white" />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Basic Info */}
+                        <div className="flex-1 text-white">
+                            <div className="flex items-center gap-3 mb-2">
+                                <h1 className="text-4xl font-bold">{profile?.fullName || repairman.name}</h1>
+                                {profile?.shopName && (
+                                    <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-sm border border-white/30">
+                                        {profile.shopName}
+                                    </span>
+                                )}
+                            </div>
+
+                            <div className="flex items-center gap-4 text-white/90">
+                                <div className="flex items-center gap-1">
+                                    <Icon icon="heroicons:map-pin" className="w-4 h-4" />
+                                    <span className="text-sm">{repairman.city?.name || 'City not set'}, {repairman.state?.name || 'State not set'}</span>
+                                </div>
+                                {profile?.yearsOfExperience && (
+                                    <div className="flex items-center gap-1">
+                                        <Icon icon="heroicons:clock" className="w-4 h-4" />
+                                        <span className="text-sm">{profile.yearsOfExperience} Years Experience</span>
+                                    </div>
+                                )}
+                                <div className="flex items-center gap-1">
+                                    <Icon icon="heroicons:briefcase" className="w-4 h-4" />
+                                    <span className="text-sm">{profile?.totalJobs || 0} Jobs Completed</span>
+                                </div>
+                            </div>
+
+                            {/* Rating Badge */}
+                            <div className="flex items-center gap-2 mt-3">
+                                <div className="flex items-center gap-1 bg-yellow-400/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-yellow-400/30">
+                                    <Icon icon="heroicons:star" className="w-4 h-4 text-yellow-400" />
+                                    <span className="font-semibold text-white">{reviewStats?.averageRating || '0.0'}</span>
+                                    <span className="text-xs text-white/70">({reviewStats?.totalReviews || 0} reviews)</span>
+                                </div>
+                                {profile?.isKycCompleted && (
+                                    <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-green-500/30">
+                                        <Icon icon="heroicons:check-badge" className="w-4 h-4 text-green-400" />
+                                        <span className="text-xs text-white">Verified</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Hire Button */}
+                <div className="absolute !z-10 bottom-24 right-6 flex gap-3" >
+                    <button
+                        onClick={() => handleMessageSend(repairman._id)}
+                        className="px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 rounded-xl text-white hover:from-primary-600 hover:to-primary-700 transition-all border border-white/30 font-medium flex items-center gap-2 shadow-lg hover:shadow-xl"
+                        type="button"
+                    >
+                        <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5" />
+                        Hire Repairman
+                    </button>
+                </div>
+
+                {/* Profile Completion Bar */}
+                <div className="absolute bottom-0 left-0 right-0">
+                    <div className="bg-gradient-to-t from-black/90 via-black/70 to-transparent pt-12 pb-4">
+                        <div className="container mx-auto px-6">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-1">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-2">
+                                            <Icon icon="heroicons:chart-bar" className="w-4 h-4 text-white/70" />
+                                            <span className="text-sm font-medium text-white/90">Profile Strength</span>
+                                        </div>
+                                        <span className="text-sm font-bold text-white">{completionPercentage}% Complete</span>
+                                    </div>
+                                    <div className="h-2.5 bg-white/20 rounded-full overflow-hidden backdrop-blur-sm">
+                                        <div
+                                            className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full transition-all duration-500 relative"
+                                            style={{ width: `${completionPercentage}%` }}
+                                        >
+                                            <div className="absolute inset-0 bg-white/20 animate-pulse" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Alert for incomplete bank details */}
+            {profile && !profile.isPaymentInformationCompleted && (
+                <div className="container mx-auto px-6 -mt-4 mb-6 relative z-10">
+                    <div className="animate-slideDown">
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-500 rounded-xl p-4 shadow-lg">
+                            <div className="flex items-start gap-3">
+                                <div className="p-2 bg-orange-100 rounded-lg">
+                                    <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
+                                </div>
+                                <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900 mb-1">Complete Your Bank Details</h4>
+                                    <p className="text-sm text-gray-600 mb-3">Add your bank information to start receiving payments</p>
+                                    <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium inline-flex items-center gap-2">
+                                        <Icon icon="heroicons:banknotes" className="w-4 h-4" />
+                                        Add Bank Details
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
-            <LoginModal
-                isOpen={isOpen}
-                onClose={() => setIsOpen(false)}
-            // onSuccess={}
+            {/* Rest of the content */}
+            <div className="container mx-auto px-6 pb-8 mt-8 mb-8">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <StatCard
+                        icon="heroicons:star"
+                        label="Rating"
+                        value={reviewStats?.averageRating ? `${reviewStats.averageRating} (${reviewStats.totalReviews || 0} reviews)` : 'No ratings'}
+                        bgColor="bg-yellow-50"
+                        iconColor="text-yellow-600"
+                    />
+                    <StatCard
+                        icon="heroicons:briefcase"
+                        label="Jobs Completed"
+                        value={profile?.totalJobs || 0}
+                        bgColor="bg-blue-50"
+                        iconColor="text-blue-600"
+                    />
+                    <StatCard
+                        icon="heroicons:clock"
+                        label="Experience"
+                        value={profile?.yearsOfExperience ? `${profile.yearsOfExperience} Years` : 'N/A'}
+                        bgColor="bg-purple-50"
+                        iconColor="text-purple-600"
+                    />
+                    <StatCard
+                        icon="heroicons:users"
+                        label="Total Reviews"
+                        value={reviewStats?.totalReviews || 0}
+                        bgColor="bg-green-50"
+                        iconColor="text-green-600"
+                    />
+                </div>
 
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left Column - Main Content */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* About Section */}
+                        {profile?.description && (
+                            <SectionCard title="About Me" icon="heroicons:information-circle">
+                                <p className="text-gray-700 leading-relaxed">{profile.description}</p>
+                            </SectionCard>
+                        )}
 
-            />
-        </Loader>
-    )
+                        {/* Specializations */}
+                        {profile?.specializations?.length > 0 && (
+                            <SectionCard title="Specializations" icon="heroicons:bolt">
+                                <div className="flex flex-wrap gap-2">
+                                    {profile.specializations.map((spec, index) => (
+                                        <Badge key={index} variant="primary">{spec}</Badge>
+                                    ))}
+                                </div>
+                            </SectionCard>
+                        )}
 
+{console.log(profile, "education")}
+                                   {/* <EducationSection education={profile.education}  /> */}
+
+                    </div>
+
+                    {/* Right Column - Sidebar */}
+                    <div className="space-y-6">
+                        {/* Contact Information */}
+                        <SectionCard title="Contact Info" icon="heroicons:phone">
+                            <div className="space-y-2">
+                                <InfoRow
+                                    icon="heroicons:phone"
+                                    label="Phone"
+                                    value={profile?.mobileNumber || repairman.phone}
+                                />
+                                <InfoRow
+                                    icon="heroicons:envelope"
+                                    label="Email"
+                                    value={profile?.emailAddress || repairman.email}
+                                    isVerified={repairman.isEmailVerified}
+                                />
+                                {profile?.whatsappNumber && (
+                                    <InfoRow
+                                        icon="ic:baseline-whatsapp"
+                                        label="WhatsApp"
+                                        value={profile.whatsappNumber}
+                                    />
+                                )}
+                            </div>
+                        </SectionCard>
+
+                        {/* Location Details */}
+                        <SectionCard title="Location" icon="heroicons:map-pin">
+                            <div className="space-y-3">
+                                <div className="p-4 bg-gradient-to-br from-primary-50 to-primary-100/50 rounded-xl">
+                                    <p className="text-xs text-primary-600 font-medium mb-1">Full Address</p>
+                                    <p className="text-sm font-medium text-gray-900">
+                                        {profile?.fullAddress || repairman.address || 'Address not provided'}
+                                    </p>
+                                </div>
+                                {profile?.zipCode && (
+                                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                        <span className="text-xs text-gray-500">ZIP Code</span>
+                                        <span className="text-sm font-medium">{profile.zipCode}</span>
+                                    </div>
+                                )}
+                            </div>
+                        </SectionCard>
+
+                        {/* Emergency Contact */}
+                        {(profile?.emergencyContactPerson || profile?.emergencyContactNumber) && (
+                            <SectionCard title="Emergency Contact" icon="heroicons:phone-arrow-up-right">
+                                <div className="space-y-3">
+                                    {profile.emergencyContactPerson && (
+                                        <InfoRow
+                                            icon="heroicons:user"
+                                            label="Contact Person"
+                                            value={profile.emergencyContactPerson}
+                                        />
+                                    )}
+                                    {profile.emergencyContactNumber && (
+                                        <InfoRow
+                                            icon="heroicons:phone"
+                                            label="Contact Number"
+                                            value={profile.emergencyContactNumber}
+                                        />
+                                    )}
+                                </div>
+                            </SectionCard>
+                        )}
+
+                        {/* Services */}
+                        <SectionCard title="Services" icon="heroicons:wrench-screwdriver">
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl">
+                                    <span className="text-sm font-medium text-gray-700">Pickup Service</span>
+                                    <Badge variant={profile?.pickupService ? 'success' : 'default'}>
+                                        {profile?.pickupService ? 'Available' : 'Not Available'}
+                                    </Badge>
+                                </div>
+                            </div>
+                        </SectionCard>
+
+                        {/* Bank Details */}
+                        {profile?.bankDetails && profile.isPaymentInformationCompleted && (
+                            <SectionCard title="Bank Information" icon="heroicons:banknotes">
+                                <div className="space-y-2">
+                                    <InfoRow icon="heroicons:user" label="Account Title" value={profile.bankDetails.accountTitle} />
+                                    <InfoRow icon="heroicons:credit-card" label="Account Number" value={profile.bankDetails.accountNumber} />
+                                    <InfoRow icon="heroicons:building-office" label="Bank Name" value={profile.bankDetails.bankName} />
+                                    {profile.bankDetails.iban && <InfoRow icon="heroicons:document-text" label="IBAN" value={profile.bankDetails.iban} />}
+                                </div>
+                            </SectionCard>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Login Modal */}
+            <LoginModal isOpen={isOpen} setIsOpen={setIsOpen} />
+        </div>
+    );
 }
 
-
-export default RepairmanDetail
+export default RepairmanDetail;
