@@ -1,804 +1,1448 @@
-'use client'
+'use client';
 
-import axiosInstance from '@/config/axiosInstance'
-import handleError from '@/helper/handleError'
-import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux'
-import { useForm, Controller } from 'react-hook-form'
-import { yupResolver } from '@hookform/resolvers/yup'
-import * as yup from 'yup'
-import {  useSearchParams } from 'next/navigation'
-import { useRouter } from '@/i18n/navigation'
-import { toast } from 'react-toastify'
-import AddressLocation from '@/components/partials/repairman/multiForm/AddressLocation'
-import ExperienceAvailability from '@/components/partials/repairman/multiForm/ExperienceAvailability'
+import React, { useState, useEffect ,useCallback} from 'react';
+import { Icon } from '@iconify/react';
+import { useSelector } from 'react-redux';
+import axiosInstance from '@/config/axiosInstance';
+import handleError from '@/helper/handleError';
+import { useRouter } from '@/i18n/navigation';
+import Image from 'next/image';
+import SmallLoader from '@/components/SmallLoader';
+import { toast } from 'react-toastify';
+import { useSearchParams } from 'next/navigation';
 
-// Validation Schema for Profile
-const profileSchema = yup.object().shape({
-  fullName: yup.string().required('Full name is required').min(3, 'Full name must be at least 3 characters'),
-  fatherName: yup.string().required('Father name is required').min(3, 'Father name must be at least 3 characters'),
-  mobileNumber: yup.string().required('Mobile number is required').matches(/^[0-9]{11}$/, 'Mobile number must be 11 digits'),
-  whatsappNumber: yup.string().required('WhatsApp number is required').matches(/^[0-9]{11}$/, 'WhatsApp number must be 11 digits'),
-  emailAddress: yup.string().required('Email is required').email('Invalid email address'),
-  emergencyContactPerson: yup.string().required('Emergency contact person is required'),
-  emergencyContactNumber: yup.string().required('Emergency contact number is required').matches(/^[0-9]{11}$/, 'Emergency contact number must be 11 digits'),
-  shopName: yup.string().required('Shop name is required').min(3, 'Shop name must be at least 3 characters'),
-  fullAddress: yup.string().required('Full address is required').min(10, 'Address must be at least 10 characters'),
-  country: yup.string().required('Country is required'),
-  state: yup.string().required('State is required'),
-  city: yup.string().required('City is required'),
-  district: yup.string().required('District is required'),
-  zipCode: yup.string().required('Zip code is required').matches(/^[0-9]{5}$/, 'Zip code must be 5 digits'),
-  yearsOfExperience: yup.number().required('Years of experience is required').min(0, 'Years of experience cannot be negative'),
-  specializations: yup.array().min(1, 'At least one specialization is required'),
-  description: yup.string().required('Description is required').min(50, 'Description must be at least 50 characters').max(500, 'Description cannot exceed 500 characters'),
-  workingDays: yup.array().min(1, 'At least one working day is required'),
-  workingHoursStart: yup.string().required('Working hours start time is required'),
-  workingHoursEnd: yup.string().required('Working hours end time is required'),
-  pickupService: yup.boolean(),
-  taxNumber: yup.string().required('Tax number is required').min(5, 'Tax number must be at least 5 characters'),
-  // Additional fields from your data
-  nationalIdOrCitizenNumber: yup.string(),
-  dob: yup.string(),
-  gender: yup.string(),
-  brandsWorkedWith: yup.array()
-})
+// ─── Reusable Components ─────────────────────────────────────────────────
 
-// Validation Schema for Bank Details
-const bankSchema = yup.object().shape({
-  accountTitle: yup.string().required('Account title is required').min(3, 'Account title must be at least 3 characters'),
-  accountNumber: yup.string().required('Account number is required').matches(/^[0-9]{16}$/, 'Account number must be exactly 16 digits'),
-  bankName: yup.string().required('Bank name is required'),
-  branchName: yup.string().required('Branch name is required'),
-  iban: yup.string().required('IBAN is required').matches(/^TR[0-9]{24}$/, 'Invalid IBAN format (e.g., TR330006100000000012345678)')
-})
+const SectionCard = ({ title, icon, children }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all mb-6">
+    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center gap-2">
+      {icon && <Icon icon={icon} className="w-5 h-5 text-primary-600" />}
+      <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+    </div>
+    <div className="p-6">{children}</div>
+  </div>
+);
 
-function EditRepairmanProfile() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [isLoading, setIsLoading] = useState(false)
-  const [data, setData] = useState(null)
-  const { token } = useSelector(state => state.auth)
+const InputField = ({ label, name, value, onChange, type = 'text', placeholder, error, required }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-medium text-gray-600 mb-2">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <input
+      type={type}
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
+        error
+          ? 'border-red-300 focus:ring-red-200 bg-red-50'
+          : 'border-gray-200 focus:ring-primary-200 focus:border-primary-500'
+      }`}
+    />
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
 
-  // Get active tab from URL params, default to 'profile'
-  const activeTab = searchParams.get('tab') || 'profile'
+const SelectField = ({ label, name, value, onChange, options, error, required, multiple = false }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-medium text-gray-600 mb-2">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <select
+      name={name}
+      value={value}
+      onChange={onChange}
+      multiple={multiple}
+      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all ${
+        error
+          ? 'border-red-300 focus:ring-red-200 bg-red-50'
+          : 'border-gray-200 focus:ring-primary-200 focus:border-primary-500'
+      }`}
+    >
+      <option value="">Select {label.toLowerCase()}</option>
+      {options?.map((opt) => (
+        <option key={opt.id || opt._id || opt} value={opt.id || opt._id || opt}>
+          {opt.name || opt}
+        </option>
+      ))}
+    </select>
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
 
-  // Profile Form
-  const { control: profileControl, handleSubmit: handleProfileSubmit, setValue: setProfileValue, watch, formState: { errors: profileErrors, isSubmitting: isProfileSubmitting } } = useForm({
-    resolver: yupResolver(profileSchema),
-    defaultValues: {
-      fullName: '',
-      fatherName: '',
-      mobileNumber: '',
-      whatsappNumber: '',
-      emailAddress: '',
-      emergencyContactPerson: '',
-      emergencyContactNumber: '',
-      shopName: '',
-      fullAddress: '',
-      country: '',
-      state: '',
-      city: '',
-      district: '',
-      zipCode: '',
-      yearsOfExperience: 0,
-      specializations: [],
-      description: '',
-      workingDays: [],
-      workingHoursStart: '',
-      workingHoursEnd: '',
-      pickupService: false,
-      taxNumber: '',
-      nationalIdOrCitizenNumber: '',
-      dob: '',
-      gender: '',
-      brandsWorkedWith: []
+const CheckboxField = ({ label, name, checked, onChange }) => (
+  <div className="flex items-center mb-4">
+    <input
+      type="checkbox"
+      name={name}
+      checked={checked}
+      onChange={onChange}
+      className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+    />
+    <label className="ml-3 text-sm font-medium text-gray-700">{label}</label>
+  </div>
+);
+
+const ImageUploadField = ({ label, name, value, onChange, preview, onRemove, error }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-medium text-gray-600 mb-2">{label}</label>
+    <div className="flex items-center gap-4">
+      {preview && (
+        <div className="relative">
+          <img src={preview} alt="Preview" className="w-24 h-24 object-cover rounded-lg border border-gray-200" />
+          <button
+            type="button"
+            onClick={onRemove}
+            className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+          >
+            <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+      <label className={`flex-1 px-4 py-4 border-2 border-dashed rounded-lg text-center cursor-pointer transition-all ${
+        preview ? 'border-primary-400 bg-primary-50' : 'border-gray-300 hover:border-primary-400 hover:bg-primary-50'
+      }`}>
+        <div className="flex items-center justify-center gap-2">
+          <Icon icon="heroicons:cloud-arrow-up" className="w-5 h-5 text-gray-500" />
+          <span className="text-sm text-gray-600">Upload Image</span>
+        </div>
+        <input type="file" name={name} onChange={onChange} className="hidden" accept="image/*" />
+      </label>
+    </div>
+    {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+  </div>
+);
+
+const TextAreaField = ({ label, name, value, onChange, placeholder, rows = 4, error, required, maxLength }) => (
+  <div className="mb-4">
+    <label className="block text-xs font-medium text-gray-600 mb-2">
+      {label}
+      {required && <span className="text-red-500 ml-1">*</span>}
+    </label>
+    <textarea
+      name={name}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      rows={rows}
+      maxLength={maxLength}
+      className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 transition-all resize-none ${
+        error
+          ? 'border-red-300 focus:ring-red-200 bg-red-50'
+          : 'border-gray-200 focus:ring-primary-200 focus:border-primary-500'
+      }`}
+    />
+    <div className="flex justify-between items-center mt-1">
+      {error && <p className="text-red-500 text-xs">{error}</p>}
+      {maxLength && <p className="text-xs text-gray-400">{value?.length || 0}/{maxLength}</p>}
+    </div>
+  </div>
+);
+
+// ─── Multi-Select Component ──────────────────────────────────────────────
+
+// ─── Tag Input Component (for Specializations) ──────────────────────────────
+
+const TagInputField = ({ label, name, value = [], onChange, options, error, required }) => {
+  const [inputValue, setInputValue] = useState('');
+
+  const handleAddTag = () => {
+    if (inputValue.trim() && !value.includes(inputValue.trim())) {
+      onChange({ target: { name, value: [...value, inputValue.trim()] } });
+      setInputValue('');
     }
-  })
+  };
 
-  // Bank Details Form
-  const { control: bankControl, handleSubmit: handleBankSubmit, setValue: setBankValue, formState: { errors: bankErrors, isSubmitting: isBankSubmitting } } = useForm({
-    resolver: yupResolver(bankSchema),
-    defaultValues: {
+  const handleRemoveTag = (tag) => {
+    onChange({ target: { name, value: value.filter((v) => v !== tag) } });
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleAddTag();
+    }
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs font-medium text-gray-600 mb-2">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <div className="flex gap-2 mb-3">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyPress={handleKeyPress}
+          placeholder="Type specialization and press Enter"
+          className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500"
+        />
+        <button
+          type="button"
+          onClick={handleAddTag}
+          className="px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors text-sm font-medium"
+        >
+          Add
+        </button>
+      </div>
+      {/* Display suggestions */}
+      {inputValue && (
+        <div className="mb-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <p className="text-xs text-gray-600 mb-2">Suggestions:</p>
+          <div className="flex flex-wrap gap-2">
+            {options?.filter((opt) => opt.toLowerCase().includes(inputValue.toLowerCase()) && !value.includes(opt)).map((opt) => (
+              <button
+                key={opt}
+                type="button"
+                onClick={() => {
+                  onChange({ target: { name, value: [...value, opt] } });
+                  setInputValue('');
+                }}
+                className="px-3 py-1 bg-white border border-gray-300 rounded-lg text-xs text-gray-600 hover:border-primary-500 hover:bg-primary-50 transition-colors"
+              >
+                {opt}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+      {/* Display tags */}
+      <div className="flex flex-wrap gap-2">
+        {value.map((tag) => (
+          <span key={tag} className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary-100 text-primary-700 rounded-full text-sm font-medium">
+            {tag}
+            <button
+              type="button"
+              onClick={() => handleRemoveTag(tag)}
+              className="text-primary-600 hover:text-primary-800 ml-1"
+            >
+              <Icon icon="heroicons:x-mark" className="w-3.5 h-3.5" />
+            </button>
+          </span>
+        ))}
+      </div>
+      {error && <p className="text-red-500 text-xs mt-2">{error}</p>}
+    </div>
+  );
+};
+
+// ─── Education/Experience Modal ────────────────────────────────────────────
+
+const EntryModal = ({ isOpen, type, onClose, onSave, entry }) => {
+  const [formState, setFormState] = useState(entry || {});
+
+  useEffect(() => {
+    if (entry) {
+      setFormState(entry);
+    } else {
+      setFormState({});
+    }
+  }, [entry, isOpen]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormState({...formState, [name]: value});
+  };
+
+  if (!isOpen) return null;
+
+  const isEducation = type === 'education';
+  const title = isEducation ? 'Add Education' : 'Add Experience';
+  const institutionLabel = isEducation ? 'Institution' : 'Company Name';
+  const institutionField = isEducation ? 'institution' : 'companyName';
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <InputField
+            label="Title"
+            name="title"
+            value={formState.title || ''}
+            onChange={handleChange}
+            placeholder={isEducation ? "e.g., Bachelor of Science" : "e.g., Lead Technician"}
+            required
+          />
+          <InputField
+            label={institutionLabel}
+            name={institutionField}
+            value={formState[institutionField] || ''}
+            onChange={handleChange}
+            placeholder={isEducation ? "e.g., Pakistan Technical University" : "e.g., TechFix Solutions"}
+            required
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <InputField
+              label="Start Year"
+              name="startYear"
+              type="number"
+              value={formState.startYear || ''}
+              onChange={handleChange}
+              placeholder="2020"
+            />
+            <InputField
+              label="End Year"
+              name="endYear"
+              type="number"
+              value={formState.endYear || ''}
+              onChange={handleChange}
+              placeholder="2024"
+            />
+          </div>
+          <TextAreaField
+            label="Description"
+            name="description"
+            value={formState.description || ''}
+            onChange={handleChange}
+            rows={3}
+            placeholder={isEducation ? "Describe your major, achievements, etc." : "Describe your roles, achievements, etc."}
+          />
+          <div className="pt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (formState.title && formState[institutionField] && formState.startYear) {
+                  onSave(formState);
+                } else {
+                  alert('Please fill in all required fields');
+                }
+              }}
+              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition"
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const MultiSelectField = ({ label, name, value = [], onChange, options, error, required }) => {
+  const handleToggle = (option) => {
+    const newValue = value.includes(option)
+      ? value.filter((v) => v !== option)
+      : [...value, option];
+    onChange({ target: { name, value: newValue } });
+  };
+
+  return (
+    <div className="mb-4">
+      <label className="block text-xs font-medium text-gray-600 mb-3">
+        {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
+      </label>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+        {options?.map((option) => (
+          <label key={option} className="flex items-center p-2 border border-gray-200 rounded-lg cursor-pointer hover:bg-primary-50 transition-colors">
+            <input
+              type="checkbox"
+              checked={value.includes(option)}
+              onChange={() => handleToggle(option)}
+              className="w-4 h-4 text-primary-600"
+            />
+            <span className="ml-2 text-sm text-gray-700">{option}</span>
+          </label>
+        ))}
+      </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+};
+
+// ─── Certifications & License Modal ────────────────────────────────────────
+
+const CertificationsLicenseModal = ({ isOpen, onClose, onSave, entry, onImageAdd, onImageDelete, images }) => {
+  const [formState, setFormState] = useState(entry?.title || '');
+  const [localImages, setLocalImages] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (entry?.title) {
+        setFormState(entry.title);
+        setLocalImages(entry.images || []);
+      } else {
+        setFormState('');
+        setLocalImages([]);
+      }
+    }
+  }, [entry, isOpen]);
+
+  const handleImageUpload = (e) => {
+    const { files } = e.target;
+    if (files) {
+      for (let file of files) {
+        const preview = URL.createObjectURL(file);
+        setLocalImages(prev => [...prev, { file, preview, isNew: true }]);
+      }
+    }
+  };
+
+  const handleRemoveImage = (index) => {
+    setLocalImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h2 className="text-lg font-semibold text-gray-900">Add Certification/License</h2>
+          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <InputField
+            label="Certification/License Title"
+            value={formState}
+            onChange={(e) => setFormState(e.target.value)}
+            placeholder="e.g., CompTIA A+, Microsoft Certified"
+            required
+          />
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-3">
+              Upload Images <span className="text-red-500">*</span>
+            </label>
+            <label className="flex-1 px-4 py-4 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all">
+              <div className="flex items-center justify-center gap-2">
+                <Icon icon="heroicons:cloud-arrow-up" className="w-5 h-5 text-gray-500" />
+                <span className="text-sm text-gray-600">Upload Certificate Images</span>
+              </div>
+              <input type="file" multiple onChange={handleImageUpload} className="hidden" accept="image/*" />
+            </label>
+          </div>
+
+          {localImages && localImages.length > 0 && (
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-3">
+                Uploaded Images ({localImages.length})
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {localImages.map((img, idx) => (
+                  <div key={idx} className="relative group">
+                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={img.preview || (typeof img === 'string' ? img : '')}
+                        alt={`Image ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveImage(idx)}
+                      className="absolute top-1 right-1 bg-red-600 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="pt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (formState && localImages && localImages.length > 0) {
+                  const imageData = {
+                    title: formState,
+                    images: localImages.map(img => img.preview || img),
+                    files: localImages.filter(img => img.isNew && img.file).map(img => img.file)
+                  };
+                  onSave(imageData);
+                } else {
+                  alert('Please fill in title and upload at least one image');
+                }
+              }}
+              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition disabled:opacity-50"
+              disabled={!formState || !localImages.length}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ─── Main Component ──────────────────────────────────────────────────────
+
+function EditProfilePage() {
+  const router = useRouter();
+  const { token } = useSelector((state) => state.auth);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [data, setData] = useState(null);
+  const [errors, setErrors] = useState({});
+  const [imageFiles, setImageFiles] = useState({});
+  const [imagePreviews, setImagePreviews] = useState({});
+  const [educationModal, setEducationModal] = useState(false);
+  const [experienceModal, setExperienceModal] = useState(false);
+  const [certificationsLicenseModal, setCertificationsLicenseModal] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState(null);
+  const [selectedEntryIndex, setSelectedEntryIndex] = useState(null);
+  const [certLicenseImages, setCertLicenseImages] = useState([]);
+  const [initialFormData, setInitialFormData] = useState(null);
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+  // Form state
+  const [formData, setFormData] = useState({
+    // Basic Info
+    fullName: '',
+    fatherName: '',
+    gender: '',
+    dob: '',
+    nationalIdOrCitizenNumber: '',
+    
+    // Contact Info
+    mobileNumber: '',
+    whatsappNumber: '',
+    emailAddress: '',
+    emergencyContactPerson: '',
+    emergencyContactNumber: '',
+    
+    // Location
+    country: '',
+    state: '',
+    city: '',
+    district: '',
+    fullAddress: '',
+    zipCode: '',
+    
+    // Shop Info
+    shopName: '',
+    
+    // Professional Info
+    yearsOfExperience: '',
+    specializations: [],
+    brandsWorkedWith: [],
+    description: '',
+    taxNumber: '',
+    pickupService: false,
+    
+    // Working Hours
+    workingHours: { start: '', end: '' },
+    workingDays: [],
+    
+    // Banking
+    bankDetails: {
       accountTitle: '',
       accountNumber: '',
       bankName: '',
       branchName: '',
-      iban: ''
-    }
-  })
+      iban: '',
+    },
+    
+    // Education & Experience
+    education: [],
+    experience: [],
+    certifications: [],
+    certificationsLicense: [],
+  });
 
-  const workingDaysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+  const workingDaysOptions = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  const specializationOptions = ['Mobile Phone Repair', 'Laptop Repair', 'Tablet Repair', 'Desktop Repair', 'Gaming Console Repair', 'Audio Equipment', 'Smartwatch Repair'];
 
-  const specializationOptions = [
-    'Mobile Phone Repair',
-    'Laptop Repair',
-    'Tablet Repair',
-    'Desktop Repair',
-    'Gaming Console Repair'
-  ]
-
-  const fetchData = async () => {
-    try {
-      setIsLoading(true)
-      const { data } = await axiosInstance.get(`/repairman/profile`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-      setData(data.data)
-
-      // Populate profile form data
-      const profile = data.data.user.repairmanProfile
-      const user = data.data.user
-      
-      // Map the profile data to form fields
-      setProfileValue('fullName', profile.fullName || '')
-      setProfileValue('fatherName', profile.fatherName || '')
-      setProfileValue('mobileNumber', profile.mobileNumber || '')
-      setProfileValue('whatsappNumber', profile.whatsappNumber || '')
-      setProfileValue('emailAddress', profile.emailAddress || '')
-      setProfileValue('emergencyContactPerson', profile.emergencyContactPerson || '')
-      setProfileValue('emergencyContactNumber', profile.emergencyContactNumber || '')
-      setProfileValue('shopName', profile.shopName || '')
-      setProfileValue('fullAddress', profile.fullAddress || user.address || '')
-      
-      // Handle location fields - note: country and state are stored as IDs in the user object
-      setProfileValue('country', user.country || '')
-      setProfileValue('state', user.state || '')
-      console.log('User city data:', user.city._id)
-      // City could be an object or a string
-    if (user.city && typeof user.city === 'object') {
-      console.log('Setting city with ID:', user.city._id || user.city.id)
-      setProfileValue('city', user.city._id || user.city.id || '')
-    } else {
-      setProfileValue('city', profile.city || user.city || '')
-    }
-
-    // Fix brands population
-    const brandsData = profile.brandsWorkedWith || profile.brands || [];
-    const brandIds = Array.isArray(brandsData) 
-      ? brandsData.map(b => (typeof b === 'object' && b !== null) ? (b._id || b.id) : b)
-      : [];
-    setProfileValue('brandsWorkedWith', brandIds);
-      
-      setProfileValue('district', profile.district || '')
-      setProfileValue('zipCode', profile.zipCode || '')
-      setProfileValue('yearsOfExperience', profile.yearsOfExperience || 0)
-      setProfileValue('specializations', profile.specializations || [])
-      setProfileValue('description', profile.description || '')
-      setProfileValue('workingDays', profile.workingDays || [])
-      setProfileValue('workingHoursStart', profile.workingHours?.start || '')
-      setProfileValue('workingHoursEnd', profile.workingHours?.end || '')
-        setProfileValue('workingHours', { 
-      start: profile.workingHours?.start || '', 
-      end: profile.workingHours?.end || '' 
-    })
-      setProfileValue('pickupService', profile.pickupService || false)
-      setProfileValue('taxNumber', profile.taxNumber || '')
-      
-      // Additional fields
-      setProfileValue('nationalIdOrCitizenNumber', profile.nationalIdOrCitizenNumber || '')
-      setProfileValue('dob', profile.dob ? profile.dob.split('T')[0] : '')
-      setProfileValue('gender', profile.gender || '')
-
-      // Populate bank details form data
-      const bankDetails = profile.bankDetails
-      setBankValue('accountTitle', bankDetails?.accountTitle || '')
-      setBankValue('accountNumber', bankDetails?.accountNumber || '')
-      setBankValue('bankName', bankDetails?.bankName || '')
-      setBankValue('branchName', bankDetails?.branchName || '')
-      setBankValue('iban', bankDetails?.iban || '')
-    } catch (error) {
-      handleError(error)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
+  // Fetch data
   useEffect(() => {
-    fetchData()
-  }, [])
+    fetchProfileData();
+    fetchCountries();
+  }, []);
 
-  const onProfileSubmit = async (formData) => {
+  // Fetch states when country changes
+  useEffect(() => {
+    if (formData.country) {
+      fetchStates(formData.country);
+    } else {
+      setStates([]);
+      setCities([]);
+    }
+  }, [formData.country]);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    if (formData.state) {
+      fetchCities(formData.state);
+    } else {
+      setCities([]);
+    }
+  }, [formData.state]);
+
+  const fetchProfileData = async () => {
     try {
-      // Create payload that matches backend expectations
-      const payload = {
-        repairmanProfile: {
-          fullName: formData.fullName,
-          fatherName: formData.fatherName,
-          mobileNumber: formData.mobileNumber,
-          whatsappNumber: formData.whatsappNumber,
-          emailAddress: formData.emailAddress,
-          emergencyContactPerson: formData.emergencyContactPerson,
-          emergencyContactNumber: formData.emergencyContactNumber,
-          shopName: formData.shopName,
-          fullAddress: formData.fullAddress,
-          city: formData.city,
-          district: formData.district,
-          zipCode: formData.zipCode,
-          yearsOfExperience: formData.yearsOfExperience,
-          specializations: formData.specializations,
-          // Add brands worked with (sending IDs)
-          brands: formData.brandsWorkedWith, 
-          description: formData.description,
-          workingDays: formData.workingDays,
-          workingHours: {
-            start: formData.workingHoursStart,
-            end: formData.workingHoursEnd
-          },
-          pickupService: formData.pickupService,
-          taxNumber: formData.taxNumber,
-          // Include these if they exist
-          ...(formData.nationalIdOrCitizenNumber && { nationalIdOrCitizenNumber: formData.nationalIdOrCitizenNumber }),
-          ...(formData.dob && { dob: formData.dob }),
-          ...(formData.gender && { gender: formData.gender })
+      setIsLoading(true);
+      const { data } = await axiosInstance.get('/repairman/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setData(data.data);
+      
+      const profile = data.data.user.repairmanProfile;
+      const user = data.data.user;
+      
+      // Set image previews
+      const previews = {};
+      if (profile.profilePhoto) previews.profilePhoto = profile.profilePhoto;
+      if (profile.shopPhoto) previews.shopPhoto = profile.shopPhoto;
+      if (profile.nationalIdOrPassportScan) previews.nationalIdOrPassportScan = profile.nationalIdOrPassportScan;
+      if (profile.utilityBillOrShopProof) previews.utilityBillOrShopProof = profile.utilityBillOrShopProof;
+      if (profile.certifications) previews.certifications = profile.certifications;
+      setImagePreviews(previews);
+      
+      // Populate form
+      setFormData({
+        fullName: profile.fullName || '',
+        fatherName: profile.fatherName || '',
+        gender: profile.gender || '',
+        dob: profile.dob ? profile.dob.split('T')[0] : '',
+        nationalIdOrCitizenNumber: profile.nationalIdOrCitizenNumber || '',
+        
+        mobileNumber: profile.mobileNumber || '',
+        whatsappNumber: profile.whatsappNumber || '',
+        emailAddress: profile.emailAddress || '',
+        emergencyContactPerson: profile.emergencyContactPerson || '',
+        emergencyContactNumber: profile.emergencyContactNumber || '',
+        
+        country: user.country?._id || '',
+        state: user.state?._id || '',
+        city: user.city?._id || '',
+        district: profile.district || '',
+        fullAddress: profile.fullAddress || user.address || '',
+        zipCode: profile.zipCode || '',
+        
+        shopName: profile.shopName || '',
+        
+        yearsOfExperience: profile.yearsOfExperience || '',
+        specializations: profile.specializations || [],
+        brandsWorkedWith: profile.brandsWorkedWith?.map(b => b._id || b) || [],
+        description: profile.description || '',
+        taxNumber: profile.taxNumber || '',
+        pickupService: profile.pickupService || false,
+        
+        workingHours: {
+          start: profile.workingHours?.start || '',
+          end: profile.workingHours?.end || '',
         },
-        // These fields are at the root level in the user object
-        country: formData.country,
-        state: formData.state,
-        city: formData.city,
-        address: formData.fullAddress
-      }
-
-      // Remove undefined fields from repairmanProfile
-      if (!payload.repairmanProfile.nationalIdOrCitizenNumber) delete payload.repairmanProfile.nationalIdOrCitizenNumber
-      if (!payload.repairmanProfile.dob) delete payload.repairmanProfile.dob
-      if (!payload.repairmanProfile.gender) delete payload.repairmanProfile.gender
-
-      await axiosInstance.put('/repairman/profile', payload, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      toast.success('Profile updated successfully!')
-      fetchData() // Refresh data
+        workingDays: profile.workingDays || [],
+        
+        bankDetails: {
+          accountTitle: profile.bankDetails?.accountTitle || '',
+          accountNumber: profile.bankDetails?.accountNumber || '',
+          bankName: profile.bankDetails?.bankName || '',
+          branchName: profile.bankDetails?.branchName || '',
+          iban: profile.bankDetails?.iban || '',
+        },
+        
+        education: profile.education || [],
+        experience: profile.experience || [],
+        certifications: profile.certifications || [],
+        certificationsLicense: profile.certificationsLicense || []
+      });
+      
+      // Save initial state for change detection
+      setInitialFormData({
+        fullName: profile.fullName || '',
+        fatherName: profile.fatherName || '',
+        gender: profile.gender || '',
+        dob: profile.dob ? profile.dob.split('T')[0] : '',
+        nationalIdOrCitizenNumber: profile.nationalIdOrCitizenNumber || '',
+        mobileNumber: profile.mobileNumber || '',
+        whatsappNumber: profile.whatsappNumber || '',
+        emailAddress: profile.emailAddress || '',
+        emergencyContactPerson: profile.emergencyContactPerson || '',
+        emergencyContactNumber: profile.emergencyContactNumber || '',
+        country: user.country?._id || '',
+        state: user.state?._id || '',
+        city: user.city?._id || '',
+        district: profile.district || '',
+        fullAddress: profile.fullAddress || user.address || '',
+        zipCode: profile.zipCode || '',
+        shopName: profile.shopName || '',
+        yearsOfExperience: profile.yearsOfExperience || '',
+        specializations: profile.specializations || [],
+        brandsWorkedWith: profile.brandsWorkedWith?.map(b => b._id || b) || [],
+        description: profile.description || '',
+        taxNumber: profile.taxNumber || '',
+        pickupService: profile.pickupService || false,
+        workingHours: {
+          start: profile.workingHours?.start || '',
+          end: profile.workingHours?.end || '',
+        },
+        workingDays: profile.workingDays || [],
+        bankDetails: {
+          accountTitle: profile.bankDetails?.accountTitle || '',
+          accountNumber: profile.bankDetails?.accountNumber || '',
+          bankName: profile.bankDetails?.bankName || '',
+          branchName: profile.bankDetails?.branchName || '',
+          iban: profile.bankDetails?.iban || '',
+        },
+        education: profile.education || [],
+        experience: profile.experience || [],
+        certifications: profile.certifications || [],
+        certificationsLicense: profile.certificationsLicense || []
+      });
     } catch (error) {
-      handleError(error)
+      handleError(error);
+    } finally {
+      setIsLoading(false);
     }
-  }
-
-  const onBankSubmit = async (formData) => {
+  };
+ const fetchCountries = useCallback(async () => {
     try {
-      // Bank details should be nested under repairmanProfile
-      const payload = {
-        repairmanProfile: {
-          bankDetails: formData
-        }
-      }
-
-      await axiosInstance.put('/repairman/profile', payload, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      })
-
-      toast.success('Bank details updated successfully!')
-      fetchData() // Refresh data
-    } catch (error) {
-      handleError(error)
+      const res = await axiosInstance.get('/public/countries');
+      setCountries(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to load countries', err);
     }
-  }
+  }, []);
 
-  const handleTabChange = (tab) => {
-    router.push(`?tab=${tab}`)
-  }
+  // Fetch States by Country
+  const fetchStates = useCallback(async (countryId) => {
+    if (!countryId) {
+      setStates([]);
+      return;
+    }
+    try {
+      const res = await axiosInstance.get(`/public/states/country/${countryId}`);
+      setStates(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to load states', err);
+      setStates([]);
+    }
+  }, []);
 
-  const isBankDetailsComplete = data?.user?.repairmanProfile?.bankDetails?.iban &&
-    data?.user?.repairmanProfile?.bankDetails?.accountNumber
+  // Fetch Cities by State
+  const fetchCities = useCallback(async (stateId) => {
+    if (!stateId) {
+      setCities([]);
+      return;
+    }
+    try {
+      const res = await axiosInstance.get(`/public/cities/state/${stateId}`);
+      setCities(res.data.data || []);
+    } catch (err) {
+      console.error('Failed to load cities', err);
+      setCities([]);
+    }
+  }, []);
+
+  // Handle input change
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    if (name.startsWith('bankDetails.')) {
+      const field = name.replace('bankDetails.', '');
+      setFormData({
+        ...formData,
+        bankDetails: {
+          ...formData.bankDetails,
+          [field]: value,
+        }
+      });
+    } else if (name.startsWith('workingHours.')) {
+      const field = name.replace('workingHours.', '');
+      setFormData({
+        ...formData,
+        workingHours: {
+          ...formData.workingHours,
+          [field]: value,
+        }
+      });
+    } else if (type === 'checkbox') {
+      setFormData({...formData, [name]: checked});
+    } else if (Array.isArray(formData[name])) {
+      setFormData({...formData, [name]: value});
+    } else {
+      setFormData({...formData, [name]: value});
+    }
+  };
+
+  // Handle image upload
+  const handleImageUpload = (e) => {
+    const { name, files } = e.target;
+    if (files?.[0]) {
+      setImageFiles({...imageFiles, [name]: files[0]});
+      setImagePreviews({...imagePreviews, [name]: URL.createObjectURL(files[0])});
+    }
+  };
+
+  const removeImage = (name) => {
+    setImageFiles({...imageFiles, [name]: null});
+    const newPreviews = {...imagePreviews};
+    delete newPreviews[name];
+    setImagePreviews(newPreviews);
+  };
+
+  // Education & Experience Handlers
+  const handleEducationSave = (entry) => {
+    if (selectedEntryIndex !== null) {
+      const updated = [...formData.education];
+      updated[selectedEntryIndex] = entry;
+      setFormData({...formData, education: updated});
+    } else {
+      setFormData({...formData, education: [...formData.education, entry]});
+    }
+    setEducationModal(false);
+    setSelectedEntry(null);
+    setSelectedEntryIndex(null);
+  };
+
+  const handleEducationDelete = (index) => {
+    setFormData({...formData, education: formData.education.filter((_, i) => i !== index)});
+  };
+
+  const handleExperienceSave = (entry) => {
+    if (selectedEntryIndex !== null) {
+      const updated = [...formData.experience];
+      updated[selectedEntryIndex] = entry;
+      setFormData({...formData, experience: updated});
+    } else {
+      setFormData({...formData, experience: [...formData.experience, entry]});
+    }
+    setExperienceModal(false);
+    setSelectedEntry(null);
+    setSelectedEntryIndex(null);
+  };
+
+  const handleExperienceDelete = (index) => {
+    setFormData({...formData, experience: formData.experience.filter((_, i) => i !== index)});
+  };
+
+  const handleCertificationUpload = (e) => {
+    const { files } = e.target;
+    if (files) {
+      const newCerts = [...(formData.certifications || [])];
+      for (let file of files) {
+        setImageFiles({...imageFiles, [`cert-${Date.now()}`]: file});
+        setImagePreviews({...imagePreviews, [`cert-${Date.now()}`]: URL.createObjectURL(file)});
+        newCerts.push(URL.createObjectURL(file));
+      }
+      setFormData({...formData, certifications: newCerts});
+    }
+  };
+
+  // Certifications & License Handlers
+  const handleCertLicenseSave = (entry) => {
+    // Extract clean image URLs
+    const cleanImages = entry.images
+      ? entry.images.map(img => {
+          if (typeof img === 'string') return img;
+          return img.preview || img;
+        }).filter(Boolean)
+      : [];
+    
+    // Store file references in a temporary location for submission
+    if (entry.files && entry.files.length > 0) {
+      const certIndex = selectedEntryIndex !== null ? selectedEntryIndex : formData.certificationsLicense.length;
+      entry.files.forEach((file, fileIdx) => {
+        setImageFiles(prev => ({
+          ...prev,
+          [`certificationsLicense-${certIndex}-${fileIdx}`]: file
+        }));
+      });
+    }
+    
+    const cleanEntry = {
+      title: entry.title,
+      images: cleanImages
+    };
+    
+    if (selectedEntryIndex !== null) {
+      const updated = [...formData.certificationsLicense];
+      updated[selectedEntryIndex] = cleanEntry;
+      setFormData({...formData, certificationsLicense: updated});
+    } else {
+      setFormData({...formData, certificationsLicense: [...formData.certificationsLicense, cleanEntry]});
+    }
+    setCertificationsLicenseModal(false);
+    setSelectedEntry(null);
+    setSelectedEntryIndex(null);
+    setCertLicenseImages([]);
+  };
+
+  const handleCertLicenseDelete = (index) => {
+    setFormData({...formData, certificationsLicense: formData.certificationsLicense.filter((_, i) => i !== index)});
+  };
+
+  const handleCertLicenseImageDelete = (index) => {
+    const newImages = certLicenseImages.filter((_, i) => i !== index);
+    setCertLicenseImages(newImages);
+  };
+
+  // Submit form
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSaving(true);
+    
+    try {
+      const form = new FormData();
+      
+      // Build repairmanProfile with only changed fields
+      const repairmanProfile = {};
+      const fieldsToCheck = [
+        'fullName', 'fatherName', 'gender', 'dob', 'nationalIdOrCitizenNumber',
+        'mobileNumber', 'whatsappNumber', 'emailAddress', 'emergencyContactPerson',
+        'emergencyContactNumber', 'shopName', 'fullAddress', 'zipCode', 'taxNumber',
+        'specializations', 'brandsWorkedWith', 'description',
+        'pickupService', 'workingDays', 'education', 'experience', 'certifications'
+      ];
+      
+      fieldsToCheck.forEach(field => {
+        if (JSON.stringify(formData[field]) !== JSON.stringify(initialFormData?.[field])) {
+          repairmanProfile[field] = formData[field];
+        }
+      });
+      
+      // Handle yearsOfExperience as number
+      if (formData.yearsOfExperience !== initialFormData?.yearsOfExperience) {
+        repairmanProfile.yearsOfExperience = parseInt(formData.yearsOfExperience) || 0;
+      }
+      
+      // Handle workingHours separately (nested object)
+      if (JSON.stringify(formData.workingHours) !== JSON.stringify(initialFormData?.workingHours)) {
+        repairmanProfile.workingHours = formData.workingHours;
+      }
+      
+      // Handle bankDetails separately (nested object)
+      if (JSON.stringify(formData.bankDetails) !== JSON.stringify(initialFormData?.bankDetails)) {
+        repairmanProfile.bankDetails = formData.bankDetails;
+      }
+      
+      // Handle certificationsLicense - convert preview URLs to clean format
+      const cleanCertificationsLicense = formData.certificationsLicense.map(cert => ({
+        title: cert.title,
+        certificationsLicense: cert.images.filter(img => typeof img === 'string' && img) 
+      }));
+      
+      if (JSON.stringify(cleanCertificationsLicense) !== JSON.stringify(initialFormData?.certificationsLicense)) {
+        repairmanProfile.certificationsLicense = cleanCertificationsLicense;
+      }
+       //  Har image ke saath correct index bhejo
+    if (imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('certificationsLicense', file);  // same field name
+      });
+      
+      //  YEH FIX HAI — sahi field name aur sahi index
+      const indexes = imageFiles.map(() => targetIndex);
+      formData.append('certificationsLicenseIndexes', JSON.stringify(indexes));
+    }
+      
+      form.append('repairmanProfile', JSON.stringify(repairmanProfile));
+      
+      // Only send location if changed
+      if (formData.country !== initialFormData?.country) {
+        form.append('countryId', formData.country);
+      }
+      if (formData.state !== initialFormData?.state) {
+        form.append('stateId', formData.state);
+      }
+      if (formData.city !== initialFormData?.city) {
+        form.append('cityId', formData.city);
+      }
+      if (formData.fullAddress !== initialFormData?.fullAddress) {
+        form.append('address', formData.fullAddress);
+      }
+      if (formData.district !== initialFormData?.district) {
+        form.append('district', formData.district);
+      }
+      
+      // Add image files only if they are new File objects
+      Object.entries(imageFiles).forEach(([key, file]) => {
+        if (file && file instanceof File) {
+          form.append(key, file);
+        }
+      });
+      
+      const response = await axiosInstance.put('/repairman/profile', form, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      
+      if (response.data.success) {
+        toast.success('Profile updated successfully');
+        setTimeout(() => router.push('/repair-man/profile'), 1500);
+      }
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-xl text-gray-600">Loading...</div>
-      </div>
-    )
+    return <SmallLoader loading={isLoading} text="Loading profile..." />;
   }
 
-  console.log(data,"profle")
-
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 py-8">
+      <div className="container mx-auto px-6">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-2 text-primary-600 hover:text-primary-700 mb-4 font-medium"
+          >
+            <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
+            Back to Profile
+          </button>
           <h1 className="text-3xl font-bold text-gray-900">Edit Profile</h1>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-        <div className="border-b border-gray-200">
-          <nav className="-mb-px flex space-x-8">
-            <button
-              onClick={() => handleTabChange('profile')}
-              className={`${activeTab === 'profile'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200`}
-            >
-              <div className="flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Profile Information
-              </div>
-            </button>
-            <button
-              onClick={() => handleTabChange('bank')}
-              className={`${activeTab === 'bank'
-                  ? 'border-primary-500 text-primary-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors duration-200 relative`}
-            >
-              <div className="flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
-                </svg>
-                Bank Details
-                {!isBankDetailsComplete && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
-                    Incomplete
-                  </span>
-                )}
-              </div>
-            </button>
-          </nav>
+          <p className="text-gray-600 mt-2">Update your profile information and keep your details current</p>
         </div>
 
-        {/* Tab Content */}
-        <div className="mt-6 pb-12">
-          {activeTab === 'profile' && (
-            <form onSubmit={handleProfileSubmit(onProfileSubmit)} className="space-y-6">
-              {/* Personal Information */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900">Personal Information</h2>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Basic Information */}
+          <SectionCard title="Basic Information" icon="heroicons:user">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField label="Full Name" name="fullName" value={formData.fullName} onChange={handleChange} required error={errors.fullName} />
+              <InputField label="Father Name" name="fatherName" value={formData.fatherName} onChange={handleChange} error={errors.fatherName} />
+              <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={['Male', 'Female', 'Other']} />
+              <InputField label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} />
+              <InputField label="National ID/CNIC" name="nationalIdOrCitizenNumber" value={formData.nationalIdOrCitizenNumber} onChange={handleChange} />
+              <InputField label="Tax Number" name="taxNumber" value={formData.taxNumber} onChange={handleChange} required error={errors.taxNumber} />
+            </div>
+          </SectionCard>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="fullName"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="Enter full name"
-                        />
-                      )}
-                    />
-                    {profileErrors.fullName && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.fullName.message}</p>
-                    )}
-                  </div>
+          {/* Contact Information */}
+          <SectionCard title="Contact Information" icon="heroicons:phone">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField label="Mobile Number" name="mobileNumber" value={formData.mobileNumber} onChange={handleChange} required error={errors.mobileNumber} />
+              <InputField label="WhatsApp Number" name="whatsappNumber" value={formData.whatsappNumber} onChange={handleChange} required error={errors.whatsappNumber} />
+              <InputField label="Email Address" name="emailAddress" type="email" value={formData.emailAddress} onChange={handleChange} required error={errors.emailAddress} />
+              <InputField label="Emergency Contact Person" name="emergencyContactPerson" value={formData.emergencyContactPerson} onChange={handleChange} required error={errors.emergencyContactPerson} />
+              <InputField label="Emergency Contact Number" name="emergencyContactNumber" value={formData.emergencyContactNumber} onChange={handleChange} required error={errors.emergencyContactNumber} />
+            </div>
+          </SectionCard>
 
-                  {/* Father Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Father Name <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="fatherName"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="Enter father name"
-                        />
-                      )}
-                    />
-                    {profileErrors.fatherName && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.fatherName.message}</p>
-                    )}
-                  </div>
+          {/* Location */}
+          <SectionCard title="Location" icon="heroicons:map-pin">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <SelectField label="Country" name="country" value={formData.country} onChange={handleChange} options={countries} required error={errors.country} />
+              <SelectField label="State" name="state" value={formData.state} onChange={handleChange} options={states} required error={errors.state} />
+              <SelectField label="City" name="city" value={formData.city} onChange={handleChange} options={cities} required error={errors.city} />
+              <InputField label="District" name="district" value={formData.district} onChange={handleChange} error={errors.district} />
+              <InputField label="Zip Code" name="zipCode" value={formData.zipCode} onChange={handleChange} required error={errors.zipCode} />
+              <InputField label="Full Address" name="fullAddress" value={formData.fullAddress} onChange={handleChange} required error={errors.fullAddress} />
+            </div>
+          </SectionCard>
 
-                  {/* Mobile Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Mobile Number <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="mobileNumber"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="03001234567"
-                        />
-                      )}
-                    />
-                    {profileErrors.mobileNumber && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.mobileNumber.message}</p>
-                    )}
-                  </div>
+          {/* Shop Information */}
+          <SectionCard title="Shop Information" icon="heroicons:building-storefront">
+            <InputField label="Shop Name" name="shopName" value={formData.shopName} onChange={handleChange} required error={errors.shopName} />
+            <TextAreaField label="Shop Description" name="description" value={formData.description} onChange={handleChange} maxLength={500} required error={errors.description} />
+            <CheckboxField label="Offer Pickup Service" name="pickupService" checked={formData.pickupService} onChange={handleChange} />
+            
+            {/* Shop Images */}
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ImageUploadField
+                label="Profile Photo"
+                name="profilePhoto"
+                preview={imagePreviews.profilePhoto}
+                onChange={handleImageUpload}
+                onRemove={() => removeImage('profilePhoto')}
+              />
+              <ImageUploadField
+                label="Shop Photo"
+                name="shopPhoto"
+                preview={imagePreviews.shopPhoto}
+                onChange={handleImageUpload}
+                onRemove={() => removeImage('shopPhoto')}
+              />
+              <ImageUploadField
+                label="National ID/Passport Scan"
+                name="nationalIdOrPassportScan"
+                preview={imagePreviews.nationalIdOrPassportScan}
+                onChange={handleImageUpload}
+                onRemove={() => removeImage('nationalIdOrPassportScan')}
+              />
+              <ImageUploadField
+                label="Utility Bill/Shop Proof"
+                name="utilityBillOrShopProof"
+                preview={imagePreviews.utilityBillOrShopProof}
+                onChange={handleImageUpload}
+                onRemove={() => removeImage('utilityBillOrShopProof')}
+              />
+              
+            </div>
+          </SectionCard>
 
-                  {/* WhatsApp Number */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      WhatsApp Number <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="whatsappNumber"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="03001234567"
-                        />
-                      )}
-                    />
-                    {profileErrors.whatsappNumber && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.whatsappNumber.message}</p>
-                    )}
-                  </div>
+          {/* Professional Information */}
+          <SectionCard title="Professional Information" icon="heroicons:briefcase">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <InputField label="Years of Experience" name="yearsOfExperience" type="number" value={formData.yearsOfExperience} onChange={handleChange} required error={errors.yearsOfExperience} />
+            </div>
+            <TagInputField
+              label="Specializations"
+              name="specializations"
+              value={formData.specializations}
+              onChange={(tags) => setFormData({...formData, specializations: tags})}
+              suggestions={specializationOptions}
+              required
+              error={errors.specializations}
+            />
+          </SectionCard>
 
-                  {/* Email */}
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email Address <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="emailAddress"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="email"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="example@email.com"
-                        />
-                      )}
-                    />
-                    {profileErrors.emailAddress && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.emailAddress.message}</p>
-                    )}
+          {/* Education */}
+          <SectionCard title="Education" icon="heroicons:academic-cap">
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                  setEducationModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium"
+              >
+                <Icon icon="heroicons:plus" className="w-5 h-5" />
+                Add Education
+              </button>
+            </div>
+            
+            {formData.education.length > 0 ? (
+              <div className="space-y-4">
+                {formData.education.map((edu, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{edu.title || 'Untitled'}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{edu.institution}</p>
+                        <p className="text-xs text-gray-500 mt-1">{edu.startYear} - {edu.endYear}</p>
+                        {edu.description && <p className="text-sm text-gray-600 mt-2">{edu.description}</p>}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedEntry(edu);
+                            setSelectedEntryIndex(index);
+                            setEducationModal(true);
+                          }}
+                          className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleEducationDelete(index)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:trash" className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No education added yet</p>
+            )}
+            
+            {educationModal && (
+              <EntryModal
+                type="education"
+                entry={selectedEntry}
+                isOpen={educationModal}
+                onClose={() => {
+                  setEducationModal(false);
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                }}
+                onSave={handleEducationSave}
+              />
+            )}
+          </SectionCard>
 
-              {/* Emergency Contact */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-4 text-gray-900">Emergency Contact</h2>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Emergency Contact Person <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="emergencyContactPerson"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="Contact person name"
-                        />
-                      )}
-                    />
-                    {profileErrors.emergencyContactPerson && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.emergencyContactPerson.message}</p>
-                    )}
+          {/* Experience */}
+          <SectionCard title="Experience" icon="heroicons:briefcase">
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                  setExperienceModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium"
+              >
+                <Icon icon="heroicons:plus" className="w-5 h-5" />
+                Add Experience
+              </button>
+            </div>
+            
+            {formData.experience.length > 0 ? (
+              <div className="space-y-4">
+                {formData.experience.map((exp, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{exp.title || 'Untitled'}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{exp.companyName}</p>
+                        <p className="text-xs text-gray-500 mt-1">{exp.startYear} - {exp.endYear}</p>
+                        {exp.description && <p className="text-sm text-gray-600 mt-2">{exp.description}</p>}
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedEntry(exp);
+                            setSelectedEntryIndex(index);
+                            setExperienceModal(true);
+                          }}
+                          className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleExperienceDelete(index)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:trash" className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Emergency Contact Number <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="emergencyContactNumber"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="text"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="03001234567"
-                        />
-                      )}
-                    />
-                    {profileErrors.emergencyContactNumber && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.emergencyContactNumber.message}</p>
-                    )}
-                  </div>
-                </div>
+                ))}
               </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No experience added yet</p>
+            )}
+            
+            {experienceModal && (
+              <EntryModal
+                type="experience"
+                entry={selectedEntry}
+                isOpen={experienceModal}
+                onClose={() => {
+                  setExperienceModal(false);
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                }}
+                onSave={handleExperienceSave}
+              />
+            )}
+          </SectionCard>
 
-              {/* Address Location Component - Reused from multi-step form */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <AddressLocation
-                  control={profileControl}
-                  errors={profileErrors}
-                  setValue={setProfileValue}
-                  watch={watch}
-                />
-              </div>
-
-              {/* Professional Information */}
-              <div className="bg-white shadow rounded-lg p-6">
-
-<ExperienceAvailability
-  control={profileControl}
-  errors={profileErrors}
-  setValue={setProfileValue}
-  watch={watch}/>
-                {/* <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Years of Experience <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="yearsOfExperience"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <input
-                          {...field}
-                          type="number"
-                          min="0"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="0"
-                        />
-                      )}
-                    />
-                    {profileErrors.yearsOfExperience && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.yearsOfExperience.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Specializations <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="specializations"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <div className="space-y-2">
-                          {specializationOptions.map((spec) => (
-                            <label key={spec} className="flex items-center p-2 hover:bg-gray-50 rounded transition-colors">
-                              <input
-                                type="checkbox"
-                                value={spec}
-                                checked={field.value.includes(spec)}
-                                onChange={(e) => {
-                                  const newValue = e.target.checked
-                                    ? [...field.value, spec]
-                                    : field.value.filter((s) => s !== spec)
-                                  field.onChange(newValue)
-                                }}
-                                className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                              />
-                              <span className="ml-3 text-sm text-gray-700">{spec}</span>
-                            </label>
-                          ))}
-                        </div>
-                      )}
-                    />
-                    {profileErrors.specializations && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.specializations.message}</p>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Description <span className="text-red-500">*</span>
-                    </label>
-                    <Controller
-                      name="description"
-                      control={profileControl}
-                      render={({ field }) => (
-                        <textarea
-                          {...field}
-                          rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                          placeholder="Describe your services and expertise (50-500 characters)"
-                        />
-                      )}
-                    />
-                    {profileErrors.description && (
-                      <p className="text-red-500 text-sm mt-1">{profileErrors.description.message}</p>
-                    )}
-                    <p className="text-sm text-gray-500 mt-1">
-                      {watch('description')?.length || 0}/500 characters
-                    </p>
-                  </div>
-                </div> */}
-              </div>
-
-
-              {/* Profile Submit Button */}
-              <div className="flex justify-end space-x-4 bg-white p-6 rounded-lg shadow">
-                <button
-                  type="button"
-                  onClick={() => fetchData()}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-colors"
-                >
-                  Reset Changes
-                </button>
-                <button
-                  type="submit"
-                  disabled={isProfileSubmitting}
-                  className="px-6 py-2 bg-primary-600 text-white rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:bg-primary-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  {isProfileSubmitting ? 'Saving...' : 'Save Profile Changes'}
-                </button>
-              </div>
-            </form>
-          )}
-
-          {activeTab === 'bank' && (
-            <div className="space-y-6">
-              {/* Bank Details Warning */}
-              {!isBankDetailsComplete && (
-                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-yellow-800">Bank details incomplete</h3>
-                      <p className="text-sm text-yellow-700 mt-1">
-                        Please complete your bank information to receive payments for your services.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* BANK DETAILS FORM */}
-              <div className="bg-white shadow rounded-lg p-6">
-                <h2 className="text-xl font-semibold mb-6 text-gray-900">Bank Account Information</h2>
-
-                <form onSubmit={handleBankSubmit(onBankSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* Account Title */}
-                    <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Account Title <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        name="accountTitle"
-                        control={bankControl}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="Enter account holder name"
-                          />
-                        )}
+          {/* Certifications */}
+          <SectionCard title="Certifications" icon="heroicons:document-check">
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-3">
+                Upload Certifications
+              </label>
+              <input
+                type="file"
+                multiple
+                accept="image/*"
+                onChange={handleCertificationUpload}
+                className="block w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm"
+              />
+            </div>
+            
+            {formData.certifications && formData.certifications.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {formData.certifications.map((cert, index) => (
+                  <div key={index} className="relative group">
+                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                      <img
+                        src={cert}
+                        alt={`Certification ${index + 1}`}
+                        className="w-full h-full object-cover"
                       />
-                      {bankErrors.accountTitle && (
-                        <p className="text-red-500 text-sm mt-1">{bankErrors.accountTitle.message}</p>
-                      )}
                     </div>
-
-                    {/* Bank Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Bank Name <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        name="bankName"
-                        control={bankControl}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="e.g., Ziraat Bankası"
-                          />
-                        )}
-                      />
-                      {bankErrors.bankName && (
-                        <p className="text-red-500 text-sm mt-1">{bankErrors.bankName.message}</p>
-                      )}
-                    </div>
-
-                    {/* Branch Name */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Branch Name <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        name="branchName"
-                        control={bankControl}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="e.g., Kızılay Branch"
-                          />
-                        )}
-                      />
-                      {bankErrors.branchName && (
-                        <p className="text-red-500 text-sm mt-1">{bankErrors.branchName.message}</p>
-                      )}
-                    </div>
-
-                    {/* Account Number */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Account Number <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        name="accountNumber"
-                        control={bankControl}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="1234567890123456"
-                          />
-                        )}
-                      />
-                      {bankErrors.accountNumber && (
-                        <p className="text-red-500 text-sm mt-1">{bankErrors.accountNumber.message}</p>
-                      )}
-                    </div>
-
-                    {/* IBAN */}
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        IBAN <span className="text-red-500">*</span>
-                      </label>
-                      <Controller
-                        name="iban"
-                        control={bankControl}
-                        render={({ field }) => (
-                          <input
-                            {...field}
-                            type="text"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                            placeholder="TR330006100000000012345678"
-                            maxLength={26}
-                          />
-                        )}
-                      />
-                      {bankErrors.iban && (
-                        <p className="text-red-500 text-sm mt-1">{bankErrors.iban.message}</p>
-                      )}
-                      <p className="text-xs text-gray-500 mt-1">
-                        Format: TR followed by 24 digits
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Bank Details Submit Button */}
-                  <div className="flex justify-end pt-4 border-t">
                     <button
-                      type="submit"
-                      disabled={isBankSubmitting}
-                      className="px-6 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-green-300 disabled:cursor-not-allowed transition-colors"
+                      type="button"
+                      onClick={() => {
+                        const updated = formData.certifications.filter((_, i) => i !== index);
+                        setFormData({...formData, certifications: updated});
+                      }}
+                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition"
                     >
-                      {isBankSubmitting ? 'Updating...' : 'Update Bank Details'}
+                      <Icon icon="heroicons:trash" className="w-4 h-4" />
                     </button>
                   </div>
-                </form>
+                ))}
               </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No certifications uploaded yet</p>
+            )}
+          </SectionCard>
+
+          {/* Certifications & License */}
+          <SectionCard title="Certifications & License" icon="heroicons:document-text">
+            <div className="mb-6">
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                  setCertLicenseImages([]);
+                  setCertificationsLicenseModal(true);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium"
+              >
+                <Icon icon="heroicons:plus" className="w-5 h-5" />
+                Add Certification/License
+              </button>
             </div>
-          )}
-        </div>
+
+            {formData.certificationsLicense && formData.certificationsLicense.length > 0 ? (
+              <div className="space-y-4">
+                {formData.certificationsLicense.map((item, index) => (
+                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
+                        <p className="text-sm text-gray-600 mt-1">{item.images?.length || 0} image(s)</p>
+                      </div>
+                      <div className="flex gap-2 ml-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedEntry(item);
+                            setSelectedEntryIndex(index);
+                            // Convert image URLs to modal format
+                            const imagesForModal = (item.images || []).map(img => ({
+                              preview: typeof img === 'string' ? img : img.preview || img
+                            }));
+                            setCertLicenseImages(imagesForModal);
+                            setCertificationsLicenseModal(true);
+                          }}
+                          className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleCertLicenseDelete(index)}
+                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
+                        >
+                          <Icon icon="heroicons:trash" className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {item.images && item.images.length > 0 && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {item.images.map((img, imgIdx) => (
+                          <div key={imgIdx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                            <img
+                              src={img}
+                              alt={`${item.title} ${imgIdx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-500 text-sm">No certifications/licenses added yet</p>
+            )}
+
+            {certificationsLicenseModal && (
+              <CertificationsLicenseModal
+                isOpen={certificationsLicenseModal}
+                onClose={() => {
+                  setCertificationsLicenseModal(false);
+                  setSelectedEntry(null);
+                  setSelectedEntryIndex(null);
+                  setCertLicenseImages([]);
+                }}
+                onSave={handleCertLicenseSave}
+                entry={selectedEntry}
+                images={certLicenseImages}
+                onImageAdd={(imgData) => setCertLicenseImages([...certLicenseImages, imgData])}
+                onImageDelete={handleCertLicenseImageDelete}
+              />
+            )}
+          </SectionCard>
+
+          {/* Working Schedule */}
+          <SectionCard title="Working Schedule" icon="heroicons:calendar-days">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              <InputField label="Start Time" name="workingHours.start" type="time" value={formData.workingHours.start} onChange={handleChange} required />
+              <InputField label="End Time" name="workingHours.end" type="time" value={formData.workingHours.end} onChange={handleChange} required />
+            </div>
+            <MultiSelectField
+              label="Working Days"
+              name="workingDays"
+              value={formData.workingDays}
+              onChange={handleChange}
+              options={workingDaysOptions}
+              required
+              error={errors.workingDays}
+            />
+          </SectionCard>
+
+          {/* Banking Details */}
+          <SectionCard title="Banking Information" icon="heroicons:banknotes">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <InputField label="Account Title" name="bankDetails.accountTitle" value={formData.bankDetails.accountTitle} onChange={handleChange} />
+              <InputField label="Account Number" name="bankDetails.accountNumber" value={formData.bankDetails.accountNumber} onChange={handleChange} />
+              <InputField label="Bank Name" name="bankDetails.bankName" value={formData.bankDetails.bankName} onChange={handleChange} />
+              <InputField label="Branch Name" name="bankDetails.branchName" value={formData.bankDetails.branchName} onChange={handleChange} />
+              <InputField label="IBAN" name="bankDetails.iban" value={formData.bankDetails.iban} onChange={handleChange} />
+            </div>
+          </SectionCard>
+
+      
+          {/* Submit Buttons */}
+          <div className="flex gap-4">
+            <button
+              type="button"
+              onClick={() => router.back()}
+              className="flex-1 px-6 py-3 border border-gray-200 rounded-xl text-gray-600 font-medium hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-xl font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSaving && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+              {isSaving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-  )
+  );
 }
 
-export default EditRepairmanProfile
+export default EditProfilePage;

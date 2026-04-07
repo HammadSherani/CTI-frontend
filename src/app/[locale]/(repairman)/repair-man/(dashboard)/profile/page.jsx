@@ -403,6 +403,129 @@ const ExperienceModal = ({ isOpen, onClose, onSave, initialData, isSaving }) => 
   );
 };
 
+const CertificationsLicenseModal = ({ isOpen, onClose, onSave, initialData, isSaving }) => {
+  const [form, setForm] = useState({ title: '' });
+  const [imageFiles, setImageFiles] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setForm({ title: initialData?.title || '' });
+      setImagePreviews(initialData?.images || []);
+      setImageFiles([]);
+    }
+  }, [initialData, isOpen]);
+
+  if (!isOpen) return null;
+  
+  const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    const newFiles = files.filter(file => !imageFiles.some(f => f.name === file.name));
+    setImageFiles(prev => [...prev, ...newFiles]);
+    
+    newFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        setImagePreviews(prev => [...prev, event.target.result]);
+      };
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const removeImage = (index) => {
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
+    if (index < imageFiles.length) {
+      setImageFiles(prev => prev.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleSaveClick = () => {
+    if (form.title.trim()) {
+      onSave(form, imageFiles, imagePreviews);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <Icon icon="heroicons:academic-cap" className="w-5 h-5 text-primary-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Certificate/License' : 'Add Certificate/License'}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
+        
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Certificate/License Title *</label>
+            <input 
+              type="text" 
+              value={form.title} 
+              onChange={(e) => setField('title', e.target.value)} 
+              placeholder="e.g. CompTIA A+ Certified" 
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+            />
+          </div>
+          
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Certificate Images</label>
+            <div className="space-y-3">
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {imagePreviews.map((preview, i) => (
+                    <div key={i} className="relative group">
+                      <img src={preview} alt="Preview" className="w-full h-20 object-cover rounded-lg border border-gray-200" />
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(i)} 
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <label className="flex items-center gap-4 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all">
+                <div className="flex items-center justify-center gap-2">
+                  <Icon icon="heroicons:cloud-arrow-up" className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Upload Images</span>
+                </div>
+                <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+              </label>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, max 5MB each (multiple allowed)</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button 
+            onClick={onClose} 
+            className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSaveClick} 
+            disabled={isSaving || !form.title.trim() || imagePreviews.length === 0} 
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+            {initialData ? 'Save Changes' : 'Add Certificate'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Delete Confirm Modal ─────────────────────────────────────────────────────
 
 const DeleteModal = ({ isOpen, onClose, onConfirm, itemName, isDeleting }) => {
@@ -753,6 +876,203 @@ const ExperienceSection = ({ experience = [], onUpdate, token, onImageClick }) =
   );
 };
 
+
+
+const CertificationsLicenseSection = ({ certificationsLicense = [], onUpdate, token, onImageClick }) => {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editItem, setEditItem] = useState(null);
+  const [editIndex, setEditIndex] = useState(null);
+  const [deleteModal, setDeleteModal] = useState({ open: false, index: null, name: '' });
+  const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const openAdd = () => { setEditItem(null); setEditIndex(null); setModalOpen(true); };
+  const openEdit = (item, index) => { setEditItem(item); setEditIndex(index); setModalOpen(true); };
+  const closeModal = () => { setModalOpen(false); setEditItem(null); setEditIndex(null); };
+
+const handleSave = async (form, imageFiles, imagePreviews) => {
+  setIsSaving(true);
+  try {
+    const formData = new FormData();
+
+    const newItem = {
+      title: form.title,
+      images: imagePreviews.filter(img => !img.startsWith('blob:')),
+    };
+
+    let updatedList;
+    let targetIndex;
+
+    if (editIndex !== null) {
+      updatedList = certificationsLicense.map((item, i) => {
+        if (i === editIndex) {
+          return { ...item, ...newItem, images: imagePreviews };
+        }
+        return item;
+      });
+      targetIndex = editIndex;
+    } else {
+      updatedList = [...certificationsLicense, { title: form.title, images: imagePreviews }];
+      targetIndex = updatedList.length - 1;
+    }
+
+    //  JSON mein sirf DB URLs bhejo (blob nahi)
+    formData.append('certificationsLicense', JSON.stringify(
+      updatedList.map(item => ({
+        title: item.title,
+        images: (item.images || []).filter(img => img && !img.startsWith('blob:'))
+      }))
+    ));
+
+    //  Har image ke saath correct index bhejo
+    if (imageFiles.length > 0) {
+      imageFiles.forEach((file) => {
+        formData.append('certificationsLicense', file);  // same field name
+      });
+      
+      //  YEH FIX HAI — sahi field name aur sahi index
+      const indexes = imageFiles.map(() => targetIndex);
+      formData.append('certificationsLicenseIndexes', JSON.stringify(indexes));
+    }
+
+    const response = await axiosInstance.put('/repairman/profile', formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.status === 200) {
+      onUpdate(updatedList);
+      closeModal();
+    }
+  } catch (err) {
+    handleError(err);
+  } finally {
+    setIsSaving(false);
+  }
+};
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      const updatedList = certificationsLicense.filter((_, i) => i !== deleteModal.index);
+      await axiosInstance.put(
+        '/repairman/profile',
+        { certificationsLicense: JSON.stringify(updatedList) },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data'
+          } 
+        }
+      );
+      onUpdate(updatedList);
+      setDeleteModal({ open: false, index: null, name: '' });
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  return (
+    <>
+      <SectionCard
+        title="Certifications & Licenses"
+        icon="heroicons:academic-cap"
+        action={
+          <button onClick={openAdd} className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 text-white rounded-lg text-xs font-medium hover:bg-primary-700 transition-colors">
+            <Icon icon="heroicons:plus" className="w-3.5 h-3.5" /> Add Certificate
+          </button>
+        }
+      >
+        {certificationsLicense.length === 0 ? (
+          <div className="text-center py-8">
+            <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+            <p className="text-sm text-gray-400">No certificates or licenses added yet</p>
+            <button onClick={openAdd} className="mt-3 text-primary-600 text-sm font-medium hover:underline">+ Add your first certificate</button>
+          </div>
+        ) : (
+          <div className={certificationsLicense.length === 1 ? 'flex justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'}>
+            {certificationsLicense.map((item, index) => (
+              <div key={item._id || index} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all">
+                {/* Image Container */}
+                {item.images && item.images.length > 0 && (
+                  <div className={`relative bg-gray-100 overflow-hidden ${
+                    item.images.length === 1 
+                      ? 'w-full h-64' 
+                      : 'w-full h-48'
+                  }`}>
+                    <img 
+                      src={item.images[0]} 
+                      alt={item.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      onClick={() => onImageClick(item.images[0])}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                      <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
+                    </div>
+                    {item.images.length > 1 && (
+                      <div className="absolute top-2 right-2 bg-primary-600 text-white px-2.5 py-1 rounded-full text-xs font-medium">
+                        +{item.images.length - 1}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {/* Content Container */}
+                <div className="p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-3">{item.title}</h4>
+                  
+                  {/* Additional Images (if multiple) */}
+                  {item.images && item.images.length > 1 && (
+                    <div className="mb-3 grid grid-cols-4 gap-1">
+                      {item.images.slice(1, 5).map((img, imgIdx) => (
+                        <div 
+                          key={imgIdx} 
+                          className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => onImageClick(img)}
+                        >
+                          <img src={img} alt={`${item.title} ${imgIdx + 2}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {/* Action Buttons */}
+                  <div className="flex gap-2">
+                    <button 
+                      onClick={() => openEdit(item, index)} 
+                      className="flex-1 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
+                      title="Edit"
+                    >
+                      <Icon icon="heroicons:pencil-square" className="w-3.5 h-3.5" /> Edit
+                    </button>
+                    <button 
+                      onClick={() => setDeleteModal({ open: true, index, name: item.title })} 
+                      className="flex-1 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                      title="Delete"
+                    >
+                      <Icon icon="heroicons:trash" className="w-3.5 h-3.5" /> Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </SectionCard>
+
+      <CertificationsLicenseModal isOpen={modalOpen} onClose={closeModal} onSave={handleSave} initialData={editItem} isSaving={isSaving} />
+      <DeleteModal isOpen={deleteModal.open} onClose={() => setDeleteModal({ open: false, index: null, name: '' })} onConfirm={handleDelete} itemName={deleteModal.name} isDeleting={isDeleting} />
+    </>
+  );
+};
+
+
+
+
 // ─── Service Catalog Section ──────────────────────────────────────────────────
 
 const statusVariant = { pending: 'warning', approved: 'success', rejected: 'danger' };
@@ -895,6 +1215,7 @@ function ProfilePage() {
   const [data, setData] = useState(null);
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
+  const [certificationsLicense, setCertificationsLicense] = useState([]);
   const [imagePreview, setImagePreview] = useState({ isOpen: false, src: '' });
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
@@ -908,6 +1229,7 @@ function ProfilePage() {
       setData(data.data);
       setEducation(data.data.user.repairmanProfile?.education || []);
       setExperience(data.data.user.repairmanProfile?.experience || []);
+      setCertificationsLicense(data.data.user.repairmanProfile?.certificationsLicense || []);
     } catch (error) {
       handleError(error);
     } finally {
@@ -1127,35 +1449,8 @@ function ProfilePage() {
             {/*  Experience — no refetch, updates in place */}
             <ExperienceSection experience={experience} onUpdate={setExperience} token={token} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
 
-            {/*  Service Catalog */}
-
-           {console.log(profile,"profile")}
-            {user?.certifcationsAndLiense?.certifications?.filter(Boolean).length > 0 && (
-              <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {profile.certifications.filter(Boolean).map((cert, i) => (
-                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all cursor-pointer" onClick={() => setImagePreview({ isOpen: true, src: cert })}>
-                      <img src={cert} alt={`Certificate ${i + 1}`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Icon icon="heroicons:arrows-pointing-out" className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                  ))}
-                    <div className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all cursor-pointer" onClick={() => setImagePreview({ isOpen: true, src: user.certifcationsAndLiense?.nationalIdOrPassport })}>
-                      <img src={user.certifcationsAndLiense?.nationalIdOrPassport} alt="National ID/Passport" className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Icon icon="heroicons:arrows-pointing-out" className="w-5 h-5 text-white" />
-                      </div>
-                    </div>
-                    <div  className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
-                      <img src={user.certifcationsAndLiense?.utilityBills} alt={`Certificate`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button className="p-2 bg-white rounded-lg"><Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                </div>
-              </SectionCard>
-            )}
+            {/*  Certifications & Licenses — no refetch, updates in place */}
+            <CertificationsLicenseSection certificationsLicense={certificationsLicense} onUpdate={setCertificationsLicense} token={token} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
           </div>
 
           {/* ── Right sidebar ── */}

@@ -227,6 +227,10 @@ const ImagePreviewModal = ({ isOpen, imageSrc, onClose }) => {
 
 
 
+    
+
+
+
     const ServiceCatalogSection = ({ serviceCatalog }) => {
       const [activeTab, setActiveTab] = useState('all');
       if (!serviceCatalog) return null;
@@ -470,7 +474,7 @@ function RepairmanDetail() {
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             {/* Enhanced Cover Image Section */}
-            <div className="relative h-[400px] group cursor-pointer" onClick={() => profile?.shopPhoto && setImagePreview({ isOpen: true, src: profile.shopPhoto })}>
+            <div className="relative h-[400px] group cursor-pointer" >
                 {/* Background with Parallax Effect */}
                 <div className="absolute inset-0 overflow-hidden">
                     {profile?.shopPhoto ? (
@@ -743,20 +747,7 @@ function RepairmanDetail() {
 <ExperienceSection experience={profile.experience} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
 
 
-            {/* {profile?.certifications?.filter(Boolean).length > 0 && (
-              <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {profile.certifications.filter(Boolean).map((cert, i) => (
-                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
-                      <img src={cert} alt={`Certificate ${i + 1}`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <button className="p-2 bg-white rounded-lg"><Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" /></button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SectionCard>
-            )} */}
+           
                     </div>
 
                     {/* Right Column - Sidebar */}
