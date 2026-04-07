@@ -11,11 +11,362 @@ import LoginModal from '../../../(website)/mobile-repair/[brandSlug]/[modelId]/[
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
 import Loader from '@/components/Loader';
+import Image from 'next/image';
+import SmallLoader from '@/components/SmallLoader';
+
+
+
+
+const StatCard = ({ icon, label, value, bgColor = "bg-primary-50", iconColor = "text-primary-600" }) => (
+  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
+    <div className="flex items-center gap-3">
+      <div className={`${bgColor} p-3 rounded-xl`}>
+        <Icon icon={icon} className={`w-5 h-5 ${iconColor}`} />
+      </div>
+      <div>
+        <p className="text-xs text-gray-500 font-medium">{label}</p>
+        <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
+      </div>
+    </div>
+  </div>
+);
+
+const SectionCard = ({ title, icon, children, action }) => (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
+    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
+      <div className="flex items-center gap-2">
+        {icon && <Icon icon={icon} className="w-5 h-5 text-primary-600" />}
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+      </div>
+      {action && action}
+    </div>
+    <div className="p-6">{children}</div>
+  </div>
+);
+
+const InfoRow = ({ icon, label, value, isVerified }) => (
+  <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
+    <div className={`p-2 rounded-lg ${value ? 'bg-primary-50' : 'bg-gray-100'}`}>
+      <Icon icon={icon} className={`w-4 h-4 ${value ? 'text-primary-600' : 'text-gray-400'}`} />
+    </div>
+    <div className="flex-1">
+      <p className="text-xs text-gray-500 font-medium">{label}</p>
+      <div className="flex items-center gap-2">
+        <p className="text-sm font-medium text-gray-900">{value || 'Not provided'}</p>
+        {isVerified && value && (
+          <Icon icon="heroicons:check-badge-20-solid" className="w-4 h-4 text-green-500" />
+        )}
+      </div>
+    </div>
+  </div>
+);
+
+const Badge = ({ children, variant = 'primary' }) => {
+  const variants = {
+    primary: 'bg-primary-50 text-primary-700 border-primary-200',
+    success: 'bg-primary-50 text-green-700 border-green-200',
+    warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
+    info: 'bg-primary-50 text-primary-700 border-primary-200',
+    danger: 'bg-red-50 text-red-700 border-red-200',
+    default: 'bg-gray-50 text-gray-700 border-gray-200',
+  };
+  return (
+    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant] || variants.default}`}>
+      {children}
+    </span>
+  );
+};
+
+
+const SafeImage = ({ src, alt, className, width = 80, height = 80, onImageClick }) => {
+  if (!src) return null;
+  return (
+    <div className="mt-3 cursor-pointer group relative" onClick={() => onImageClick?.(src)}>
+      <Image
+        src={src}
+        alt={alt || 'image'}
+        width={width}
+        height={height}
+        className={`${className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'} group-hover:opacity-80 transition-opacity`}
+        unoptimized
+      />
+      <div className="absolute inset-0 w-20 rounded-lg flex items-center justify-center bg-black/0 group-hover:bg-black/30 transition-all opacity-0 group-hover:opacity-100">
+        <Icon icon="heroicons:eye" className="w-5 h-5 text-white" />
+      </div>
+    </div>
+  );
+};
+
+// ─── Image Preview Modal ──────────────────────────────────────────────────────
+
+const ImagePreviewModal = ({ isOpen, imageSrc, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute -top-10 right-0 p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+        >
+          <Icon icon="heroicons:x-mark" className="w-6 h-6" />
+        </button>
+        <img
+          src={imageSrc}
+          alt="Preview"
+          className="w-full h-full object-contain rounded-lg"
+        />
+      </div>
+    </div>
+  );
+};
+
+  const EducationSection = ({ education = [], onImageClick }) => {
+      return (
+        <>
+          <SectionCard
+            title="Education"
+            icon="heroicons:academic-cap"
+           
+          >
+            {education.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">No education added yet</p>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
+                <div className="space-y-0">
+                  {education.map((item, index) => (
+                    <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
+                      <div className="relative z-10 flex-shrink-0 mt-1">
+                        <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
+                      </div>
+                      <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                              {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
+                            </span>
+                          
+                          </div>
+                        </div>
+                        <p className="text-xs text-primary-600 font-medium mb-2">{item.institution}</p>
+                        {item.description && <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>}
+                        <SafeImage src={item.educationImage} alt="Education certificate" onImageClick={onImageClick} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </SectionCard>
+    
+        </>
+      );
+    };
+
+
+    const ExperienceSection = ({ experience = [], onImageClick }) => {
+    
+      return (
+        <>
+          <SectionCard
+            title="Experience"
+            icon="heroicons:briefcase"
+           
+          >
+            {experience.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon icon="heroicons:briefcase" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">No experience added yet</p>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
+                <div className="space-y-0">
+                  {experience.map((item, index) => (
+                    <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
+                      <div className="relative z-10 flex-shrink-0 mt-1">
+                        <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
+                      </div>
+                      <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
+                        <div className="flex items-start justify-between gap-3 mb-1">
+                          <h4 className="text-md font-semibold text-gray-900">{item.title}</h4>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
+                              {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-primary-600 font-medium mb-2">{item.companyName}</p>
+                        {item.bullets?.length > 0 ? (
+                          <ul className="space-y-1 mb-2">
+                            {item.bullets.map((b, bi) => (
+                              <li key={bi} className="flex items-start gap-2 text-xs text-gray-500">
+                                <span className="w-1.5 h-1.5 rounded-full bg-primary-500 flex-shrink-0 mt-1.5" />{b}
+                              </li>
+                            ))}
+                          </ul>
+                        ) : item.description ? (
+                          <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>
+                        ) : null}
+                        <SafeImage src={item.experienceImage} alt="Experience certificate" onImageClick={onImageClick} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </SectionCard>
+    
+        </>
+      );
+    };
+
+
+
+    const ServiceCatalogSection = ({ serviceCatalog }) => {
+      const [activeTab, setActiveTab] = useState('all');
+      if (!serviceCatalog) return null;
+    
+      const tabs = [
+        { key: 'all', label: 'All', count: serviceCatalog.stats?.total || 0 },
+        { key: 'approved', label: 'Approved', count: serviceCatalog.stats?.approved || 0 },
+        { key: 'pending', label: 'Pending', count: serviceCatalog.stats?.pending || 0 },
+        { key: 'rejected', label: 'Rejected', count: serviceCatalog.stats?.rejected || 0 },
+      ];
+    
+      const services = serviceCatalog[activeTab] || [];
+    
+      const statusConfig = {
+        approved: { bg: 'bg-primary-100', text: 'text-green-700', dot: 'bg-primary-500' },
+        pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+        rejected: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' }
+      };
+    
+      return (
+        <SectionCard title="Service Catalog" icon="heroicons:wrench-screwdriver">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3 flex-wrap">
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === tab.key
+                    ? 'bg-primary-600 text-white shadow-sm'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {tab.label}
+                <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+    
+          {services.length === 0 ? (
+            <div className="text-center py-8">
+              <Icon icon="heroicons:wrench-screwdriver" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">No services in this category</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {services.map((service) => (
+                <div 
+                  key={service._id} 
+                  className="group flex gap-4 bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
+                >
+                  {/* Image Section - Left side */}
+                  <div className="relative w-32 md:w-40 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
+                    {service.images && service.images.length > 0 ? (
+                      <img 
+                        src={service.images[0]} 
+                        alt={service.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Icon icon="heroicons:device-phone-mobile" className="w-8 h-8 text-gray-300" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Content Section - Right side */}
+                  <div className="flex-1 p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex-1">
+                        <h4 className="text-base font-semibold text-gray-900 mb-1">
+                          {service.title}
+                        </h4>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-1.5">
+                            <Icon icon="heroicons:device-phone-mobile" className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-xs text-gray-600">
+                              {service.deviceInfo?.modelId?.brandId?.name} {service.deviceInfo?.modelId?.name}
+                            </span>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                          {service.description}
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-col items-end gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${statusConfig[service.status]?.bg} ${statusConfig[service.status]?.text}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[service.status]?.dot}`}></span>
+                          {service.status?.charAt(0).toUpperCase() + service.status?.slice(1)}
+                        </span>
+                        <span className="text-lg font-bold text-primary-600">
+                          {service.pricing?.currency} {service.pricing?.total?.toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                          <Icon icon="heroicons:banknotes" className="w-3.5 h-3.5 text-gray-400" />
+                          <span className="text-xs text-gray-500">
+                            Base: {service.pricing?.currency} {service.pricing?.basePrice?.toLocaleString()}
+                          </span>
+                        </div>
+                        {service.pricing?.partsPrice > 0 && (
+                          <div className="flex items-center gap-1.5">
+                            <Icon icon="heroicons:cog" className="w-3.5 h-3.5 text-gray-400" />
+                            <span className="text-xs text-gray-500">
+                              Parts: {service.pricing?.currency} {service.pricing?.partsPrice?.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Icon icon="heroicons:calendar" className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="text-xs text-gray-400">
+                          {new Date(service.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </SectionCard>
+      );
+    };
+
+
 
 function RepairmanDetail() {
     const [repairman, setRepairman] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
+    const [data, setData] = useState(null)
+    const [imagePreview, setImagePreview] = useState({ isOpen: false, src: '' });
     const params = useParams();
     const router = useRouter();
     const { id } = params;
@@ -29,6 +380,7 @@ function RepairmanDetail() {
             setLoading(true);
             const { data } = await axiosInstance.get(`/public/repairmans/${id}`);
             setRepairman(data.data.repairman);
+            setData(data.data);
         } catch (error) {
             handleError(error);
         } finally {
@@ -81,24 +433,13 @@ function RepairmanDetail() {
         }
     };
 
-    const formatDate = (dateString) => {
-        return new Date(dateString).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
+ 
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading repairman details...</p>
-                </div>
-            </div>
-        );
-    }
+        if (loading) {
+            return (
+            <SmallLoader loading={loading}  text='Loading profile...'/>
+            );
+        }
 
     if (!repairman) {
         return (
@@ -109,7 +450,7 @@ function RepairmanDetail() {
                     <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
                     <button
                         onClick={() => router.back()}
-                        className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                     >
                         Go Back
                     </button>
@@ -118,159 +459,18 @@ function RepairmanDetail() {
         );
     }
 
+    console.log(repairman, "repairman details")
     const profile = repairman.repairmanProfile;
     const reviewStats = repairman.reviewStats;
     const reviews = repairman.reviews;
+    const profileStatus = data?.profileStatus;
+    const completionPercentage = profileStatus?.completionPercentage || 0;
 
-    const calculateProfileCompletion = () => {
-        if (!profile) return 0;
-        const fields = [
-            profile.fullName, 
-            profile.mobileNumber, 
-            profile.description,
-            profile.specializations?.length, 
-            profile.workingHours,
-            profile.city, 
-            profile.district, 
-            profile.isKycCompleted
-        ];
-        const completed = fields.filter(Boolean).length;
-        return Math.round((completed / fields.length) * 100);
-    };
-
-    const completionPercentage = calculateProfileCompletion();
-
-    const StatCard = ({ icon, label, value, bgColor = "bg-primary-50", iconColor = "text-primary-600" }) => (
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-all">
-            <div className="flex items-center gap-3">
-                <div className={`${bgColor} p-3 rounded-xl`}>
-                    <Icon icon={icon} className={`w-5 h-5 ${iconColor}`} />
-                </div>
-                <div>
-                    <p className="text-xs text-gray-500 font-medium">{label}</p>
-                    <p className="text-lg font-bold text-gray-900">{value || 'N/A'}</p>
-                </div>
-            </div>
-        </div>
-    );
-
-const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
-  if (!src) return null;
-  return (
-    <div className="mt-3">
-      <Image
-        src={src}
-        alt={alt || 'image'}
-        width={width}
-        height={height}
-        className={className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'}
-        unoptimized
-      />
-    </div>
-  );
-};
-
-    // const EducationSection = ({ education = []}) => {
-    //   return (
-    //     <>
-    //       <SectionCard
-    //         title="Education"
-    //         icon="heroicons:academic-cap"
-           
-    //       >
-    //         {education.length === 0 ? (
-    //           <div className="text-center py-8">
-    //             <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-    //             <p className="text-sm text-gray-400">No education added yet</p>
-    //           </div>
-    //         ) : (
-    //           <div className="relative">
-    //             <div className="absolute left-2 top-4 bottom-4 w-0.5 bg-gray-100" />
-    //             <div className="space-y-0">
-    //               {education.map((item, index) => (
-    //                 <div key={item._id || index} className="relative flex gap-4 pb-5 last:pb-0 group">
-    //                   <div className="relative z-10 flex-shrink-0 mt-1">
-    //                     <div className="w-4 h-4 rounded-full border-2 border-primary-500 bg-white" />
-    //                   </div>
-    //                   <div className="flex-1 bg-gray-50/50 rounded-xl p-4 border border-gray-100 group-hover:border-gray-200 transition-all">
-    //                     <div className="flex items-start justify-between gap-3 mb-1">
-    //                       <h4 className="text-sm font-semibold text-gray-900">{item.title}</h4>
-    //                       <div className="flex items-center gap-1 flex-shrink-0">
-    //                         <span className="text-xs text-primary-600 border border-primary-200 bg-primary-50 px-2.5 py-0.5 rounded-full font-medium whitespace-nowrap">
-    //                           {item.startYear}{item.endYear ? ` – ${item.endYear}` : ' – Present'}
-    //                         </span>
-                          
-    //                       </div>
-    //                     </div>
-    //                     <p className="text-xs text-primary-600 font-medium mb-2">{item.institution}</p>
-    //                     {item.description && <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>}
-    //                     {/* ✅ Safe image — won't crash if null */}
-    //                     <SafeImage src={item.educationImage} alt="Education certificate" />
-    //                   </div>
-    //                 </div>
-    //               ))}
-    //             </div>
-    //           </div>
-    //         )}
-    //       </SectionCard>
-    
-    //     </>
-    //   );
-    // };
-
-
-    const SectionCard = ({ title, icon, children, action }) => (
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                    {icon && <Icon icon={icon} className="w-5 h-5 text-primary-600" />}
-                    <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-                </div>
-                {action && action}
-            </div>
-            <div className="p-6">
-                {children}
-            </div>
-        </div>
-    );
-
-    const InfoRow = ({ icon, label, value, isVerified }) => (
-        <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
-            <div className={`p-2 rounded-lg ${value ? 'bg-primary-50' : 'bg-gray-100'}`}>
-                <Icon icon={icon} className={`w-4 h-4 ${value ? 'text-primary-600' : 'text-gray-400'}`} />
-            </div>
-            <div className="flex-1">
-                <p className="text-xs text-gray-500 font-medium">{label}</p>
-                <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-900">{value || 'Not provided'}</p>
-                    {isVerified && value && (
-                        <Icon icon="heroicons:check-badge-20-solid" className="w-4 h-4 text-green-500" />
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-
-    const Badge = ({ children, variant = 'primary' }) => {
-        const variants = {
-            primary: 'bg-primary-50 text-primary-700 border-primary-200',
-            success: 'bg-green-50 text-green-700 border-green-200',
-            warning: 'bg-yellow-50 text-yellow-700 border-yellow-200',
-            info: 'bg-blue-50 text-blue-700 border-blue-200',
-            default: 'bg-gray-50 text-gray-700 border-gray-200'
-        };
-
-        return (
-            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border ${variants[variant]}`}>
-                {children}
-            </span>
-        );
-    };
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             {/* Enhanced Cover Image Section */}
-            <div className="relative h-[400px] group">
+            <div className="relative h-[400px] group cursor-pointer" onClick={() => profile?.shopPhoto && setImagePreview({ isOpen: true, src: profile.shopPhoto })}>
                 {/* Background with Parallax Effect */}
                 <div className="absolute inset-0 overflow-hidden">
                     {profile?.shopPhoto ? (
@@ -281,7 +481,7 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                                 className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700"
                             />
                             {/* Gradient Overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 group-hover:from-black/60 group-hover:via-black/30 group-hover:to-black/10 transition-all" />
                         </>
                     ) : (
                         <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900">
@@ -307,7 +507,7 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                         <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
                         <span className="text-sm font-medium">Go Back</span>
                     </button>
-
+{/* 
                     <div className="flex gap-2">
                         <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
                             <Icon icon="heroicons:bookmark" className="w-5 h-5" />
@@ -315,20 +515,20 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                         <button className="p-2 bg-white/10 backdrop-blur-md rounded-xl text-white hover:bg-white/20 transition-all border border-white/20">
                             <Icon icon="heroicons:share" className="w-5 h-5" />
                         </button>
-                    </div>
+                    </div> */}
                 </div>
 
                 {/* Profile Info Overlay - Bottom Left */}
                 <div className="absolute bottom-0 left-0 right-0 px-6 pb-24">
                     <div className="flex items-end gap-6">
                         {/* Profile Image with Border Animation */}
-                        <div className="relative">
-                            <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform hover:scale-105 transition-transform duration-300">
+                        <div className="relative cursor-pointer group" onClick={() => profile?.profilePhoto && setImagePreview({ isOpen: true, src: profile.profilePhoto })}>
+                            <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform group-hover:scale-105 transition-transform duration-300">
                                 {profile?.profilePhoto ? (
                                     <img
                                         src={profile.profilePhoto}
                                         alt={profile.fullName}
-                                        className="w-full h-full object-cover"
+                                        className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                                     />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center">
@@ -338,9 +538,14 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                                     </div>
                                 )}
                             </div>
+                            {profile?.profilePhoto && (
+                                <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                    <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
+                                </div>
+                            )}
                             <div className="absolute -top-2 -right-2">
                                 {repairman.isEmailVerified && (
-                                    <div className="bg-green-500 rounded-full p-1.5 border-2 border-white">
+                                    <div className="bg-primary-500 rounded-full p-1.5 border-2 border-white">
                                         <Icon icon="heroicons:check" className="w-3 h-3 text-white" />
                                     </div>
                                 )}
@@ -383,7 +588,7 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                                     <span className="text-xs text-white/70">({reviewStats?.totalReviews || 0} reviews)</span>
                                 </div>
                                 {profile?.isKycCompleted && (
-                                    <div className="flex items-center gap-1 bg-green-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-green-500/30">
+                                    <div className="flex items-center gap-1 bg-primary-500/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-green-500/30">
                                         <Icon icon="heroicons:check-badge" className="w-4 h-4 text-green-400" />
                                         <span className="text-xs text-white">Verified</span>
                                     </div>
@@ -485,7 +690,7 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                         icon="heroicons:users"
                         label="Total Reviews"
                         value={reviewStats?.totalReviews || 0}
-                        bgColor="bg-green-50"
+                        bgColor="bg-primary-50"
                         iconColor="text-green-600"
                     />
                 </div>
@@ -512,9 +717,46 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                             </SectionCard>
                         )}
 
+{profile?.workingHours && (
+              <SectionCard title="Working Hours" icon="heroicons:clock">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 p-4 rounded-xl">
+                    <p className="text-xs text-primary-600 font-medium mb-1">Business Hours</p>
+                    <p className="text-lg font-semibold text-gray-900">{profile.workingHours.start || '09:00'} - {profile.workingHours.end || '18:00'}</p>
+                  </div>
+                  {profile?.workingDays?.length > 0 && (
+                    <div className="bg-gray-50 p-4 rounded-xl">
+                      <p className="text-xs text-gray-500 font-medium mb-2">Working Days</p>
+                      <div className="flex flex-wrap gap-1">
+                        {profile.workingDays.map((day, i) => <span key={i} className="px-2 py-1 bg-white border border-gray-200 rounded-md text-xs">{day.slice(0, 3)}</span>)}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </SectionCard>
+            )}
 {console.log(profile, "education")}
-                                   {/* <EducationSection education={profile.education}  /> */}
+<ServiceCatalogSection serviceCatalog={data.serviceCatalog} />
 
+                                   <EducationSection education={profile.education} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
+
+<ExperienceSection experience={profile.experience} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
+
+
+            {/* {profile?.certifications?.filter(Boolean).length > 0 && (
+              <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {profile.certifications.filter(Boolean).map((cert, i) => (
+                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
+                      <img src={cert} alt={`Certificate ${i + 1}`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <button className="p-2 bg-white rounded-lg"><Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" /></button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            )} */}
                     </div>
 
                     {/* Right Column - Sidebar */}
@@ -595,23 +837,48 @@ const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
                             </div>
                         </SectionCard>
 
-                        {/* Bank Details */}
-                        {profile?.bankDetails && profile.isPaymentInformationCompleted && (
-                            <SectionCard title="Bank Information" icon="heroicons:banknotes">
-                                <div className="space-y-2">
-                                    <InfoRow icon="heroicons:user" label="Account Title" value={profile.bankDetails.accountTitle} />
-                                    <InfoRow icon="heroicons:credit-card" label="Account Number" value={profile.bankDetails.accountNumber} />
-                                    <InfoRow icon="heroicons:building-office" label="Bank Name" value={profile.bankDetails.bankName} />
-                                    {profile.bankDetails.iban && <InfoRow icon="heroicons:document-text" label="IBAN" value={profile.bankDetails.iban} />}
-                                </div>
-                            </SectionCard>
-                        )}
+        {profile?.brandsWorkedWith?.length > 0 && (
+              <SectionCard title="Brands Worked With" icon="heroicons:tag">
+                <div className="flex flex-wrap gap-2">
+                  {profile.brandsWorkedWith.map((brand) => <Badge key={brand._id} variant="info">{brand.name}</Badge>)}
+                </div>
+              </SectionCard>
+            )}
+            <SectionCard title="Account Information" icon="heroicons:user-circle">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-xs text-gray-500">Member Since</span>
+                  <span className="text-sm font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <span className="text-xs text-gray-500">Last Updated</span>
+                  <span className="text-sm font-medium">{user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}</span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <div className="text-center p-2 bg-green-50 rounded-lg">
+                    <div className={`text-xs font-medium ${user.isEmailVerified ? 'text-green-600' : 'text-gray-400'}`}>
+                      {user.isEmailVerified ? '✓ Email Verified' : '○ Email Unverified'}
                     </div>
+                  </div>
+                  <div className="text-center p-2 bg-primary-50 rounded-lg">
+                    <div className={`text-xs font-medium ${user.isProfileComplete ? 'text-primary-600' : 'text-gray-400'}`}>
+                      {user.isProfileComplete ? '✓ Profile Complete' : '○ Profile Incomplete'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </SectionCard>
+                    </div>
+
+
                 </div>
             </div>
 
             {/* Login Modal */}
             <LoginModal isOpen={isOpen} setIsOpen={setIsOpen} />
+            
+            {/* Image Preview Modal */}
+            <ImagePreviewModal isOpen={imagePreview.isOpen} imageSrc={imagePreview.src} onClose={() => setImagePreview({ isOpen: false, src: '' })} />
         </div>
     );
 }

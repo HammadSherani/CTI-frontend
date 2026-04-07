@@ -7,6 +7,7 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
+import SmallLoader from '@/components/SmallLoader';
 
 // ─── Small reusable components ───────────────────────────────────────────────
 
@@ -70,58 +71,45 @@ const Badge = ({ children, variant = 'primary' }) => {
   );
 };
 
-// ─── Tag Input ────────────────────────────────────────────────────────────────
 
-const TagInput = ({ tags, onChange }) => {
-  const [input, setInput] = useState('');
-  const addTag = (val) => {
-    const trimmed = val.trim().replace(/,$/, '');
-    if (trimmed && !tags.includes(trimmed)) onChange([...tags, trimmed]);
-    setInput('');
-  };
-  const removeTag = (i) => onChange(tags.filter((_, idx) => idx !== i));
-  const handleKey = (e) => {
-    if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); addTag(input); }
-    else if (e.key === 'Backspace' && !input && tags.length) removeTag(tags.length - 1);
-  };
-  return (
-    <div
-      className="flex flex-wrap gap-1.5 p-2 border border-gray-200 rounded-lg cursor-text min-h-[42px] items-center focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 transition-all"
-      onClick={() => document.getElementById('tag-bare-input')?.focus()}
-    >
-      {tags.map((t, i) => (
-        <span key={i} className="flex items-center gap-1 bg-primary-50 text-primary-700 border border-primary-200 rounded-full px-2.5 py-0.5 text-xs font-medium">
-          {t}
-          <button type="button" onClick={() => removeTag(i)} className="text-primary-400 hover:text-primary-700 leading-none text-sm ml-0.5">×</button>
-        </span>
-      ))}
-      <input
-        id="tag-bare-input"
-        className="border-none outline-none text-sm text-gray-800 bg-transparent min-w-[80px] flex-1"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKey}
-        onBlur={() => input && addTag(input)}
-        placeholder={tags.length === 0 ? 'Add skill and press Enter...' : ''}
-      />
-    </div>
-  );
-};
-
-// ─── Safe Image ───────────────────────────────────────────────────────────────
-// Prevents crash when src is null/undefined
-const SafeImage = ({ src, alt, className, width = 80, height = 80 }) => {
+const SafeImage = ({ src, alt, className, width = 80, height = 80, onImageClick }) => {
   if (!src) return null;
   return (
-    <div className="mt-3">
+    <div className="mt-3 cursor-pointer group relative" onClick={() => onImageClick?.(src)}>
       <Image
         src={src}
         alt={alt || 'image'}
         width={width}
         height={height}
-        className={className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'}
+        className={`${className || 'w-20 h-20 object-cover rounded-lg border border-gray-200'} group-hover:opacity-80 transition-opacity`}
         unoptimized
       />
+      <div className="absolute inset-0 rounded-lg flex items-center justify-center bg-black/0 group-hover:bg-black/30 w-20 transition-all opacity-0 group-hover:opacity-100">
+        <Icon icon="heroicons:eye" className="w-5 h-5 text-white" />
+      </div>
+    </div>
+  );
+};
+
+// ─── Image Preview Modal ──────────────────────────────────────────────────────
+
+const ImagePreviewModal = ({ isOpen, imageSrc, onClose }) => {
+  if (!isOpen) return null;
+  return (
+    <div className="fixed inset-0  bg-black/90 z-50 flex items-start justify-center p-4 " onClick={onClose}>
+      <div className="relative max-w-4xl max-h-[90vh] w-full" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-0 right-0 p-2 hover:bg-white/10 rounded-lg transition-colors text-white"
+        >
+          <Icon icon="heroicons:x-mark" className="w-6 h-6" />
+        </button>
+        <img
+          src={imageSrc}
+          alt="Preview"
+          className="w-full h-[550px] mt-4 object-contain rounded-lg"
+        />
+      </div>
     </div>
   );
 };
@@ -443,7 +431,7 @@ const DeleteModal = ({ isOpen, onClose, onConfirm, itemName, isDeleting }) => {
 
 // ─── Education Section ────────────────────────────────────────────────────────
 
-const EducationSection = ({ education = [], onUpdate, token }) => {
+const EducationSection = ({ education = [], onUpdate, token, onImageClick }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [editIndex, setEditIndex] = useState(null);
@@ -471,7 +459,7 @@ const EducationSection = ({ education = [], onUpdate, token }) => {
       let updatedList;
       let targetIndex;
 
-      // ✅ FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
+      //  FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
       if (editIndex !== null) {
         updatedList = education.map((item, i) => {
           if (i === editIndex) {
@@ -490,7 +478,7 @@ const EducationSection = ({ education = [], onUpdate, token }) => {
         targetIndex = updatedList.length - 1;
       }
 
-      // ✅ IMMEDIATE UPDATE: show in UI instantly with blob URL
+      //  IMMEDIATE UPDATE: show in UI instantly with blob URL
 
       // Send the full updated array as JSON string
       formData.append('education', JSON.stringify(updatedList.map(item => {
@@ -584,8 +572,8 @@ const EducationSection = ({ education = [], onUpdate, token }) => {
                     </div>
                     <p className="text-xs text-primary-600 font-medium mb-2">{item.institution}</p>
                     {item.description && <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>}
-                    {/* ✅ Safe image — won't crash if null */}
-                    <SafeImage src={item.educationImage} alt="Education certificate" />
+                    {/*  Safe image — won't crash if null */}
+                    <SafeImage src={item.educationImage} alt="Education certificate" onImageClick={onImageClick} />
                   </div>
                 </div>
               ))}
@@ -602,7 +590,7 @@ const EducationSection = ({ education = [], onUpdate, token }) => {
 
 // ─── Experience Section ───────────────────────────────────────────────────────
 
-const ExperienceSection = ({ experience = [], onUpdate, token }) => {
+const ExperienceSection = ({ experience = [], onUpdate, token, onImageClick }) => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editItem, setEditItem] = useState(null);
   const [editIndex, setEditIndex] = useState(null);
@@ -630,7 +618,7 @@ const ExperienceSection = ({ experience = [], onUpdate, token }) => {
       let updatedList;
       let targetIndex;
 
-      // ✅ FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
+      //  FOR IMMEDIATE DISPLAY: include image blob URL in optimistic update
       if (editIndex !== null) {
         updatedList = experience.map((item, i) => {
           if (i === editIndex) {
@@ -750,7 +738,7 @@ const ExperienceSection = ({ experience = [], onUpdate, token }) => {
                     ) : item.description ? (
                       <p className="text-xs text-gray-500 leading-relaxed">{item.description}</p>
                     ) : null}
-                    <SafeImage src={item.experienceImage} alt="Experience certificate" />
+                    <SafeImage src={item.experienceImage} alt="Experience certificate" onImageClick={onImageClick} />
                   </div>
                 </div>
               ))}
@@ -907,6 +895,7 @@ function ProfilePage() {
   const [data, setData] = useState(null);
   const [education, setEducation] = useState([]);
   const [experience, setExperience] = useState([]);
+  const [imagePreview, setImagePreview] = useState({ isOpen: false, src: '' });
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
 
@@ -930,12 +919,7 @@ function ProfilePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-        <div className="text-center">
-          <Icon icon="eos-icons:loading" className="text-5xl text-primary-600 mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Loading profile...</p>
-        </div>
-      </div>
+     <SmallLoader loading={isLoading} text="Loading profile..." />
     );
   }
 
@@ -962,12 +946,12 @@ function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
 
       {/* ── Cover / Hero ── */}
-      <div className="relative h-[400px] group">
+      <div className="relative h-[400px] group cursor-pointer">
         <div className="absolute inset-0 overflow-hidden">
           {profile?.shopPhoto ? (
             <>
               <img src={profile.shopPhoto} alt="Cover" className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/20 group-hover:from-black/60 group-hover:via-black/30 group-hover:to-black/10 transition-all" />
             </>
           ) : (
             <div className="absolute inset-0 bg-gradient-to-r from-primary-900 via-primary-800 to-primary-900">
@@ -995,12 +979,17 @@ function ProfilePage() {
         </div>
         <div className="absolute bottom-0 left-0 right-0 px-6 pb-24">
           <div className="flex items-end gap-6">
-            <div className="relative">
-              <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform hover:scale-105 transition-transform duration-300">
+            <div className="relative cursor-pointer group" onClick={() => profile?.profilePhoto && setImagePreview({ isOpen: true, src: profile.profilePhoto })}>
+              <div className="w-36 h-36 rounded-2xl border-4 border-white shadow-2xl overflow-hidden bg-gradient-to-br from-primary-500 to-primary-600 transform group-hover:scale-105 transition-transform duration-300">
                 {profile?.profilePhoto
-                  ? <img src={profile.profilePhoto} alt={profile.fullName} className="w-full h-full object-cover" />
+                  ? <img src={profile.profilePhoto} alt={profile.fullName} className="w-full h-full object-cover group-hover:opacity-80 transition-opacity" />
                   : <div className="w-full h-full flex items-center justify-center"><span className="text-5xl font-bold text-white">{user.name?.split(' ').map((n) => n[0]).join('').toUpperCase()}</span></div>}
               </div>
+              {profile?.profilePhoto && (
+                <div className="absolute inset-0 rounded-2xl bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                  <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
+                </div>
+              )}
            
               {user.isEmailVerified && (
                 <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1.5 border-2 border-white">
@@ -1112,17 +1101,7 @@ function ProfilePage() {
                 </div>
               </SectionCard>
             )}
-
-            {/* ✅ Education — no refetch, updates in place */}
-            <EducationSection education={education} onUpdate={setEducation} token={token} />
-
-            {/* ✅ Experience — no refetch, updates in place */}
-            <ExperienceSection experience={experience} onUpdate={setExperience} token={token} />
-
-            {/* ✅ Service Catalog */}
-            <ServiceCatalogSection serviceCatalog={serviceCatalog} />
-
-            {profile?.workingHours && (
+ {profile?.workingHours && (
               <SectionCard title="Working Hours" icon="heroicons:clock">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 p-4 rounded-xl">
@@ -1140,17 +1119,40 @@ function ProfilePage() {
                 </div>
               </SectionCard>
             )}
-            {profile?.certifications?.filter(Boolean).length > 0 && (
+                        <ServiceCatalogSection serviceCatalog={serviceCatalog} />
+
+            {/*  Education — no refetch, updates in place */}
+            <EducationSection education={education} onUpdate={setEducation} token={token} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
+
+            {/*  Experience — no refetch, updates in place */}
+            <ExperienceSection experience={experience} onUpdate={setExperience} token={token} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
+
+            {/*  Service Catalog */}
+
+           {console.log(profile,"profile")}
+            {user?.certifcationsAndLiense?.certifications?.filter(Boolean).length > 0 && (
               <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {profile.certifications.filter(Boolean).map((cert, i) => (
-                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
+                    <div key={i} className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all cursor-pointer" onClick={() => setImagePreview({ isOpen: true, src: cert })}>
                       <img src={cert} alt={`Certificate ${i + 1}`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Icon icon="heroicons:arrows-pointing-out" className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                  ))}
+                    <div className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all cursor-pointer" onClick={() => setImagePreview({ isOpen: true, src: user.certifcationsAndLiense?.nationalIdOrPassport })}>
+                      <img src={user.certifcationsAndLiense?.nationalIdOrPassport} alt="National ID/Passport" className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Icon icon="heroicons:arrows-pointing-out" className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                    <div  className="group relative rounded-xl overflow-hidden border border-gray-200 hover:shadow-lg transition-all">
+                      <img src={user.certifcationsAndLiense?.utilityBills} alt={`Certificate`} className="w-full h-32 object-cover group-hover:scale-105 transition-transform duration-300" />
                       <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                         <button className="p-2 bg-white rounded-lg"><Icon icon="heroicons:arrows-pointing-out" className="w-4 h-4" /></button>
                       </div>
                     </div>
-                  ))}
                 </div>
               </SectionCard>
             )}
@@ -1242,6 +1244,9 @@ function ProfilePage() {
           </div>
         </div>
       </div>
+      
+      {/* Image Preview Modal */}
+      <ImagePreviewModal isOpen={imagePreview.isOpen} imageSrc={imagePreview.src} onClose={() => setImagePreview({ isOpen: false, src: '' })} />
     </div>
   );
 }

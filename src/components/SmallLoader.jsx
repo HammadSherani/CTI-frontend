@@ -1,3 +1,4 @@
+"use client"
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 function SmallLoader({ loading, text = "Loading..." }) {
