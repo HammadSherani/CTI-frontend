@@ -149,16 +149,18 @@ const TextAreaField = ({ label, name, value, onChange, placeholder, rows = 4, er
 const TagInputField = ({ label, name, value = [], onChange, options, error, required }) => {
   const [inputValue, setInputValue] = useState('');
 
-  const handleAddTag = () => {
-    if (inputValue.trim() && !value.includes(inputValue.trim())) {
-      onChange({ target: { name, value: [...value, inputValue.trim()] } });
-      setInputValue('');
-    }
-  };
+ // TagInputField component mein — event format hatao, seedha array bhejo
+const handleAddTag = () => {
+  if (inputValue.trim() && !value.includes(inputValue.trim())) {
+    onChange([...value, inputValue.trim()]); // ✅ seedha array
+    setInputValue('');
+  }
+};
 
-  const handleRemoveTag = (tag) => {
-    onChange({ target: { name, value: value.filter((v) => v !== tag) } });
-  };
+const handleRemoveTag = (tag) => {
+  onChange(value.filter((v) => v !== tag)); // ✅ seedha array
+};
+
 
   const handleKeyPress = (e) => {
     if (e.key === 'Enter') {
@@ -368,132 +370,147 @@ const MultiSelectField = ({ label, name, value = [], onChange, options, error, r
   );
 };
 
-// ─── Certifications & License Modal ────────────────────────────────────────
+// ─── Certificate/License Modal ────────────────────────────────────────────
 
-const CertificationsLicenseModal = ({ isOpen, onClose, onSave, entry, onImageAdd, onImageDelete, images }) => {
-  const [formState, setFormState] = useState(entry?.title || '');
-  const [localImages, setLocalImages] = useState([]);
+const CertificationsLicenseModal = ({ isOpen, onClose, onSave, initialData, isSaving, pendingUploads = [] }) => {
+  const [form, setForm] = useState({ title: '' });
+  const [images, setImages] = useState([]);
 
   useEffect(() => {
     if (isOpen) {
-      if (entry?.title) {
-        setFormState(entry.title);
-        setLocalImages(entry.images || []);
-      } else {
-        setFormState('');
-        setLocalImages([]);
-      }
-    }
-  }, [entry, isOpen]);
+      setForm({ title: initialData?.title || '' });
+      const existing = Array.isArray(initialData?.images)
+        ? initialData.images
+            .filter((src) => typeof src === 'string' && src && /^https?:\/\//i.test(src))
+            .map((src) => ({ preview: src, file: null, isExisting: true }))
+        : [];
+      const pending = Array.isArray(pendingUploads)
+        ? pendingUploads
+            .filter((u) => u?.file instanceof File && typeof u?.preview === 'string' && u.preview)
+            .map((u) => ({ preview: u.preview, file: u.file, isExisting: false }))
+        : [];
 
-  const handleImageUpload = (e) => {
-    const { files } = e.target;
-    if (files) {
-      for (let file of files) {
-        const preview = URL.createObjectURL(file);
-        setLocalImages(prev => [...prev, { file, preview, isNew: true }]);
-      }
+      setImages([...existing, ...pending]);
     }
-  };
-
-  const handleRemoveImage = (index) => {
-    setLocalImages(prev => prev.filter((_, i) => i !== index));
-  };
+  }, [initialData, isOpen, pendingUploads]);
 
   if (!isOpen) return null;
+  
+  const setField = (key, value) => setForm((p) => ({ ...p, [key]: value }));
+
+  const handleImageChange = (e) => {
+    const files = Array.from(e.target.files || []);
+    files.forEach((file) => {
+      const preview = URL.createObjectURL(file);
+      setImages((prev) => [...prev, { preview, file, isExisting: false }]);
+    });
+    e.target.value = '';
+  };
+
+  const removeImage = (index) => {
+    setImages((prev) => {
+      const toRemove = prev[index];
+      if (toRemove && !toRemove.isExisting && typeof toRemove.preview === 'string' && toRemove.preview.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(toRemove.preview);
+        } catch (_) {
+          // ignore
+        }
+      }
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const handleSaveClick = () => {
+    if (form.title.trim()) {
+      const previews = images.map((img) => img.preview);
+      const newItems = images
+        .filter((img) => !img.isExisting && img.file instanceof File)
+        .map((img) => ({ file: img.file, preview: img.preview }));
+      onSave(form, newItems, previews);
+    }
+  };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h2 className="text-lg font-semibold text-gray-900">Add Certification/License</h2>
-          <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-lg transition">
-            <Icon icon="heroicons:x-mark" className="w-5 h-5" />
+          <div className="flex items-center gap-2">
+            <div className="p-2 bg-primary-50 rounded-lg">
+              <Icon icon="heroicons:academic-cap" className="w-5 h-5 text-primary-600" />
+            </div>
+            <h2 className="text-lg font-semibold text-gray-900">{initialData ? 'Edit Certificate/License' : 'Add Certificate/License'}</h2>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <Icon icon="heroicons:x-mark" className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        <div className="p-6 space-y-4">
-          <InputField
-            label="Certification/License Title"
-            value={formState}
-            onChange={(e) => setFormState(e.target.value)}
-            placeholder="e.g., CompTIA A+, Microsoft Certified"
-            required
-          />
+        
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Certificate/License Title *</label>
+            <input 
+              type="text" 
+              value={form.title} 
+              onChange={(e) => setField('title', e.target.value)} 
+              placeholder="e.g. CompTIA A+ Certified" 
+              className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all" 
+            />
+          </div>
           
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-3">
-              Upload Images <span className="text-red-500">*</span>
-            </label>
-            <label className="flex-1 px-4 py-4 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all">
-              <div className="flex items-center justify-center gap-2">
-                <Icon icon="heroicons:cloud-arrow-up" className="w-5 h-5 text-gray-500" />
-                <span className="text-sm text-gray-600">Upload Certificate Images</span>
-              </div>
-              <input type="file" multiple onChange={handleImageUpload} className="hidden" accept="image/*" />
-            </label>
-          </div>
-
-          {localImages && localImages.length > 0 && (
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-3">
-                Uploaded Images ({localImages.length})
-              </label>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {localImages.map((img, idx) => (
-                  <div key={idx} className="relative group">
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={img.preview || (typeof img === 'string' ? img : '')}
-                        alt={`Image ${idx + 1}`}
-                        className="w-full h-full object-cover"
-                      />
+            <label className="block text-xs font-medium text-gray-500 mb-1.5">Certificate Images</label>
+            <div className="space-y-3">
+              {images.length > 0 && (
+                <div className="grid grid-cols-2 gap-2">
+                  {images.map((img, i) => (
+                    <div key={i} className="relative group">
+                      <img src={img.preview} alt="Preview" className="w-full h-20 object-cover rounded-lg border border-gray-200" />
+                      <button 
+                        type="button" 
+                        onClick={() => removeImage(i)} 
+                        className="absolute -top-2 -right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors opacity-0 group-hover:opacity-100"
+                      >
+                        <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveImage(idx)}
-                      className="absolute top-1 right-1 bg-red-600 text-white p-1.5 rounded opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <Icon icon="heroicons:trash" className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+              <label className="flex items-center gap-4 px-4 py-3 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-primary-400 hover:bg-primary-50 transition-all">
+                <div className="flex items-center justify-center gap-2">
+                  <Icon icon="heroicons:cloud-arrow-up" className="w-4 h-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Upload Images</span>
+                </div>
+                <input type="file" className="hidden" accept="image/*" multiple onChange={handleImageChange} />
+              </label>
             </div>
-          )}
-
-          <div className="pt-4 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 font-medium transition"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                if (formState && localImages && localImages.length > 0) {
-                  const imageData = {
-                    title: formState,
-                    images: localImages.map(img => img.preview || img),
-                    files: localImages.filter(img => img.isNew && img.file).map(img => img.file)
-                  };
-                  onSave(imageData);
-                } else {
-                  alert('Please fill in title and upload at least one image');
-                }
-              }}
-              className="flex-1 px-4 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 font-medium transition disabled:opacity-50"
-              disabled={!formState || !localImages.length}
-            >
-              Save
-            </button>
+            <p className="text-xs text-gray-400 mt-1">JPG, PNG, max 5MB each (multiple allowed)</p>
           </div>
+        </div>
+        
+        <div className="flex justify-end gap-3 px-6 py-4 border-t border-gray-100 bg-gray-50/50">
+          <button 
+            onClick={onClose} 
+            className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+          >
+            Cancel
+          </button>
+          <button 
+            onClick={handleSaveClick} 
+            disabled={isSaving || !form.title.trim() || images.length === 0} 
+            className="px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+          >
+            {isSaving && <Icon icon="eos-icons:loading" className="w-4 h-4 animate-spin" />}
+            {initialData ? 'Save Changes' : 'Add Certificate'}
+          </button>
         </div>
       </div>
     </div>
   );
 };
+
+
 
 // ─── Main Component ──────────────────────────────────────────────────────
 
@@ -511,7 +528,7 @@ function EditProfilePage() {
   const [certificationsLicenseModal, setCertificationsLicenseModal] = useState(false);
   const [selectedEntry, setSelectedEntry] = useState(null);
   const [selectedEntryIndex, setSelectedEntryIndex] = useState(null);
-  const [certLicenseImages, setCertLicenseImages] = useState([]);
+  const [certLicenseUploads, setCertLicenseUploads] = useState([]);
   const [initialFormData, setInitialFormData] = useState(null);
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
@@ -851,156 +868,143 @@ function EditProfilePage() {
     }
   };
 
-  // Certifications & License Handlers
-  const handleCertLicenseSave = (entry) => {
-    // Extract clean image URLs
-    const cleanImages = entry.images
-      ? entry.images.map(img => {
-          if (typeof img === 'string') return img;
-          return img.preview || img;
-        }).filter(Boolean)
-      : [];
-    
-    // Store file references in a temporary location for submission
-    if (entry.files && entry.files.length > 0) {
-      const certIndex = selectedEntryIndex !== null ? selectedEntryIndex : formData.certificationsLicense.length;
-      entry.files.forEach((file, fileIdx) => {
-        setImageFiles(prev => ({
-          ...prev,
-          [`certificationsLicense-${certIndex}-${fileIdx}`]: file
-        }));
-      });
-    }
-    
-    const cleanEntry = {
-      title: entry.title,
-      images: cleanImages
+const handleCertLicenseSave = (form, newItems, previews) => {
+  const targetIndex = selectedEntryIndex !== null ? selectedEntryIndex : formData.certificationsLicense.length;
+
+  if (selectedEntryIndex !== null) {
+    const updated = [...formData.certificationsLicense];
+    updated[selectedEntryIndex] = {
+      title: form.title,
+      images: previews,
     };
-    
-    if (selectedEntryIndex !== null) {
-      const updated = [...formData.certificationsLicense];
-      updated[selectedEntryIndex] = cleanEntry;
-      setFormData({...formData, certificationsLicense: updated});
-    } else {
-      setFormData({...formData, certificationsLicense: [...formData.certificationsLicense, cleanEntry]});
-    }
-    setCertificationsLicenseModal(false);
-    setSelectedEntry(null);
-    setSelectedEntryIndex(null);
-    setCertLicenseImages([]);
-  };
+    setFormData({ ...formData, certificationsLicense: updated });
+  } else {
+    setFormData({
+      ...formData,
+      certificationsLicense: [
+        ...formData.certificationsLicense,
+        { title: form.title, images: previews },
+      ],
+    });
+  }
+
+  setCertLicenseUploads((prev) => {
+    const keepOther = prev.filter((u) => u.certIndex !== targetIndex);
+    const next = (newItems || [])
+      .filter((it) => it?.file instanceof File)
+      .map((it) => ({ certIndex: targetIndex, file: it.file, preview: it.preview }));
+    return [...keepOther, ...next];
+  });
+
+  setCertificationsLicenseModal(false);
+  setSelectedEntry(null);
+  setSelectedEntryIndex(null);
+};
 
   const handleCertLicenseDelete = (index) => {
     setFormData({...formData, certificationsLicense: formData.certificationsLicense.filter((_, i) => i !== index)});
-  };
-
-  const handleCertLicenseImageDelete = (index) => {
-    const newImages = certLicenseImages.filter((_, i) => i !== index);
-    setCertLicenseImages(newImages);
+    setCertLicenseUploads((prev) =>
+      prev
+        .filter((u) => u.certIndex !== index)
+        .map((u) => (u.certIndex > index ? { ...u, certIndex: u.certIndex - 1 } : u))
+    );
   };
 
   // Submit form
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSaving(true);
-    
-    try {
-      const form = new FormData();
-      
-      // Build repairmanProfile with only changed fields
-      const repairmanProfile = {};
-      const fieldsToCheck = [
-        'fullName', 'fatherName', 'gender', 'dob', 'nationalIdOrCitizenNumber',
-        'mobileNumber', 'whatsappNumber', 'emailAddress', 'emergencyContactPerson',
-        'emergencyContactNumber', 'shopName', 'fullAddress', 'zipCode', 'taxNumber',
-        'specializations', 'brandsWorkedWith', 'description',
-        'pickupService', 'workingDays', 'education', 'experience', 'certifications'
-      ];
-      
-      fieldsToCheck.forEach(field => {
-        if (JSON.stringify(formData[field]) !== JSON.stringify(initialFormData?.[field])) {
-          repairmanProfile[field] = formData[field];
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsSaving(true);
+
+  try {
+    const form = new FormData();
+
+    const repairmanProfile = {};
+
+    const fieldsToCheck = [
+      'fullName', 'fatherName', 'gender', 'dob', 'nationalIdOrCitizenNumber',
+      'mobileNumber', 'whatsappNumber', 'emailAddress', 'emergencyContactPerson',
+      'emergencyContactNumber', 'shopName', 'fullAddress', 'zipCode', 'taxNumber',
+      'specializations', 'brandsWorkedWith', 'description',
+      'pickupService', 'workingDays', 'education', 'experience'
+    ];
+
+    fieldsToCheck.forEach(field => {
+      if (JSON.stringify(formData[field]) !== JSON.stringify(initialFormData?.[field])) {
+        repairmanProfile[field] = formData[field];
+      }
+    });
+
+    if (formData.yearsOfExperience !== initialFormData?.yearsOfExperience) {
+      repairmanProfile.yearsOfExperience = parseInt(formData.yearsOfExperience) || 0;
+    }
+
+    if (JSON.stringify(formData.workingHours) !== JSON.stringify(initialFormData?.workingHours)) {
+      repairmanProfile.workingHours = formData.workingHours;
+    }
+
+    if (JSON.stringify(formData.bankDetails) !== JSON.stringify(initialFormData?.bankDetails)) {
+      repairmanProfile.bankDetails = formData.bankDetails;
+    }
+
+    // ──────── CERTIFICATIONS LICENSE ────────
+    const cleanCertificationsLicense = (formData.certificationsLicense || []).map((cert) => ({
+      title: cert.title,
+      images: (cert.images || []).filter(
+        (img) => typeof img === 'string' && img && /^https?:\/\//i.test(img)
+      ),
+    }));
+
+    if (JSON.stringify(cleanCertificationsLicense) !== JSON.stringify(initialFormData?.certificationsLicense)) {
+      repairmanProfile.certificationsLicense = cleanCertificationsLicense;
+    }
+
+    form.append('repairmanProfile', JSON.stringify(repairmanProfile));
+
+    // Location fields
+    if (formData.country !== initialFormData?.country) form.append('countryId', formData.country);
+    if (formData.state !== initialFormData?.state) form.append('stateId', formData.state);
+    if (formData.city !== initialFormData?.city) form.append('cityId', formData.city);
+    if (formData.fullAddress !== initialFormData?.fullAddress) form.append('address', formData.fullAddress);
+    if (formData.district !== initialFormData?.district) form.append('district', formData.district);
+
+    // Regular images (profilePhoto, shopPhoto, etc.)
+    Object.entries(imageFiles).forEach(([key, file]) => {
+      if (file && file instanceof File) {
+        form.append(key, file);
+      }
+    });
+
+    // ──────── CERTIFICATIONS LICENSE IMAGES (Binary upload + index mapping) ────────
+    if (certLicenseUploads.length > 0) {
+      const indexes = [];
+      certLicenseUploads.forEach((u) => {
+        if (u?.file instanceof File && Number.isInteger(u.certIndex)) {
+          form.append('certificationsLicense', u.file);
+          indexes.push(u.certIndex);
         }
       });
-      
-      // Handle yearsOfExperience as number
-      if (formData.yearsOfExperience !== initialFormData?.yearsOfExperience) {
-        repairmanProfile.yearsOfExperience = parseInt(formData.yearsOfExperience) || 0;
+      if (indexes.length > 0) {
+        form.append('certificationsLicenseIndexes', JSON.stringify(indexes));
       }
-      
-      // Handle workingHours separately (nested object)
-      if (JSON.stringify(formData.workingHours) !== JSON.stringify(initialFormData?.workingHours)) {
-        repairmanProfile.workingHours = formData.workingHours;
-      }
-      
-      // Handle bankDetails separately (nested object)
-      if (JSON.stringify(formData.bankDetails) !== JSON.stringify(initialFormData?.bankDetails)) {
-        repairmanProfile.bankDetails = formData.bankDetails;
-      }
-      
-      // Handle certificationsLicense - convert preview URLs to clean format
-      const cleanCertificationsLicense = formData.certificationsLicense.map(cert => ({
-        title: cert.title,
-        certificationsLicense: cert.images.filter(img => typeof img === 'string' && img) 
-      }));
-      
-      if (JSON.stringify(cleanCertificationsLicense) !== JSON.stringify(initialFormData?.certificationsLicense)) {
-        repairmanProfile.certificationsLicense = cleanCertificationsLicense;
-      }
-       //  Har image ke saath correct index bhejo
-    if (imageFiles.length > 0) {
-      imageFiles.forEach((file) => {
-        formData.append('certificationsLicense', file);  // same field name
-      });
-      
-      //  YEH FIX HAI — sahi field name aur sahi index
-      const indexes = imageFiles.map(() => targetIndex);
-      formData.append('certificationsLicenseIndexes', JSON.stringify(indexes));
     }
-      
-      form.append('repairmanProfile', JSON.stringify(repairmanProfile));
-      
-      // Only send location if changed
-      if (formData.country !== initialFormData?.country) {
-        form.append('countryId', formData.country);
-      }
-      if (formData.state !== initialFormData?.state) {
-        form.append('stateId', formData.state);
-      }
-      if (formData.city !== initialFormData?.city) {
-        form.append('cityId', formData.city);
-      }
-      if (formData.fullAddress !== initialFormData?.fullAddress) {
-        form.append('address', formData.fullAddress);
-      }
-      if (formData.district !== initialFormData?.district) {
-        form.append('district', formData.district);
-      }
-      
-      // Add image files only if they are new File objects
-      Object.entries(imageFiles).forEach(([key, file]) => {
-        if (file && file instanceof File) {
-          form.append(key, file);
-        }
-      });
-      
-      const response = await axiosInstance.put('/repairman/profile', form, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      
-      if (response.data.success) {
-        toast.success('Profile updated successfully');
-        setTimeout(() => router.push('/repair-man/profile'), 1500);
-      }
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsSaving(false);
+
+    const response = await axiosInstance.put('/repairman/profile', form, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    if (response.data.success) {
+      toast.success('Profile updated successfully!');
+      setTimeout(() => router.push('/repair-man/profile'), 1500);
     }
-  };
+  } catch (error) {
+    handleError(error);
+  } finally {
+    setIsSaving(false);
+  }
+};
 
   if (isLoading) {
     return <SmallLoader loading={isLoading} text="Loading profile..." />;
@@ -1107,7 +1111,7 @@ function EditProfilePage() {
               label="Specializations"
               name="specializations"
               value={formData.specializations}
-              onChange={(tags) => setFormData({...formData, specializations: tags})}
+onChange={(tags) => setFormData({...formData, specializations: tags})} // ✅ yeh sahi hai ab
               suggestions={specializationOptions}
               required
               error={errors.specializations}
@@ -1256,124 +1260,113 @@ function EditProfilePage() {
             )}
           </SectionCard>
 
-          {/* Certifications */}
-          <SectionCard title="Certifications" icon="heroicons:document-check">
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                Upload Certifications
-              </label>
-              <input
-                type="file"
-                multiple
-                accept="image/*"
-                onChange={handleCertificationUpload}
-                className="block w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm"
-              />
-            </div>
-            
-            {formData.certifications && formData.certifications.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {formData.certifications.map((cert, index) => (
-                  <div key={index} className="relative group">
-                    <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                      <img
-                        src={cert}
-                        alt={`Certification ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const updated = formData.certifications.filter((_, i) => i !== index);
-                        setFormData({...formData, certifications: updated});
-                      }}
-                      className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-lg opacity-0 group-hover:opacity-100 transition"
-                    >
-                      <Icon icon="heroicons:trash" className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-sm">No certifications uploaded yet</p>
-            )}
-          </SectionCard>
-
-          {/* Certifications & License */}
-          <SectionCard title="Certifications & License" icon="heroicons:document-text">
+          {/* Certifications & Licenses */}
+          <SectionCard title="Certifications & Licenses" icon="heroicons:academic-cap">
             <div className="mb-6">
               <button
                 type="button"
                 onClick={() => {
                   setSelectedEntry(null);
                   setSelectedEntryIndex(null);
-                  setCertLicenseImages([]);
                   setCertificationsLicenseModal(true);
                 }}
                 className="flex items-center gap-2 px-4 py-2 bg-primary-50 text-primary-600 rounded-lg hover:bg-primary-100 transition-colors font-medium"
               >
                 <Icon icon="heroicons:plus" className="w-5 h-5" />
-                Add Certification/License
+                Add Certificate/License
               </button>
             </div>
-
-            {formData.certificationsLicense && formData.certificationsLicense.length > 0 ? (
-              <div className="space-y-4">
-                {formData.certificationsLicense.map((item, index) => (
-                  <div key={index} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900">{item.title}</h4>
-                        <p className="text-sm text-gray-600 mt-1">{item.images?.length || 0} image(s)</p>
+            
+            {formData.certificationsLicense.length > 0 ? (
+              <div className={formData.certificationsLicense.length === 1 ? 'flex justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'}>
+                {formData.certificationsLicense.map((cert, index) => (
+                  <div key={index} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all">
+                    {/* Image Container */}
+                    {cert.images && cert.images.length > 0 && (
+                      <div className={`relative bg-gray-100 overflow-hidden ${
+                        cert.images.length === 1 
+                          ? 'w-full h-64' 
+                          : 'w-full h-48'
+                      }`}>
+                        <img 
+                          src={cert.images[0]} 
+                          alt={cert.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                        />
+                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
+                        </div>
+                        {cert.images.length > 1 && (
+                          <div className="absolute top-2 right-2 bg-primary-600 text-white px-2.5 py-1 rounded-full text-xs font-medium">
+                            +{cert.images.length - 1}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex gap-2 ml-4">
-                        <button
+                    )}
+                    
+                    {/* Content Container */}
+                    <div className="p-4">
+                      <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-3">{cert.title}</h4>
+                      
+                      {/* Additional Images (if multiple) */}
+                      {cert.images && cert.images.length > 1 && (
+                        <div className="mb-3 grid grid-cols-4 gap-1">
+                          {cert.images.slice(1, 5).map((img, imgIdx) => (
+                            <div 
+                              key={imgIdx} 
+                              className="aspect-square bg-gray-100 rounded-lg overflow-hidden"
+                            >
+                              <img src={img} alt={`${cert.title} ${imgIdx + 2}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button 
                           type="button"
                           onClick={() => {
-                            setSelectedEntry(item);
+                            setSelectedEntry(cert);
                             setSelectedEntryIndex(index);
-                            // Convert image URLs to modal format
-                            const imagesForModal = (item.images || []).map(img => ({
-                              preview: typeof img === 'string' ? img : img.preview || img
-                            }));
-                            setCertLicenseImages(imagesForModal);
                             setCertificationsLicenseModal(true);
                           }}
-                          className="p-2 hover:bg-blue-100 text-blue-600 rounded-lg transition"
+                          className="flex-1 px-3 py-2 text-xs font-medium text-gray-600 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-1"
+                          title="Edit"
                         >
-                          <Icon icon="heroicons:pencil-square" className="w-5 h-5" />
+                          <Icon icon="heroicons:pencil-square" className="w-3.5 h-3.5" /> Edit
                         </button>
-                        <button
+                        <button 
                           type="button"
                           onClick={() => handleCertLicenseDelete(index)}
-                          className="p-2 hover:bg-red-100 text-red-600 rounded-lg transition"
+                          className="flex-1 px-3 py-2 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+                          title="Delete"
                         >
-                          <Icon icon="heroicons:trash" className="w-5 h-5" />
+                          <Icon icon="heroicons:trash" className="w-3.5 h-3.5" /> Delete
                         </button>
                       </div>
                     </div>
-
-                    {item.images && item.images.length > 0 && (
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {item.images.map((img, imgIdx) => (
-                          <div key={imgIdx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                            <img
-                              src={img}
-                              alt={`${item.title} ${imgIdx + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-sm">No certifications/licenses added yet</p>
+              <div className="text-center py-8">
+                <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">No certificates or licenses added yet</p>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setSelectedEntry(null);
+                    setSelectedEntryIndex(null);
+                    setCertificationsLicenseModal(true);
+                  }}
+                  className="mt-3 text-primary-600 text-sm font-medium hover:underline"
+                >
+                  + Add your first certificate
+                </button>
+              </div>
             )}
-
+            
             {certificationsLicenseModal && (
               <CertificationsLicenseModal
                 isOpen={certificationsLicenseModal}
@@ -1381,13 +1374,15 @@ function EditProfilePage() {
                   setCertificationsLicenseModal(false);
                   setSelectedEntry(null);
                   setSelectedEntryIndex(null);
-                  setCertLicenseImages([]);
                 }}
                 onSave={handleCertLicenseSave}
-                entry={selectedEntry}
-                images={certLicenseImages}
-                onImageAdd={(imgData) => setCertLicenseImages([...certLicenseImages, imgData])}
-                onImageDelete={handleCertLicenseImageDelete}
+                initialData={selectedEntry}
+                pendingUploads={
+                  selectedEntryIndex !== null
+                    ? certLicenseUploads.filter((u) => u.certIndex === selectedEntryIndex)
+                    : []
+                }
+                isSaving={false}
               />
             )}
           </SectionCard>

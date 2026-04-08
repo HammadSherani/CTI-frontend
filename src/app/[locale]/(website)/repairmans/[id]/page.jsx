@@ -225,7 +225,73 @@ const ImagePreviewModal = ({ isOpen, imageSrc, onClose }) => {
       );
     };
 
-
+    const CertificationsLicenseSection = ({ certificationsLicense = [], onImageClick }) => {
+      return (
+        <>
+          <SectionCard
+            title="Certifications & Licenses"
+            icon="heroicons:academic-cap"
+          >
+            {certificationsLicense.length === 0 ? (
+              <div className="text-center py-8">
+                <Icon icon="heroicons:academic-cap" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">No certifications or licenses added yet</p>
+              </div>
+            ) : (
+              <div className={certificationsLicense.length === 1 ? 'flex justify-center' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5'}>
+                {certificationsLicense.map((item, index) => (
+                  <div key={item._id || index} className="group bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg hover:border-primary-300 transition-all">
+                    {/* Image Container */}
+                    {item.images && item.images.length > 0 && (
+                      <div className={`relative bg-gray-100 overflow-hidden ${
+                        item.images.length === 1 
+                          ? 'w-full h-64' 
+                          : 'w-full h-48'
+                      }`}>
+                        <img 
+                          src={item.images[0]} 
+                          alt={item.title}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                          onClick={() => onImageClick(item.images[0])}
+                        />
+                        <div onClick={() => onImageClick?.(item.images[0])} className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                          <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
+                        </div>
+                        {item.images.length > 1 && (
+                          <div className="absolute top-2 right-2 bg-primary-600 text-white px-2.5 py-1 rounded-full text-xs font-medium">
+                            +{item.images.length - 1}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Content Container */}
+                    <div className="p-4">
+                      <h4 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-3">{item.title}</h4>
+                      
+                      {/* Additional Images (if multiple) */}
+                      {item.images && item.images.length > 1 && (
+                        <div className="grid grid-cols-4 gap-1">
+                          {item.images.slice(1, 5).map((img, imgIdx) => (
+                            <div 
+                              key={imgIdx} 
+                              className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => onImageClick(img)}
+                            >
+                              <img src={img} alt={`${item.title} ${imgIdx + 2}`} className="w-full h-full object-cover" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </SectionCard>
+        </>
+      );
+    };
 
     
 
@@ -742,10 +808,11 @@ function RepairmanDetail() {
 {console.log(profile, "education")}
 <ServiceCatalogSection serviceCatalog={data.serviceCatalog} />
 
-                                   <EducationSection education={profile.education} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
+<EducationSection education={profile.education} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
 
 <ExperienceSection experience={profile.experience} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
 
+<CertificationsLicenseSection certificationsLicense={profile.certificationsLicense} onImageClick={(src) => setImagePreview({ isOpen: true, src })} />
 
            
                     </div>
