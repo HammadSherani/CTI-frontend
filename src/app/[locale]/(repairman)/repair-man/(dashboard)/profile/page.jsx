@@ -1077,137 +1077,151 @@ const handleSave = async (form, imageFiles, imagePreviews) => {
 
 const statusVariant = { pending: 'warning', approved: 'success', rejected: 'danger' };
 
-const ServiceCatalogSection = ({ serviceCatalog }) => {
-  const [activeTab, setActiveTab] = useState('all');
-  if (!serviceCatalog) return null;
+ const ServiceCatalogSection = ({ serviceCatalog }) => {
+      const [activeTab, setActiveTab] = useState('all');
+      if (!serviceCatalog) return null;
+    const router = useRouter();
+      const tabs = [
+        { key: 'all', label: 'All', count: serviceCatalog.stats?.total || 0 },
+        { key: 'approved', label: 'Approved', count: serviceCatalog.stats?.approved || 0 },
+        { key: 'pending', label: 'Pending', count: serviceCatalog.stats?.pending || 0 },
+        { key: 'rejected', label: 'Rejected', count: serviceCatalog.stats?.rejected || 0 },
+      ];
+    
+      const services = serviceCatalog[activeTab] || [];
+    
+      const statusConfig = {
+        approved: { bg: 'bg-primary-100', text: 'text-green-700', dot: 'bg-primary-500' },
+        pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
+        rejected: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' }
+      };
+    
+      return (
+     <SectionCard title="Service Catalog" icon="heroicons:wrench-screwdriver">
+  {/* Tabs */}
+  <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3 flex-wrap">
+    {tabs.map((tab) => (
+      <button
+        key={tab.key}
+        onClick={() => setActiveTab(tab.key)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+          activeTab === tab.key
+            ? 'bg-primary-600 text-white shadow-sm'
+            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+        }`}
+      >
+        {tab.label}
+        <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
+          {tab.count}
+        </span>
+      </button>
+    ))}
+  </div>
 
-  const tabs = [
-    { key: 'all', label: 'All', count: serviceCatalog.stats?.total || 0 },
-    { key: 'approved', label: 'Approved', count: serviceCatalog.stats?.approved || 0 },
-    { key: 'pending', label: 'Pending', count: serviceCatalog.stats?.pending || 0 },
-    { key: 'rejected', label: 'Rejected', count: serviceCatalog.stats?.rejected || 0 },
-  ];
-
-  const services = serviceCatalog[activeTab] || [];
-
-  const statusConfig = {
-    approved: { bg: 'bg-green-100', text: 'text-green-700', dot: 'bg-green-500' },
-    pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', dot: 'bg-yellow-500' },
-    rejected: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' }
-  };
-
-  return (
-    <SectionCard title="Service Catalog" icon="heroicons:wrench-screwdriver">
-      {/* Tabs */}
-      <div className="flex gap-2 mb-5 border-b border-gray-100 pb-3 flex-wrap">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-              activeTab === tab.key
-                ? 'bg-primary-600 text-white shadow-sm'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
+  {services.length === 0 ? (
+    <div className="text-center py-8">
+      <Icon icon="heroicons:wrench-screwdriver" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
+      <p className="text-sm text-gray-400">No services in this category</p>
+    </div>
+  ) : (
+    <>
+      <div className="space-y-4">
+        {services.map((service) => (
+          <div 
+            key={service._id} 
+            onClick={() => router.push(`/service-catalog/${service._id}`)}  // Fixed: added missing "/"
+            className="group flex gap-4 hover:bg-gray-50 bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
           >
-            {tab.label}
-            <span className={`px-1.5 py-0.5 rounded-full text-xs ${activeTab === tab.key ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500'}`}>
-              {tab.count}
-            </span>
-          </button>
-        ))}
-      </div>
-
-      {services.length === 0 ? (
-        <div className="text-center py-8">
-          <Icon icon="heroicons:wrench-screwdriver" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-          <p className="text-sm text-gray-400">No services in this category</p>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {services.map((service) => (
-            <div 
-              key={service._id} 
-              className="group flex gap-4 bg-white rounded-xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300"
-            >
-              {/* Image Section - Left side */}
-              <div className="relative w-32 md:w-40 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
-                {service.images && service.images.length > 0 ? (
-                  <img 
-                    src={service.images[0]} 
-                    alt={service.title}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Icon icon="heroicons:device-phone-mobile" className="w-8 h-8 text-gray-300" />
-                  </div>
-                )}
-              </div>
-              
-              {/* Content Section - Right side */}
-              <div className="flex-1 p-4">
-                <div className="flex items-start justify-between gap-3 mb-2">
-                  <div className="flex-1">
-                    <h4 className="text-base font-semibold text-gray-900 mb-1">
-                      {service.title}
-                    </h4>
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex items-center gap-1.5">
-                        <Icon icon="heroicons:device-phone-mobile" className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-xs text-gray-600">
-                          {service.deviceInfo?.modelId?.brandId?.name} {service.deviceInfo?.modelId?.name}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                      {service.description}
-                    </p>
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-2">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${statusConfig[service.status]?.bg} ${statusConfig[service.status]?.text}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[service.status]?.dot}`}></span>
-                      {service.status?.charAt(0).toUpperCase() + service.status?.slice(1)}
-                    </span>
-                    <span className="text-lg font-bold text-primary-600">
-                      {service.pricing?.currency} {service.pricing?.total?.toLocaleString()}
-                    </span>
-                  </div>
+            {/* Image Section - Left side */}
+            <div className="relative w-32 md:w-40 bg-gradient-to-br from-gray-50 to-gray-100 flex-shrink-0">
+              {service.images && service.images.length > 0 ? (
+                <img 
+                  src={service.images[0]} 
+                  alt={service.title}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Icon icon="heroicons:device-phone-mobile" className="w-8 h-8 text-gray-300" />
                 </div>
-                
-                <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-3">
+              )}
+            </div>
+            
+            {/* Content Section - Right side */}
+            <div className="flex-1 p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex-1">
+                  <h4 className="text-base font-semibold text-gray-900 mb-1">
+                    {service.title}
+                  </h4>
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="flex items-center gap-1.5">
-                      <Icon icon="heroicons:banknotes" className="w-3.5 h-3.5 text-gray-400" />
-                      <span className="text-xs text-gray-500">
-                        Base: {service.pricing?.currency} {service.pricing?.basePrice?.toLocaleString()}
+                      <Icon icon="heroicons:device-phone-mobile" className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs text-gray-600">
+                        {service.deviceInfo?.modelId?.brandId?.name} {service.deviceInfo?.modelId?.name}
                       </span>
                     </div>
-                    {service.pricing?.partsPrice > 0 && (
-                      <div className="flex items-center gap-1.5">
-                        <Icon icon="heroicons:cog" className="w-3.5 h-3.5 text-gray-400" />
-                        <span className="text-xs text-gray-500">
-                          Parts: {service.pricing?.currency} {service.pricing?.partsPrice?.toLocaleString()}
-                        </span>
-                      </div>
-                    )}
                   </div>
+                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">
+                    {service.description}
+                  </p>
+                </div>
+                
+                <div className="flex flex-col items-end gap-2">
+                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium ${statusConfig[service.status]?.bg} ${statusConfig[service.status]?.text}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${statusConfig[service.status]?.dot}`}></span>
+                    {service.status?.charAt(0).toUpperCase() + service.status?.slice(1)}
+                  </span>
+                  <span className="text-lg font-bold text-primary-600">
+                    {service.pricing?.currency} {service.pricing?.total?.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+              
+              <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+                <div className="flex items-center gap-3">
                   <div className="flex items-center gap-1.5">
-                    <Icon icon="heroicons:calendar" className="w-3.5 h-3.5 text-gray-400" />
-                    <span className="text-xs text-gray-400">
-                      {new Date(service.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                    <Icon icon="heroicons:banknotes" className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-xs text-gray-500">
+                      Base: {service.pricing?.currency} {service.pricing?.basePrice?.toLocaleString()}
                     </span>
                   </div>
+                  {service.pricing?.partsPrice > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <Icon icon="heroicons:cog" className="w-3.5 h-3.5 text-gray-400" />
+                      <span className="text-xs text-gray-500">
+                        Parts: {service.pricing?.currency} {service.pricing?.partsPrice?.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Icon icon="heroicons:calendar" className="w-3.5 h-3.5 text-gray-400" />
+                  <span className="text-xs text-gray-400">
+                    {new Date(service.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </span>
                 </div>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-    </SectionCard>
-  );
-};
+          </div>
+        ))}
+      </div>
+
+      {/* View All Services Button - Shows only if there are services */}
+      <div className="mt-6 flex justify-center">
+        <button
+          onClick={() => router.push('/service-catalog')}  // ← Change this route to your full listing page
+          className="flex items-center gap-2 px-6 py-3 bg-white border border-gray-300 hover:border-primary-600 hover:text-primary-600 text-gray-700 rounded-xl font-medium transition-all duration-200 hover:shadow-sm"
+        >
+          <span>View All Services</span>
+          <Icon icon="heroicons:arrow-right" className="w-4 h-4" />
+        </button>
+      </div>
+    </>
+  )}
+</SectionCard>
+      );
+    };
 // ─── Profile Page ─────────────────────────────────────────────────────────────
 
 function ProfilePage() {
