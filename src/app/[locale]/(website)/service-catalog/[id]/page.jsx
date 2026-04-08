@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+;
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
 
 // ==================== DUMMY DATA (Same as main page) ====================
 
@@ -384,7 +385,7 @@ export default function ServiceDetailsPage() {
           <Icon icon="heroicons:exclamation-circle" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Service Not Found</h2>
           <p className="text-gray-600 mb-6">The service you're looking for doesn't exist or has been removed.</p>
-          <Link href="/repair-man/service-catalog">
+          <Link href="/service-catalog">
             <button className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
               Back to Catalog
             </button>
@@ -405,7 +406,7 @@ export default function ServiceDetailsPage() {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
-          <Link href="/repair-man/service-catalog">
+          <Link href="/service-catalog">
             <button className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 transition-colors">
               <Icon icon="heroicons:arrow-left" className="w-5 h-5" />
               <span>Back to Catalog</span>
@@ -579,34 +580,15 @@ export default function ServiceDetailsPage() {
 
         {/* Action Buttons */}
         <div className="mt-6 flex flex-wrap gap-3 justify-end">
-          {service.status === 'Pending' && (
-            <>
-              <button className="px-6 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors">
-                <Icon icon="heroicons:check-circle" className="w-4 h-4 inline mr-2" />
-                Approve Service
-              </button>
-              <button className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors">
-                <Icon icon="heroicons:x-circle" className="w-4 h-4 inline mr-2" />
-                Reject Service
-              </button>
-            </>
-          )}
-          {service.status === 'In Progress' && (
-            <button className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors">
-              <Icon icon="heroicons:check-circle" className="w-4 h-4 inline mr-2" />
-              Mark as Completed
-            </button>
-          )}
-          <Link href={`/repair-man/service-catalog/${service._id}/chat`}>
+         
+         
+          <Link href={`/service-catalog/${service._id}/chat`}>
             <button className="px-6 py-2 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors">
               <Icon icon="heroicons:chat-bubble-left-right" className="w-4 h-4 inline mr-2" />
               Message Customer
             </button>
           </Link>
-          <button className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors">
-            <Icon icon="heroicons:printer" className="w-4 h-4 inline mr-2" />
-            Print Invoice
-          </button>
+     
         </div>
       </div>
     </div>

@@ -4,7 +4,8 @@ import React, { useState, useMemo } from 'react';
 import { CustomDropdown, UrgencyDropdown } from '@/components/dropdown';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
-import {Link} from '@/i18n/routing'
+import { Link } from '@/i18n/navigation';
+
 // ==================== DUMMY DATA WITH PLACEHOLDER IMAGES ====================
 
 const DUMMY_DATA = [
@@ -379,14 +380,14 @@ const ServiceCardList = ({ service }) => {
 
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
-            <Link href={`//service-catalog/${service._id}/Chat With Repairman`} className="flex-1 min-w-[180px]">
+            <Link href={`/service-catalog/${service._id}/Chat With Repairman`} className="flex-1 min-w-[180px]">
               <button 
                 className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2">
                 <Icon icon="heroicons:chat-bubble-left-right" className="w-4 h-4 mr-2 inline" />
                 Chat With Repairman
               </button>
             </Link>
-            <Link href={`//service-catalog/${service._id}/view`} className="flex-1 min-w-[120px]">
+            <Link href={`/service-catalog/${service._id}/view`} className="flex-1 min-w-[120px]">
               <button className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-50 transition-all duration-200 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2">
                 <Icon icon="heroicons:eye" className="w-4 h-4 mr-2 inline" />
                 View Details
