@@ -128,11 +128,11 @@ function Testimonials() {
     console.log(items, 'visible reviews');
     
   return (
-    <section className="relative  bg-gradient-to-r from-primary-400 to-primary-700 text-gray-900 overflow-hidden">
+    <section className="relative  overflow-hidden">
       <div className="absolute top-20 -left-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-20 -right-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
 
-      <div className="max-w-7xl p-10 mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="lg:max-w-[1400px] max-w-7xl  bg-gradient-to-r from-primary-400 to-primary-700 text-gray-900 p-10 mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -279,7 +279,7 @@ function Testimonials() {
         {/* Brands */}
  
       </div>
-<div className="w-full p-8 bg-primary-600">
+<div className=" lg:max-w-[1400px] max-w-7xl mx-auto p-8 bg-primary-600">
   <Marquee speed={40} gradient={false} pauseOnHover autoFill>
   <div className="flex items-center gap-24">
     

@@ -14,7 +14,7 @@ export default function StaticSections() {
     console.log('Product clicked:', product);
   }
   return (
-    <div className="max-w-7xl mx-auto ml-16 py-12 lg:py-20 space-y-48">
+    <div className="max-w-7xl   !mx-auto py-12 lg:py-20 space-y-48">
 
       {/* ════════════════════════════════════
           SECTION 1 — Integrate Academy
