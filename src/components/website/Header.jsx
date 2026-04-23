@@ -206,7 +206,7 @@ function AnnouncementBar() {
         </p>
         <div className="flex items-center gap-5">
           <Link
-            href="/auth/register"
+            href="/auth/login"
             className="flex items-center gap-1 hover:text-orange-600 transition-colors"
           >
             <Icon icon="mdi:account-circle-outline" className="w-4 h-4" />
@@ -508,7 +508,7 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
       className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${isScrolled
           ? "bg-white shadow-md top-[117px]"
           : isHome
-          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[160px]"
+          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[157px]"
           : "bg-white top-[117px] text-gray-900 shadow-md"
       }`}
     >

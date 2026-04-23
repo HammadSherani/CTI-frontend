@@ -89,7 +89,7 @@ const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
     <div className="relative">
       <WebsiteHeader />
 
-      <div className={isHome ? 'mt-0' : 'mt-14'}>
+      <div className={isHome ? 'mt-0' : 'mt-12'}>
         {children}
       </div>
 

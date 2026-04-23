@@ -6,7 +6,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
-import { useRouter ,LInk} from '@/i18n/navigation';
+import { useRouter ,Link} from '@/i18n/navigation';
 
 function Ads() {
     const router = useRouter();

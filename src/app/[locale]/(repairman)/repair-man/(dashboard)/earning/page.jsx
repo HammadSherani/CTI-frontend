@@ -6,6 +6,9 @@ import { useSelector } from 'react-redux'
 import { Icon } from '@iconify/react'
 import { useRouter } from '@/i18n/navigation'
 import { motion } from 'framer-motion'
+import TopUpModal from '@/components/partials/repairman/TopUpModal'
+import handleError from '@/helper/handleError'
+import { toast } from 'react-toastify'
 // Summary Skeleton
 const SummaryCardSkeleton = () => (
   <div className="bg-white rounded-2xl border border-gray-100 p-5 animate-pulse">
@@ -46,6 +49,7 @@ function RepairmanEarning() {
   const [earningsData, setEarningsData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
+  const [showTopUpModal, setShowTopUpModal] = useState(false)
 
   //  Modal state
   const [showWithdrawModal, setShowWithdrawModal] = useState(false)
@@ -216,6 +220,25 @@ function RepairmanEarning() {
     fetchData()
   }, [])
 
+
+  const handleTopUpSubmit = async (amount) => {
+  try {
+    const { data } = await axiosInstance.post('/repairman/wallet/topup', { 
+        amount: parseFloat(amount) 
+    }, {
+      headers: {
+        'Authorization': 'Bearer ' + token,
+      }
+    });
+    
+    if (data.success) {
+      return data.data; // Ye 'checkoutFormContent' return karega modal ko
+    }
+  } catch (error) {
+    handleError(error);
+  }
+}
+
   const formatCurrency = (amount, currency = 'TRY') => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -265,6 +288,7 @@ function RepairmanEarning() {
       iconBg: "bg-primary-100",
       iconColor: "text-primary-600",
       showButton: true,
+      topUpButton: true,
     },
     {
       label: "Pending Release",
@@ -426,6 +450,19 @@ function RepairmanEarning() {
                       {item.subText}
                     </p>
                   </div>
+
+
+                  {item.topUpButton && (
+                    <div className="mt-4 h-[36px] flex items-end">
+                      <button
+                        onClick={() => setShowTopUpModal(true)}
+                        className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-xs font-medium flex items-center justify-center gap-2"
+                      >
+                        <Icon icon="mdi:plus" className="w-4 h-4" />
+                        Top Up
+                      </button>
+                    </div>
+                  )}
 
                   {/* BOTTOM ACTION AREA (always reserved) */}
                   {/* <div className="mt-4 h-[36px] flex items-end">
@@ -1002,171 +1039,171 @@ function RepairmanEarning() {
           </>
         )}
 
-  {activeTab === "withdraw-history" && (
-  <>
-    {/* SUMMARY */}
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-      {historyLoading
-        ? Array(4).fill(0).map((_, i) => <SummaryCardSkeleton key={i} />)
-        : summaryHistoryCards.map((item, i) => (
-            <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition">
+        {activeTab === "withdraw-history" && (
+          <>
+            {/* SUMMARY */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {historyLoading
+                ? Array(4).fill(0).map((_, i) => <SummaryCardSkeleton key={i} />)
+                : summaryHistoryCards.map((item, i) => (
+                  <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition">
 
-              <div className="flex items-center justify-between mb-3">
-                <div className={`${item.bg} p-2 rounded-xl`}>
-                  <Icon icon={item.icon} className={`w-5 h-5 ${item.color}`} />
-                </div>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className={`${item.bg} p-2 rounded-xl`}>
+                        <Icon icon={item.icon} className={`w-5 h-5 ${item.color}`} />
+                      </div>
 
-                <span className="text-2xl font-bold text-gray-900">
-                  {item.value}
-                </span>
-              </div>
+                      <span className="text-2xl font-bold text-gray-900">
+                        {item.value}
+                      </span>
+                    </div>
 
-              <p className="text-sm font-medium text-gray-800">{item.label}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {formatCurrency(item.amount, currency)}
-              </p>
+                    <p className="text-sm font-medium text-gray-800">{item.label}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {formatCurrency(item.amount, currency)}
+                    </p>
+                  </div>
+                ))}
             </div>
-          ))}
-    </div>
 
-    {/* HISTORY */}
-    <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+            {/* HISTORY */}
+            <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
 
-      {/* HEADER */}
-      <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-            <Icon icon="mdi:history" className="w-5 h-5 text-gray-600" />
-            Withdrawal History
-          </h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Track all your transactions
-          </p>
-        </div>
-
-        <button
-          onClick={fetchWithdrawHistory}
-          disabled={historyLoading}
-          className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm flex items-center gap-2 hover:bg-gray-50 transition"
-        >
-          <Icon icon="mdi:refresh" className="w-4 h-4" />
-          Refresh
-        </button>
-      </div>
-
-      {/* CONTENT */}
-      {historyLoading ? (
-        <div className="divide-y divide-gray-100">
-          {Array(4).fill(0).map((_, i) => (
-            <WithdrawItemSkeleton key={i} />
-          ))}
-        </div>
-      ) : withdrawHistory.length === 0 ? (
-        <div className="p-16 text-center">
-          <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon icon="mdi:wallet-outline" className="w-8 h-8 text-gray-400" />
-          </div>
-          <p className="text-gray-900 font-medium mb-1">
-            No Withdrawal History
-          </p>
-          <p className="text-gray-500 text-sm">
-            Your withdrawal requests will appear here
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-gray-100">
-          {withdrawHistory.map((item) => (
-            <div key={item._id} className="p-6 transition">
-
-              {/* TOP */}
-              <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-
-                  <div className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1
-                    ${item.status === "completed"
-                      ? "bg-green-50 text-green-700"
-                      : item.status === "processing"
-                      ? "bg-orange-50 text-orange-700"
-                      : item.status === "rejected"
-                      ? "bg-red-50 text-red-700"
-                      : "bg-blue-50 text-blue-700"}`}>
-
-                    <Icon icon="mdi:check-circle-outline" className="w-4 h-4" />
-                    {item.status}
-                  </div>
-
-                  <span className="text-xs text-gray-400">
-                    {item.earningsCount} earning
-                  </span>
-                </div>
-
-                <p className="text-xl font-bold text-gray-900">
-                  {formatCurrency(item.amount, currency)}
-                </p>
-              </div>
-
-              {/* BANK */}
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Icon icon="mdi:bank-outline" className="w-4 h-4 text-gray-600" />
-                  <span className="text-xs font-semibold text-gray-700">
-                    Bank Details
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <p className="text-xs text-gray-500">Bank</p>
-                    <p className="font-medium">{item.bankDetails.bankName}</p>
-                  </div>
-
-                  <div>
-                    <p className="text-xs text-gray-500">Account</p>
-                    <p className="font-medium font-mono">
-                      {item.bankDetails.accountNumber}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* TIMELINE */}
-              <div className="flex items-center gap-4 text-xs text-gray-600">
+              {/* HEADER */}
+              <div className="px-6 py-5 border-b border-gray-100 flex justify-between items-center">
                 <div>
-                  <p className="text-gray-400">Requested</p>
-                  <p className="font-medium">
-                    {new Date(item.requestedAt).toLocaleDateString()}
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                    <Icon icon="mdi:history" className="w-5 h-5 text-gray-600" />
+                    Withdrawal History
+                  </h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Track all your transactions
                   </p>
                 </div>
 
-                <Icon icon="mdi:arrow-right" className="w-4 h-4 text-gray-300" />
-
-                {item.processedAt && (
-                  <div>
-                    <p className="text-gray-400">Processed</p>
-                    <p className="font-medium">
-                      {new Date(item.processedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                )}
+                <button
+                  onClick={fetchWithdrawHistory}
+                  disabled={historyLoading}
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm flex items-center gap-2 hover:bg-gray-50 transition"
+                >
+                  <Icon icon="mdi:refresh" className="w-4 h-4" />
+                  Refresh
+                </button>
               </div>
 
-              {/* NOTE */}
-              {item.adminNote && (
-                <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2">
-                  <Icon icon="mdi:message-text-outline" className="w-4 h-4 text-amber-600 mt-0.5" />
-                  <p className="text-xs text-amber-800">
-                    {item.adminNote}
+              {/* CONTENT */}
+              {historyLoading ? (
+                <div className="divide-y divide-gray-100">
+                  {Array(4).fill(0).map((_, i) => (
+                    <WithdrawItemSkeleton key={i} />
+                  ))}
+                </div>
+              ) : withdrawHistory.length === 0 ? (
+                <div className="p-16 text-center">
+                  <div className="bg-gray-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Icon icon="mdi:wallet-outline" className="w-8 h-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-900 font-medium mb-1">
+                    No Withdrawal History
                   </p>
+                  <p className="text-gray-500 text-sm">
+                    Your withdrawal requests will appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {withdrawHistory.map((item) => (
+                    <div key={item._id} className="p-6 transition">
+
+                      {/* TOP */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-center gap-3">
+
+                          <div className={`px-3 py-1 rounded-lg text-xs font-medium flex items-center gap-1
+                    ${item.status === "completed"
+                              ? "bg-green-50 text-green-700"
+                              : item.status === "processing"
+                                ? "bg-orange-50 text-orange-700"
+                                : item.status === "rejected"
+                                  ? "bg-red-50 text-red-700"
+                                  : "bg-blue-50 text-blue-700"}`}>
+
+                            <Icon icon="mdi:check-circle-outline" className="w-4 h-4" />
+                            {item.status}
+                          </div>
+
+                          <span className="text-xs text-gray-400">
+                            {item.earningsCount} earning
+                          </span>
+                        </div>
+
+                        <p className="text-xl font-bold text-gray-900">
+                          {formatCurrency(item.amount, currency)}
+                        </p>
+                      </div>
+
+                      {/* BANK */}
+                      <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Icon icon="mdi:bank-outline" className="w-4 h-4 text-gray-600" />
+                          <span className="text-xs font-semibold text-gray-700">
+                            Bank Details
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-3 text-sm">
+                          <div>
+                            <p className="text-xs text-gray-500">Bank</p>
+                            <p className="font-medium">{item.bankDetails.bankName}</p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-gray-500">Account</p>
+                            <p className="font-medium font-mono">
+                              {item.bankDetails.accountNumber}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* TIMELINE */}
+                      <div className="flex items-center gap-4 text-xs text-gray-600">
+                        <div>
+                          <p className="text-gray-400">Requested</p>
+                          <p className="font-medium">
+                            {new Date(item.requestedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <Icon icon="mdi:arrow-right" className="w-4 h-4 text-gray-300" />
+
+                        {item.processedAt && (
+                          <div>
+                            <p className="text-gray-400">Processed</p>
+                            <p className="font-medium">
+                              {new Date(item.processedAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* NOTE */}
+                      {item.adminNote && (
+                        <div className="mt-4 bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2">
+                          <Icon icon="mdi:message-text-outline" className="w-4 h-4 text-amber-600 mt-0.5" />
+                          <p className="text-xs text-amber-800">
+                            {item.adminNote}
+                          </p>
+                        </div>
+                      )}
+
+                    </div>
+                  ))}
                 </div>
               )}
-
             </div>
-          ))}
-        </div>
-      )}
-    </div>
-  </>
-)}
+          </>
+        )}
       </div>
 
       {/*  WITHDRAWAL MODAL (only shows if payment info complete) */}
@@ -1320,6 +1357,9 @@ function RepairmanEarning() {
           </div>
         </div>
       )}
+
+
+      <TopUpModal isOpen={showTopUpModal} onClose={() => setShowTopUpModal(false)} onProceed={handleTopUpSubmit} />
     </div>
   )
 }

@@ -118,12 +118,12 @@ const BookingDetails = ({ booking, job, dataType }) => {
                             </p>
                         </div>
 
-                        <div>
+                        {/* <div>
                             <span className="text-sm font-medium text-gray-600">Payment Status:</span>
                             <div className="mt-1">
                                 <StatusBadge status={booking.payment?.status} />
                             </div>
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>
