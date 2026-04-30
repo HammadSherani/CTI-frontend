@@ -406,20 +406,22 @@ function PromoMarquee() {
 export function NavigationHeader() {
   const [openDropdown, setOpenDropdown] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
+
   const router = useRouter();
   const pathname = usePathname();
-  console.log("Current pathname:", pathname);
- const locale=useLocale();
-   const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
+  const locale = useLocale();
 
-// const isHome = ["/", `/${locale}`, `/${locale}/`].includes(pathname);
-console.log("Current pathname:", pathname, "Is home?", isHome);
+  const isHome =
+    pathname === "/" ||
+    pathname === `/${locale}` ||
+    pathname === "";
+
   const navigationData = {
     mainNav: [
       { name: "Home", href: "/", hasDropdown: false },
       {
         name: "Services",
-        href: "#",
+        href: "/mobile-repair",
         hasDropdown: true,
         dropdownItems: [
           { name: "Mobile Repair", href: "/mobile-repair", icon: "mynaui:mobile" },
@@ -432,7 +434,7 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
       },
       {
         name: "Products",
-        href: "#",
+        href: "/product",
         hasDropdown: true,
         dropdownItems: [
           { name: "New Arrivals", href: "/coming", icon: "mdi:star" },
@@ -462,22 +464,18 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
     ],
   };
 
-  // Scroll detection + Close dropdown on scroll
+  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
-
-      // ←←← Yeh important hai: Scroll karte hi dropdown close ho jaye
-      if (openDropdown) {
-        setOpenDropdown(null);
-      }
+      if (openDropdown) setOpenDropdown(null);
     };
 
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [openDropdown]);
 
-  // Close dropdown when clicking outside
+  // Click outside close
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (!e.target.closest(".dropdown-container")) {
@@ -490,22 +488,13 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
   }, []);
 
   // Hover handlers
-  const handleMouseEnter = (name) => {
-    setOpenDropdown(name);
-  };
+  const handleMouseEnter = (name) => setOpenDropdown(name);
+  const handleMouseLeave = () => setOpenDropdown(null);
 
-  const handleMouseLeave = () => {
-    setOpenDropdown(null);
-  };
-
-  const toggleDropdown = (name) => {
-    setOpenDropdown(openDropdown === name ? null : name);
-  };
-
-  
   return (
     <header
-      className={`fixed left-0 w-full p-2 !z-[19] transition-all duration-300 ${isScrolled
+      className={`fixed left-0 w-full p-2 z-[19] transition-all duration-300 ${
+        isScrolled
           ? "bg-white shadow-md top-[117px]"
           : isHome
           ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[160px]"
@@ -521,75 +510,68 @@ console.log("Current pathname:", pathname, "Is home?", isHome);
               onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.name)}
               onMouseLeave={() => item.hasDropdown && handleMouseLeave()}
             >
-              {item.hasDropdown ? (
-                <>
-                  <button
-                    onClick={() => toggleDropdown(item.name)}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isScrolled
-                        ? "text-gray-900 hover:bg-gray-100"
-                        : isHome
-                          ? "text-white hover:bg-white/10"
-                          : "text-gray-900 hover:bg-gray-100"
-                      }`}
-                  >
-                    {item.name}
-                    <Icon
-                      icon="mdi:chevron-down"
-                      className={`transition-transform duration-300 ${openDropdown === item.name ? "rotate-180" : ""
-                        }`}
-                      width={18}
-                    />
-                  </button>
+              {/* 🔥 MAIN NAV ITEM */}
+              <Link
+                href={item.href}
+                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+                  isScrolled
+                    ? "text-gray-900 hover:bg-gray-100"
+                    : isHome
+                    ? "text-white hover:bg-white/10"
+                    : "text-gray-900 hover:bg-gray-100"
+                }`}
+              >
+                {item.name}
 
-                  <AnimatePresence>
-                    {openDropdown === item.name && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 10 }}
-                        transition={{ duration: 0.2 }}
-                        className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${isScrolled
-                            ? "bg-white border-gray-200"
-                            : isHome
-                              ? "bg-white/10 backdrop-blur-md border-white/20"
-                              : "bg-white border-gray-200"
-                          }`}
-                      >
-                        {item.dropdownItems.map((dropdownItem) => (
-                          <Link
-                            key={dropdownItem.name}
-                            href={dropdownItem.href}
-                            onClick={() => setOpenDropdown(null)}
-                            className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${isScrolled
-                                ? "text-gray-800 hover:bg-gray-100"
-                                : isHome
-                                  ? "text-white hover:bg-white/20"
-                                  : "text-gray-900 hover:bg-gray-100"
-                              }`}
-                          >
-                            <Icon icon={dropdownItem.icon} width={18} />
-                            <span className="text-sm font-medium">
-                              {dropdownItem.name}
-                            </span>
-                          </Link>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </>
-              ) : (
-                <Link
-                  href={item.href}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${isScrolled
-                      ? "text-gray-900 hover:bg-gray-100"
-                      : isHome
-                        ? "text-white hover:bg-white/10"
-                        : "text-gray-900 hover:bg-gray-100"
+                {item.hasDropdown && (
+                  <Icon
+                    icon="mdi:chevron-down"
+                    className={`transition-transform duration-300 ${
+                      openDropdown === item.name ? "rotate-180" : ""
                     }`}
-                >
-                  {item.name}
-                </Link>
-              )}
+                    width={18}
+                  />
+                )}
+              </Link>
+
+              {/* 🔽 DROPDOWN */}
+              <AnimatePresence>
+                {item.hasDropdown && openDropdown === item.name && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    transition={{ duration: 0.2 }}
+                    className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
+                      isScrolled
+                        ? "bg-white border-gray-200"
+                        : isHome
+                        ? "bg-white/10 backdrop-blur-md border-white/20"
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
+                    {item.dropdownItems?.map((dropdownItem) => (
+                      <Link
+                        key={dropdownItem.name}
+                        href={dropdownItem.href}
+                        onClick={() => setOpenDropdown(null)}
+                        className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
+                          isScrolled
+                            ? "text-gray-800 hover:bg-gray-100"
+                            : isHome
+                            ? "text-white hover:bg-white/20"
+                            : "text-gray-900 hover:bg-gray-100"
+                        }`}
+                      >
+                        <Icon icon={dropdownItem.icon} width={18} />
+                        <span className="text-sm font-medium">
+                          {dropdownItem.name}
+                        </span>
+                      </Link>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           ))}
         </nav>

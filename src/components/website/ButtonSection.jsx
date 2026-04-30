@@ -81,8 +81,8 @@ function ButtonSection() {
   }, []);
 
   // Handlers
-  const handleCartClick = () => router.push("/coming");
-  const handleWishlistClick = () => router.push("/coming");
+  const handleCartClick = () => router.push("/cart");
+  const handleWishlistClick = () => router.push("/wishlist");
   const handleNotificationClick = () => router.push("/coming");
 
   const dropdownLinks = [
@@ -94,13 +94,13 @@ function ButtonSection() {
   if (!user) {
     return (
       <div className="flex items-center">
-        <Link href="/coming">
+        <Link href="/wishlist">
           <button className="p-3 hover:bg-gray-100/60 w-12 h-12 flex justify-center rounded-full">
             <Icon icon="mdi:heart-outline" width="22" height="22" />
           </button>
         </Link>
 
-        <Link href="/coming">
+        <Link href="/cart">
           <button className="p-3 hover:bg-gray-100/60 w-12 h-12 flex justify-center rounded-full">
             <Icon icon="proicons:cart" width="22" height="22" />
           </button>

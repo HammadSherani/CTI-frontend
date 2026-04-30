@@ -78,21 +78,40 @@ function Signup() {
     { value: "seller", label: "Seller", icon: "mdi:store" },
   ];
 
-  const onSubmit = async (data) => {
-    try {
-      console.log("Form submitted:", data);
-      const response = await axiosInstance.post("/auth/register", data);
-      toast.success(response.data.message);
-      router.push("/auth/verify-otp");
-      dispatch(setAuth({
-        user: response.data.data,
-      }));
-      // response.
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-    } catch (error) {
-      handleError(error);
+const onSubmit = async (data) => {
+  try {
+    console.log("Form submitted:", data);
+
+    let response;
+
+    // 👉 Fix role mapping
+    if (data.role === "seller") {
+      response = await axiosInstance.post(
+        "/e-commerce/auth/register",
+        data
+      );
+    } else {
+      // customer + repairman dono yahan
+      response = await axiosInstance.post(
+        "/auth/register",
+        data
+      );
     }
-  };
+
+    toast.success(response.data.message);
+
+    dispatch(
+      setAuth({
+        user: response.data.data,
+      })
+    );
+
+    router.push("/auth/verify-otp");
+
+  } catch (error) {
+    handleError(error);
+  }
+};
 
   const getRoleLabel = (value) => {
     const role = roleOptions.find((option) => option.value === value);

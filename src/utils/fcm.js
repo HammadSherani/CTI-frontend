@@ -5,7 +5,7 @@ import axiosInstance from '@/config/axiosInstance';
 export async function requestNotificationPermission() {
   try {
     if (!('Notification' in window)) {
-      console.log('❌ Browser does not support notifications');
+      console.log(' Browser does not support notifications');
       return false;
     }
 
@@ -15,7 +15,7 @@ export async function requestNotificationPermission() {
       console.log('✅ Notification permission granted');
       return true;
     } else {
-      console.log('❌ Notification permission denied');
+      console.log(' Notification permission denied');
       return false;
     }
   } catch (error) {
@@ -27,7 +27,7 @@ export async function requestNotificationPermission() {
 export async function getFCMToken() {
   try {
     if (!messaging) {
-      console.error('❌ Messaging not initialized (SSR issue)');
+      console.error(' Messaging not initialized (SSR issue)');
       return null;
     }
 
@@ -38,7 +38,7 @@ export async function getFCMToken() {
     console.log('✅ FCM Token generated:', token?.substring(0, 20) + '...');
     return token;
   } catch (error) {
-    console.error('❌ Error getting FCM token:', error);
+    console.error(' Error getting FCM token:', error);
     return null;
   }
 }
@@ -85,12 +85,12 @@ export async function updateFCMToken(authToken) {
       console.log('✅ FCM token updated on server');
       return true;
     } else {
-      console.error('❌ Failed to update FCM token:', response.data);
+      console.error(' Failed to update FCM token:', response.data);
       return false;
     }
     
   } catch (error) {
-    console.error('❌ Error updating FCM token:', error.response?.data || error.message);
+    console.error(' Error updating FCM token:', error.response?.data || error.message);
     return false;
   }
 }
@@ -98,7 +98,7 @@ export async function updateFCMToken(authToken) {
 // Listen to foreground notifications
 export function onMessageListener(callback) {
   if (!messaging) {
-    console.error('❌ Messaging not initialized');
+    console.error(' Messaging not initialized');
     return;
   }
 

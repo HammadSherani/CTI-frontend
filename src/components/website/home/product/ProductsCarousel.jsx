@@ -3,9 +3,9 @@
 import { useRef } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import 'swiper/css';
-import ProductCard from './productCard';
+import ProductCard from '../../product/productCard';
 import { Icon } from '@iconify/react';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 
 const demoProducts = [
   {
@@ -80,7 +80,7 @@ export default function ProductsCarousel({
   products = demoProducts,
   title = 'New',
   titleHighlight = 'Products',
-  viewMoreHref = '/coming',
+  viewMoreHref = '/product',
   onAdd,
 }) {
   const swiperRef = useRef(null);
@@ -100,12 +100,12 @@ const router = useRouter();
           {title}{' '}
         </h2>
 
-        <a
+        <Link
           href={viewMoreHref}
           className="text-sm font-semibold text-orange-500 hover:text-orange-600 hover:underline transition-colors"
         >
           View More
-        </a>
+        </Link>
       </div>
 
       {/* ── Carousel Wrapper ── */}
@@ -115,7 +115,7 @@ const router = useRouter();
           type="button"
           aria-label="Previous"
           onClick={() => swiperRef.current?.slidePrev()}
-          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -left-4 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -left-8 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
         >
           <Icon icon="mdi:chevron-left" className="w-5 h-5 text-white" />
         </button>
@@ -123,7 +123,7 @@ const router = useRouter();
           type="button"
           aria-label="Next"
           onClick={() => swiperRef.current?.slideNext()}
-          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -right-4 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
+          className="w-9 h-9 absolute top-1/2 -translate-y-1/2 -right-8 z-20 flex items-center justify-center rounded-lg bg-black text-white border border-gray-200 shadow-sm hover:bg-gray-800 hover:border-orange-300 transition-all"
         >
           <Icon icon="mdi:chevron-right" className="w-5 h-5 text-white" />
         </button>

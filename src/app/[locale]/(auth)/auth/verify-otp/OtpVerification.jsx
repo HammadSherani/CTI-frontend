@@ -33,9 +33,9 @@ function OtpVerification() {
   const userId = searchParams.get("userId");
   console.log("email", userEmail);
   console.log("userId", userId);
-  
 
   const { user } = useSelector((state) => state.auth);
+  console.log("Redux user:", user);
   const router = useRouter();
   const dispatch = useDispatch();
 
@@ -100,69 +100,99 @@ function OtpVerification() {
     }
   };
 
-  const onSubmit = async (data) => {
-    try {
-      console.log("OTP submitted:", data);
+ const onSubmit = async (data) => {
+  try {
+    console.log("OTP submitted:", data);
 
-      const response = await axiosInstance.post("/auth/verify-otp", {
-        otp: data.otp,
-        email: user?.email || userEmail,
-      });
+    let response;
 
-      if (response.status !== 200) {
-        toast.error("Something went wrong, please try again");
-        return;
-      }
-
-      const { message, data: resData, token } = response.data;
-
-      toast.success(message);
-
-      const userData = resData?.user;
-
-      if (!userData) {
-        toast.error("Invalid response from server");
-        return;
-      }
-
-      // 🔑 Save user + token to Redux
-      dispatch(
-        setAuth({
-          user: userData,
-          token: resData.token,
-        })
+    //  correct condition
+    if (user?.role === "seller") {
+      response = await axiosInstance.post(
+        "/e-commerce/auth/verify-otp",
+        {
+          otp: data.otp,
+          email: user?.email || userEmail,
+        }
       );
-
-      // 🔑 Redirect logic
-      if (userData.role === "repairman" && !userData.isProfileComplete) {
-        router.push("/repair-man/complete-profile");
-      } else if (userData.role === "seller" && !userData.isProfileComplete) {
-        router.push("/seller-man/profile");
-      } else {
-        router.push("/");
-      }
-    } catch (error) {
-      handleError(error);
+    } else {
+      // customer + repairman
+      response = await axiosInstance.post(
+        "/auth/verify-otp",
+        {
+          otp: data.otp,
+          email: user?.email || userEmail,
+        }
+      );
     }
-  };
 
-
-
-  const handleResendOtp = async () => {
-    setIsResending(true);
-    try {
-      await axiosInstance.post("/auth/resend-otp", { email: user?.email || userEmail });
-      setTimer(120);
-      setCanResend(false);
-      setOtpValues(["", "", "", "", "", ""]);
-      setValue("otp", "");
-      inputRefs.current[0]?.focus();
-    } catch (error) {
-      handleError(error);
-    } finally {
-      setIsResending(false);
+    if (response.status !== 200) {
+      toast.error("Something went wrong, please try again");
+      return;
     }
-  };
+
+    const { message, data: resData } = response.data;
+
+    toast.success(message);
+
+    const userData = resData?.user;
+
+    if (!userData) {
+      toast.error("Invalid response from server");
+      return;
+    }
+
+    // ✅ Save to Redux
+    dispatch(
+      setAuth({
+        user: userData,
+        token: resData.token,
+      })
+    );
+
+    // ✅ Redirect logic
+    if (userData.role === "repairman" && !userData.isProfileComplete) {
+      router.push("/repair-man/complete-profile");
+    } else if (userData.role === "seller" && !userData.isProfileComplete) {
+      router.push("/seller/complete-profile");
+    } else {
+      router.push("/");
+    }
+
+  } catch (error) {
+    handleError(error);
+  }
+};
+
+
+
+ const handleResendOtp = async () => {
+  setIsResending(true);
+
+  try {
+    const endpoint =
+      user?.role === "seller"
+        ? "/e-commerce/auth/resend-otp"
+        : "/auth/resend-otp";
+
+    await axiosInstance.post(endpoint, {
+      email: user?.email || userEmail,
+    });
+
+    setTimer(120);
+    setCanResend(false);
+    setOtpValues(["", "", "", "", "", ""]);
+    setValue("otp", "");
+    inputRefs.current[0]?.focus();
+
+    toast.success("OTP resent successfully");
+    
+  } catch (error) {
+    handleError(error);
+  } finally {
+    setIsResending(false);
+  }
+};
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -181,6 +211,8 @@ function OtpVerification() {
                 <Image
                   src='/assets/user/login.png'
                   alt="OTP Verification Illustration"
+                  width={400}
+                  height={300}
                   className="w-full max-w-md mx-auto mb-6 drop-shadow-2xl"
                 />
                 <div className="text-white">
