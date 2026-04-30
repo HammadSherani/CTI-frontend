@@ -61,7 +61,7 @@ function ComingSoonContent() {
         </p>
 
         {/* Email Subscription */}
-        <div className="w-full max-w-md mx-auto mb-12">
+        {/* <div className="w-full max-w-md mx-auto mb-12">
           <p className="text-gray-400 mb-4">Be the first to know when we launch</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <input
@@ -73,7 +73,7 @@ function ComingSoonContent() {
               Notify Me
             </button>
           </div>
-        </div>
+        </div> */}
 
         {/* Social Proof / Trust */}
         <div className="flex flex-wrap justify-center gap-8 text-gray-500">

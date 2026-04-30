@@ -217,11 +217,11 @@ const handleMessageSend = async () => {
                             </span> */}
 
                             {console.log('reparimen:', offer.repairmanId)}
-                        <span className="bg-gray-100 text-green-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                        {/* <span className="bg-gray-100 text-green-600 text-xs px-2 py-1 rounded-full flex items-center gap-1">
                             <span className="text-sm text-gray-600">
                                 {offer.repairmanId?.repairmanProfile?.city || ''}
                             </span>
-                        </span>
+                        </span> */}
                     </div>
 
                     {/* Service Info */}
