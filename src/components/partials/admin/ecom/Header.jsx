@@ -29,102 +29,43 @@ function Header() {
     dispatch(clearAuth());
   };
 
-  const primaryNavLinks = [
-    { name: "Dashboard", path: `/admin/dashboard`, icon: "mdi:view-dashboard-outline" },
+ const primaryNavLinks = [
+  {
+    name: "Dashboard",
+    path: "/admin/ecom/dashbaord",
+    icon: "mdi:view-dashboard-outline",
+  },
 
-    {
-      name: "Catalog",
-      path: "#",
-      icon: "mdi:folder-outline",
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "Content Management",
-          items: [
-            { name: "Services", icon: "mdi:post-outline", path: "/admin/services" },
-            { name: "Banners", icon: "mdi:image-outline", path: "/admin/banners" },
-            { name: "Brand", icon: "mdi:tag-outline", path: "/admin/brand" },
-            { name: "Models", icon: "mdi:cube-outline", path: "/admin/models" },
-            { name: "Blog", icon: "mdi:post-outline", path: "/admin/blogs" },
-          ]
-        },
-        {
-          category: "Location Management",
-          items: [
-            { name: "City", icon: "mdi:city-variant-outline", path: "/admin/cities" },
-            { name: "State", icon: "mdi:map-marker-outline", path: "/admin/states" },
-            { name: "Country", icon: "mdi:earth", path: "/admin/countries" },
-          ]
-        }
-      ]
-    },
+  {
+    name: "Category Management",
+    path: "#",
+    icon: "mdi:package-variant",
+    hasSubmenu: true,
+    submenu: [
+      {
+        category: "Categories",
+        items: [
+          {
+            name: "Categories",
+            icon: "mdi:shape-outline",
+            path: "/admin/ecom/categories",
+          },
+          {
+            name: "SubCategories",
+            icon: "mdi:shape-plus",
+            path: "/admin/ecom/sub-categories",
+          },
+        ],
+      },
+    ],
+  },
 
-    {
-      name: "Users",
-      path: "#",
-      icon: "mdi:account-multiple-outline", // Better icon for user management
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "User Management",
-          items: [
-            { name: "All Users", icon: "mdi:account-group-outline", path: "/admin/users" },
-            { name: "Repairmen", icon: "mdi:account-wrench-outline", path: "/admin/repair-man" },
-            { name: "KYC Management", icon: "mdi:shield-account-outline", path: "/admin/kyc-management" },
-          ]
-        },
-        {
-          category: "Operations",
-          items: [
-            { name: "Job Board", icon: "mdi:briefcase-outline", path: "/admin/job-board" },
-            { name: "Ratings & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
-            { name: "Disputes", icon: "mdi:gavel", path: "/admin/disputes" },
-            { name: "Advertisment", icon: "mdi:advertisements", path: "/admin/advertisement" },
-          ]
-        }
-      ]
-    },
-
-    {
-      name: "Parts Management",
-      path: "#",
-      icon: "mdi:package-variant",
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "Inventory",
-          items: [
-            { name: "Parts Categories", icon: "mdi:shape-outline", path: "/admin/parts/parts-categories" },
-            { name: "Stock Management", icon: "mdi:warehouse", path: "/admin/parts/stock-management" },
-          ]
-        },
-        {
-          category: "Orders",
-          items: [
-            { name: "Parts Orders", icon: "mdi:cart-outline", path: "/admin/parts/parts-orders" },
-          ]
-        }
-      ]
-    },
-    {
-      name: "Academy",
-      path: "#",
-      icon: "mdi:school-outline",
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "Academy",
-          items: [
-            { name: "Academy Categories", icon: "mdi:shape-outline", path: "/admin/academy/academy-categories" },
-            { name: "Ace Management", icon: "mdi:warehouse", path: "/admin/academy/ace-management" },
-          ]
-        },
-
-      ]
-    }, { name: "Withdrwals", path: `/admin/withdrawals/all-withdrawal-request`, icon: "mdi:cash" },
-    { name: "Ecom", path: `/admin/ecom/dashbaord`, icon: "mdi:store" },
-
-  ];
+  {
+    name: "Sellers",
+    path: "/admin/ecom/sellers",
+    icon: "mdi:store",
+  },
+];
 
   // Updated user dropdown links (more admin-focused)
   const dropdownLinks = [
@@ -271,7 +212,7 @@ function Header() {
 
           <nav className="hidden lg:flex items-center gap-1">
             {primaryNavLinks.map((link) => {
-              if (link.name === "Catalog") {
+              if (link.name === "Category Management") {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
               } else if (link.name === "Academy") {
                 return renderNavLink(link, isAcademyDropdownOpen, setIsAcademyDropdownOpen, academyDropdownRef);

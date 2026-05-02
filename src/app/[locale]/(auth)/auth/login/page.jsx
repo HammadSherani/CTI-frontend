@@ -47,22 +47,26 @@ function Login() {
 
   const onSubmit = async (data) => {
     try {
-      console.log("Login submitted:", data);
+      console.log("Login submitteds:", data);
 
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
         rememberMe: data.rememberMe,
       });
-
+      console.log("Login successful:", response);
+      
       const resData = response.data.data;
-
+console.log(resData,'resData')
       // 🔐 If email is NOT verified → redirect to verification page
       if (response.data.requiresVerification) {
         console.log("Email not verified → redirecting to OTP page...");
 
         router.push(`/auth/verify-email?email=${resData.email}&userId=${resData.userId}`);
         return;
+      }
+      if(resData.status==410){
+        router.push(`/seller/complete-profile${resData.userId}`)
       }
 
       // 🔐 Save to Redux
@@ -92,7 +96,10 @@ function Login() {
         if (resData?.user?.kycStatus === "not_submitted") {
           // router.push("/repair-man/dashboard");
           router.push("/repair-man/complete-profile");
-        } else {
+        }if(resData.user?.role==='seller'){
+          router.push("/seller/dashbaord")
+        }
+         else {
           // router.push("/repair-man/complete-profile");
           router.push("/repair-man/dashboard");
         }
@@ -101,13 +108,20 @@ function Login() {
       }
 
     } catch (error) {
-      // If API explicitly returned 401 with verification flag
-      if (error?.response?.data?.requiresVerification) {
-        const { email, userId } = error.response.data.data;
+      console.log(error.response,"rer");
 
-        router.push(`/auth/verify-otp?email=${email}&userId=${userId}`);
+      if(error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
+        const { email, userId } = error.response.data.data;
+        router.push(`/auth/verify-email?email=${email}&userId=${userId}`);
         return;
       }
+
+      
+ if(error?.response?.status === 410 && error?.response?.data?.data?.isKycCompleted===false) {
+        router.push(`/seller/complete-profile/${error.response?.data?.data.userId}`);
+        return;
+      }
+
 
       handleError(error);
     }

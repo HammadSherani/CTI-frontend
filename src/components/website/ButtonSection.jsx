@@ -157,6 +157,13 @@ function ButtonSection() {
     </>
   );
 
+    const renderSellerButtons = () => (
+    <>
+      <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
+      <DashboardLink link="/seller/dashboard" />
+    </>
+  );
+
   const renderAdminButtons = () => (
     <>
       <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
@@ -167,6 +174,7 @@ function ButtonSection() {
   const roleButtons = {
     customer: renderCustomerButtons,
     repairman: renderRepairmanButtons,
+    seller:renderSellerButtons,
     admin: renderAdminButtons,
   };
 

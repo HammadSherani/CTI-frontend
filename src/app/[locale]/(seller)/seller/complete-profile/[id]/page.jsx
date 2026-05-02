@@ -14,42 +14,25 @@ import PersonalInformation from "@/components/partials/seller/PersonalInformatio
 import DocumentUploads from "@/components/partials/seller/DocumentUploads";
 import ShippingOperations from "@/components/partials/seller/ShippingOperations";
 import BankDetails from "@/components/partials/seller/BankDetails";
+import { useParams, useSearchParams } from "next/navigation";
 
 // ─── Schemas ───────────────────────────────────────────────
-const step1Schema = yup.object({
+const step2Schema = yup.object({
   businessName: yup.string().required("Business name is required").min(2).max(100),
-  storeDescription: yup.string().required("Store description is required").min(20).max(500),
+  storeDescription: yup.string().required("Store description is required").min(20).max(700),
   nationalIdOrTaxNumber: yup.string().required("Tax/National ID number is required").min(5).max(30),
-  productCategories: yup.array().min(1, "Select at least one category").required(),
   sellsRefurbishedDevices: yup.boolean().required(),
-  returnPolicy: yup.string().required("Return policy is required").min(10).max(300),
-  warrantyTerms: yup.string().required("Warranty terms are required").min(10).max(300),
 });
 
-const step2Schema = yup.object({
+const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2).max(100),
   gender: yup.string().required("Gender is required").oneOf(["Male", "Female", "Other"]),
-  dob: yup
-    .date()
-    .required("Date of birth is required")
-    .max(new Date(), "Cannot be in the future")
-    .test("age", "Must be at least 18 years old", function (value) {
-      if (!value) return false;
-      const today = new Date();
-      const birth = new Date(value);
-      let age = today.getFullYear() - birth.getFullYear();
-      const m = today.getMonth() - birth.getMonth();
-      if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
-      return age >= 18;
-    }),
-  phoneNumber: yup
-    .string()
-    .required("Phone number is required")
-    .matches(/^[0-9+\-\s]{7,15}$/, "Enter a valid phone number"),
-  emailAddress: yup.string().required("Email is required").email("Invalid email"),
+  dob: yup.date().required("Date of birth is required") /* ...existing test */,
+  phoneNumber: yup.string().required("Phone number is required").matches(/^[0-9+\-\s]{7,15}$/, "Valid phone required"),
   storeAddress: yup.string().required("Store address is required").min(10).max(200),
-  city: yup.string().required("City is required").min(2).max(50),
-  district: yup.string().nullable(),
+  country: yup.string().required("Country is required"),   // ← add
+  state: yup.string().required("State is required"),       // ← add
+  city: yup.string().required("City is required"),
   zipCode: yup.string().required("ZIP code is required").min(3).max(10),
 });
 
@@ -82,7 +65,6 @@ const step3Schema = yup.object({
 
 const step4Schema = yup.object({
   shippingMethod: yup.string().required("Shipping method is required"),
-  deliveryCities: yup.array().min(1, "Add at least one delivery city").required(),
   workingDays: yup.array().min(1, "Select at least one working day").of(
     yup.string().oneOf(["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"])
   ),
@@ -137,9 +119,11 @@ const clearStorage = () => {
 
 // ─── Main Component ─────────────────────────────────────────
 export default function SellerKycForm() {
-  const { user, token } = useSelector((s) => s.auth);
-  console.log("User from store:", user);
-  console.log("Token from store:", token);
+ const params = useParams();
+    const id = params?.id;   
+    useEffect(() => {
+        console.log('ID from URL:', id);
+    }, [id]);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -148,8 +132,8 @@ export default function SellerKycForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const stepTitles = [
-    "Business Info",
     "Personal Info",
+    "Business Info",
     "Documents",
     "Shipping",
     "Bank Details",
@@ -172,19 +156,14 @@ export default function SellerKycForm() {
       businessName: "My Awesome Store",
       storeDescription: "my awesome store description goes here. It should be at least 20 characters long.",
       nationalIdOrTaxNumber: "2345678901",
-      productCategories: [],
       sellsRefurbishedDevices: false,
-      returnPolicy: "this is my return policy. It should be at least 10 characters long.",
-      warrantyTerms: "this is my warranty terms. It should be at least 10 characters long.",
       // Step 2
       fullName: "Naveed Ahmed",
       gender: "Male",
       dob: "30-05-1995",
       phoneNumber: "03123456789",
-      emailAddress: user?.email || "",
       storeAddress: "address line 1, address line 2, city, district, zip code",
-      city: "Karachi",
-      district: "Karachi South",
+      city: "",
       zipCode: "12345",
       // Step 3
       profilePictureOrLogo: null,
@@ -193,7 +172,6 @@ export default function SellerKycForm() {
       proofOfAddress: null,
       // Step 4
       shippingMethod: "",
-      deliveryCities: [],
       workingDays: [],
       workingHours: { start: "", end: "" },
       // Step 5
@@ -260,29 +238,26 @@ export default function SellerKycForm() {
 
       const fd = new FormData();
 
-      const profilePayload = {
-        fullName: all.fullName,
-        gender: all.gender,
-        dob: all.dob,
-        phoneNumber: all.phoneNumber,
-        emailAddress: all.emailAddress,
-        storeAddress: all.storeAddress,
-        city: all.city,
-        district: all.district,
-        zipCode: all.zipCode,
-        nationalIdOrTaxNumber: all.nationalIdOrTaxNumber,
-        businessName: all.businessName,
-        productCategories: all.productCategories,
-        sellsRefurbishedDevices: all.sellsRefurbishedDevices,
-        storeDescription: all.storeDescription,
-        returnPolicy: all.returnPolicy,
-        warrantyTerms: all.warrantyTerms,
-        shippingMethod: all.shippingMethod,
-        deliveryCities: all.deliveryCities,
-        workingDays: all.workingDays,
-        workingHours: all.workingHours,
-        bankDetails: all.bankDetails,
-      };
+const profilePayload = {
+  fullName:               all.fullName,
+  gender:                 all.gender,
+  dob:                    all.dob,
+  phoneNumber:            all.phoneNumber,
+  storeAddress:           all.storeAddress,
+  country:                all.country,   
+  state:                  all.state,     
+  city:                   all.city,
+  zipCode:                all.zipCode,
+  nationalIdOrTaxNumber:  all.nationalIdOrTaxNumber,
+  businessName:           all.businessName,
+  sellsRefurbishedDevices: all.sellsRefurbishedDevices,
+  storeDescription:       all.storeDescription,
+  shippingMethod:         all.shippingMethod,
+  workingDays:            all.workingDays,
+  workingHours:           all.workingHours,
+  bankDetails:            all.bankDetails,
+};
+console.log(all,'all')
 
       fd.append("sellerProfile", JSON.stringify(profilePayload));
 
@@ -294,14 +269,19 @@ export default function SellerKycForm() {
         fd.append("shopLicenseOrTaxCertificate", all.shopLicenseOrTaxCertificate);
       if (all.proofOfAddress instanceof File)
         fd.append("proofOfAddress", all.proofOfAddress);
-
-      const res = await axiosInstance.post("/e-commerce/profile/create", fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-        timeout: 120000,
-      });
+      for (let pair of fd.entries()) {
+  console.log(pair);
+}
+    const res = await axiosInstance.post(
+  `/e-commerce/profile/create/${id}`,
+  fd,
+  {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+    timeout: 120000,
+  }
+);
 
       if (res.status === 200 || res.data?.success) {
         toast.success("Profile submitted! KYC is under review.");
@@ -351,9 +331,16 @@ export default function SellerKycForm() {
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-          {step === 1 && <BusinessInformation control={control} errors={errors} watch={watch} setValue={setValue} />}
-          {step === 2 && <PersonalInformation control={control} errors={errors} user={user} />}
-          {step === 3 && <DocumentUploads control={control} errors={errors} setValue={setValue} watch={watch} />}
+{step === 1 && (
+  <PersonalInformation
+    control={control}
+    errors={errors}
+    watch={watch}        // ← yeh add karo
+    setValue={setValue}  // ← yeh add karo
+    />
+  )}          
+  {step === 2 && <BusinessInformation control={control} errors={errors} watch={watch} setValue={setValue} />}
+  {step === 3 && <DocumentUploads control={control} errors={errors} setValue={setValue} watch={watch} />}
           {step === 4 && <ShippingOperations control={control} errors={errors} watch={watch} setValue={setValue} />}
           {step === 5 && <BankDetails control={control} errors={errors} />}
 

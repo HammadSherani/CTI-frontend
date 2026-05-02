@@ -6,7 +6,8 @@ import { Icon } from "@iconify/react";
 const UploadField = ({ label, name, control, errors, setValue, watch, accept, hint }) => {
   const inputRef = useRef();
   const file = watch(name);
-
+console.log(setValue,"Setvalue from document")
+console.log(watch,"watch from document")
   return (
     <div>
       <label className="block text-sm font-medium text-gray-600 mb-1.5">

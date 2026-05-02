@@ -1,21 +1,7 @@
 "use client";
 import { Controller } from "react-hook-form";
 
-const CATEGORIES = [
-  "Smartphones", "Laptops", "Tablets", "Accessories",
-  "Audio", "Cameras", "Gaming", "Smart Home", "Wearables", "Networking",
-];
-
 export default function BusinessInformation({ control, errors, watch, setValue }) {
-  const selected = watch("productCategories") || [];
-  const refurb = watch("sellsRefurbishedDevices");
-
-  const toggleCategory = (cat) => {
-    const next = selected.includes(cat)
-      ? selected.filter((c) => c !== cat)
-      : [...selected, cat];
-    setValue("productCategories", next, { shouldValidate: true });
-  };
 
   return (
     <div className="space-y-6">
@@ -80,54 +66,7 @@ export default function BusinessInformation({ control, errors, watch, setValue }
           {errors.storeDescription && <p className="text-red-500 text-xs mt-1">{errors.storeDescription.message}</p>}
         </div>
 
-        {/* Product Categories */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-2">
-            Product Categories <span className="text-primary-500">*</span>
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => toggleCategory(cat)}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                  ${selected.includes(cat)
-                    ? "bg-primary-600 border-primary-600 text-white"
-                    : "bg-gray-50 border-gray-300 text-gray-600 hover:border-primary-400"}`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-          {errors.productCategories && <p className="text-red-500 text-xs mt-1">{errors.productCategories.message}</p>}
-        </div>
 
-        {/* Return Policy */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Return Policy <span className="text-primary-500">*</span>
-          </label>
-          <Controller name="returnPolicy" control={control} render={({ field }) => (
-            <textarea {...field} rows={3} placeholder="Describe your return policy..."
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none
-                ${errors.returnPolicy ? "border-red-400" : "border-gray-300"}`} />
-          )} />
-          {errors.returnPolicy && <p className="text-red-500 text-xs mt-1">{errors.returnPolicy.message}</p>}
-        </div>
-
-        {/* Warranty Terms */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Warranty Terms <span className="text-primary-500">*</span>
-          </label>
-          <Controller name="warrantyTerms" control={control} render={({ field }) => (
-            <textarea {...field} rows={3} placeholder="Describe your warranty terms..."
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all resize-none
-                ${errors.warrantyTerms ? "border-red-400" : "border-gray-300"}`} />
-          )} />
-          {errors.warrantyTerms && <p className="text-red-500 text-xs mt-1">{errors.warrantyTerms.message}</p>}
-        </div>
       </div>
     </div>
   );

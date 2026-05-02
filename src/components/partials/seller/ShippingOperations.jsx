@@ -14,18 +14,8 @@ export default function ShippingOperations({ control, errors, watch, setValue })
   const deliveryCities = watch("deliveryCities") || [];
   const workingDays = watch("workingDays") || [];
 
-  const addCity = () => {
-    const c = cityInput.trim();
-    if (c && !deliveryCities.includes(c)) {
-      setValue("deliveryCities", [...deliveryCities, c], { shouldValidate: true });
-      setCityInput("");
-    }
-  };
 
-  const removeCity = (c) => {
-    setValue("deliveryCities", deliveryCities.filter((x) => x !== c), { shouldValidate: true });
-  };
-
+ 
   const toggleDay = (day) => {
     const next = workingDays.includes(day)
       ? workingDays.filter((d) => d !== day)
@@ -51,45 +41,15 @@ export default function ShippingOperations({ control, errors, watch, setValue })
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white
                 ${errors.shippingMethod ? "border-primary-400" : "border-gray-300"}`}>
               <option value="">Select shipping method</option>
-              <option value="own_delivery">Own Delivery</option>
-              <option value="courier">Courier Service</option>
-              <option value="both">Both</option>
-              <option value="pickup_only">Pickup Only</option>
+              <option value="pickup">Pickup</option>
+              <option value="courier">Courier</option>
+              <option value="drop-off">Drop-off</option>
             </select>
           )} />
           {errors.shippingMethod && <p className="text-primary-500 text-xs mt-1">{errors.shippingMethod.message}</p>}
         </div>
 
-        {/* Delivery Cities */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Delivery Cities <span className="text-primary-500">*</span>
-          </label>
-          <div className={`border rounded-lg p-2 min-h-[48px] ${errors.deliveryCities ? "border-primary-400" : "border-gray-300"}`}>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {deliveryCities.map((c) => (
-                <span key={c} className="flex items-center gap-1 bg-primary-100 text-primary-800 px-2.5 py-1 rounded-full text-xs font-medium">
-                  {c}
-                  <button type="button" onClick={() => removeCity(c)} className="text-primary-600 hover:text-primary-500 ml-0.5">×</button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={cityInput}
-                onChange={(e) => setCityInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addCity(); } }}
-                placeholder="Type city name and press Enter"
-                className="flex-1 outline-none text-sm bg-transparent text-gray-700 placeholder-gray-400"
-              />
-              <button type="button" onClick={addCity}
-                className="text-xs px-3 py-1 bg-primary-600 text-white rounded-md hover:bg-primary-700">
-                Add
-              </button>
-            </div>
-          </div>
-          {errors.deliveryCities && <p className="text-primary-500 text-xs mt-1">{errors.deliveryCities.message}</p>}
-        </div>
+     
 
         {/* Working Days */}
         <div className="md:col-span-2">

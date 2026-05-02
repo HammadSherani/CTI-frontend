@@ -150,11 +150,13 @@ function OtpVerification() {
       })
     );
 
+    console.log(userData,'userData')
+
     // ✅ Redirect logic
     if (userData.role === "repairman" && !userData.isProfileComplete) {
       router.push("/repair-man/complete-profile");
     } else if (userData.role === "seller" && !userData.isProfileComplete) {
-      router.push("/seller/complete-profile");
+      router.push(`/seller/complete-profile/${userData?.id}`);
     } else {
       router.push("/");
     }
