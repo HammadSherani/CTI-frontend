@@ -182,10 +182,10 @@ function Header() {
         <div key={link.name} className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
+            className={`relative px-4 py-1 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
               ${(isSubmenuActive(link.submenu) || dropdownOpen)
-                ? 'text-primary-600 bg-primary-50'
-                : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                ? 'text-primary-600 '
+                : 'text-gray-600 hover:text-primary-600 '
               }`}
           >
             <Icon icon={link.icon} className="w-4 h-4" />
@@ -195,7 +195,7 @@ function Header() {
               className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
             />
             {isSubmenuActive(link.submenu) && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />
+              <div className="absolute bottom-0 left-0 right-0 h-0.5  rounded-full" />
             )}
           </button>
 
@@ -241,14 +241,14 @@ function Header() {
         href={link.path}
         className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 group
           ${isActiveLink(link.path)
-            ? 'text-primary-600 bg-primary-50'
+            ? 'text-primary-600 '
             : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
           }`}
       >
         <Icon icon={link.icon} className="w-4 h-4" />
         {link.name}
         {isActiveLink(link.path) && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />
+          <div className="absolute -bottom-1 left-4 right-0 h-0.5 w-28  bg-primary-600 rounded-full" />
         )}
       </Link>
     );
@@ -269,7 +269,7 @@ function Header() {
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-1">
+          <nav className="hidden lg:flex items-center gap-3">
             {primaryNavLinks.map((link) => {
               if (link.name === "Catalog") {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
@@ -280,13 +280,32 @@ function Header() {
               } else if (link.name === "Parts Management") {
                 return renderNavLink(link, isPartsDropdownOpen, setIsPartsDropdownOpen, partsDropdownRef);
               }
+              if (link.name === "Ecom") {
+                return (
+                  <Link
+                    key={link.name}
+                    href={link.path}
+                    className={`relative px-3 py-2 my-auto rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 border
+            ${isActiveLink(link.path)
+                        ? 'text-primary-600 bg-primary-50 border-primary-200'
+                        : 'text-gray-500 border-gray-200 hover:text-gray-900 hover:bg-gray-50 hover:border-gray-300'
+                      }`}
+                  >
+                    <Icon icon={link.icon} className="w-4 h-4" />
+                    {link.name}
+                    {/* <span className="ml-0.5 text-[10px] font-semibold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-full">
+                      NEW
+                    </span> */}
+                  </Link>
+                );
+              }
               return renderNavLink(link);
             })}
           </nav>
         </div>
 
         {/* User Profile Dropdown */}
-        <div className="relative" ref={dropdownRef}>
+        <div className="relative  left-8" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group
@@ -301,10 +320,10 @@ function Header() {
               <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
             </div>
 
-            <div className="hidden sm:block text-left">
+            {/* <div className="hidden sm:block text-left">
               <p className="text-sm font-medium text-gray-900">{user?.name || 'Admin User'}</p>
               <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-            </div>
+            </div> */}
 
             <Icon
               icon="mdi:chevron-down"

@@ -7,6 +7,7 @@ import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards, { SummaryCardSkeleton } from "@/components/partials/admin/ecom/SummaryCards";
 import SearchInput from "@/components/partials/admin/ecom/SearchInput";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
+import { useSelector } from "react-redux";
 
 /* ─── Toast ─────────────────────────────────────────────── */
 function Toast({ toasts }) {
@@ -61,6 +62,7 @@ function CategoryModal({ mode, initial, onClose, onSuccess, addToast }) {
   const [form, setForm]         = useState({ title: initial?.title || "", icon: initial?.icon || "", status: initial?.status || "active" });
   const [errors, setErrors]     = useState({});
   const [submitting, setSubmitting] = useState(false);
+    const { token } = useSelector((state) => state.auth);
 
   const validate = () => {
     const e = {};
@@ -76,10 +78,14 @@ function CategoryModal({ mode, initial, onClose, onSuccess, addToast }) {
     setSubmitting(true);
     try {
       if (mode === "create") {
-        await axiosInstance.post("/admin/e-commerce/category/create", form);
+        await axiosInstance.post("/admin/e-commerce/category/create", form, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
         addToast("Category created successfully", "success");
       } else {
-        await axiosInstance.put(`/admin/e-commerce/category/${initial._id}`, form);
+        await axiosInstance.put(`/admin/e-commerce/category/${initial._id}`, form, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
         addToast("Category updated successfully", "success");
       }
       onSuccess();
@@ -188,7 +194,9 @@ export default function CategoriesPage() {
       if (currentSearch) params.set("search", currentSearch);
       if (status)        params.set("status", status);
 
-      const { data } = await axiosInstance.get(`/admin/e-commerce/category?${params}`);
+      const { data } = await axiosInstance.get(`/admin/e-commerce/category?${params}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setCategories(data.data || []);
       setSummary(data.summary || null);
       setPagination(data.pagination || null);
@@ -214,7 +222,9 @@ export default function CategoriesPage() {
 
   const handleToggleStatus = async (cat) => {
     try {
-      await axiosInstance.patch(`/admin/e-commerce/category/toggle/${cat._id}`);
+      await axiosInstance.patch(`/admin/e-commerce/category/toggle/${cat._id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       addToast(`Category ${cat.status === "active" ? "deactivated" : "activated"}`, "success");
       fetchCategories(page, search, statusFilter);
     } catch (err) {
@@ -224,7 +234,9 @@ export default function CategoriesPage() {
 
   const handleDelete = async (id) => {
     try {
-      await axiosInstance.delete(`/admin/e-commerce/category/${id}`);
+      await axiosInstance.delete(`/admin/e-commerce/category/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       addToast("Category deleted", "success");
       fetchCategories(page, search, statusFilter);
     } catch (err) {
