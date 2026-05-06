@@ -118,8 +118,8 @@ function Advertisements() {
                 setSummary(data.summary || null);
                 setPagination({
                     ...data.pagination,
-                    hasNext: data.pagination.currentPage < data.pagination.totalPages,
-                    hasPrev: data.pagination.currentPage > 1,
+                    hasNext: data?.pagination?.currentPage < data?.pagination?.totalPages,
+                    hasPrev: data?.pagination?.currentPage > 1,
                 });
                 setError(null);
             } else {
@@ -194,9 +194,9 @@ function Advertisements() {
                     Showing{' '}
                     <span className="font-medium text-gray-700">{((currentPage - 1) * 10) + 1}</span>
                     {' '}to{' '}
-                    <span className="font-medium text-gray-700">{Math.min(currentPage * 10, pagination.totalItems)}</span>
+                    <span className="font-medium text-gray-700">{Math.min(currentPage * 10, pagination.totalItems || 1)}</span>
                     {' '}of{' '}
-                    <span className="font-medium text-gray-700">{pagination.totalItems}</span> results
+                    <span className="font-medium text-gray-700">{pagination.totalItems || 0}</span> results
                 </p>
                 <div className="flex gap-1">
                     <button
