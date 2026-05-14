@@ -1,6 +1,7 @@
 "use client";
 import { Controller } from "react-hook-form";
 import { useState } from "react";
+import { CustomDropdown } from "../admin/ecom/Dropdown";
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 const HOURS = Array.from({ length: 24 }, (_, i) => {
@@ -36,16 +37,37 @@ export default function ShippingOperations({ control, errors, watch, setValue })
           <label className="block text-sm font-medium text-gray-600 mb-1.5">
             Shipping Method <span className="text-primary-500">*</span>
           </label>
-          <Controller name="shippingMethod" control={control} render={({ field }) => (
-            <select {...field}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-all bg-white
-                ${errors.shippingMethod ? "border-primary-400" : "border-gray-300"}`}>
-              <option value="">Select shipping method</option>
-              <option value="pickup">Pickup</option>
-              <option value="courier">Courier</option>
-              <option value="drop-off">Drop-off</option>
-            </select>
-          )} />
+    <Controller
+  name="shippingMethod"
+  control={control}
+  render={({ field }) => (
+    <CustomDropdown
+      value={field.value}
+      onChange={field.onChange}
+      placeholder="Select shipping method"
+      options={[
+        {
+          label: "Pickup",
+          value: "pickup",
+        },
+        {
+          label: "Courier",
+          value: "courier",
+        },
+        {
+          label: "Drop-off",
+          value: "drop-off",
+        },
+      ]}
+    />
+  )}
+/>
+
+{errors.shippingMethod && (
+  <p className="text-primary-500 text-xs mt-1">
+    {errors.shippingMethod.message}
+  </p>
+)}
           {errors.shippingMethod && <p className="text-primary-500 text-xs mt-1">{errors.shippingMethod.message}</p>}
         </div>
 
@@ -75,33 +97,63 @@ export default function ShippingOperations({ control, errors, watch, setValue })
         </div>
 
         {/* Working Hours */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Start Time <span className="text-primary-500">*</span>
-          </label>
-          <Controller name="workingHours.start" control={control} render={({ field }) => (
-            <select {...field} className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white
-              ${errors.workingHours?.start ? "border-primary-400" : "border-gray-300"}`}>
-              <option value="">Select start time</option>
-              {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
-            </select>
-          )} />
-          {errors.workingHours?.start && <p className="text-primary-500 text-xs mt-1">{errors.workingHours.start.message}</p>}
-        </div>
+      <div>
+  <label className="block text-sm font-medium text-gray-600 mb-1.5">
+    Start Time <span className="text-primary-500">*</span>
+  </label>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            End Time <span className="text-primary-500">*</span>
-          </label>
-          <Controller name="workingHours.end" control={control} render={({ field }) => (
-            <select {...field} className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none bg-white
-              ${errors.workingHours?.end ? "border-primary-400" : "border-gray-300"}`}>
-              <option value="">Select end time</option>
-              {HOURS.map((h) => <option key={h} value={h}>{h}</option>)}
-            </select>
-          )} />
-          {errors.workingHours?.end && <p className="text-primary-500 text-xs mt-1">{errors.workingHours.end.message}</p>}
-        </div>
+  <Controller
+    name="workingHours.start"
+    control={control}
+    render={({ field }) => (
+      <CustomDropdown
+        value={field.value}
+        onChange={field.onChange}
+        placeholder="Select start time"
+        icon="mdi:clock-outline"
+        options={HOURS.map((h) => ({
+          label: h,
+          value: h,
+        }))}
+      />
+    )}
+  />
+
+  {errors.workingHours?.start && (
+    <p className="text-primary-500 text-xs mt-1">
+      {errors.workingHours.start.message}
+    </p>
+  )}
+</div>
+
+<div>
+  <label className="block text-sm font-medium text-gray-600 mb-1.5">
+    End Time <span className="text-primary-500">*</span>
+  </label>
+
+  <Controller
+    name="workingHours.end"
+    control={control}
+    render={({ field }) => (
+      <CustomDropdown
+        value={field.value}
+        onChange={field.onChange}
+        placeholder="Select end time"
+        icon="mdi:clock-outline"
+        options={HOURS.map((h) => ({
+          label: h,
+          value: h,
+        }))}
+      />
+    )}
+  />
+
+  {errors.workingHours?.end && (
+    <p className="text-primary-500 text-xs mt-1">
+      {errors.workingHours.end.message}
+    </p>
+  )}
+</div>
       </div>
     </div>
   );

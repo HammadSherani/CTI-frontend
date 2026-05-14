@@ -2,7 +2,7 @@
 
 import FieldCorrections from '@/components/admin/FieldCorrection';
 import Chat from '@/components/chat/GlobalChat'
-import Header from '@/components/partials/repairman/header/Header'
+import Header from '@/components/partials/seller/Header';
 import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
@@ -107,16 +107,18 @@ console.log(kycCompleted,'kycCompleted')
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">Revision Required</h2>
           <p className="text-gray-600 mb-4">
-            Admin has requested changes to your profile. Please review and update the highlighted fields.
+            Admin has requested changes to your profile.
           </p>
           {seller?.kycReason && (
-            <div className="bg-orange-50 rounded-xl p-4 mb-6 text-left">
-              <p className="text-sm font-medium text-orange-800 mb-1">Reason:</p>
+            <div>
+                <p className="text-sm font-medium text-orange-800 mb-1">Reason</p>
+            <div className="bg-orange-50 rounded-xl p-4 mb-6 text-center">
               <p className="text-sm text-orange-700">{seller.kycReason}</p>
             </div>
+              </div>
           )}
           <button
-            onClick={() => router.push(`/seller/complete-profile/${sellerId}`)}
+            onClick={() => router.push(`/seller/complete-profile/${seller.userId}`)}
             className="bg-orange-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-orange-600 transition-colors"
           >
             Update Profile
@@ -145,7 +147,7 @@ console.log(kycCompleted,'kycCompleted')
             </div>
           )}
           <button
-            onClick={() => router.push('/support')}
+            onClick={() => router.push('/live-support')}
             className="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors"
           >
             Contact Support

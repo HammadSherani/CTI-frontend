@@ -35,18 +35,23 @@ export function DataTable({
     );
   }
 
-  if (!data.length) {
-    return (
-      <div className="text-center py-16 px-6">
-        <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-          <Icon icon={emptyIcon} className="w-10 h-10 text-gray-400" />
-        </div>
-        <p className="text-lg font-semibold text-gray-900">{emptyTitle}</p>
-        <p className="text-gray-500 mt-2 max-w-sm mx-auto">{emptyDescription}</p>
-        {emptyAction && <div className="mt-6">{emptyAction}</div>}
+ if (!data.length) {
+  return (
+    <div className="text-center py-16 px-6">
+      <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <Icon icon={emptyIcon} className="w-10 h-10 text-gray-400" />
       </div>
-    );
-  }
+      <p className="text-lg font-semibold text-gray-900">{emptyTitle}</p>
+      <p className="text-gray-500 mt-2 max-w-sm mx-auto">{emptyDescription}</p>
+      
+      {emptyAction && (
+        <div className="mt-8 flex justify-center">
+          {emptyAction}
+        </div>
+      )}
+    </div>
+  );
+}
 
   return (
     <>

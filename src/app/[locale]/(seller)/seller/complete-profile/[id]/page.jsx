@@ -27,7 +27,7 @@ const step2Schema = yup.object({
 const step1Schema = yup.object({
   fullName: yup.string().required("Full name is required").min(2).max(100),
   gender: yup.string().required("Gender is required").oneOf(["Male", "Female", "Other"]),
-  dob: yup.date().required("Date of birth is required") /* ...existing test */,
+  dob: yup.date().required("Date of birth is required").max(new Date(new Date().setFullYear(new Date().getFullYear() - 18)), "You must be at least 18 years old").typeError("Invalid date").min(new Date("1900-01-01"), "Date of birth is too far in the past"),
   phoneNumber: yup.string().required("Phone number is required").matches(/^[0-9+\-\s]{7,15}$/, "Valid phone required"),
   storeAddress: yup.string().required("Store address is required").min(10).max(200),
   country: yup.string().required("Country is required"),   // ← add
@@ -40,33 +40,33 @@ const step3Schema = yup.object({
   profilePictureOrLogo: yup
     .mixed()
     .required("Profile picture/logo is required")
-    .test("fileExists", "Required", (v) => v instanceof File)
-    .test("fileSize", "Max 5MB", (v) => !v || v.size <= 5 * 1024 * 1024)
-    .test("fileType", "Images only", (v) => !v || ["image/jpeg","image/jpg","image/png","image/webp"].includes(v.type)),
+    .test("fileExists", "Required", (v) => v instanceof File || typeof v === "string")
+    .test("fileSize", "Max 5MB", (v) => typeof v === "string" || !v || v.size <= 5 * 1024 * 1024)
+    .test("fileType", "Images only", (v) => typeof v === "string" || !v || ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(v.type)),
   nationalIdOrPassport: yup
     .mixed()
     .required("National ID / Passport is required")
-    .test("fileExists", "Required", (v) => v instanceof File)
-    .test("fileSize", "Max 5MB", (v) => !v || v.size <= 5 * 1024 * 1024)
-    .test("fileType", "Image or PDF only", (v) => !v || ["image/jpeg","image/jpg","image/png","image/webp","application/pdf"].includes(v.type)),
+    .test("fileExists", "Required", (v) => v instanceof File || typeof v === "string")
+    .test("fileSize", "Max 5MB", (v) => typeof v === "string" || !v || v.size <= 5 * 1024 * 1024)
+    .test("fileType", "Image or PDF only", (v) => typeof v === "string" || !v || ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"].includes(v.type)),
   shopLicenseOrTaxCertificate: yup
     .mixed()
     .required("Shop license / Tax certificate is required")
-    .test("fileExists", "Required", (v) => v instanceof File)
-    .test("fileSize", "Max 5MB", (v) => !v || v.size <= 5 * 1024 * 1024)
-    .test("fileType", "Image or PDF only", (v) => !v || ["image/jpeg","image/jpg","image/png","image/webp","application/pdf"].includes(v.type)),
+    .test("fileExists", "Required", (v) => v instanceof File || typeof v === "string")
+    .test("fileSize", "Max 5MB", (v) => typeof v === "string" || !v || v.size <= 5 * 1024 * 1024)
+    .test("fileType", "Image or PDF only", (v) => typeof v === "string" || !v || ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"].includes(v.type)),
   proofOfAddress: yup
     .mixed()
     .required("Proof of address is required")
-    .test("fileExists", "Required", (v) => v instanceof File)
-    .test("fileSize", "Max 5MB", (v) => !v || v.size <= 5 * 1024 * 1024)
-    .test("fileType", "Image or PDF only", (v) => !v || ["image/jpeg","image/jpg","image/png","image/webp","application/pdf"].includes(v.type)),
+    .test("fileExists", "Required", (v) => v instanceof File || typeof v === "string")
+    .test("fileSize", "Max 5MB", (v) => typeof v === "string" || !v || v.size <= 5 * 1024 * 1024)
+    .test("fileType", "Image or PDF only", (v) => typeof v === "string" || !v || ["image/jpeg", "image/jpg", "image/png", "image/webp", "application/pdf"].includes(v.type)),
 });
 
 const step4Schema = yup.object({
   shippingMethod: yup.string().required("Shipping method is required"),
   workingDays: yup.array().min(1, "Select at least one working day").of(
-    yup.string().oneOf(["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"])
+    yup.string().oneOf(["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
   ),
   workingHours: yup.object({
     start: yup.string().required("Start time is required").matches(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9] (AM|PM)$/, "Use HH:MM AM/PM"),
@@ -105,7 +105,7 @@ const save = (k, d) => {
   try {
     const safe = JSON.parse(JSON.stringify(d, (_, v) => (v instanceof File ? undefined : v)));
     sessionStorage.setItem(KEY + k, JSON.stringify(safe));
-  } catch {}
+  } catch { }
 };
 const load = (k) => {
   try {
@@ -119,11 +119,11 @@ const clearStorage = () => {
 
 // ─── Main Component ─────────────────────────────────────────
 export default function SellerKycForm() {
- const params = useParams();
-    const id = params?.id;   
-    useEffect(() => {
-        console.log('ID from URL:', id);
-    }, [id]);
+  const params = useParams();
+  const id = params?.id;
+  useEffect(() => {
+    console.log('ID from URL:', id);
+  }, [id]);
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -185,6 +185,74 @@ export default function SellerKycForm() {
     },
   });
 
+
+  const [sellerLoading, setSellerLoading] = useState(false);
+  const [seller, setSeller] = useState(null);
+const { token } = useSelector((state) => state.auth)
+  const getSellerProfile = async () => {
+    try {
+      setSellerLoading(true);
+
+      const result = await axiosInstance.get("/e-commerce/profile/me-seller", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = result?.data?.data;
+      setSeller(data);
+      console.log(result, "seller profile");
+
+      if (data) {
+        const formattedData = {
+          businessName: data.businessName || "",
+          storeDescription: data.storeDescription || "",
+          nationalIdOrTaxNumber: data.nationalIdOrTaxNumber || "",
+          sellsRefurbishedDevices: data.sellsRefurbishedDevices || false,
+
+          fullName: data.fullName || "",
+          gender: data.gender || "Male",
+          dob: data.dob ? new Date(data.dob).toISOString().split("T")[0] : "",
+          phoneNumber: data.phoneNumber || "",
+          storeAddress: data.storeAddress || "",
+          country: data.country?._id || data.country || "",
+          state: data.state?._id || data.state || "",
+          city: data.city?._id || data.city || "",
+          zipCode: data.zipCode || "",
+
+          profilePictureOrLogo: data.profilePictureOrLogo || null,
+          nationalIdOrPassport: data.nationalIdOrPassport || null,
+          shopLicenseOrTaxCertificate: data.shopLicenseOrTaxCertificate || null,
+          proofOfAddress: data.proofOfAddress || null,
+
+          shippingMethod: data.shippingMethod || "",
+          workingDays: data.workingDays || [],
+          workingHours: data.workingHours || { start: "", end: "" },
+
+          bankDetails: data.bankDetails || {
+            accountTitle: "",
+            accountNumber: "",
+            bankName: "",
+            branchName: "",
+            iban: "",
+          },
+        };
+        reset((prev) => ({ ...prev, ...formattedData }));
+        setFormData((prev) => ({ ...prev, ...formattedData }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch seller profile", error);
+    } finally {
+      setSellerLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (id) {
+      getSellerProfile();
+    }
+  }, [id]);
+
+  console.log(seller, 'seller');
   // Restore form data on step change
   useEffect(() => {
     reset((prev) => ({ ...prev, ...formData }));
@@ -211,7 +279,11 @@ export default function SellerKycForm() {
     const merged = { ...formData, ...current };
     setFormData(merged);
     save("formData", merged);
-    if (step < 5) updateStep(step + 1);
+    updateStep(step + 1);
+  };
+
+  const handleFinalSubmit = () => {
+    handleSubmit(onSubmit)();
   };
 
   const prevStep = () => {
@@ -238,26 +310,26 @@ export default function SellerKycForm() {
 
       const fd = new FormData();
 
-const profilePayload = {
-  fullName:               all.fullName,
-  gender:                 all.gender,
-  dob:                    all.dob,
-  phoneNumber:            all.phoneNumber,
-  storeAddress:           all.storeAddress,
-  country:                all.country,   
-  state:                  all.state,     
-  city:                   all.city,
-  zipCode:                all.zipCode,
-  nationalIdOrTaxNumber:  all.nationalIdOrTaxNumber,
-  businessName:           all.businessName,
-  sellsRefurbishedDevices: all.sellsRefurbishedDevices,
-  storeDescription:       all.storeDescription,
-  shippingMethod:         all.shippingMethod,
-  workingDays:            all.workingDays,
-  workingHours:           all.workingHours,
-  bankDetails:            all.bankDetails,
-};
-console.log(all,'all')
+      const profilePayload = {
+        fullName: all.fullName,
+        gender: all.gender,
+        dob: all.dob,
+        phoneNumber: all.phoneNumber,
+        storeAddress: all.storeAddress,
+        country: all.country,
+        state: all.state,
+        city: all.city,
+        zipCode: all.zipCode,
+        nationalIdOrTaxNumber: all.nationalIdOrTaxNumber,
+        businessName: all.businessName,
+        sellsRefurbishedDevices: all.sellsRefurbishedDevices,
+        storeDescription: all.storeDescription,
+        shippingMethod: all.shippingMethod,
+        workingDays: all.workingDays,
+        workingHours: all.workingHours,
+        bankDetails: all.bankDetails,
+      };
+      console.log(all, 'all')
 
       fd.append("sellerProfile", JSON.stringify(profilePayload));
 
@@ -270,18 +342,18 @@ console.log(all,'all')
       if (all.proofOfAddress instanceof File)
         fd.append("proofOfAddress", all.proofOfAddress);
       for (let pair of fd.entries()) {
-  console.log(pair);
-}
-    const res = await axiosInstance.post(
-  `/e-commerce/profile/create/${id}`,
-  fd,
-  {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-    timeout: 120000,
-  }
-);
+        console.log(pair);
+      }
+      const res = await axiosInstance.post(
+        `/e-commerce/profile/create/${id}`,
+        fd,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+          timeout: 120000,
+        }
+      );
 
       if (res.status === 200 || res.data?.success) {
         toast.success("Profile submitted! KYC is under review.");
@@ -314,7 +386,7 @@ console.log(all,'all')
                   className={`w-11 h-11 rounded-full font-semibold text-sm transition-all duration-200
                     ${step === s ? "bg-primary-600 text-white scale-110 shadow-md"
                       : step > s ? "bg-primary-800 text-white cursor-pointer hover:scale-105"
-                      : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
+                        : "bg-gray-200 text-gray-500 cursor-not-allowed"}`}
                 >
                   {step > s ? "✓" : s}
                 </button>
@@ -331,16 +403,16 @@ console.log(all,'all')
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)}>
-{step === 1 && (
-  <PersonalInformation
-    control={control}
-    errors={errors}
-    watch={watch}        // ← yeh add karo
-    setValue={setValue}  // ← yeh add karo
-    />
-  )}          
-  {step === 2 && <BusinessInformation control={control} errors={errors} watch={watch} setValue={setValue} />}
-  {step === 3 && <DocumentUploads control={control} errors={errors} setValue={setValue} watch={watch} />}
+          {step === 1 && (
+            <PersonalInformation
+              control={control}
+              errors={errors}
+              watch={watch}        // ← yeh add karo
+              setValue={setValue}  // ← yeh add karo
+            />
+          )}
+          {step === 2 && <BusinessInformation control={control} errors={errors} watch={watch} setValue={setValue} />}
+          {step === 3 && <DocumentUploads control={control} errors={errors} setValue={setValue} watch={watch} />}
           {step === 4 && <ShippingOperations control={control} errors={errors} watch={watch} setValue={setValue} />}
           {step === 5 && <BankDetails control={control} errors={errors} />}
 
@@ -355,34 +427,43 @@ console.log(all,'all')
               Previous
             </button>
 
-            <span className="text-sm text-gray-400">Step {step} of 5</span>
+            <span className="text-sm text-gray-400">
+              Step {step} of 5
+            </span>
 
-            {step === 5 ? (
-              <button
-                type="submit"
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2"
-              >
-                {isSubmitting ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
-                    </svg>
-                    Submitting...
-                  </>
-                ) : "Submit KYC"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={nextStep}
-                disabled={isSubmitting}
-                className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50"
-              >
-                Next Step
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={step < 5 ? nextStep : handleFinalSubmit}
+              disabled={isSubmitting}
+              className="px-6 py-2.5 bg-primary-600 text-white rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <svg
+                    className="animate-spin h-4 w-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z"
+                    />
+                  </svg>
+                  {step === 5 ? "Submitting..." : "Loading..."}
+                </>
+              ) : (
+                step === 5 ? "Submit KYC" : "Next Step"
+              )}
+            </button>
           </div>
         </form>
       </div>

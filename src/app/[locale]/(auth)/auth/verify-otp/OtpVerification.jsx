@@ -10,8 +10,8 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import {  useSearchParams } from "next/navigation";
-import {Link,useRouter} from '@/i18n/navigation';
+import { useSearchParams } from "next/navigation";
+import { Link, useRouter } from '@/i18n/navigation';
 import { setAuth } from "@/store/auth";
 
 const schema = yup.object().shape({
@@ -24,11 +24,14 @@ const schema = yup.object().shape({
 
 function OtpVerification() {
   const [otpValues, setOtpValues] = useState(["", "", "", "", "", ""]);
-  const [timer, setTimer] = useState(20);
-  const [canResend, setCanResend] = useState(false);
+  const RESEND_SECONDS = 120;
+
+  const [timer, setTimer] = useState(0);
+  const [canResend, setCanResend] = useState(true);
   const [isResending, setIsResending] = useState(false);
+
   const inputRefs = useRef([]);
-  const searchParams  = useSearchParams();
+  const searchParams = useSearchParams();
   const userEmail = searchParams.get("email");
   const userId = searchParams.get("userId");
   console.log("email", userEmail);
@@ -51,17 +54,64 @@ function OtpVerification() {
     },
   });
 
-  useEffect(() => {
-    if (timer > 0) {
-      const interval = setInterval(() => {
-        setTimer((prev) => prev - 1);
-      }, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setCanResend(true);
-    }
-  }, [timer]);
+  // useEffect(() => {
+  //   if (timer > 0) {
+  //     const interval = setInterval(() => {
+  //       setTimer((prev) => prev - 1);
+  //     }, 1000);
+  //     return () => clearInterval(interval);
+  //   } else {
+  //     setCanResend(true);
+  //   }
+  // }, [timer]);
 
+  // Load timer on refresh
+  useEffect(() => {
+    const savedExpiry = localStorage.getItem("otp_resend_expiry");
+
+    if (savedExpiry) {
+      const remaining = Math.floor((Number(savedExpiry) - Date.now()) / 1000);
+
+      if (remaining > 0) {
+        setTimer(remaining);
+        setCanResend(false);
+      } else {
+        localStorage.removeItem("otp_resend_expiry");
+        setCanResend(true);
+      }
+    } else {
+      // First time
+      const expiryTime = Date.now() + RESEND_SECONDS * 1000;
+      localStorage.setItem("otp_resend_expiry", expiryTime);
+      setTimer(RESEND_SECONDS);
+      setCanResend(false);
+    }
+  }, []);
+
+  // Countdown Timer
+  useEffect(() => {
+    if (timer <= 0) {
+      setCanResend(true);
+      localStorage.removeItem("otp_resend_expiry");
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setTimer((prev) => {
+        const newValue = prev - 1;
+
+        if (newValue <= 0) {
+          localStorage.removeItem("otp_resend_expiry");
+          setCanResend(true);
+          return 0;
+        }
+
+        return newValue;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [timer]);   // This is okay here because we wa
   const handleOtpChange = (index, value) => {
     if (value.length > 1) return;
 
@@ -100,101 +150,103 @@ function OtpVerification() {
     }
   };
 
- const onSubmit = async (data) => {
-  try {
-    console.log("OTP submitted:", data);
+  const onSubmit = async (data) => {
+    try {
+      console.log("OTP submitted:", data);
 
-    let response;
+      let response;
 
-    //  correct condition
-    if (user?.role === "seller") {
-      response = await axiosInstance.post(
-        "/e-commerce/auth/verify-otp",
-        {
-          otp: data.otp,
-          email: user?.email || userEmail,
-        }
+      //  correct condition
+      if (user?.role === "seller") {
+        response = await axiosInstance.post(
+          "/e-commerce/auth/verify-otp",
+          {
+            otp: data.otp,
+            email: user?.email || userEmail,
+          }
+        );
+      } else {
+        // customer + repairman
+        response = await axiosInstance.post(
+          "/auth/verify-otp",
+          {
+            otp: data.otp,
+            email: user?.email || userEmail,
+          }
+        );
+      }
+
+      if (response.status !== 200) {
+        toast.error("Something went wrong, please try again");
+        return;
+      }
+
+      const { message, data: resData } = response.data;
+
+      toast.success(message);
+
+      const userData = resData?.user;
+
+      if (!userData) {
+        toast.error("Invalid response from server");
+        return;
+      }
+
+      // ✅ Save to Redux
+      dispatch(
+        setAuth({
+          user: userData,
+          token: resData.token,
+        })
       );
-    } else {
-      // customer + repairman
-      response = await axiosInstance.post(
-        "/auth/verify-otp",
-        {
-          otp: data.otp,
-          email: user?.email || userEmail,
-        }
-      );
+
+      console.log(userData, 'userData')
+
+      // ✅ Redirect logic
+      if (userData.role === "repairman" && !userData.isProfileComplete) {
+        router.push("/repair-man/complete-profile");
+      } else if (userData.role === "seller" && !userData.isProfileComplete) {
+        router.push(`/seller/complete-profile/${userData?.id}`);
+      } else {
+        router.push("/");
+      }
+
+    } catch (error) {
+      handleError(error);
     }
-
-    if (response.status !== 200) {
-      toast.error("Something went wrong, please try again");
-      return;
-    }
-
-    const { message, data: resData } = response.data;
-
-    toast.success(message);
-
-    const userData = resData?.user;
-
-    if (!userData) {
-      toast.error("Invalid response from server");
-      return;
-    }
-
-    // ✅ Save to Redux
-    dispatch(
-      setAuth({
-        user: userData,
-        token: resData.token,
-      })
-    );
-
-    console.log(userData,'userData')
-
-    // ✅ Redirect logic
-    if (userData.role === "repairman" && !userData.isProfileComplete) {
-      router.push("/repair-man/complete-profile");
-    } else if (userData.role === "seller" && !userData.isProfileComplete) {
-      router.push(`/seller/complete-profile/${userData?.id}`);
-    } else {
-      router.push("/");
-    }
-
-  } catch (error) {
-    handleError(error);
-  }
-};
+  };
 
 
 
- const handleResendOtp = async () => {
-  setIsResending(true);
+  const handleResendOtp = async () => {
+    setIsResending(true);
 
-  try {
-    const endpoint =
-      user?.role === "seller"
+    try {
+      const endpoint = user?.role === "seller"
         ? "/e-commerce/auth/resend-otp"
         : "/auth/resend-otp";
 
-    await axiosInstance.post(endpoint, {
-      email: user?.email || userEmail,
-    });
+      await axiosInstance.post(endpoint, {
+        email: user?.email || userEmail,
+      });
 
-    setTimer(120);
-    setCanResend(false);
-    setOtpValues(["", "", "", "", "", ""]);
-    setValue("otp", "");
-    inputRefs.current[0]?.focus();
+      // Reset timer
+      const expiryTime = Date.now() + RESEND_SECONDS * 1000;
+      localStorage.setItem("otp_resend_expiry", expiryTime);
 
-    toast.success("OTP resent successfully");
-    
-  } catch (error) {
-    handleError(error);
-  } finally {
-    setIsResending(false);
-  }
-};
+      setTimer(RESEND_SECONDS);
+      setCanResend(false);
+      setOtpValues(["", "", "", "", "", ""]);
+      setValue("otp", "");
+      inputRefs.current[0]?.focus();
+
+      toast.success("OTP resent successfully");
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setIsResending(false);
+    }
+  };
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -307,7 +359,7 @@ function OtpVerification() {
 
                     {/* Timer and Resend */}
                     <div className="text-center">
-                      {!canResend ? (
+                      {timer > 0 ? (
                         <div className="flex items-center justify-center gap-2 text-gray-600">
                           <Icon icon="mdi:clock-outline" className="text-lg" />
                           <span className="text-sm">
@@ -338,7 +390,6 @@ function OtpVerification() {
                         </button>
                       )}
                     </div>
-
                     {/* Submit Button */}
                     <button
                       type="submit"

@@ -32,8 +32,8 @@ export const CustomDropdown = ({
 
   const filteredOptions = searchable
     ? options.filter((opt) =>
-        opt.label.toLowerCase().includes(search.toLowerCase())
-      )
+      opt.label.toLowerCase().includes(search.toLowerCase())
+    )
     : options;
 
   const { refs, floatingStyles } = useFloating({
@@ -44,15 +44,19 @@ export const CustomDropdown = ({
   });
 
   /* SINGLE DROPDOWN CONTROL */
-  const handleToggle = () => {
-    if (activeDropdown && activeDropdown !== setOpen) {
-      activeDropdown(false);
-    }
+ const handleToggle = () => {
+  if (disabled) return;
 
+  if (activeDropdown && activeDropdown !== setOpen) {
+    activeDropdown(false);
+  }
+
+  if (!open) {
     activeDropdown = setOpen;
-    setOpen((prev) => !prev);
-  };
+  }
 
+  setOpen(!open);
+};
   /* cleanup */
   useEffect(() => {
     return () => {
@@ -112,17 +116,17 @@ export const CustomDropdown = ({
               {filteredOptions.length > 0 ? (
                 filteredOptions.map((opt) => (
                   <button
+                    type="button"
                     key={opt.value}
                     onClick={() => {
                       onChange(opt.value);
                       setOpen(false);
                       setSearch("");
                     }}
-                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${
-                      value === opt.value
+                    className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${value === opt.value
                         ? "bg-primary-50 text-primary-600 font-medium"
                         : ""
-                    }`}
+                      }`}
                   >
                     {opt.label}
                   </button>

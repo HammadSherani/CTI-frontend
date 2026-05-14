@@ -41,13 +41,13 @@ export default function SellersPage() {
   const debounceRef = useRef(null);
 
   const fetchSellers = useCallback(
-    async (currentPage = 1, currentSearch = search, kyc = kycFilter, active = activeFilter) => {
+    async (currentPage = 1, currentSearch = search, kyc = kycFilter) => {
       setLoading(true);
       try {
         const params = new URLSearchParams({ page: currentPage, limit: 10 });
         if (currentSearch) params.set("search", currentSearch);
         if (kyc) params.set("kycStatus", kyc);
-        if (active !== "") params.set("isActive", active);
+        // if (active !== "") params.set("isActive", active);
 
         const { data } = await axiosInstance.get(`/admin/e-commerce/seller?${params}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -156,24 +156,24 @@ const handleToggleActive = async (seller) => {
       header: "KYC Status",
       cell: (row) => <KycBadge status={row.kycStatus} />,
     },
-    {
-      key: "isActive",
-      header: "Active",
- cell: (row) => (
-  <button
-    onClick={() => handleToggleActive(row)}
-    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200
-      ${row.isActive ? "bg-primary-500" : "bg-gray-200"}
-    `}
-  >
-    <span
-      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-200
-        ${row.isActive ? "translate-x-6" : "translate-x-1"}
-      `}
-    />
-  </button>
-),
-    },
+//     {
+//       key: "isActive",
+//       header: "Active",
+//  cell: (row) => (
+//   <button
+//     onClick={() => handleToggleActive(row)}
+//     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-200
+//       ${row.isActive ? "bg-primary-500" : "bg-gray-200"}
+//     `}
+//   >
+//     <span
+//       className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-all duration-200
+//         ${row.isActive ? "translate-x-6" : "translate-x-1"}
+//       `}
+//     />
+//   </button>
+// ),
+//     },
     {
       key: "createdAt",
       header: "Registered",
@@ -234,7 +234,7 @@ const handleToggleActive = async (seller) => {
               onChange={(val) => { setKycFilter(val); setPage(1); }}
             />
           </div>
-          <div className="w-full sm:w-36">
+          {/* <div className="w-full sm:w-36">
             <CustomDropdown
               icon="mdi:toggle-switch-outline"
               placeholder="Activity"
@@ -242,7 +242,7 @@ const handleToggleActive = async (seller) => {
               value={activeFilter}
               onChange={(val) => { setActiveFilter(val); setPage(1); }}
             />
-          </div>
+          </div> */}
           <div>
               <Button icon="mdi:filter-remove-outline" onClick={() => { setKycFilter(""); setSearch(""); setActiveFilter(""); setPage(1); }} />
           </div>

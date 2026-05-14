@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Controller } from "react-hook-form";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
+import { CustomDropdown } from "../admin/ecom/Dropdown";
 
 export default function PersonalInformation({ control, errors, user, watch, setValue }) {
   const [countries, setCountries] = useState([]);
@@ -25,10 +26,6 @@ export default function PersonalInformation({ control, errors, user, watch, setV
   useEffect(() => {
     if (selectedCountry) {
       fetchStates(selectedCountry);
-      // Reset state & city only if user changed country (not initial load)
-      setValue("state", "");
-      setValue("city", "");
-      setCities([]);
     }
   }, [selectedCountry]);
 
@@ -36,7 +33,6 @@ export default function PersonalInformation({ control, errors, user, watch, setV
   useEffect(() => {
     if (selectedState) {
       fetchCities(selectedState);
-      setValue("city", "");
     }
   }, [selectedState]);
 
@@ -115,6 +111,8 @@ export default function PersonalInformation({ control, errors, user, watch, setV
             <input
               {...field}
               type="date"
+                    max={new Date().toISOString().split("T")[0]}
+
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
                 ${errors.dob ? "border-red-400" : "border-gray-300"}`}
             />
@@ -184,91 +182,120 @@ export default function PersonalInformation({ control, errors, user, watch, setV
         </div>
 
         {/* Country Dropdown */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Country <span className="text-red-500">*</span>
-          </label>
-          <Controller name="country" control={control} render={({ field }) => (
-            <select
-              {...field}
-              disabled={loadingCountries}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-white
-                ${errors.country ? "border-red-400" : "border-gray-300"}
-                ${loadingCountries ? "bg-gray-100 cursor-wait" : ""}`}
-            >
-              <option value="">
-                {loadingCountries ? "Loading countries..." : "Select Country"}
-              </option>
-              {countries.map((c) => (
-                <option key={c._id || c.id} value={c._id || c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )} />
-          {errors.country && <p className="text-red-500 text-xs mt-1">{errors.country.message}</p>}
-        </div>
+<div>
+  <label className="block text-sm font-medium text-gray-600 mb-1.5">
+    Country <span className="text-red-500">*</span>
+  </label>
 
-        {/* State Dropdown */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            State <span className="text-red-500">*</span>
-          </label>
-          <Controller name="state" control={control} render={({ field }) => (
-            <select
-              {...field}
-              disabled={!selectedCountry || loadingStates}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-white
-                ${errors.state ? "border-red-400" : "border-gray-300"}
-                ${!selectedCountry || loadingStates ? "bg-gray-100 cursor-not-allowed" : ""}`}
-            >
-              <option value="">
-                {!selectedCountry
-                  ? "First select a country"
-                  : loadingStates
-                  ? "Loading states..."
-                  : "Select State"}
-              </option>
-              {states.map((s) => (
-                <option key={s._id || s.id} value={s._id || s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          )} />
-          {errors.state && <p className="text-red-500 text-xs mt-1">{errors.state.message}</p>}
-        </div>
+  <Controller
+    name="country"
+    control={control}
+    render={({ field }) => (
+      <CustomDropdown
+        value={field.value}
+        onChange={(val) => {
+          field.onChange(val);
+          setValue("state", "");
+          setValue("city", "");
+          setCities([]);
+        }}
+        disabled={loadingCountries}
+        searchable={true}
+        placeholder={
+          loadingCountries
+            ? "Loading countries..."
+            : "Select Country"
+        }
+        options={countries.map((c) => ({
+          label: c.name,
+          value: c._id || c.id,
+        }))}
+      />
+    )}
+  />
+
+  {errors.country && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.country.message}
+    </p>
+  )}
+</div>
+
+{/* State Dropdown */}
+<div>
+  <label className="block text-sm font-medium text-gray-600 mb-1.5">
+    State <span className="text-red-500">*</span>
+  </label>
+
+  <Controller
+    name="state"
+    control={control}
+    render={({ field }) => (
+      <CustomDropdown
+        value={field.value}
+        onChange={(val) => {
+          field.onChange(val);
+          setValue("city", "");
+        }}
+        disabled={!selectedCountry || loadingStates}
+        searchable={true}
+        placeholder={
+          !selectedCountry
+            ? "First select a country"
+            : loadingStates
+            ? "Loading states..."
+            : "Select State"
+        }
+        options={states.map((s) => ({
+          label: s.name,
+          value: s._id || s.id,
+        }))}
+      />
+    )}
+  />
+
+  {errors.state && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.state.message}
+    </p>
+  )}
+</div>
 
         {/* City Dropdown */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            City <span className="text-red-500">*</span>
-          </label>
-          <Controller name="city" control={control} render={({ field }) => (
-            <select
-              {...field}
-              disabled={!selectedState || loadingCities}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-white
-                ${errors.city ? "border-red-400" : "border-gray-300"}
-                ${!selectedState || loadingCities ? "bg-gray-100 cursor-not-allowed" : ""}`}
-            >
-              <option value="">
-                {!selectedState
-                  ? "First select a state"
-                  : loadingCities
-                  ? "Loading cities..."
-                  : "Select City"}
-              </option>
-              {cities.map((c) => (
-                <option key={c._id || c.id} value={c._id || c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          )} />
-          {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city.message}</p>}
-        </div>
+   <div>
+  <label className="block text-sm font-medium text-gray-600 mb-1.5">
+    City <span className="text-red-500">*</span>
+  </label>
 
+  <Controller
+    name="city"
+    control={control}
+    render={({ field }) => (
+      <CustomDropdown
+        value={field.value}
+        onChange={field.onChange}
+        disabled={!selectedState || loadingCities}
+        placeholder={
+          !selectedState
+            ? "First select a state"
+            : loadingCities
+            ? "Loading cities..."
+            : "Select City"
+        }
+        options={cities.map((c) => ({
+          label: c.name,
+          value: c._id || c.id,
+        }))}
+      />
+    )}
+  />
+
+  {errors.city && (
+    <p className="text-red-500 text-xs mt-1">
+      {errors.city.message}
+    </p>
+  )}
+</div>
       
 
         {/* ZIP Code */}

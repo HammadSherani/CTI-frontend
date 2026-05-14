@@ -38,15 +38,36 @@ console.log(watch,"watch from document")
           />
           {file ? (
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xl"></span>
-              <p className="text-xs font-medium text-teal-700 break-all">{file.name}</p>
-              <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+              {typeof file === "string" ? (
+                <>
+                  {file.match(/\.(jpeg|jpg|gif|png|webp)(\?.*)?$/i) ? (
+                    <img src={file} alt="Preview" className="h-16 w-16 object-cover rounded mt-2 shadow-sm" />
+                  ) : (
+                    <Icon icon="mdi:file-document-outline" className="text-3xl text-teal-600 mt-2" />
+                  )}
+                  <a 
+                    href={file} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-xs font-medium text-blue-600 hover:underline mt-1 break-all px-2" 
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    View Current File
+                  </a>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl"></span>
+                  <p className="text-xs font-medium text-teal-700 break-all">{file.name}</p>
+                  <p className="text-xs text-gray-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                </>
+              )}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); setValue(name, null, { shouldValidate: true }); }}
-                className="text-xs text-primary-500 hover:underline mt-1"
+                className="text-xs text-primary-500 hover:underline mt-2 bg-primary-50 px-2 py-1 rounded"
               >
-                Remove
+                Remove / Change
               </button>
             </div>
           ) : (
@@ -83,21 +104,21 @@ export default function DocumentUploads({ control, errors, setValue, watch }) {
           label="National ID / Passport"
           name="nationalIdOrPassport"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           hint="Image or PDF — Max 5MB"
         />
         <UploadField
           label="Shop License / Tax Certificate"
           name="shopLicenseOrTaxCertificate"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           hint="Image or PDF — Max 5MB"
         />
         <UploadField
           label="Proof of Address"
           name="proofOfAddress"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf"
+          accept="image/jpeg,image/jpg,image/png,image/webp"
           hint="Utility bill or bank statement — Max 5MB"
         />
       </div>
