@@ -87,7 +87,7 @@ const onSubmit = async (data) => {
     // 👉 Fix role mapping
     if (data.role === "seller") {
       response = await axiosInstance.post(
-        "/e-commerce/auth/register",
+        "/seller/auth/register",
         data
       );
     } else {

@@ -66,7 +66,7 @@ console.log(resData,'resData')
         return;
       }
       if(resData.status==410){
-        router.push(`/seller/complete-profile${resData.userId}`)
+        router.push(`/seller/complete-profile/${resData.userId}`)
       }
 
       // 🔐 Save to Redux

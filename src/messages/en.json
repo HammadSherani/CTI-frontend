@@ -18,8 +18,10 @@
       "support": "24/7 Customer Support",
       "payments": "Secure Payments"
     }
+  },
+  "NotFound": {
+    "title": "404 - Page Not Found",
+    "message": "Sorry, the page you are looking for does not exist.",
+    "backHome": "Back to Home"
   }
-
-
-  
 }

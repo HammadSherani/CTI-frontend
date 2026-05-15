@@ -18,6 +18,10 @@
       "support": "7/24 Müşteri Desteği",
       "payments": "Güvenli Ödemeler"
     }
-
-}
+  },
+  "NotFound": {
+    "title": "404 - Sayfa Bulunamadı",
+    "message": "Üzgünüz, aradığınız sayfa mevcut değil.",
+    "backHome": "Ana Sayfaya Dön"
+  }
 }

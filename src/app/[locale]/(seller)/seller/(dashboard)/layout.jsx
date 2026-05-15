@@ -22,7 +22,7 @@ function SellerLayout({ children }) {
   const fetchUserDetails = async () => {
     try {
       setLoading(true);
-      const { data } = await axiosInstance.get('/e-commerce/profile/me', {
+      const { data } = await axiosInstance.get('/seller/profile/me', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       setSeller(data?.data)

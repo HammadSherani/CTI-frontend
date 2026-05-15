@@ -159,7 +159,7 @@ function OtpVerification() {
       //  correct condition
       if (user?.role === "seller") {
         response = await axiosInstance.post(
-          "/e-commerce/auth/verify-otp",
+          "/seller/auth/verify-otp",
           {
             otp: data.otp,
             email: user?.email || userEmail,
@@ -223,7 +223,7 @@ function OtpVerification() {
 
     try {
       const endpoint = user?.role === "seller"
-        ? "/e-commerce/auth/resend-otp"
+        ? "/seller/auth/resend-otp"
         : "/auth/resend-otp";
 
       await axiosInstance.post(endpoint, {

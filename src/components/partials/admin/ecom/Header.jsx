@@ -42,6 +42,7 @@ function EcomHeader() {
           items: [
             { name: "Categories", icon: "mdi:shape-outline", path: "/admin/ecom/categories" },
             { name: "Sub Categories", icon: "mdi:shape-plus-outline", path: "/admin/ecom/sub-categories" },
+            { name: "Brand", icon: "mdi:shape-plus-outline", path: "/admin/ecom/brands" },
           ],
         },
         {
@@ -222,7 +223,7 @@ function EcomHeader() {
 
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6">
-            <Link href="/admin/ecom/dashboard" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
+            <Link href="/admin/ecom/dashbaord" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
               <Image
                 src={logo}
                 alt="RepairHub Logo"

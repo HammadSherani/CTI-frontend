@@ -126,7 +126,7 @@ function SubCategoryModal({ mode, initial, categories, onClose, onSuccess }) {
             <select
               value={form.categoryId}
               onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
-              className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:border-primary-500
+              className={`w-full h-12 px-4 rounded-2xl  focus:outline-none focus:border-primary-500
                 ${errors.categoryId ? "border-red-400" : "border-gray-200"}`}
             >
               <option value="">Select Parent Category</option>
@@ -242,7 +242,7 @@ export default function SubCategoriesPage() {
     try {
       const params = new URLSearchParams({ page: currentPage, limit: 10 });
       if (currentSearch) params.set("search", currentSearch);
-      if (status) params.set("status", status);
+      if (status !== "") params.set("isActive", status);
       if (catId) params.set("categoryId", catId);
 
       const { data } = await axiosInstance.get(`/admin/e-commerce/sub-category?${params}`, {
@@ -280,12 +280,12 @@ export default function SubCategoriesPage() {
 
   // Optimistic Toggle
   const handleToggleStatus = async (sub) => {
-    const oldStatus = sub.status;
-    const newStatus = oldStatus === "active" ? "inactive" : "active";
+    const oldStatus = sub.isActive;
+    const newStatus = !oldStatus;
 
     setSubCats((prev) =>
       prev.map((item) =>
-        item._id === sub._id ? { ...item, status: newStatus } : item
+        item._id === sub._id ? { ...item, isActive: newStatus } : item
       )
     );
 
@@ -293,15 +293,15 @@ export default function SubCategoriesPage() {
       await axiosInstance.patch(`/admin/e-commerce/sub-category/toggle/${sub._id}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      toast.success(`Subcategory ${newStatus === "active" ? "activated" : "deactivated"}`);
+      toast.success(`Subcategory ${newStatus ? "activated" : "deactivated"}`);
       fetchSubCats(page, search, statusFilter, catFilter);
     } catch (err) {
       setSubCats((prev) =>
         prev.map((item) =>
-          item._id === sub._id ? { ...item, status: oldStatus } : item
+          item._id === sub._id ? { ...item, isActive: oldStatus } : item
         )
       );
-      toast.error("Failed to toggle status");
+      toast.error(err?.response?.data?.message || "Failed to toggle status");
     }
   };
 
@@ -321,16 +321,16 @@ export default function SubCategoriesPage() {
 
   const summaryCards = summary
     ? [
-        { label: "Total SubCategories", value: summary.total, icon: "mdi:shape-plus", color: "#6366f1" },
-        { label: "Active", value: summary.active, icon: "mdi:check-circle-outline", color: "#10b981" },
-        { label: "Inactive", value: summary.inactive, icon: "mdi:minus-circle-outline", color: "#f59e0b" },
-      ]
+      { label: "Total SubCategories", value: summary.total, icon: "mdi:shape-plus", color: "#6366f1" },
+      { label: "Active", value: summary.active, icon: "mdi:check-circle-outline", color: "#10b981" },
+      { label: "Inactive", value: summary.inactive, icon: "mdi:minus-circle-outline", color: "#f59e0b" },
+    ]
     : null;
 
   const statusOptions = [
     { label: "All Statuses", value: "" },
-    { label: "Active", value: "active" },
-    { label: "Inactive", value: "inactive" },
+    { label: "Active", value: "true" },
+    { label: "Inactive", value: "false" },
   ];
 
   const categoryOptions = [
@@ -360,24 +360,16 @@ export default function SubCategoriesPage() {
       header: "Parent Category",
       cell: (row) => <span className="text-sm font-medium text-gray-700">{row.categoryId?.title || "—"}</span>,
     },
-    {
-      key: "status",
-      header: "Status",
-      cell: (row) => (
-        <span className={`px-3 py-1 rounded-full text-xs font-medium ${row.status === "active" ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-          {row.status}
-        </span>
-      ),
-    },
+
     {
       key: "toggle",
       header: "Active",
       cell: (row) => (
         <button
           onClick={() => handleToggleStatus(row)}
-          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 ${row.status === "active" ? "bg-green-500" : "bg-gray-300"}`}
+          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 ${row.isActive ? "bg-green-500" : "bg-gray-300"}`}
         >
-          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-300 ${row.status === "active" ? "translate-x-6" : "translate-x-1"}`} />
+          <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-300 ${row.isActive ? "translate-x-6" : "translate-x-1"}`} />
         </button>
       ),
     },
@@ -421,7 +413,7 @@ export default function SubCategoriesPage() {
 
       {summaryCards ? <SummaryCards data={summaryCards} /> : <SummaryCardSkeleton />}
 
-      <div className="mt-6 bg-white rounded-2xl shadow-sm border p-4">
+      <div className="mt-6 bg-white rounded-2xl shadow-sm  p-4">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <SearchInput value={search} onChange={handleSearchChange} placeholder="Search subcategories..." />
@@ -435,7 +427,7 @@ export default function SubCategoriesPage() {
         </div>
       </div>
 
-      <div className="mt-4 bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div className="mt-4 bg-white rounded-2xl shadow-sm  overflow-hidden">
         <DataTable
           data={subCats}
           columns={columns}

@@ -193,7 +193,7 @@ const { token } = useSelector((state) => state.auth)
     try {
       setSellerLoading(true);
 
-      const result = await axiosInstance.get("/e-commerce/profile/me-seller", {
+      const result = await axiosInstance.get("/seller/profile/me", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -345,7 +345,7 @@ const { token } = useSelector((state) => state.auth)
         console.log(pair);
       }
       const res = await axiosInstance.post(
-        `/e-commerce/profile/create/${id}`,
+        `/seller/profile/create/${id}`,
         fd,
         {
           headers: {
