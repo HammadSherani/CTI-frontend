@@ -12,11 +12,9 @@ import { toast } from "react-toastify";
 const ATTR_ICON_MAP = {
   color: { icon: "mdi:palette-outline", color: "bg-pink-50 text-pink-500" },
   size: { icon: "mdi:ruler-square", color: "bg-blue-50 text-blue-500" },
-  weight: { icon: "mdi:weight", color: "bg-amber-50 text-amber-500" },
+  storage: { icon: "mdi:harddisk", color: "bg-violet-50 text-violet-500" },
+  ram: { icon: "mdi:memory", color: "bg-amber-50 text-amber-500" },
   material: { icon: "mdi:texture-box", color: "bg-emerald-50 text-emerald-600" },
-  dimensions: { icon: "mdi:cube-scan", color: "bg-violet-50 text-violet-500" },
-  warranty: { icon: "mdi:shield-check-outline", color: "bg-green-50 text-green-600" },
-  "brand model": { icon: "mdi:barcode-scan", color: "bg-gray-100 text-gray-600" },
 };
 
 function getAttrMeta(name = "") {
@@ -41,6 +39,71 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
           <button onClick={onCancel} className="flex-1 px-4 py-2.5 text-sm font-semibold bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors">Cancel</button>
           <button onClick={onConfirm} className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors">Delete</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Variant Table Component ────────────────────────────── */
+function VariantsTable({ variants = [] }) {
+  if (!variants.length) return null;
+
+  // Detect dimension name (assumes all variants share the same dimension)
+  const dimensionName = variants[0]?.attributes?.[0]?.name || "Option";
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mt-6 animate-in fade-in slide-in-from-top-4 duration-500">
+      <div className="px-5 py-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <Icon icon="mdi:layers-triple-outline" className="w-5 h-5 text-primary-500" />
+          Product Variations ({dimensionName})
+        </h3>
+        <span className="px-3 py-1 bg-primary-100 text-primary-700 text-[10px] font-black uppercase rounded-full tracking-wider">
+          {variants.length} Options
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-gray-50">
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">{dimensionName}</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Price</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Stock</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest">Disc%</th>
+              <th className="px-6 py-4 text-xs font-black text-gray-400 uppercase tracking-widest text-right">Sale Price</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-50">
+            {variants.map((v, i) => {
+              const val = v.attributes?.[0]?.value || "—";
+              const hex = v.attributes?.[0]?.colorHex;
+              const salePrice = v.price - (v.price * (v.discountPercentage || 0) / 100);
+              return (
+                <tr key={i} className="hover:bg-gray-50 transition-colors group">
+                  <td className="px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      {hex && <span className="w-4 h-4 rounded-full border shadow-sm" style={{ backgroundColor: hex }} />}
+                      <span className="font-bold text-gray-800">{val}</span>
+                      {v.isDefault && <span className="text-[10px] bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg font-black uppercase tracking-tighter">Default</span>}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-sm font-semibold text-gray-600">${v.price.toFixed(2)}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`text-sm font-bold ${v.stock < 5 ? "text-amber-600" : "text-gray-700"}`}>{v.stock}</span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className="text-xs font-bold text-red-500">{v.discountPercentage > 0 ? `${v.discountPercentage}%` : "—"}</span>
+                  </td>
+                  <td className="px-6 py-4 text-right">
+                    <span className="text-sm font-black text-emerald-600">${salePrice.toFixed(2)}</span>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   );
@@ -124,41 +187,44 @@ export default function ProductDetailPage() {
   if (loading) return <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]"><DetailSkeleton /></div>;
   if (!product) return null;
 
+  const hasVariants = product.hasVariants && product.variants?.length > 1;
+  const minPrice = hasVariants ? Math.min(...product.variants.map(v => v.price)) : product.price;
+  const maxPrice = hasVariants ? Math.max(...product.variants.map(v => v.price)) : product.price;
+
   const infoCards = [
     {
-      label: "Price",
-      value: `$${product.price?.toFixed(2)}`,
-      sub: product.isDiscounted ? `Discounted: $${product.discountPrice?.toFixed(2)}` : "No discount",
+      label: "Inventory Type",
+      value: product.hasVariants ? "Variant Product" : "Simple Product",
+      sub: product.hasVariants ? "Multiple options" : "Single price/stock",
+      icon: product.hasVariants ? "mdi:layers-triple-outline" : "mdi:cube-send",
+      color: product.hasVariants ? "bg-primary-50 text-primary-600" : "bg-blue-50 text-blue-600",
+    },
+    {
+      label: hasVariants ? "Price Range" : "Price",
+      value: hasVariants
+        ? `$${minPrice?.toFixed(2)} - $${maxPrice?.toFixed(2)}`
+        : `$${product.price?.toFixed(2)}`,
+      sub: product.discountPercentage > 0
+        ? `${product.discountPercentage}% off applied`
+        : "No active discount",
       icon: "mdi:tag-outline",
-      color: "bg-violet-50 text-violet-600",
-      highlight: product.isDiscounted,
+      color: "bg-emerald-50 text-emerald-600",
     },
     {
-      label: "Stock",
+      label: "Total Stock",
       value: `${product.stock} units`,
-      sub: product.stock === 0 ? "Out of stock" : product.stock < 5 ? "Low stock" : "In stock",
-      icon: "mdi:cube-outline",
-      color: product.stock === 0 ? "bg-red-50 text-red-600" : product.stock < 5 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600",
+      sub: product.stock === 0 ? "Out of stock" : product.stock < 5 ? "Low stock alert" : "Inventory healthy",
+      icon: "mdi:package-variant",
+      color: product.stock === 0 ? "bg-red-50 text-red-600" : product.stock < 10 ? "bg-amber-50 text-amber-600" : "bg-emerald-50 text-emerald-600",
     },
     {
-      label: "Category",
-      value: product.categoryId?.title || "—",
-      sub: product.subCategoryId?.title || "No subcategory",
-      icon: "mdi:shape-outline",
-      color: "bg-blue-50 text-blue-600",
-    },
-    {
-      label: "Brand",
-      value: product.brandId?.title || "—",
-      sub: product.sku ? `SKU: ${product.sku}` : null,
+      label: "Brand & Category",
+      value: product.brandId?.title || "No Brand",
+      sub: product.categoryId?.title || "No Category",
       icon: "mdi:medal-outline",
       color: "bg-orange-50 text-orange-600",
     },
   ];
-
-  const validAttributes = (product.attributes || []).filter(
-    (a) => a.name && (a.value !== undefined && a.value !== null && String(a.value).trim() !== "")
-  );
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -174,7 +240,7 @@ export default function ProductDetailPage() {
               <Icon icon="mdi:chevron-right" className="w-4 h-4" />
               <span className="text-gray-600 truncate max-w-[200px]">{product.title}</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Product Details</h1>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Product Overview</h1>
           </div>
         </div>
 
@@ -202,22 +268,29 @@ export default function ProductDetailPage() {
 
       {/* Content */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-        {/* Images */}
-        <div className="lg:col-span-2 space-y-3">
-          <div className="aspect-square bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
+
+        {/* Images Left Col */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="aspect-square bg-white rounded-[2rem] border border-gray-100 overflow-hidden shadow-xl shadow-gray-200/40 group relative">
             {product.images?.[activeImage]?.url ? (
-              <img src={product.images[activeImage].url} alt={product.title} className="w-full h-full object-contain p-4" />
+              <img src={product.images[activeImage].url} alt={product.title} className="w-full h-full object-contain p-6 group-hover:scale-105 transition-transform duration-500" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300">
-                <Icon icon="mdi:image-outline" className="w-20 h-20" />
+                <Icon icon="mdi:image-outline" className="w-24 h-24" />
               </div>
             )}
+            <div className="absolute top-4 right-4 bg-white/80 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-white/50 shadow-sm">
+              <span className={`text-[10px] font-black uppercase tracking-widest ${product.isActive ? "text-emerald-600" : "text-gray-500"}`}>
+                {product.isActive ? "Live" : "Draft"}
+              </span>
+            </div>
           </div>
+
           {product.images?.length > 1 && (
-            <div className="grid grid-cols-5 gap-2">
+            <div className="flex flex-wrap gap-3 p-2 bg-white/50 rounded-2xl border border-gray-100">
               {product.images.map((img, i) => (
                 <button key={i} onClick={() => setActiveImage(i)}
-                  className={`aspect-square rounded-xl border-2 overflow-hidden transition-all ${activeImage === i ? "border-primary-500 shadow-md" : "border-gray-100 hover:border-gray-300"}`}
+                  className={`w-16 h-16 rounded-xl border-2 overflow-hidden transition-all ${activeImage === i ? "border-primary-500 scale-105 shadow-md" : "border-transparent opacity-60 hover:opacity-100 hover:scale-105"}`}
                 >
                   <img src={img.url} alt="" className="w-full h-full object-cover" />
                 </button>
@@ -226,140 +299,78 @@ export default function ProductDetailPage() {
           )}
         </div>
 
-        {/* Info */}
+        {/* Info Right Col */}
         <div className="lg:col-span-3 space-y-6">
-          {/* Title + Status */}
+
+          {/* Header Info */}
           <div>
-            <div className="flex items-start justify-between gap-4 mb-2">
-              <h2 className="text-2xl font-bold text-gray-900 leading-tight">{product.title}</h2>
-              <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-bold mt-1 ${product.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>
-                {product.isActive ? "Active" : "Inactive"}
-              </span>
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <span className="px-3 py-1 bg-gray-900 text-white text-[10px] font-black rounded-lg uppercase tracking-wider">{product.brandId?.title || "Generic"}</span>
+              <span className="px-3 py-1 bg-primary-50 text-primary-600 text-[10px] font-black rounded-lg uppercase tracking-wider">{product.categoryId?.title}</span>
             </div>
-            {product.shortDescription && <p className="text-gray-500 text-sm leading-relaxed">{product.shortDescription}</p>}
+            <h2 className="text-3xl font-black text-gray-900 leading-none mb-3">{product.title}</h2>
+            {product.shortDescription && <p className="text-gray-500 text-sm leading-relaxed max-w-xl">{product.shortDescription}</p>}
           </div>
 
-          {/* Info Cards */}
+          {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4">
             {infoCards.map((card, i) => (
-              <div key={i} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${card.color}`}>
-                    <Icon icon={card.icon} className="w-4 h-4" />
+              <div key={i} className="bg-white rounded-[1.5rem] border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${card.color} shadow-sm`}>
+                    <Icon icon={card.icon} className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-medium text-gray-400">{card.label}</span>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{card.label}</span>
                 </div>
-                <p className="font-bold text-gray-900 text-lg">{card.value}</p>
-                {card.sub && <p className="text-xs text-gray-400 mt-0.5">{card.sub}</p>}
+                <p className="font-black text-gray-900 text-xl leading-none mb-1">{card.value}</p>
+                {card.sub && <p className="text-[11px] text-gray-400 font-medium leading-none">{card.sub}</p>}
               </div>
             ))}
           </div>
 
-          {/* ── ATTRIBUTES SECTION ── */}
-          {validAttributes.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              {/* Header */}
-              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
-                <h3 className="font-semibold text-gray-800 flex items-center gap-2">
-                  <Icon icon="mdi:tune-variant" className="w-5 h-5 text-primary-500" />
-                  Product Specifications
-                </h3>
-                <span className="px-2 py-0.5 bg-primary-50 text-primary-600 text-xs font-bold rounded-full">
-                  {validAttributes.length} specs
-                </span>
-              </div>
-
-              {/* Grid view */}
-              <div className="p-5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {validAttributes.map((attr, i) => {
-                    const meta = getAttrMeta(attr.name);
-                    return (
-                      <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-gray-50/80 border border-gray-100 hover:border-gray-200 hover:bg-gray-50 transition-all">
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${meta.color}`}>
-                          <Icon icon={meta.icon} className="w-4.5 h-4.5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-[11px] font-medium text-gray-400 uppercase tracking-wide leading-none mb-0.5">{attr.name}</p>
-                          <p className="text-sm font-semibold text-gray-800 truncate">
-                            {String(attr.value)}{attr.unit ? <span className="text-gray-400 font-normal ml-1">{attr.unit}</span> : ""}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {/* Table view (full breakdown) */}
-              <div className="border-t border-gray-50 mx-5 mb-5">
-                <table className="w-full text-sm mt-4">
-                  <tbody>
-                    {validAttributes.map((attr, i) => (
-                      <tr key={i} className={i % 2 === 0 ? "bg-transparent" : "bg-gray-50/50"}>
-                        <td className="py-2 pr-4 text-gray-500 font-medium w-1/3 text-xs">{attr.name}</td>
-                        <td className="py-2 text-gray-800 font-semibold text-xs">
-                          {String(attr.value)}{attr.unit ? <span className="text-gray-400 font-normal ml-1">{attr.unit}</span> : ""}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+          {/* ── Variants Section ── */}
+          {product.hasVariants && (
+            <VariantsTable variants={product.variants} />
           )}
 
           {/* Description */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Icon icon="mdi:text-box-outline" className="w-5 h-5 text-gray-400" />
-              Description
+          <div className="bg-white rounded-[2rem] border border-gray-100 p-7 shadow-sm">
+            <h3 className="font-black text-gray-800 text-sm uppercase tracking-widest mb-4 flex items-center gap-2">
+              <Icon icon="mdi:text-box-outline" className="w-5 h-5 text-primary-500" />
+              Product Description
             </h3>
-            <p className="text-gray-600 text-sm leading-relaxed whitespace-pre-line">{product.description}</p>
+            <div className="prose prose-sm prose-gray max-w-none text-gray-600 leading-relaxed">
+              <p className="whitespace-pre-line text-sm">{product.description}</p>
+            </div>
           </div>
 
-          {/* Tags */}
-          {product.tags?.length > 0 && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-              <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                <Icon icon="mdi:label-multiple-outline" className="w-5 h-5 text-gray-400" />
-                Tags
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {product.tags.map((tag, i) => (
-                  <span key={i} className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">#{tag}</span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Meta */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h3 className="font-semibold text-gray-700 mb-3 flex items-center gap-2">
-              <Icon icon="mdi:information-outline" className="w-5 h-5 text-gray-400" />
-              Meta Info
+          {/* Meta Info Mini-Table */}
+          <div className="bg-gray-900 rounded-[2rem] p-7 text-white shadow-2xl shadow-gray-900/20">
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400 mb-6 flex items-center gap-2">
+              <Icon icon="mdi:information-variant" className="w-4 h-4" />
+              Technical Meta Info
             </h3>
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-6 gap-x-8">
               {[
-                { label: "Slug", value: product.slug || "—", mono: true },
-                { label: "SKU", value: product.sku || "—", mono: true },
-                { label: "Created", value: new Date(product.createdAt).toLocaleDateString() },
-                { label: "Updated", value: new Date(product.updatedAt).toLocaleDateString() },
-                { label: "Ratings", value: `⭐ ${product.ratings?.average?.toFixed(1) || "0.0"} (${product.ratings?.count || 0} reviews)` },
-              ].map(({ label, value, mono }) => (
-                <div key={label} className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">{label}</span>
-                  <span className={`text-gray-700 ${mono ? "font-mono bg-gray-50 px-2 py-0.5 rounded text-xs" : ""}`}>{value}</span>
+                { label: "SKU ID", value: product.sku || "N/A" },
+                { label: "Created On", value: new Date(product.createdAt).toLocaleDateString() },
+                { label: "Last Update", value: new Date(product.updatedAt).toLocaleDateString() },
+                { label: "Slug", value: product.slug, full: true },
+              ].map((m) => (
+                <div key={m.label} className={m.full ? "col-span-2 sm:col-span-3" : ""}>
+                  <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest mb-1.5">{m.label}</div>
+                  <div className="text-sm font-bold truncate opacity-90">{m.value}</div>
                 </div>
               ))}
             </div>
           </div>
+
         </div>
       </div>
 
       {confirm && (
         <ConfirmDialog
-          message={`Are you sure you want to delete "${product.title}"? This action can be undone by admin.`}
+          message={`Are you sure you want to delete "${product.title}"? This will move it to trash.`}
           onConfirm={handleDelete}
           onCancel={() => setConfirm(false)}
         />

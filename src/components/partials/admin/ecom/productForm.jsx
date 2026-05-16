@@ -1,170 +1,204 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useForm } from "react-hook-form";
-import { Icon } from "@iconify/react";
-import axiosInstance from "@/config/axiosInstance";
-import { useSelector } from "react-redux";
-import { toast } from "react-toastify";
-import { useRouter } from "@/i18n/navigation";
-import * as yup from 'yup';
-import { yupResolver } from "@hookform/resolvers/yup";
-/* ─── Preset attribute templates ─────────────────────────── */
-const ATTRIBUTE_PRESETS = [
-  { name: "Color", icon: "mdi:palette-outline", unit: "", placeholder: "e.g. Red, Blue, Black" },
-  { name: "Size", icon: "mdi:ruler-square", unit: "", placeholder: "e.g. S, M, L, XL or 42" },
-  { name: "Weight", icon: "mdi:weight", unit: "kg", placeholder: "e.g. 1.5" },
-  { name: "Material", icon: "mdi:texture-box", unit: "", placeholder: "e.g. Cotton, Polyester" },
-  { name: "Dimensions", icon: "mdi:cube-scan", unit: "cm", placeholder: "e.g. 30×20×10" },
-  { name: "Warranty", icon: "mdi:shield-check-outline", unit: "months", placeholder: "e.g. 12" },
-  { name: "Brand Model", icon: "mdi:barcode-scan", unit: "", placeholder: "e.g. ABC-100X" },
-  { name: "Custom", icon: "mdi:plus-circle-outline", unit: "", placeholder: "e.g. Any value" },
-];
+import { useForm }            from "react-hook-form";
+import { yupResolver }        from "@hookform/resolvers/yup";
+import * as yup               from "yup";
+import { Icon }               from "@iconify/react";
+import { toast }              from "react-toastify";
+import axiosInstance          from "@/config/axiosInstance";
+import { useSelector }        from "react-redux";
+import { useRouter }          from "@/i18n/navigation";
 
-/* ─── Single Attribute Row ────────────────────────────────── */
-function AttributeRow({ attr, index, onChange, onRemove }) {
-  const [showPresets, setShowPresets] = useState(false);
+import VariantBuilder         from "./variantBuilder";
+import { useVariantBuilder }  from "./useVariantBuilder";
 
-  return (
-    <div className="group flex items-start gap-3 p-3.5 bg-gray-50 hover:bg-gray-100/70 rounded-2xl border border-gray-100 hover:border-gray-200 transition-all">
-      {/* Preset picker button */}
-      <div className="relative flex-shrink-0 mt-0.5">
-        <button
-          type="button"
-          onClick={() => setShowPresets((p) => !p)}
-          className="w-9 h-9 rounded-xl bg-white border border-gray-200 flex items-center justify-center hover:bg-primary-50 hover:border-primary-300 transition-all shadow-sm"
-          title="Pick attribute type"
-        >
-          <Icon icon={ATTRIBUTE_PRESETS.find((p) => p.name === attr.name)?.icon || "mdi:tag-outline"} className="w-4 h-4 text-primary-500" />
-        </button>
-        {showPresets && (
-          <div className="absolute top-11 left-0 z-20 bg-white rounded-2xl border border-gray-100 shadow-xl p-1.5 w-52">
-            {ATTRIBUTE_PRESETS.map((preset) => (
-              <button
-                key={preset.name}
-                type="button"
-                onClick={() => {
-                  onChange(index, "name", preset.name === "Custom" ? "" : preset.name);
-                  onChange(index, "unit", preset.unit);
-                  setShowPresets(false);
-                }}
-                className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl hover:bg-primary-50 text-left text-sm transition-colors"
-              >
-                <Icon icon={preset.icon} className="w-4 h-4 text-primary-400 flex-shrink-0" />
-                <span className="text-gray-700 font-medium">{preset.name}</span>
-                {preset.unit && <span className="ml-auto text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{preset.unit}</span>}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Name */}
-      <div className="flex-1 min-w-0">
-        <input
-          type="text"
-          value={attr.name}
-          onChange={(e) => onChange(index, "name", e.target.value)}
-          placeholder="Attribute name"
-          className="w-full h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/20 transition-all font-medium text-gray-700"
-        />
-      </div>
-
-      {/* Value */}
-      <div className="flex-[2] min-w-0">
-        <input
-          type="text"
-          value={attr.value}
-          onChange={(e) => onChange(index, "value", e.target.value)}
-          placeholder={ATTRIBUTE_PRESETS.find((p) => p.name === attr.name)?.placeholder || "Value"}
-          className="w-full h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/20 transition-all text-gray-700"
-        />
-      </div>
-
-      {/* Unit */}
-      <div className="w-20 flex-shrink-0">
-        <input
-          type="text"
-          value={attr.unit}
-          onChange={(e) => onChange(index, "unit", e.target.value)}
-          placeholder="Unit"
-          className="w-full h-9 px-3 text-sm rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/20 transition-all text-gray-400"
-        />
-      </div>
-
-      {/* Remove */}
-      <button
-        type="button"
-        onClick={() => onRemove(index)}
-        className="w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all mt-0.5"
-      >
-        <Icon icon="mdi:close" className="w-4 h-4" />
-      </button>
-    </div>
-  );
-}
-
-
-const productSchema = yup.object().shape({
+/* ══════════════════════════════════════════════════════════
+   YUP SCHEMA — product fields only (no price/stock/discount)
+══════════════════════════════════════════════════════════ */
+const productSchema = yup.object({
   title: yup
     .string()
     .trim()
-    .min(5, "Title must be at least 5 characters")
-    .max(300, "Title is too long")
-    .required("Product title is required"),
-
-  shortDescription: yup
-    .string()
-    .trim()
-    .max(500, "Short description is too long")
-    .nullable(),
-
+    .min(3, "Title must be at least 3 characters")
+    .max(300, "Title too long")
+    .required("Title is required"),
+  shortDescription: yup.string().trim().max(500).nullable(),
   description: yup
     .string()
     .trim()
-    .min(20, "Description must be at least 20 characters")
-    .required("Detailed description is required"),
-
-  categoryId: yup
-    .string()
-    .required("Please select a category"),
-
+    .min(10, "Description must be at least 10 characters")
+    .required("Description is required"),
+  categoryId:    yup.string().required("Category is required"),
   subCategoryId: yup.string().nullable(),
-  brandId: yup.string().nullable(),
-
-  price: yup
-    .number()
-    .typeError("Price must be a valid number")
-    .positive("Price must be greater than 0")
-    .required("Price is required"),
-
-  isDiscounted: yup.boolean().default(false),
-
-  discountPrice: yup
-    .number()
-    .typeError("Discount price must be a valid number")
-    .positive("Discount price must be greater than 0")
-    .when('isDiscounted', {
-      is: true,
-      then: (schema) =>
-        schema
-          .required("Discount price is required when discount is enabled")
-          .lessThan(yup.ref('price'), "Discount price must be less than original price"),
-      otherwise: (schema) => schema.nullable(),
-    }),
-  stock: yup
-    .number()
-    .typeError("Stock must be a valid number")
-    .min(0, "Stock cannot be negative")
-    .required("Stock quantity is required"),
+  brandId:       yup.string().nullable(),
+  hasVariants:   yup.boolean().default(false),
 });
 
-/* ─── Reusable Product Form (Add & Edit) ─────────────────── */
-export default function ProductForm({ mode = "create", initialData = null }) {
-  const router = useRouter();
-  const { token } = useSelector((state) => state.auth);
+/* ══════════════════════════════════════════════════════════
+   TINY UI PRIMITIVES
+══════════════════════════════════════════════════════════ */
+const FieldError = ({ err }) =>
+  err ? (
+    <p className="flex items-center gap-1 text-red-500 text-xs mt-1.5">
+      <Icon icon="mdi:alert-circle-outline" className="w-3.5 h-3.5 flex-shrink-0" />
+      {err.message}
+    </p>
+  ) : null;
 
- const {
+const Input = React.forwardRef(({ error, prefix, suffix, className = "", ...props }, ref) => (
+  <div className="relative">
+    {prefix && (
+      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold pointer-events-none">
+        {prefix}
+      </span>
+    )}
+    <input
+      ref={ref}
+      {...props}
+      className={`w-full h-11 ${prefix ? "pl-8" : "px-4"} ${suffix ? "pr-10" : "pr-4"} rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${
+        error
+          ? "border-red-400 bg-red-50/40 focus:border-red-400"
+          : "border-gray-200 focus:border-primary-500"
+      } ${className}`}
+    />
+    {suffix && (
+      <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold pointer-events-none">
+        {suffix}
+      </span>
+    )}
+  </div>
+));
+Input.displayName = "Input";
+
+const Card = ({ children, className = "" }) => (
+  <div className={`bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-4 ${className}`}>
+    {children}
+  </div>
+);
+
+const CardTitle = ({ icon, children }) => (
+  <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+    <Icon icon={icon} className="w-4 h-4 text-primary-500" />
+    {children}
+  </h2>
+);
+
+const SEL = "w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all appearance-none disabled:bg-gray-50 disabled:text-gray-400 bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em]";
+const CHEVRON = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E")`;
+
+/* ══════════════════════════════════════════════════════════
+   SIMPLE PRODUCT PRICING  (hasVariants = false)
+   Rendered only when variants are disabled.
+   These fields are NOT part of React Hook Form — they are
+   local state since they belong to the single default variant,
+   not to the product document.
+══════════════════════════════════════════════════════════ */
+function SimplePricing({ value, onChange }) {
+  const { price, stock, discountPercentage, isDiscounted } = value;
+
+  const calcFinal = () => {
+    if (!price || !discountPercentage) return null;
+    const p = Number(price), d = Number(discountPercentage);
+    if (d <= 0 || d >= 100) return null;
+    return Number((p - p * d / 100).toFixed(2));
+  };
+
+  const set = (field, val) => onChange({ ...value, [field]: val });
+
+  return (
+    <Card>
+      <CardTitle icon="mdi:tag-outline">Price & Stock</CardTitle>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            Price <span className="text-red-500">*</span>
+          </label>
+          <Input type="number" step="0.01" min="0" prefix="$"
+            value={price} onChange={(e) => set("price", e.target.value)}
+            placeholder="0.00" error={!price} />
+          {!price && <p className="text-red-500 text-xs mt-1">Price is required</p>}
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            Stock <span className="text-red-500">*</span>
+          </label>
+          <Input type="number" min="0"
+            value={stock} onChange={(e) => set("stock", e.target.value)}
+            placeholder="0" />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">
+            SKU (Optional)
+          </label>
+          <Input type="text"
+            value={value.sku || ""} onChange={(e) => set("sku", e.target.value)}
+            placeholder="e.g. TSHIRT-BLK-M" />
+        </div>
+      </div>
+
+      {/* Discount toggle */}
+      <div>
+        <label className="flex items-center gap-2.5 cursor-pointer mb-3">
+          <div className="relative">
+            <input type="checkbox" className="sr-only"
+              checked={isDiscounted} onChange={(e) => set("isDiscounted", e.target.checked)} />
+            <div className={`w-9 h-5 rounded-full transition-all ${isDiscounted ? "bg-primary-500" : "bg-gray-300"}`}>
+              <span className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${isDiscounted ? "translate-x-4" : ""}`} />
+            </div>
+          </div>
+          <span className="text-xs font-semibold text-gray-700">Enable discount</span>
+        </label>
+
+        {isDiscounted && (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">
+                Discount % <span className="text-red-500">*</span>
+              </label>
+              <Input type="number" min="0" max="99" suffix="%"
+                value={discountPercentage}
+                onChange={(e) => set("discountPercentage", e.target.value)}
+                placeholder="0" />
+            </div>
+            {calcFinal() && (
+              <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200 text-xs space-y-1">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Original</span>
+                  <span className="font-semibold">${Number(price).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Savings ({discountPercentage}%)</span>
+                  <span className="font-semibold text-red-500">
+                    -${(Number(price) * Number(discountPercentage) / 100).toFixed(2)}
+                  </span>
+                </div>
+                <div className="pt-1 border-t border-emerald-200 flex justify-between">
+                  <span className="font-bold text-gray-700">Final Price</span>
+                  <span className="font-bold text-emerald-600 text-sm">${calcFinal()}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN FORM
+══════════════════════════════════════════════════════════ */
+export default function ProductForm({ mode = "create", initialData = null }) {
+  const router   = useRouter();
+  const { token } = useSelector((s) => s.auth);
+
+  /* ── Detect if this product has variants ── */
+  const initialHasVariants = initialData?.hasVariants ?? false;
+
+  /* ── React Hook Form (product fields ONLY) ── */
+  const {
     register,
     handleSubmit,
     watch,
@@ -173,449 +207,507 @@ export default function ProductForm({ mode = "create", initialData = null }) {
   } = useForm({
     resolver: yupResolver(productSchema),
     defaultValues: {
-      title: initialData?.title || "",
+      title:            initialData?.title            || "",
       shortDescription: initialData?.shortDescription || "",
-      description: initialData?.description || "",
-      categoryId: initialData?.categoryId?._id || initialData?.categoryId || "",
-      subCategoryId: initialData?.subCategoryId?._id || initialData?.subCategoryId || "",
-      brandId: initialData?.brandId?._id || initialData?.brandId || "",
-      price: initialData?.price || "",
-      discountPrice: initialData?.discountPrice || "",
-      isDiscounted: initialData?.isDiscounted || false,
-      stock: initialData?.stock || "",
+      description:      initialData?.description      || "",
+      categoryId:       initialData?.categoryId?._id  || initialData?.categoryId  || "",
+      subCategoryId:    initialData?.subCategoryId?._id || initialData?.subCategoryId || "",
+      brandId:          initialData?.brandId?._id     || initialData?.brandId     || "",
+      hasVariants:      initialHasVariants,
     },
   });
-  const [categories, setCategories] = useState([]);
+
+  const watchCategory    = watch("categoryId");
+  const watchSubCategory = watch("subCategoryId");
+  // Force boolean to avoid "true"/"false" string issues from radio buttons
+  const watchHasVariants = !!watch("hasVariants");
+
+  /* ── Simple product pricing state (only used when hasVariants=false) ── */
+  const [simplePricing, setSimplePricing] = useState(() => {
+    // Seed from the default variant if editing
+    const def = initialData?.variants?.find((v) => v.isDefault) || initialData?.variants?.[0];
+    return {
+      price:              String(def?.price              || ""),
+      stock:              String(def?.stock              || ""),
+      discountPercentage: String(def?.discountPercentage || ""),
+      sku:                def?.sku || "",
+      isDiscounted:       (def?.discountPercentage || 0) > 0,
+    };
+  });
+
+  /* ── Variant builder hook (only active when hasVariants=true) ── */
+  const variantBuilder = useVariantBuilder(
+    initialHasVariants ? (initialData?.variants || []) : []
+  );
+  const [variantErrors, setVariantErrors] = useState({});
+
+  /* ── Dropdowns ── */
+  const [categories,    setCategories]    = useState([]);
   const [subCategories, setSubCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [previews, setPreviews] = useState(initialData?.images?.map((img) => img.url) || []);
-  const [selectedFiles, setSelectedFiles] = useState([]);
+  const [brands,        setBrands]        = useState([]);
+
+  /* ── Images ── */
+  const [previews, setPreviews] = useState(initialData?.images?.map((i) => i.url) || []);
+  const [files,    setFiles]    = useState([]);
+  const [imgErr,   setImgErr]   = useState("");
+
+  /* ── Submission state ── */
   const [submitting, setSubmitting] = useState(false);
 
-  // Attributes state
-  const [attributes, setAttributes] = useState(
-    initialData?.attributes?.length > 0
-      ? initialData.attributes.map((a) => ({ name: a.name || "", value: String(a.value ?? ""), unit: a.unit || "" }))
-      : []
-  );
-
-  const selectedCategory = watch("categoryId");
-  const selectedSubCategory = watch("subCategoryId");
-  const isDiscounted = watch("isDiscounted");
-
-  // Load categories
+  /* ── Load categories ── */
   useEffect(() => {
-    const fetch = async () => {
-      try {
-        const { data } = await axiosInstance.get("/seller/product/categories", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        setCategories(data.data || []);
-      } catch {
-        toast.error("Failed to load categories");
-      }
-    };
-    fetch();
+    axiosInstance
+      .get("/seller/product/categories", { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setCategories(data.data || []))
+      .catch(() => toast.error("Failed to load categories"));
   }, [token]);
 
-  // Load subcategories when category changes
+  /* ── Load subcategories ── */
   useEffect(() => {
-    if (!selectedCategory) { setSubCategories([]); setBrands([]); return; }
-    const fetch = async () => {
-      try {
-        const { data } = await axiosInstance.get(`/seller/product/subcategories/${selectedCategory}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (!watchCategory) { setSubCategories([]); setBrands([]); return; }
+    axiosInstance
+      .get(`/seller/product/subcategories/${watchCategory}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
         setSubCategories(data.data || []);
-        const isInitial = initialData?.categoryId?._id === selectedCategory || initialData?.categoryId === selectedCategory;
-        if (!isInitial) { setValue("subCategoryId", ""); setValue("brandId", ""); setBrands([]); }
-      } catch { toast.error("Failed to load subcategories"); }
-    };
-    fetch();
-  }, [selectedCategory, token]);
+        const isInit =
+          initialData?.categoryId?._id === watchCategory ||
+          initialData?.categoryId === watchCategory;
+        if (!isInit) { setValue("subCategoryId", ""); setValue("brandId", ""); setBrands([]); }
+      })
+      .catch(() => toast.error("Failed to load subcategories"));
+  }, [watchCategory, token]);
 
-  // Load brands when subcategory changes
+  /* ── Load brands ── */
   useEffect(() => {
-    if (!selectedSubCategory) { setBrands([]); return; }
-    const fetch = async () => {
-      try {
-        const { data } = await axiosInstance.get(`/seller/product/brands/${selectedSubCategory}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+    if (!watchSubCategory) { setBrands([]); return; }
+    axiosInstance
+      .get(`/seller/product/brands/${watchSubCategory}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
         setBrands(data.data || []);
-        const isInitial = initialData?.subCategoryId?._id === selectedSubCategory || initialData?.subCategoryId === selectedSubCategory;
-        if (!isInitial) setValue("brandId", "");
-      } catch { toast.error("Failed to load brands"); }
-    };
-    fetch();
-  }, [selectedSubCategory, token]);
-
-  /* ── Attribute helpers ── */
-  const addAttribute = () => setAttributes((prev) => [...prev, { name: "", value: "", unit: "" }]);
-
-  const updateAttribute = (index, field, value) => {
-    setAttributes((prev) => prev.map((a, i) => (i === index ? { ...a, [field]: value } : a)));
-  };
-
-  const removeAttribute = (index) => setAttributes((prev) => prev.filter((_, i) => i !== index));
-
-  const addPresetAttribute = (preset) => {
-    if (preset.name === "Custom") { addAttribute(); return; }
-    setAttributes((prev) => [...prev, { name: preset.name, value: "", unit: preset.unit }]);
-  };
+        const isInit =
+          initialData?.subCategoryId?._id === watchSubCategory ||
+          initialData?.subCategoryId === watchSubCategory;
+        if (!isInit) setValue("brandId", "");
+      })
+      .catch(() => toast.error("Failed to load brands"));
+  }, [watchSubCategory, token]);
 
   /* ── Image helpers ── */
   const onFileChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length + previews.length > 5) { toast.warning("Maximum 5 images allowed"); return; }
-    const newPreviews = files.map((f) => URL.createObjectURL(f));
-    setPreviews((prev) => [...prev, ...newPreviews]);
-    setSelectedFiles((prev) => [...prev, ...files]);
+    const picked = Array.from(e.target.files);
+    if (picked.length + previews.length > 5) { toast.warning("Maximum 5 images allowed"); return; }
+    setPreviews((p) => [...p, ...picked.map((f) => URL.createObjectURL(f))]);
+    setFiles((p) => [...p, ...picked]);
+    setImgErr("");
   };
 
-  const removeImage = (index) => {
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
-    const urlToRemove = previews[index];
-    if (urlToRemove?.startsWith("blob:")) {
-      setSelectedFiles((prev) => {
-        const matching = prev.find((f) => URL.createObjectURL(f) === urlToRemove);
-        return prev.filter((f) => f !== matching);
+  const removeImage = (i) => {
+    const url = previews[i];
+    setPreviews((p) => p.filter((_, idx) => idx !== i));
+    if (url.startsWith("blob:")) {
+      // Match blob URL to the file — not perfectly reliable, but good enough.
+      // A more robust approach stores {url, file} pairs together.
+      setFiles((p) => {
+        const idx = p.findIndex((f) => URL.createObjectURL(f) === url);
+        return idx === -1 ? p : p.filter((_, fi) => fi !== idx);
       });
     }
   };
 
-  const onSubmit = async (formData) => {
-    setSubmitting(true);
-    try {
-      const fd = new FormData();
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== "" && formData[key] !== null && formData[key] !== undefined) {
-          fd.append(key, formData[key]);
-        }
-      });
+  /* ── Submit ── */
+  const onSubmit = async (productData) => {
+    if (previews.length === 0) {
+      setImgErr("At least 1 product image is required");
+      return;
+    }
 
-      // Append valid attributes as JSON
-      const validAttrs = attributes.filter((a) => a.name.trim() && String(a.value).trim());
-      fd.append("attributes", JSON.stringify(validAttrs));
-
-      if (mode === "edit") {
-        previews.filter((url) => !url.startsWith("blob:")).forEach((url) => fd.append("existingImages", url));
+    /* Validate variants if applicable */
+    if (watchHasVariants) {
+      const vErrs = variantBuilder.validate();
+      if (Object.keys(vErrs).length) {
+        setVariantErrors(vErrs);
+        toast.error("Please fix variant errors before submitting");
+        return;
       }
-      selectedFiles.forEach((file) => fd.append("images", file));
+      if (!variantBuilder.rows.length) {
+        toast.error("Add at least one variant with attributes");
+        return;
+      }
+      setVariantErrors({});
+    } else {
+      if (!simplePricing.price || Number(simplePricing.price) <= 0) {
+        toast.error("Price is required");
+        return;
+      }
+    }
 
-      const url = mode === "create" ? "/seller/product/create" : `/seller/product/${initialData._id}`;
-      const method = mode === "create" ? "post" : "put";
+    setSubmitting(true);
 
-      await axiosInstance[method](url, fd, {
+    try {
+      /* ── Build FormData for product ── */
+      const fd = new FormData();
+      fd.append("title",       productData.title);
+      fd.append("description", productData.description);
+      fd.append("hasVariants", String(watchHasVariants));
+      if (productData.shortDescription) fd.append("shortDescription", productData.shortDescription);
+      if (productData.categoryId)       fd.append("categoryId",       productData.categoryId);
+      if (productData.subCategoryId)    fd.append("subCategoryId",    productData.subCategoryId);
+      if (productData.brandId)          fd.append("brandId",          productData.brandId);
+
+      /* Keep existing images on edit */
+      if (mode === "edit") {
+        previews
+          .filter((u) => !u.startsWith("blob:"))
+          .forEach((u) => fd.append("existingImages", u));
+      }
+      files.forEach((f) => fd.append("images", f));
+
+      /* ── Create / update product ── */
+      const isCreate = mode === "create";
+      const productUrl = isCreate
+        ? "/seller/product"
+        : `/seller/product/${initialData._id}`;
+
+      const productRes = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      toast.success(`Product ${mode === "create" ? "created" : "updated"} successfully`);
+      const savedProduct = productRes.data.data;
+
+      /* ── Save variants ── */
+      const variants = watchHasVariants
+        ? variantBuilder.serialise()
+        : [
+            {
+              attributes:         [],
+              price:              Number(simplePricing.price),
+              stock:              Number(simplePricing.stock || 0),
+              discountPercentage: simplePricing.isDiscounted
+                ? Number(simplePricing.discountPercentage || 0)
+                : 0,
+              sku:       simplePricing.sku?.trim() || undefined,
+              isDefault: true,
+            },
+          ];
+
+      await axiosInstance.post(
+        `/seller/product/${savedProduct._id}/variants`,
+        { variants: JSON.stringify(variants) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      toast.success(`Product ${isCreate ? "created" : "updated"} successfully`);
       router.push("/seller/product");
     } catch (err) {
-      toast.error(err?.response?.data?.message || "Operation failed");
+      console.error(err);
+      toast.error(err?.response?.data?.message || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
   };
+const summaryRows = watchHasVariants
+  ? [
+      { label: "Variants", value: variantBuilder.summary.variantCount || "0" },
+      { label: "Price Range", value: variantBuilder.summary.minPrice ? `$${variantBuilder.summary.minPrice} - $${variantBuilder.summary.maxPrice}` : "—" },
+      { label: "Total stock", value: variantBuilder.summary.totalStock || "0" },
+    ]
+  : [
+      { label: "Price", value: (simplePricing.price && !isNaN(simplePricing.price)) ? `$${Number(simplePricing.price).toFixed(2)}` : "—" },
+      { label: "Discount", value: (simplePricing.isDiscounted && simplePricing.discountPercentage) ? `${simplePricing.discountPercentage}%` : "—" },
+      { label: "Stock", value: simplePricing.stock || "0" },
+    ];
 
-  const selectStyle = "w-full h-12 px-4 rounded-2xl border border-gray-200 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all appearance-none bg-no-repeat bg-[right_1rem_center] bg-[length:1em_1em] disabled:bg-gray-50 disabled:text-gray-400";
-  const chevronBg = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239ca3af'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`;
-
+const extraRows = [
+  { label: "Images", value: `${previews.length}/5` },
+  { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
+];
+  /* ══════════════════════════════════════════════════════════
+     RENDER
+  ══════════════════════════════════════════════════════════ */
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
-      {/* Header */}
-      <div className="mb-8 flex items-center gap-4">
-        <button onClick={() => router.back()} className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors shadow-sm">
+
+      {/* ── Header ── */}
+      <div className="mb-7 flex items-center gap-3">
+        <button type="button" onClick={() => router.back()}
+          className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 shadow-sm transition-colors">
           <Icon icon="mdi:arrow-left" className="w-5 h-5 text-gray-600" />
         </button>
         <div>
-          <div className="flex items-center gap-2 text-sm text-gray-400 mb-0.5">
-            <span className="hover:text-primary-600 cursor-pointer transition-colors" onClick={() => router.push("/seller/product")}>Products</span>
-            <Icon icon="mdi:chevron-right" className="w-4 h-4" />
-            <span className="text-gray-600">{mode === "create" ? "Add New Product" : "Edit Product"}</span>
+          <div className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
+            <span className="hover:text-primary-600 cursor-pointer"
+              onClick={() => router.push("/seller/product")}>
+              Products
+            </span>
+            <Icon icon="mdi:chevron-right" className="w-3.5 h-3.5" />
+            <span className="text-gray-600">
+              {mode === "create" ? "New Product" : "Edit Product"}
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-            {mode === "create" ? "Add New Product" : `Edit: ${initialData?.title}`}
+          <h1 className="text-xl font-bold text-gray-900">
+            {mode === "create" ? "Add New Product" : initialData?.title}
           </h1>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          {/* LEFT */}
-          <div className="xl:col-span-2 space-y-6">
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
 
-            {/* Basic Info */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-                <Icon icon="mdi:information-outline" className="w-5 h-5 text-primary-500" />
-                Basic Information
-              </h2>
-              <div className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Product Title <span className="text-red-500">*</span></label>
-                  <input {...register("title", { required: "Title is required" })}
-                    className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${errors.title ? "border-red-400 bg-red-50/30" : "border-gray-200 focus:border-primary-500"}`}
-                    placeholder="e.g. Wireless Noise Cancelling Headphones"
-                  />
-                  {errors.title && <p className="text-red-500 text-xs mt-1.5 ml-1 flex items-center gap-1"><Icon icon="mdi:alert-circle-outline" className="w-3.5 h-3.5" />{errors.title.message}</p>}
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Short Description</label>
-                  <input {...register("shortDescription")}
-                    className="w-full h-12 px-4 rounded-2xl border border-gray-200 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                    placeholder="Brief one-line summary..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Description <span className="text-red-500">*</span></label>
-                  <textarea {...register("description", { required: "Description is required" })} rows={5}
-                    className={`w-full px-4 py-3 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none ${errors.description ? "border-red-400 bg-red-50/30" : "border-gray-200 focus:border-primary-500"}`}
-                    placeholder="Detailed description of your product..."
-                  />
-                  {errors.description && <p className="text-red-500 text-xs mt-1.5 ml-1 flex items-center gap-1"><Icon icon="mdi:alert-circle-outline" className="w-3.5 h-3.5" />{errors.description.message}</p>}
-                </div>
+          {/* ════ LEFT: 2 cols ════ */}
+          <div className="xl:col-span-2 space-y-5">
+
+            {/* ── Basic Info ── */}
+            <Card>
+              <CardTitle icon="mdi:information-outline">Basic Information</CardTitle>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Title <span className="text-red-500">*</span>
+                </label>
+                <Input {...register("title")} error={errors.title} placeholder="e.g. Premium Cotton T-Shirt" />
+                <FieldError err={errors.title} />
               </div>
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
+                <Input {...register("shortDescription")} placeholder="One-line summary..." />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <textarea {...register("description")} rows={4}
+                  className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none ${
+                    errors.description ? "border-red-400 bg-red-50/40" : "border-gray-200 focus:border-primary-500"
+                  }`}
+                  placeholder="Detailed product description..." />
+                <FieldError err={errors.description} />
+              </div>
+            </Card>
 
-            {/* Categorization */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-                <Icon icon="mdi:shape-outline" className="w-5 h-5 text-primary-500" />
-                Categorization
-              </h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* ── Categorization ── */}
+            <Card>
+              <CardTitle icon="mdi:shape-outline">Categorization</CardTitle>
+              <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Category <span className="text-red-500">*</span></label>
-                  <select {...register("categoryId", { required: "Category is required" })} className={`${selectStyle} ${errors.categoryId ? "border-red-400 bg-red-50/30" : ""}`} style={{ backgroundImage: chevronBg }}>
-                    <option value="">Select Category</option>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Category <span className="text-red-500">*</span>
+                  </label>
+                  <select {...register("categoryId")}
+                    className={`${SEL} ${errors.categoryId ? "border-red-400 bg-red-50/40" : ""}`}
+                    style={{ backgroundImage: CHEVRON }}>
+                    <option value="">Select</option>
                     {categories.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}
                   </select>
-                  {errors.categoryId && <p className="text-red-500 text-xs mt-1.5 ml-1">{errors.categoryId.message}</p>}
+                  <FieldError err={errors.categoryId} />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Subcategory</label>
-                  <select {...register("subCategoryId")} disabled={!selectedCategory} className={selectStyle} style={{ backgroundImage: chevronBg }}>
-                    <option value="">Select Subcategory</option>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Subcategory</label>
+                  <select {...register("subCategoryId")} disabled={!watchCategory}
+                    className={SEL} style={{ backgroundImage: CHEVRON }}>
+                    <option value="">Select</option>
                     {subCategories.map((s) => <option key={s._id} value={s._id}>{s.title}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Brand</label>
-                  <select {...register("brandId")} disabled={!selectedSubCategory} className={selectStyle} style={{ backgroundImage: chevronBg }}>
-                    <option value="">Select Brand</option>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
+                  <select {...register("brandId")} disabled={!watchSubCategory}
+                    className={SEL} style={{ backgroundImage: CHEVRON }}>
+                    <option value="">Select</option>
                     {brands.map((b) => <option key={b._id} value={b._id}>{b.title}</option>)}
                   </select>
                 </div>
               </div>
-            </div>
+            </Card>
 
-            {/* ── ATTRIBUTES SECTION ── */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="font-bold text-gray-800 text-base flex items-center gap-2">
-                  <Icon icon="mdi:tune-variant" className="w-5 h-5 text-primary-500" />
-                  Product Attributes
-                  {attributes.length > 0 && (
-                    <span className="ml-1 px-2 py-0.5 bg-primary-100 text-primary-600 text-xs font-bold rounded-full">{attributes.length}</span>
-                  )}
-                </h2>
-                <button
-                  type="button"
-                  onClick={addAttribute}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-50 text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-100 transition-colors border border-primary-100"
-                >
-                  <Icon icon="mdi:plus" className="w-4 h-4" />
-                  Add Row
-                </button>
+            {/* ── Product Type ── */}
+            <Card className="overflow-hidden border-2 border-gray-100 shadow-xl shadow-gray-200/20">
+              <div className="flex items-center justify-between mb-4">
+                <CardTitle icon="mdi:cube-outline">Product Inventory Type</CardTitle>
+                <div className="px-2.5 py-1 bg-gray-100 rounded-lg text-[10px] font-black text-gray-500 uppercase tracking-wider">Required</div>
               </div>
-              <p className="text-xs text-gray-400 mb-5">Add specifications like color, size, weight, material, etc.</p>
-
-              {/* Quick-add presets */}
-              <div className="flex flex-wrap gap-2 mb-5">
-                {ATTRIBUTE_PRESETS.slice(0, 6).map((preset) => (
-                  <button
-                    key={preset.name}
-                    type="button"
-                    onClick={() => addPresetAttribute(preset)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-primary-50 hover:text-primary-600 hover:border-primary-200 text-gray-600 border border-gray-200 rounded-xl text-xs font-medium transition-all"
-                  >
-                    <Icon icon={preset.icon} className="w-3.5 h-3.5" />
-                    {preset.name}
-                  </button>
-                ))}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {[
+                  {
+                    value:   false,
+                    label:   "Simple Product",
+                    desc:    "No variations. Just one price and stock level.",
+                    icon:    "mdi:cube-send",
+                    activeBg: "bg-blue-600",
+                    activeBorder: "border-blue-600",
+                    lightBg: "bg-blue-50",
+                    textColor: "text-blue-600",
+                  },
+                  {
+                    value:   true,
+                    label:   "Variant Product",
+                    desc:    "Single dimension (e.g. Size OR Storage) variations.",
+                    icon:    "mdi:layers-triple-outline",
+                    activeBg: "bg-primary-600",
+                    activeBorder: "border-primary-600",
+                    lightBg: "bg-primary-50",
+                    textColor: "text-primary-600",
+                  },
+                ].map((opt) => {
+                  const isActive = !!watchHasVariants === opt.value;
+                  return (
+                    <label key={String(opt.value)}
+                      className={`relative group cursor-pointer transition-all duration-300 ${
+                        isActive ? "scale-[1.02]" : "hover:scale-[1.01]"
+                      }`}>
+                      <input type="radio" className="sr-only"
+                        checked={isActive}
+                        onChange={() => setValue("hasVariants", opt.value)} />
+                      
+                      <div className={`h-full p-5 rounded-2xl border-2 transition-all duration-300 ${
+                        isActive 
+                          ? `${opt.activeBorder} ${opt.lightBg} shadow-lg shadow-${opt.value ? "primary" : "blue"}-500/10` 
+                          : "border-gray-100 bg-white hover:border-gray-200"
+                      }`}>
+                        <div className="flex items-start gap-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
+                            isActive ? `${opt.activeBg} text-white shadow-lg` : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
+                          }`}>
+                            <Icon icon={opt.icon} className="w-6 h-6" />
+                          </div>
+                          <div className="flex-1">
+                            <p className={`text-sm font-black uppercase tracking-tight ${isActive ? opt.textColor : "text-gray-700"}`}>
+                              {opt.label}
+                            </p>
+                            <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">
+                              {opt.desc}
+                            </p>
+                          </div>
+                        </div>
+                        {isActive && (
+                          <div className={`absolute top-4 right-4 w-5 h-5 rounded-full ${opt.activeBg} text-white flex items-center justify-center shadow-md animate-in zoom-in duration-300`}>
+                            <Icon icon="mdi:check" className="w-3 h-3" />
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  );
+                })}
               </div>
+            </Card>
 
-              {/* Column headers */}
-              {attributes.length > 0 && (
-                <div className="flex items-center gap-3 mb-2 px-1">
-                  <div className="w-9 flex-shrink-0" />
-                  <div className="flex-1 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Name</div>
-                  <div className="flex-[2] text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Value</div>
-                  <div className="w-20 flex-shrink-0 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Unit</div>
-                  <div className="w-9 flex-shrink-0" />
-                </div>
-              )}
-
-              {/* Rows */}
-              <div className="space-y-2">
-                {attributes.map((attr, i) => (
-                  <AttributeRow key={i} attr={attr} index={i} onChange={updateAttribute} onRemove={removeAttribute} />
-                ))}
+            {/* ── Simple Pricing (only when no variants) ── */}
+            {!watchHasVariants && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                <SimplePricing value={simplePricing} onChange={setSimplePricing} />
               </div>
+            )}
 
-              {attributes.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-10 border-2 border-dashed border-gray-100 rounded-2xl text-center">
-                  <div className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center mb-3">
-                    <Icon icon="mdi:tune-variant" className="w-6 h-6 text-gray-300" />
-                  </div>
-                  <p className="text-sm font-medium text-gray-400">No attributes added yet</p>
-                  <p className="text-xs text-gray-300 mt-0.5 mb-4">Click a preset above or use "Add Row"</p>
-                  <button
-                    type="button"
-                    onClick={addAttribute}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-primary-50 text-primary-600 rounded-xl text-sm font-semibold hover:bg-primary-100 transition-colors"
-                  >
-                    <Icon icon="mdi:plus" className="w-4 h-4" />
-                    Add First Attribute
-                  </button>
-                </div>
-              )}
-            </div>
+            {/* ── Variant Builder (only when hasVariants) ── */}
+            {watchHasVariants && (
+              <div className="animate-in fade-in slide-in-from-top-4 duration-500">
+                <VariantBuilder
+                  {...variantBuilder}
+                  errors={variantErrors}
+                />
+              </div>
+            )}
 
-            {/* Images */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-                <Icon icon="mdi:image-multiple-outline" className="w-5 h-5 text-primary-500" />
-<h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-            Product Images <span className="text-red-500">*</span>
-          </h2>                <span className="ml-auto text-xs text-gray-400 font-normal">{previews.length}/5</span>
-              </h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+            {/* ── Images ── */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <CardTitle icon="mdi:image-multiple-outline">Product Images</CardTitle>
+                <span className="text-xs text-gray-400">{previews.length}/5</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                 {previews.map((url, i) => (
-                  <div key={i} className="relative group aspect-square rounded-2xl border border-gray-100 overflow-hidden bg-gray-50">
-                    <img src={url} alt="preview" className="w-full h-full object-cover" />
+                  <div key={i} className="relative group aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-all" />
-                    <button type="button" onClick={() => removeImage(i)} className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all shadow-lg hover:bg-red-600">
-                      <Icon icon="mdi:trash-can-outline" className="w-3.5 h-3.5" />
+                    <button type="button" onClick={() => removeImage(i)}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                      <Icon icon="mdi:close" className="w-3 h-3" />
                     </button>
-                    {i === 0 && <span className="absolute bottom-2 left-2 px-1.5 py-0.5 bg-black/60 text-white text-[10px] rounded font-medium">Main</span>}
+                    {i === 0 && (
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded font-medium">
+                        Main
+                      </span>
+                    )}
                   </div>
                 ))}
                 {previews.length < 5 && (
-                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-2xl hover:border-primary-400 hover:bg-primary-50/30 cursor-pointer transition-all group">
-                    <Icon icon="mdi:plus-circle-outline" className="w-8 h-8 text-gray-300 group-hover:text-primary-400 transition-colors" />
-                    <span className="text-[10px] font-medium text-gray-400 mt-1.5">Add Image</span>
+                  <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-400 hover:bg-primary-50/30 cursor-pointer transition-all group">
+                    <Icon icon="mdi:plus" className="w-6 h-6 text-gray-300 group-hover:text-primary-400" />
+                    <span className="text-[10px] text-gray-400 mt-1">Add</span>
                     <input type="file" multiple accept="image/*" className="hidden" onChange={onFileChange} />
                   </label>
                 )}
               </div>
-              <p className="text-xs text-gray-400 mt-3">First image will be used as the main product image. Max 5 images.</p>
-            </div>
-          </div>
+              {imgErr && (
+                <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
+                  <Icon icon="mdi:alert-circle-outline" className="w-3.5 h-3.5" />
+                  {imgErr}
+                </p>
+              )}
+            </Card>
 
-          {/* RIGHT */}
-          <div className="space-y-6">
-            {/* Pricing */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-                <Icon icon="mdi:tag-outline" className="w-5 h-5 text-primary-500" />
-                Pricing
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Price <span className="text-red-500">*</span></label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-semibold text-sm">$</span>
-                    <input type="number" step="0.01" {...register("price", { required: "Price is required", min: { value: 0, message: "Must be ≥ 0" } })}
-                      className={`w-full h-12 pl-8 pr-4 rounded-2xl border focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${errors.price ? "border-red-400 bg-red-50/30" : "border-gray-200 focus:border-primary-500"}`}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  {errors.price && <p className="text-red-500 text-xs mt-1.5 ml-1">{errors.price.message}</p>}
-                </div>
+          </div>{/* end left col */}
 
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-700">Enable Discount</p>
-                    <p className="text-xs text-gray-400">Show a discounted price</p>
-                  </div>
-                  <label className="relative cursor-pointer">
-                    <input type="checkbox" {...register("isDiscounted")} className="sr-only" />
-                    <div className={`w-11 h-6 rounded-full transition-all duration-300 ${isDiscounted ? "bg-primary-500" : "bg-gray-300"}`}>
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-all duration-300 ${isDiscounted ? "translate-x-5" : "translate-x-0"}`} />
-                    </div>
-                  </label>
-                </div>
+          {/* ════ RIGHT: 1 col ════ */}
+          <div className="space-y-5">
 
-                {isDiscounted && (
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">Discounted Price</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-semibold text-sm">$</span>
-                      <input type="number" step="0.01" {...register("discountPrice", { min: { value: 0, message: "Must be ≥ 0" } })}
-                        className="w-full h-12 pl-8 pr-4 rounded-2xl border border-emerald-200 focus:outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20 bg-emerald-50/30 transition-all"
-                        placeholder="0.00"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            {/* Summary card */}
+         <Card>
+  <h3 className="font-bold text-gray-700 text-sm flex items-center gap-2">
+    <Icon icon="mdi:chart-box-outline" className="w-4 h-4 text-primary-500" />
+    Summary
+  </h3>
 
-            {/* Inventory */}
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-              <h2 className="font-bold text-gray-800 text-base mb-5 flex items-center gap-2">
-                <Icon icon="mdi:cube-outline" className="w-5 h-5 text-primary-500" />
-                Inventory
-              </h2>
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Stock Quantity</label>
-                <input type="number" {...register("stock", { min: { value: 0, message: "Must be ≥ 0" } })}
-                  className="w-full h-12 px-4 rounded-2xl border border-gray-200 focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-                  placeholder="0"
-                />
-                {errors.stock && <p className="text-red-500 text-xs mt-1.5 ml-1">{errors.stock.message}</p>}
-              </div>
-            </div>
-
-            {/* Attribute summary (read-only preview) */}
-            {attributes.filter((a) => a.name && a.value).length > 0 && (
-              <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-                <h2 className="font-bold text-gray-800 text-base mb-4 flex items-center gap-2">
-                  <Icon icon="mdi:format-list-checks" className="w-5 h-5 text-primary-500" />
-                  Attribute Summary
-                </h2>
-                <div className="space-y-2">
-                  {attributes.filter((a) => a.name && a.value).map((a, i) => (
-                    <div key={i} className="flex items-center justify-between py-1.5 border-b border-gray-50 last:border-0">
-                      <span className="text-xs font-medium text-gray-500">{a.name}</span>
-                      <span className="text-xs font-semibold text-gray-800">{a.value}{a.unit ? ` ${a.unit}` : ""}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+  <div className="space-y-2">
+    {[...summaryRows, ...extraRows].map((row) => (
+      <div
+        key={row.label}
+        className="flex justify-between items-center py-1.5 border-b border-gray-50 last:border-0"
+      >
+        <span className="text-xs text-gray-400">{row.label}</span>
+        <span className="text-xs font-bold text-gray-800">{row.value}</span>
+      </div>
+    ))}
+  </div>
+</Card>
 
             {/* Actions */}
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <button type="submit" disabled={submitting}
-                className="w-full py-4 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-500/25"
-              >
+                className="w-full py-3.5 text-sm font-bold text-white bg-primary-600 rounded-2xl hover:bg-primary-700 disabled:opacity-60 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20">
                 {submitting ? (
-                  <><Icon icon="mdi:loading" className="animate-spin w-5 h-5" />{mode === "create" ? "Creating..." : "Saving..."}</>
+                  <>
+                    <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
+                    {mode === "create" ? "Creating..." : "Saving..."}
+                  </>
                 ) : (
-                  <><Icon icon={mode === "create" ? "mdi:plus-circle-outline" : "mdi:content-save-outline"} className="w-5 h-5" />{mode === "create" ? "Create Product" : "Save Changes"}</>
+                  <>
+                    <Icon icon={mode === "create" ? "mdi:plus-circle-outline" : "mdi:content-save-outline"} className="w-4 h-4" />
+                    {mode === "create" ? "Create Product" : "Save Changes"}
+                  </>
                 )}
               </button>
               <button type="button" onClick={() => router.back()}
-                className="w-full py-3.5 text-sm font-semibold bg-gray-100 text-gray-700 rounded-2xl hover:bg-gray-200 transition-colors"
-              >
+                className="w-full py-3 text-sm font-semibold bg-gray-100 text-gray-600 rounded-2xl hover:bg-gray-200 transition-colors">
                 Cancel
               </button>
             </div>
-          </div>
+
+            {/* Tips */}
+            <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
+              <p className="text-xs font-bold text-amber-700 mb-2 flex items-center gap-1.5">
+                <Icon icon="mdi:lightbulb-outline" className="w-3.5 h-3.5" />
+                Tips
+              </p>
+              <ul className="text-xs text-amber-600 space-y-1.5 leading-relaxed">
+                <li>• Choose <strong>Variable Product</strong> if your item comes in different colors, sizes, storage, etc.</li>
+                <li>• Use <strong>Bulk fill</strong> in the variant grid to set the same price/stock for all rows at once.</li>
+                <li>• The first image becomes the main display image.</li>
+                <li>• SKU fields in the variant grid are optional — they're auto-generated if left blank.</li>
+              </ul>
+            </div>
+
+          </div>{/* end right col */}
+
         </div>
       </form>
     </div>
