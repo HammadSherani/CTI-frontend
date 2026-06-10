@@ -36,12 +36,14 @@ export default function ProductListingPage() {
         queryParams.append("limit", PAGE_SIZE);
         queryParams.append("sort", sort);
 
-        if (filters.categoryIds?.length) queryParams.append("categoryIds", filters.categoryIds.join(','));
-        if (filters.subCategoryIds?.length) queryParams.append("subCategoryIds", filters.subCategoryIds.join(','));
-        if (filters.brandIds?.length) queryParams.append("brandIds", filters.brandIds.join(','));
-        if (filters.rating > 0) queryParams.append("rating", filters.rating);
-        if (filters.priceMin != null) queryParams.append("minPrice", filters.priceMin);
-        if (filters.priceMax != null) queryParams.append("maxPrice", filters.priceMax);
+        if (filters.categoryIds?.length)    queryParams.append('categoryIds',    filters.categoryIds.join(','));
+        if (filters.subCategoryIds?.length)  queryParams.append('subCategoryIds', filters.subCategoryIds.join(','));
+        if (filters.brandIds?.length)        queryParams.append('brandIds',       filters.brandIds.join(','));
+        if (filters.colors?.length)          queryParams.append('colors',         filters.colors.join(','));
+        if (filters.rating > 0)              queryParams.append('rating',         filters.rating);
+        // Only send price when user has actually changed from defaults
+        if (filters.priceMin > 0)            queryParams.append('minPrice',       filters.priceMin);
+        if (filters.priceMax && filters.priceMax < 2000) queryParams.append('maxPrice', filters.priceMax);
 
         const res = await axiosInstance.get(`/e-commerce/products?${queryParams.toString()}`);
         if (res.data.success) {
