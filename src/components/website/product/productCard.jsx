@@ -13,6 +13,8 @@ function ProductCard({
   reviews, 
   goldPrice, 
   badge, 
+  isWishlisted,
+  onWishlist,
   onAdd 
 }) {
   return (
@@ -29,12 +31,24 @@ function ProductCard({
           className="inline-block mr-1" 
         />
 
-        {/* Badge */}
-        {badge && (
-          <div className="absolute top-3 right-3 z-10  bg-gray-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md">
-            {badge}
-          </div>
-        )}
+        {/* Wishlist & Badge */}
+        <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-2">
+          {onWishlist && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); onWishlist(e); }}
+              className={`w-8 h-8 rounded-full border shadow-sm flex items-center justify-center transition-colors ${
+                isWishlisted ? 'bg-red-50 border-red-200 text-red-500' : 'bg-white border-gray-200 text-gray-400 hover:text-red-400 hover:border-red-200'
+              }`}
+            >
+              <Icon icon={isWishlisted ? "mdi:heart" : "mdi:heart-outline"} className="text-lg" />
+            </button>
+          )}
+          {badge && (
+            <div className="bg-gray-800 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+              {badge}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ── Product Image ── */}
@@ -55,13 +69,13 @@ function ProductCard({
         {(discountAmount || discountPercent) && (
           <div className="flex justify-between gap-2">
             {discountAmount && (
-              <span className="bg-green-500 text-white text-[14px] font-bold px-2 py-0.5 rounded-md">
+              <span className="bg-green-500 text-white text-[12px] font-bold px-2 py-0.5 rounded-md">
                 {discountAmount}
               </span>
             )}
             {discountPercent && (
-              <span className="text-primary-600 text-[14px] font-bold px-2 py-0.5 rounded-md">
-              -  {discountPercent}Off
+              <span className="bg-red-50 text-red-600 border border-red-100 text-[12px] font-bold px-2 py-0.5 rounded-md">
+                {discountPercent}% OFF
               </span>
             )}
           </div>

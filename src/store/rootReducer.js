@@ -4,6 +4,9 @@ import chat from "./chat";
 import notifications from "./notifications"; 
 import home from "./home";
 import academy from "./academy";
+import wishlist from "./wishlist";
+import cart from "./cart";
+
 const rootReducer = {
   auth,
   config,
@@ -11,5 +14,7 @@ const rootReducer = {
   notifications,
   home,
   academy,
+  wishlist,
+  cart,
 };
 export default rootReducer;

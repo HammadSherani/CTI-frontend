@@ -8,58 +8,59 @@ import { useRouter } from '@/i18n/navigation';
 
 const PAGE_SIZE = 8;
 
-// ── Static demo products (swap for API call later) ──
-export const DEMO_PRODUCTS = [
-  { _id: '1',  title: 'Apple iPhone 14 Refurbished',  img: '/assets/product/prode1.jpg', price: 50.90,  oldPrice: 80.90,  discountAmount: '12,000', discountPercent: '37', reviews: '5k',  goldPrice: '$30.90', badge: 'Sale',  brand: 'Apple',   category: 'Smartphones', subcategory: 'Refurbished', colors: ['Black','White'], rating: 4.5 },
-  { _id: '2',  title: 'Samsung Galaxy S23 Ultra',      img: '/assets/product/prode2.jpg', price: 120.00, oldPrice: 160.00, discountAmount: '8,000',  discountPercent: '25', reviews: '3.2k', goldPrice: '$90.00', badge: 'New',   brand: 'Samsung', category: 'Smartphones', subcategory: 'Brand New',  colors: ['Black','Gray'],  rating: 4.8 },
-  { _id: '3',  title: 'Xiaomi 13 Pro Open Box',        img: '/assets/product/prode3.jpg', price: 75.00,  oldPrice: 110.00, discountAmount: '5,000',  discountPercent: '32', reviews: '1.8k', goldPrice: '$55.00', badge: 'Sale',  brand: 'Xiaomi',  category: 'Smartphones', subcategory: 'Open Box',   colors: ['Black','Blue'],  rating: 4.2 },
-  { _id: '4',  title: 'Apple MacBook Air M2',           img: '/assets/product/prode4.jpg', price: 850.00, oldPrice: 1099.00,discountAmount: '',       discountPercent: '23', reviews: '9k',  goldPrice: '$720.00',badge: '',      brand: 'Apple',   category: 'Laptops',     subcategory: 'Brand New',  colors: ['Gray','Gold'],   rating: 4.9 },
-  { _id: '5',  title: 'Samsung Galaxy Tab S9',          img: '/assets/product/prode5.jpg', price: 310.00, oldPrice: 399.00, discountAmount: '3,000',  discountPercent: '22', reviews: '2.4k', goldPrice: '$270.00',badge: 'Sale',  brand: 'Samsung', category: 'Tablets',     subcategory: 'Brand New',  colors: ['Gray','Pink'],   rating: 4.6 },
-  { _id: '6',  title: 'Apple Watch Series 9',           img: '/assets/product/prode6.jpg', price: 280.00, oldPrice: 349.00, discountAmount: '',       discountPercent: '20', reviews: '7.1k', goldPrice: '$230.00',badge: '',      brand: 'Apple',   category: 'Wearables',   subcategory: 'Brand New',  colors: ['Black','White'], rating: 4.7 },
-  { _id: '7',  title: 'OnePlus 12 Flagship Phone',      img: '/assets/product/prode1.jpg', price: 65.00,  oldPrice: 95.00,  discountAmount: '4,500',  discountPercent: '32', reviews: '980',  goldPrice: '$50.00', badge: 'Sale',  brand: 'OnePlus', category: 'Smartphones', subcategory: 'Brand New',  colors: ['Black','Green'], rating: 4.3 },
-  { _id: '8',  title: 'Huawei MatePad Pro 12',          img: '/assets/product/prode2.jpg', price: 220.00, oldPrice: 299.00, discountAmount: '2,000',  discountPercent: '26', reviews: '540',  goldPrice: '$180.00',badge: 'Sale',  brand: 'Huawei',  category: 'Tablets',     subcategory: 'Refurbished',colors: ['Gray','Gold'],   rating: 4.1 },
-  { _id: '9',  title: 'Samsung Galaxy Buds Pro',        img: '/assets/product/prode3.jpg', price: 35.00,  oldPrice: 55.00,  discountAmount: '',       discountPercent: '36', reviews: '12k',  goldPrice: '$25.00', badge: 'Sale',  brand: 'Samsung', category: 'Accessories', subcategory: 'Brand New',  colors: ['Black','White'], rating: 4.5 },
-  { _id: '10', title: 'Apple AirPods Pro 2nd Gen',      img: '/assets/product/prode4.jpg', price: 180.00, oldPrice: 249.00, discountAmount: '',       discountPercent: '28', reviews: '21k',  goldPrice: '$140.00',badge: '',      brand: 'Apple',   category: 'Accessories', subcategory: 'Brand New',  colors: ['White'],         rating: 4.8 },
-  { _id: '11', title: 'Xiaomi Smart Band 8',             img: '/assets/product/prode5.jpg', price: 22.00,  oldPrice: 35.00,  discountAmount: '800',    discountPercent: '37', reviews: '3.3k', goldPrice: '$15.00', badge: 'Sale',  brand: 'Xiaomi',  category: 'Wearables',   subcategory: 'Brand New',  colors: ['Black','Blue'],  rating: 4.0 },
-  { _id: '12', title: 'Apple iPhone 13 Refurbished',    img: '/assets/product/prode6.jpg', price: 42.00,  oldPrice: 69.00,  discountAmount: '7,000',  discountPercent: '39', reviews: '6.5k', goldPrice: '$29.00', badge: 'Sale',  brand: 'Apple',   category: 'Smartphones', subcategory: 'Refurbished',colors: ['Black','Pink'],  rating: 4.4 },
-  { _id: '13', title: 'Huawei MateBook D15',             img: '/assets/product/prode1.jpg', price: 420.00, oldPrice: 550.00, discountAmount: '',       discountPercent: '24', reviews: '1.1k', goldPrice: '$360.00',badge: '',      brand: 'Huawei',  category: 'Laptops',     subcategory: 'Brand New',  colors: ['Gray'],          rating: 4.2 },
-  { _id: '14', title: 'OnePlus Nord CE 3 Lite',          img: '/assets/product/prode2.jpg', price: 28.00,  oldPrice: 45.00,  discountAmount: '3,000',  discountPercent: '38', reviews: '2.0k', goldPrice: '$19.00', badge: 'Sale',  brand: 'OnePlus', category: 'Smartphones', subcategory: 'Brand New',  colors: ['Black','Blue'],  rating: 3.9 },
-  { _id: '15', title: 'Samsung Galaxy Watch 6',          img: '/assets/product/prode3.jpg', price: 150.00, oldPrice: 199.00, discountAmount: '',       discountPercent: '25', reviews: '4.7k', goldPrice: '$120.00',badge: '',      brand: 'Samsung', category: 'Wearables',   subcategory: 'Brand New',  colors: ['Black','Gold'],  rating: 4.6 },
-  { _id: '16', title: 'Xiaomi Pad 6 Pro',                img: '/assets/product/prode4.jpg', price: 190.00, oldPrice: 260.00, discountAmount: '2,500',  discountPercent: '27', reviews: '1.6k', goldPrice: '$155.00',badge: 'Sale',  brand: 'Xiaomi',  category: 'Tablets',     subcategory: 'Brand New',  colors: ['Gray','Blue'],   rating: 4.4 },
-];
+import { useEffect } from 'react';
+import axiosInstance from "@/config/axiosInstance";
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleWishlistItem } from '@/store/wishlist';
+import { toast } from 'react-toastify';
 
 export default function ProductListingPage() {
-  const [filters, setFilters]   = useState({});
-  const [sort, setSort]         = useState('default');
-  const [page, setPage]         = useState(1);
-const router = useRouter();
-  // ── Filter + Sort ──
-  const filtered = useMemo(() => {
-    let list = [...DEMO_PRODUCTS];
+  const [filters, setFilters] = useState({});
+  const [sort, setSort] = useState('default');
+  const [page, setPage] = useState(1);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
 
-    if (filters.brands?.length)       list = list.filter(p => filters.brands.includes(p.brand));
-    if (filters.categories?.length)   list = list.filter(p => filters.categories.includes(p.category));
-    if (filters.subcategories?.length) list = list.filter(p => filters.subcategories.includes(p.subcategory));
-    if (filters.colors?.length)       list = list.filter(p => filters.colors.some(c => p.colors.includes(c)));
-    if (filters.rating > 0)           list = list.filter(p => p.rating >= filters.rating);
-    if (filters.priceMin != null)     list = list.filter(p => p.price >= filters.priceMin);
-    if (filters.priceMax != null)     list = list.filter(p => p.price <= filters.priceMax);
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { items: wishlistItems } = useSelector((state) => state.wishlist || { items: [] });
+  const auth = useSelector((state) => state.auth);
 
-    if (sort === 'price-asc')  list.sort((a, b) => a.price - b.price);
-    if (sort === 'price-desc') list.sort((a, b) => b.price - a.price);
-    if (sort === 'rating')     list.sort((a, b) => b.rating - a.rating);
-    if (sort === 'discount')   list.sort((a, b) => parseFloat(b.discountPercent || 0) - parseFloat(a.discountPercent || 0));
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const queryParams = new URLSearchParams();
+        queryParams.append("page", page);
+        queryParams.append("limit", PAGE_SIZE);
+        queryParams.append("sort", sort);
 
-    return list;
-  }, [filters, sort]);
+        if (filters.categoryIds?.length) queryParams.append("categoryIds", filters.categoryIds.join(','));
+        if (filters.subCategoryIds?.length) queryParams.append("subCategoryIds", filters.subCategoryIds.join(','));
+        if (filters.brandIds?.length) queryParams.append("brandIds", filters.brandIds.join(','));
+        if (filters.rating > 0) queryParams.append("rating", filters.rating);
+        if (filters.priceMin != null) queryParams.append("minPrice", filters.priceMin);
+        if (filters.priceMax != null) queryParams.append("maxPrice", filters.priceMax);
+
+        const res = await axiosInstance.get(`/e-commerce/products?${queryParams.toString()}`);
+        if (res.data.success) {
+          setProducts(res.data.data);
+          setTotalPages(res.data.pagination.pages);
+        }
+      } catch (err) {
+        console.error("Failed to load products", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, [filters, sort, page]);
 
   const handleFiltersChange = (newFilters) => {
     setFilters(newFilters);
     setPage(1);
   };
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const handlePageChange = (p) => {
     if (p < 1 || p > totalPages) return;
@@ -68,12 +69,12 @@ const router = useRouter();
   };
 
   const SORT_OPTIONS = [
-  { label: "Default", value: "default" },
-  { label: "Price: Low → High", value: "price-asc" },
-  { label: "Price: High → Low", value: "price-desc" },
-  { label: "Top Rated", value: "rating" },
-  { label: "Most Discounted", value: "discount" },
-];
+    { label: "Default", value: "default" },
+    { label: "Price: Low → High", value: "price-asc" },
+    { label: "Price: High → Low", value: "price-desc" },
+    { label: "Top Rated", value: "rating" },
+    { label: "Most Discounted", value: "discount" },
+  ];
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="flex flex-col lg:flex-row gap-8 items-start">
@@ -89,38 +90,48 @@ const router = useRouter();
           {/* Header row */}
           <div className="flex justify-between items-center mb-6 flex-wrap gap-4 ">
             <h2 className="text-2xl font-extrabold text-gray-900">
-              Products{' '}
-              <span className="text-primary-500">({filtered.length})</span>
+              Products
             </h2>
             <div className=''>
-       <Dropdown
-  icon="mdi:sort-variant" 
-  options={SORT_OPTIONS}
-  value={sort}
-  onChange={(val) => {
-    setSort(val);
-    setPage(1);
-  }}
-/>
-  </div>
+              <Dropdown
+                icon="mdi:sort-variant"
+                options={SORT_OPTIONS}
+                value={sort}
+                onChange={(val) => {
+                  setSort(val);
+                  setPage(1);
+                }}
+              />
+            </div>
           </div>
 
           {/* Grid */}
-          {paginated.length > 0 ? (
+          {loading ? (
+            <div className="flex items-center justify-center py-24">
+              <span className="animate-spin text-4xl text-primary-500">⏳</span>
+            </div>
+          ) : products.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4">
-              {paginated.map(p => (
+              {products.map(p => (
                 <ProductCard
                   key={p._id}
                   title={p.title}
-                  img={p.img}
-                  price={`$${p.price.toFixed(2)}`}
-                  oldPrice={p.oldPrice ? `$${p.oldPrice.toFixed(2)}` : null}
-                  discountAmount={p.discountAmount}
-                  discountPercent={p.discountPercent}
-                  reviews={p.reviews}
-                  goldPrice={p.goldPrice}
-                  badge={p.badge}
-                  onAdd={() => router.push(`/product/${p._id}`)}
+                  img={p.images?.[0]?.url || "/assets/placeholder.jpg"}
+                  price={`$${(p.summary?.minSalePrice || p.summary?.minPrice || 0).toFixed(2)}`}
+                  oldPrice={p.summary?.minSalePrice && p.summary?.minSalePrice < p.summary?.minPrice ? `$${p.summary.minPrice.toFixed(2)}` : null}
+                  discountAmount={""}
+                  discountPercent={p.summary?.minSalePrice && p.summary?.minSalePrice < p.summary?.minPrice ? Math.round(((p.summary.minPrice - p.summary.minSalePrice) / p.summary.minPrice) * 100) : ""}
+                  reviews={"0"}
+                  goldPrice={""}
+                  badge={null}
+                  isWishlisted={wishlistItems.some(w => w.productId?._id === p._id)}
+                  onWishlist={() => {
+                    dispatch(toggleWishlistItem({ product: p, variantId: null }));
+                    const isW = wishlistItems.some(w => w.productId?._id === p._id);
+                    if (isW) toast.info('Removed from wishlist');
+                    else toast.success('Added to wishlist');
+                  }}
+                  onAdd={() => router.push(`/product/${p.slug}`)}
                 />
               ))}
             </div>
@@ -152,11 +163,10 @@ const router = useRouter();
                   <button
                     key={p}
                     onClick={() => handlePageChange(p)}
-                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
-                      p === page
+                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${p === page
                         ? 'bg-primary-500 text-white border-primary-500'
                         : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>

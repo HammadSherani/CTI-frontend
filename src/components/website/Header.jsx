@@ -195,7 +195,7 @@ function AnnouncementBar() {
  
   return (
     <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
-      <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row justify-between items-center gap-2">
+      <div className="max-w-7xl mx-auto px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
 
        <p className="text-center sm:text-left">
           {t.rich("message", {
@@ -237,7 +237,7 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 
   return (
     <div className="bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-8">
         <div className="flex items-center justify-between gap-3 md:gap-6">
 
           {/* ── Hamburger (mobile only) ── */}

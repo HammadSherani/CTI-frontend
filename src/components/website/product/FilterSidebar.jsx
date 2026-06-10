@@ -1,225 +1,370 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import axiosInstance from "@/config/axiosInstance";
+import { Icon } from '@iconify/react';
 
-const BRANDS = ['Apple', 'Samsung', 'Xiaomi', 'OnePlus', 'Huawei'];
-const CATEGORIES = ['Smartphones', 'Laptops', 'Tablets', 'Accessories', 'Wearables'];
-const SUBCATEGORIES = ['Refurbished', 'Brand New', 'Open Box'];
-const COLORS = [
-  { name: 'Black',  hex: '#18181b' },
-  { name: 'White',  hex: '#f5f5f5', border: true },
-  { name: 'Gray',   hex: '#6b7280' },
-  { name: 'Blue',   hex: '#3b82f6' },
-  { name: 'Pink',   hex: '#ec4899' },
-  { name: 'Green',  hex: '#22c55e' },
-  { name: 'Gold',   hex: '#d4a017' },
-  { name: 'Red',    hex: '#ef4444' },
-];
 const MIN_PRICE = 0;
-const MAX_PRICE = 1000;
+const MAX_PRICE = 2000;
 
+/* ── Color Map — uses hex from API if available, falls back to this ── */
+const FALLBACK_COLORS = {
+  Black: '#18181b', White: '#f5f5f5', Gray: '#6b7280',
+  Blue: '#3b82f6', Pink: '#ec4899', Green: '#22c55e',
+  Gold: '#d4a017', Red: '#ef4444', Navy: '#1e3a5f',
+  Purple: '#a855f7', Orange: '#f97316', Brown: '#92400e',
+  Teal: '#14b8a6', Yellow: '#eab308', Beige: '#d4b896',
+};
+
+/* ── Small Helpers ── */
+function Section({ title, badge, children, collapsible = true }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+      <button
+        type="button"
+        onClick={() => collapsible && setOpen(o => !o)}
+        className="w-full flex items-center justify-between mb-3 group"
+      >
+        <span className="text-xs font-black uppercase tracking-widest text-gray-500 group-hover:text-gray-700 transition-colors flex items-center gap-2">
+          {title}
+          {badge != null && (
+            <span className="bg-primary-100 text-primary-600 text-[10px] font-black px-1.5 py-0.5 rounded-full">{badge}</span>
+          )}
+        </span>
+        {collapsible && (
+          <Icon icon={open ? 'mdi:chevron-up' : 'mdi:chevron-down'} className="w-4 h-4 text-gray-400" />
+        )}
+      </button>
+      {open && children}
+    </div>
+  );
+}
+
+function CheckItem({ label, count, checked, onChange }) {
+  return (
+    <label className="flex items-center justify-between gap-2 cursor-pointer group mb-1.5 last:mb-0">
+      <div className="flex items-center gap-2.5">
+        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'bg-primary-500 border-primary-500' : 'border-gray-300 group-hover:border-primary-400'}`}>
+          {checked && <Icon icon="mdi:check" className="w-3 h-3 text-white" />}
+        </div>
+        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
+        <span className={`text-sm font-medium transition-colors ${checked ? 'text-primary-700 font-semibold' : 'text-gray-700 group-hover:text-primary-600'}`}>
+          {label}
+        </span>
+      </div>
+      {count != null && (
+        <span className="text-xs text-gray-400 font-medium tabular-nums">{count}</span>
+      )}
+    </label>
+  );
+}
+
+function LoadingSkeleton({ lines = 4 }) {
+  return (
+    <div className="space-y-2.5 animate-pulse">
+      {Array.from({ length: lines }).map((_, i) => (
+        <div key={i} className="flex items-center gap-2.5">
+          <div className="w-4 h-4 rounded bg-gray-200" />
+          <div className="h-3 rounded bg-gray-200 flex-1" style={{ width: `${60 + Math.random() * 30}%` }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
+   MAIN COMPONENT
+══════════════════════════════════════════════════════════ */
 export default function FilterSidebar({ onFiltersChange }) {
-  const [brands, setBrands]           = useState([]);
-  const [categories, setCategories]   = useState([]);
-  const [subcategories, setSubcats]   = useState([]);
-  const [colors, setColors]           = useState([]);
-  const [rating, setRating]           = useState(0);
-  const [priceMin, setPriceMin]       = useState(MIN_PRICE);
-  const [priceMax, setPriceMax]       = useState(MAX_PRICE);
+  /* ── Raw Data ── */
+  const [categories, setCategories] = useState([]);
+  const [subcategories, setSubcategories] = useState([]);
+  const [brands, setBrands] = useState([]);
+  const [availableColors, setAvailableColors] = useState([]);
+
+  /* ── Loading ── */
+  const [loadingCats, setLoadingCats] = useState(true);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+  const [loadingBrands, setLoadingBrands] = useState(false);
+
+  /* ── Selections (store IDs) ── */
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
+  const [selectedSubIds, setSelectedSubIds] = useState([]);
+  const [selectedBrandIds, setSelectedBrandIds] = useState([]);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [rating, setRating] = useState(0);
+  const [priceMin, setPriceMin] = useState(MIN_PRICE);
+  const [priceMax, setPriceMax] = useState(MAX_PRICE);
+
+  /* ── Price slider ── */
   const trackRef = useRef(null);
-
-  // Notify parent on any filter change
-  useEffect(() => {
-    onFiltersChange?.({ brands, categories, subcategories, colors, rating, priceMin, priceMax });
-  }, [brands, categories, subcategories, colors, rating, priceMin, priceMax]);
-
-  const toggle = (list, setList, val) =>
-    setList(prev => prev.includes(val) ? prev.filter(v => v !== val) : [...prev, val]);
-
-  const clearAll = () => {
-    setBrands([]); setCategories([]); setSubcats([]);
-    setColors([]); setRating(0);
-    setPriceMin(MIN_PRICE); setPriceMax(MAX_PRICE);
-  };
-
-  // Dual range slider handlers
-  const handleMinSlider = (e) => {
-    const val = Math.min(Number(e.target.value), priceMax - 10);
-    setPriceMin(val);
-  };
-  const handleMaxSlider = (e) => {
-    const val = Math.max(Number(e.target.value), priceMin + 10);
-    setPriceMax(val);
-  };
-
-  // Track fill percentage
   const minPct = ((priceMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
   const maxPct = ((priceMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
 
-  return (
-    <div className="w-full bg-white rounded-2xl border border-gray-200 p-5 space-y-5 shadow-sm">
+  /* ── 1. Load categories + colors on mount ── */
+  useEffect(() => {
+    const load = async () => {
+      setLoadingCats(true);
+      try {
+        const { data } = await axiosInstance.get('/e-commerce/products/filters');
+        if (data.success) {
+          setCategories(data.data.categories || []);
+          setAvailableColors(
+            (data.data.colors || []).map(c => ({
+              name: c.name,
+              hex: c.hex || FALLBACK_COLORS[c.name] || '#ccc',
+              isLight: c.name === 'White' || c.name === 'Beige',
+            }))
+          );
+        }
+      } catch (e) {
+        console.error('Failed to load filters', e);
+      } finally {
+        setLoadingCats(false);
+      }
+    };
+    load();
+  }, []);
 
+  /* ── 2. Load subcategories whenever selected categories change ── */
+  useEffect(() => {
+    setSelectedSubIds([]);
+    setSelectedBrandIds([]);
+    setSubcategories([]);
+    setBrands([]);
+
+    if (!selectedCategoryIds.length) return;
+
+    const load = async () => {
+      setLoadingSubs(true);
+      try {
+        // Fetch subcategories for each selected category in parallel
+        const results = await Promise.all(
+          selectedCategoryIds.map(id =>
+            axiosInstance.get(`/e-commerce/products/filters/subcategories/${id}`)
+          )
+        );
+        // Merge + deduplicate
+        const merged = new Map();
+        results.forEach(r => {
+          (r.data.data || []).forEach(s => merged.set(String(s._id), s));
+        });
+        setSubcategories(Array.from(merged.values()));
+      } catch (e) {
+        console.error('Failed to load subcategories', e);
+      } finally {
+        setLoadingSubs(false);
+      }
+    };
+    load();
+  }, [selectedCategoryIds]);
+
+  /* ── 3. Load brands whenever selected subcategories change ── */
+  useEffect(() => {
+    setSelectedBrandIds([]);
+    setBrands([]);
+
+    const subIds = selectedSubIds;
+    if (!subIds.length && !selectedCategoryIds.length) return;
+
+    const load = async () => {
+      setLoadingBrands(true);
+      try {
+        let brandMap = new Map();
+        if (subIds.length) {
+          // Brands per selected subcategory
+          const results = await Promise.all(
+            subIds.map(id => axiosInstance.get(`/e-commerce/products/filters/brands/${id}`))
+          );
+          results.forEach(r => (r.data.data || []).forEach(b => brandMap.set(String(b._id), b)));
+        } else {
+          // All brands for selected categories — use "all" sentinel
+          const results = await Promise.all(
+            selectedCategoryIds.map(() => axiosInstance.get(`/e-commerce/products/filters/brands/all`))
+          );
+          results.forEach(r => (r.data.data || []).forEach(b => brandMap.set(String(b._id), b)));
+        }
+        setBrands(Array.from(brandMap.values()));
+      } catch (e) {
+        console.error('Failed to load brands', e);
+      } finally {
+        setLoadingBrands(false);
+      }
+    };
+    load();
+  }, [selectedSubIds, selectedCategoryIds]);
+
+  /* ── Notify parent on filter change ── */
+  useEffect(() => {
+    onFiltersChange?.({
+      categoryIds: selectedCategoryIds,
+      subCategoryIds: selectedSubIds,
+      brandIds: selectedBrandIds,
+      colors: selectedColors,
+      rating,
+      priceMin,
+      priceMax,
+    });
+  }, [selectedCategoryIds, selectedSubIds, selectedBrandIds, selectedColors, rating, priceMin, priceMax]);
+
+  /* ── Toggle helpers ── */
+  const toggleId = (list, setList, id) =>
+    setList(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
+
+  const clearAll = () => {
+    setSelectedCategoryIds([]);
+    setSelectedSubIds([]);
+    setSelectedBrandIds([]);
+    setSelectedColors([]);
+    setRating(0);
+    setPriceMin(MIN_PRICE);
+    setPriceMax(MAX_PRICE);
+  };
+
+  const activeCount = selectedCategoryIds.length + selectedSubIds.length +
+    selectedBrandIds.length + selectedColors.length + (rating > 0 ? 1 : 0) +
+    (priceMin > MIN_PRICE || priceMax < MAX_PRICE ? 1 : 0);
+
+  return (
+    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h2 className="text-lg font-extrabold text-gray-900">Filters</h2>
-        <button
-          onClick={clearAll}
-          className="text-xs text-primary-600 font-semibold hover:underline"
-        >
-          Clear All
-        </button>
+      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:filter-variant" className="w-4.5 h-4.5 text-primary-500" />
+          <h2 className="text-base font-black text-gray-900">Filters</h2>
+          {activeCount > 0 && (
+            <span className="bg-primary-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+              {activeCount}
+            </span>
+          )}
+        </div>
+        {activeCount > 0 && (
+          <button onClick={clearAll} className="text-xs text-primary-600 font-bold hover:underline flex items-center gap-1">
+            <Icon icon="mdi:close" className="w-3 h-3" />
+            Clear All
+          </button>
+        )}
       </div>
 
-      {/* ── Brand ── */}
-      <Section title="Brand">
-        {BRANDS.map(b => (
-          <CheckItem
-            key={b} label={b}
-            checked={brands.includes(b)}
-            onChange={() => toggle(brands, setBrands, b)}
-          />
-        ))}
-      </Section>
+      <div className="p-5 space-y-4">
 
-      {/* ── Category ── */}
-      <Section title="Category">
-        {CATEGORIES.map(c => (
-          <CheckItem
-            key={c} label={c}
-            checked={categories.includes(c)}
-            onChange={() => toggle(categories, setCategories, c)}
-          />
-        ))}
-      </Section>
+        {/* ── Category ── */}
+        <Section title="Category" badge={selectedCategoryIds.length || null}>
+          {loadingCats ? (
+            <LoadingSkeleton />
+          ) : categories.length === 0 ? (
+            <p className="text-xs text-gray-400">No categories available</p>
+          ) : (
+            categories.map(c => (
+              <CheckItem
+                key={c._id}
+                label={c.title}
+                count={c.count}
+                checked={selectedCategoryIds.includes(String(c._id))}
+                onChange={() => toggleId(selectedCategoryIds, setSelectedCategoryIds, String(c._id))}
+              />
+            ))
+          )}
+        </Section>
 
-      {/* ── Subcategory ── */}
-      <Section title="Condition">
-        {SUBCATEGORIES.map(s => (
-          <CheckItem
-            key={s} label={s}
-            checked={subcategories.includes(s)}
-            onChange={() => toggle(subcategories, setSubcats, s)}
-          />
-        ))}
-      </Section>
-
-      {/* ── Color ── */}
-      <Section title="Color">
-        <div className="flex flex-wrap gap-2 mt-1">
-          {COLORS.map(c => (
-            <button
-              key={c.name}
-              title={c.name}
-              onClick={() => toggle(colors, setColors, c.name)}
-              className={`w-7 h-7 rounded-full transition-all duration-150 ${
-                colors.includes(c.name)
-                  ? 'ring-2 ring-offset-2 ring-gray-800 scale-110'
-                  : 'hover:scale-110'
-              } ${c.border ? 'border border-gray-300' : ''}`}
-              style={{ backgroundColor: c.hex }}
-            />
-          ))}
-        </div>
-        {colors.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1.5">{colors.join(', ')}</p>
+        {/* ── Subcategory (cascading) ── */}
+        {(selectedCategoryIds.length > 0 || subcategories.length > 0) && (
+          <Section title="Sub-Category" badge={selectedSubIds.length || null}>
+            {loadingSubs ? (
+              <LoadingSkeleton lines={3} />
+            ) : subcategories.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">No subcategories for selected categories</p>
+            ) : (
+              subcategories.map(s => (
+                <CheckItem
+                  key={s._id}
+                  label={s.title}
+                  count={s.count}
+                  checked={selectedSubIds.includes(String(s._id))}
+                  onChange={() => toggleId(selectedSubIds, setSelectedSubIds, String(s._id))}
+                />
+              ))
+            )}
+          </Section>
         )}
-      </Section>
 
-      {/* ── Price Range (Dual Slider) ── */}
-      <Section title="Price Range">
-        {/* Dual slider track */}
-        <div className="relative mt-3 mb-1" ref={trackRef}>
-          {/* Track background */}
-          <div className="relative h-1.5 rounded-full bg-gray-200">
-            {/* Active fill */}
-            <div
-              className="absolute h-full rounded-full bg-orange-500"
-              style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
-            />
-          </div>
+        {/* ── Brand (cascading) ── */}
+        {(selectedCategoryIds.length > 0 || brands.length > 0) && (
+          <Section title="Brand" badge={selectedBrandIds.length || null}>
+            {loadingBrands ? (
+              <LoadingSkeleton lines={3} />
+            ) : brands.length === 0 ? (
+              <p className="text-xs text-gray-400 italic">No brands available</p>
+            ) : (
+              brands.map(b => (
+                <CheckItem
+                  key={b._id}
+                  label={b.title}
+                  count={b.count}
+                  checked={selectedBrandIds.includes(String(b._id))}
+                  onChange={() => toggleId(selectedBrandIds, setSelectedBrandIds, String(b._id))}
+                />
+              ))
+            )}
+          </Section>
+        )}
 
-          {/* Min thumb */}
-          <input
-            type="range"
-            min={MIN_PRICE} max={MAX_PRICE} step={5}
-            value={priceMin}
-            onChange={handleMinSlider}
-            className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-            style={{ zIndex: priceMin > MAX_PRICE - 100 ? 5 : 3 }}
-          />
 
-          {/* Max thumb */}
-          <input
-            type="range"
-            min={MIN_PRICE} max={MAX_PRICE} step={5}
-            value={priceMax}
-            onChange={handleMaxSlider}
-            className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-            style={{ zIndex: 4 }}
-          />
-        </div>
 
-        {/* Min / Max number inputs */}
-        <div className="flex items-center gap-2 mt-3">
-          <div className="flex-1 relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-            <input
-              type="number" min={MIN_PRICE} max={priceMax - 10}
-              value={priceMin}
+        {/* ── Price Range ── */}
+        <Section title="Price Range" collapsible>
+          <div className="relative mt-3 mb-1" ref={trackRef}>
+            <div className="relative h-1.5 rounded-full bg-gray-200">
+              <div
+                className="absolute h-full rounded-full bg-primary-500"
+                style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+              />
+            </div>
+            <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMin}
               onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
-              className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 font-medium"
+              className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+              style={{ zIndex: priceMin > MAX_PRICE - 100 ? 5 : 3 }}
             />
-          </div>
-          <span className="text-gray-400 text-sm font-medium">—</span>
-          <div className="flex-1 relative">
-            <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-            <input
-              type="number" min={priceMin + 10} max={MAX_PRICE}
-              value={priceMax}
+            <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMax}
               onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
-              className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-orange-400 font-medium"
+              className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+              style={{ zIndex: 4 }}
             />
           </div>
-        </div>
-      </Section>
+          <div className="flex items-center gap-2 mt-4">
+            <div className="flex-1 relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input type="number" min={MIN_PRICE} max={priceMax - 10} value={priceMin}
+                onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
+                className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+              />
+            </div>
+            <span className="text-gray-400 text-sm font-medium">–</span>
+            <div className="flex-1 relative">
+              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+              <input type="number" min={priceMin + 10} max={MAX_PRICE} value={priceMax}
+                onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
+                className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+              />
+            </div>
+          </div>
+        </Section>
 
-      {/* ── Rating ── */}
-      <Section title="Min Rating" last>
-        <div className="flex gap-1 mt-1">
-          {[1,2,3,4,5].map(s => (
-            <button
-              key={s}
-              onClick={() => setRating(rating === s ? 0 : s)}
-              className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}
-            >★</button>
-          ))}
-        </div>
-        {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
-      </Section>
+        {/* ── Rating ── */}
+        <Section title="Min Rating" collapsible>
+          <div className="flex gap-1 mt-1">
+            {[1, 2, 3, 4, 5].map(s => (
+              <button key={s} onClick={() => setRating(rating === s ? 0 : s)}
+                className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
+                ★
+              </button>
+            ))}
+          </div>
+          {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
+        </Section>
 
+      </div>
     </div>
-  );
-}
-
-function Section({ title, children, last }) {
-  return (
-    <div className={`${last ? '' : 'pb-5 border-b border-gray-100'}`}>
-      <p className="text-xs font-bold uppercase tracking-widest text-gray-500 mb-3">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-function CheckItem({ label, checked, onChange }) {
-  return (
-    <label className="flex items-center gap-2.5 cursor-pointer group mb-1.5 last:mb-0">
-      <input
-        type="checkbox" checked={checked} onChange={onChange}
-        className="w-4 h-4 rounded accent-orange-500 cursor-pointer"
-      />
-      <span className={`text-sm font-medium transition-colors ${checked ? 'text-orange-600' : 'text-gray-700 group-hover:text-orange-500'}`}>
-        {label}
-      </span>
-    </label>
   );
 }

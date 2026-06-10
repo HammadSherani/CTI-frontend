@@ -256,8 +256,8 @@ function Header() {
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
-      <div className="container mx-auto py-1 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+      <div className="px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center gap-4">
           <Link href="/admin/dashboard" className="flex-shrink-0">
             <Image
               src={logo}
@@ -269,7 +269,7 @@ function Header() {
             />
           </Link>
 
-          <nav className="hidden lg:flex items-center gap-3">
+          <nav className="hidden lg:flex items-center text-nowrap gap-1">
             {primaryNavLinks.map((link) => {
               if (link.name === "Catalog") {
                 return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
@@ -305,7 +305,7 @@ function Header() {
         </div>
 
         {/* User Profile Dropdown */}
-        <div className="relative  left-8" ref={dropdownRef}>
+        <div className="relative  left-2" ref={dropdownRef}>
           <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group

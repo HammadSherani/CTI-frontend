@@ -10,6 +10,7 @@ import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import { useSelector } from "react-redux";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { SelectOptions } from "@/components/ui/SelectOptions";
 
 /* ─── Confirm Dialog ─────────────────────────────────────── */
 function ConfirmDialog({ message, onConfirm, onCancel }) {
@@ -108,8 +109,8 @@ function BrandModal({ mode, initial, subCategories, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+    <div className="fixed inset-0  z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full h-full !no-scrollbar overflow-y-auto max-w-md overflow-hidden">
         <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between">
           <h2 className="text-xl font-semibold">
             {mode === "create" ? "Add New Brand" : "Edit Brand"}
@@ -123,17 +124,14 @@ function BrandModal({ mode, initial, subCategories, onClose, onSuccess }) {
           {/* Parent SubCategory */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Parent SubCategory *</label>
-            <select
-              value={form.productSubCategoryId}
-              onChange={(e) => setForm((p) => ({ ...p, productSubCategoryId: e.target.value }))}
-              className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:border-primary-500
-                ${errors.productSubCategoryId ? "border-red-400" : "border-gray-200"}`}
-            >
-              <option value="">Select Parent SubCategory</option>
-              {subCategories.map((c) => (
-                <option key={c._id} value={c._id}>{c.title}</option>
-              ))}
-            </select>
+            <SelectOptions 
+              isSearch={true} 
+              label="Parent SubCategory" 
+              icon="mdi:shape" 
+              options={subCategories.map(c => ({ _id: c._id, name: c.title }))} 
+              value={form.productSubCategoryId} 
+              onChange={(val) => setForm(p => ({ ...p, productSubCategoryId: val }))} 
+            />
             {errors.productSubCategoryId && <p className="text-red-500 text-sm mt-1">{errors.productSubCategoryId}</p>}
           </div>
 
@@ -203,6 +201,61 @@ function BrandModal({ mode, initial, subCategories, onClose, onSuccess }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── View Modal ─────────────────────────────────────────── */
+function ViewBrandModal({ item, onClose }) {
+  if (!item) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full h-full max-w-md overflow-hidden">
+        <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Brand Details</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-xl">
+            <Icon icon="mdi:close" className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 border bg-gray-50 rounded-2xl p-3 flex items-center justify-center">
+              {item.icon ? (
+                <img src={item.icon} alt={item.title} className="max-w-full max-h-full object-contain" />
+              ) : (
+                <Icon icon="mdi:tag-outline" className="w-12 h-12 text-gray-400" />
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Title</label>
+            <p className="text-gray-900 font-medium">{item.title}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Slug</label>
+            <p className="text-gray-900">{item.slug || "—"}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Parent SubCategory</label>
+            <p className="text-gray-900">{item.productSubCategoryId?.title || "—"}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Status</label>
+            <div className="mt-1">
+              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                {item.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Created At</label>
+            <p className="text-gray-900">{new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString()}</p>
+          </div>
+        </div>
+        <div className="p-4 border-t bg-gray-50 flex justify-end">
+          <button onClick={onClose} className="px-5 py-2 text-sm bg-white border border-gray-200 rounded-xl hover:bg-gray-50">Close</button>
+        </div>
       </div>
     </div>
   );
@@ -382,6 +435,9 @@ export default function BrandsPage() {
       header: "Actions",
       cell: (row) => (
         <div className="flex gap-1">
+          <button onClick={() => setModal({ mode: "view", item: row })} className="p-2 text-green-600 hover:bg-green-50 rounded-xl">
+            <Icon icon="mdi:eye-outline" className="w-5 h-5" />
+          </button>
           <button onClick={() => setModal({ mode: "edit", item: row })} className="p-2 text-blue-600 hover:bg-blue-50 rounded-xl">
             <Icon icon="mdi:pencil-outline" className="w-5 h-5" />
           </button>
@@ -448,7 +504,9 @@ export default function BrandsPage() {
         />
       </div>
 
-      {modal && (
+      {modal && modal.mode === "view" ? (
+        <ViewBrandModal item={modal.item} onClose={() => setModal(null)} />
+      ) : modal && (
         <BrandModal
           mode={modal.mode}
           initial={modal.item}

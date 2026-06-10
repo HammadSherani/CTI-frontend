@@ -16,7 +16,7 @@ export default function ShippingOperations({ control, errors, watch, setValue })
   const workingDays = watch("workingDays") || [];
 
 
- 
+
   const toggleDay = (day) => {
     const next = workingDays.includes(day)
       ? workingDays.filter((d) => d !== day)
@@ -37,41 +37,41 @@ export default function ShippingOperations({ control, errors, watch, setValue })
           <label className="block text-sm font-medium text-gray-600 mb-1.5">
             Shipping Method <span className="text-primary-500">*</span>
           </label>
-    <Controller
-  name="shippingMethod"
-  control={control}
-  render={({ field }) => (
-    <CustomDropdown
-      value={field.value}
-      onChange={field.onChange}
-      placeholder="Select shipping method"
-      options={[
-        {
-          label: "Pickup",
-          value: "pickup",
-        },
-        {
-          label: "Courier",
-          value: "courier",
-        },
-        {
-          label: "Drop-off",
-          value: "drop-off",
-        },
-      ]}
-    />
-  )}
-/>
+          <Controller
+            name="shippingMethod"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select shipping method"
+                options={[
+                  {
+                    label: "Pickup",
+                    value: "pickup",
+                  },
+                  {
+                    label: "Courier",
+                    value: "courier",
+                  },
+                  {
+                    label: "Drop-off",
+                    value: "drop-off",
+                  },
+                ]}
+              />
+            )}
+          />
 
-{errors.shippingMethod && (
-  <p className="text-primary-500 text-xs mt-1">
-    {errors.shippingMethod.message}
-  </p>
-)}
+          {errors.shippingMethod && (
+            <p className="text-primary-500 text-xs mt-1">
+              {errors.shippingMethod.message}
+            </p>
+          )}
           {errors.shippingMethod && <p className="text-primary-500 text-xs mt-1">{errors.shippingMethod.message}</p>}
         </div>
 
-     
+
 
         {/* Working Days */}
         <div className="md:col-span-2">
@@ -97,63 +97,63 @@ export default function ShippingOperations({ control, errors, watch, setValue })
         </div>
 
         {/* Working Hours */}
-      <div>
-  <label className="block text-sm font-medium text-gray-600 mb-1.5">
-    Start Time <span className="text-primary-500">*</span>
-  </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">
+            Start Time <span className="text-primary-500">*</span>
+          </label>
 
-  <Controller
-    name="workingHours.start"
-    control={control}
-    render={({ field }) => (
-      <CustomDropdown
-        value={field.value}
-        onChange={field.onChange}
-        placeholder="Select start time"
-        icon="mdi:clock-outline"
-        options={HOURS.map((h) => ({
-          label: h,
-          value: h,
-        }))}
-      />
-    )}
-  />
+          <Controller
+            name="workingHours.start"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select start time"
+                icon="mdi:clock-outline"
+                options={HOURS.map((h) => ({
+                  label: h,
+                  value: h,
+                }))}
+              />
+            )}
+          />
 
-  {errors.workingHours?.start && (
-    <p className="text-primary-500 text-xs mt-1">
-      {errors.workingHours.start.message}
-    </p>
-  )}
-</div>
+          {errors.workingHours?.start && (
+            <p className="text-primary-500 text-xs mt-1">
+              {errors.workingHours.start.message}
+            </p>
+          )}
+        </div>
 
-<div>
-  <label className="block text-sm font-medium text-gray-600 mb-1.5">
-    End Time <span className="text-primary-500">*</span>
-  </label>
+        <div>
+          <label className="block text-sm font-medium text-gray-600 mb-1.5">
+            End Time <span className="text-primary-500">*</span>
+          </label>
 
-  <Controller
-    name="workingHours.end"
-    control={control}
-    render={({ field }) => (
-      <CustomDropdown
-        value={field.value}
-        onChange={field.onChange}
-        placeholder="Select end time"
-        icon="mdi:clock-outline"
-        options={HOURS.map((h) => ({
-          label: h,
-          value: h,
-        }))}
-      />
-    )}
-  />
+          <Controller
+            name="workingHours.end"
+            control={control}
+            render={({ field }) => (
+              <CustomDropdown
+                value={field.value}
+                onChange={field.onChange}
+                placeholder="Select end time"
+                icon="mdi:clock-outline"
+                options={HOURS.map((h) => ({
+                  label: h,
+                  value: h,
+                }))}
+              />
+            )}
+          />
 
-  {errors.workingHours?.end && (
-    <p className="text-primary-500 text-xs mt-1">
-      {errors.workingHours.end.message}
-    </p>
-  )}
-</div>
+          {errors.workingHours?.end && (
+            <p className="text-primary-500 text-xs mt-1">
+              {errors.workingHours.end.message}
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

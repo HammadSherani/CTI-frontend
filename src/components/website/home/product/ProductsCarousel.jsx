@@ -91,7 +91,7 @@ const router = useRouter();
   }
  
   return (
-    <section className="py-6 px-2 max-w-7xl mx-auto">
+    <section className="py-6 px-10 max-w-7xl mx-auto">
       {/* ── Section Header ── */}
       <div className="flex items-center justify-between mb-5">
         <h2 className="text-2xl font-extrabold text-gray-800">

@@ -1,14 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
-
-// ── Demo Cart Items ──
-const INITIAL_CART = [
-  { _id: '1', title: 'Everest Keyboard', subtitle: 'Keyboard', img: '/assets/product/prode1.jpg', price: 45.00, qty: 1 },
-  { _id: '2', title: 'Everest Keyboard', subtitle: 'Keyboard', img: '/assets/product/prode2.jpg', price: 45.00, qty: 1 },
-];
+import { useDispatch, useSelector } from 'react-redux';
+import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
 
 const SHIPPING = 10.00;
 const TAX = 0.00;
@@ -46,7 +42,6 @@ function OrderSummary({ subtotal, onCheckout }) {
       </div>
       <Link href="/checkout">
         <button
-          onClick={onCheckout}
           className="w-full bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary-100 text-sm"
         >
           Checkout
@@ -58,23 +53,31 @@ function OrderSummary({ subtotal, onCheckout }) {
 
 // ── Main Cart Page ──
 export default function CartPage() {
-  const [cart, setCart] = useState(INITIAL_CART);
+  const dispatch = useDispatch();
+  const { items: cart, loading } = useSelector(s => s.cart || { items: [], loading: false });
 
-  const updateQty = (id, delta) => {
-    setCart(prev =>
-      prev.map(item =>
-        item._id === id
-          ? { ...item, qty: Math.max(1, item.qty + delta) }
-          : item
-      )
-    );
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
+  if (loading) {
+    return <div className="py-20 text-center flex flex-col items-center justify-center min-h-[50vh]"><Icon icon="mdi:loading" className="animate-spin text-4xl text-primary-500 mb-4" /><p className="text-gray-500">Loading your cart...</p></div>;
+  }
+
+  const updateQty = (item, delta) => {
+    dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }));
   };
 
-  const removeItem = (id) => {
-    setCart(prev => prev.filter(item => item._id !== id));
+  const removeItem = (item) => {
+    dispatch(removeFromCart({ product: item.productId, variantId: item.variantId }));
   };
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const subtotal = cart.reduce((sum, item) => {
+    const product = item.productId || {};
+    const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
+    const price = variant.discountPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+    return sum + (price * item.quantity);
+  }, 0);
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -115,61 +118,77 @@ export default function CartPage() {
               </div>
 
               {/* Cart Items */}
-              {cart.map((item, idx) => (
-                <div
-                  key={item._id}
-                  className={`grid grid-cols-12 gap-4 px-6 py-5 items-center transition-colors ${idx !== cart.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/50`}
-                >
-                  {/* Product */}
-                  <div className="col-span-5 flex items-center gap-4">
-                    <button
-                      onClick={() => removeItem(item._id)}
-                      className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
-                      title="Remove item"
-                    >
-                      <Icon icon="mdi:close-circle" className="text-xl" />
-                    </button>
-                    <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
-                      <img src={item.img} alt={item.title} className="w-full h-full object-contain p-1" />
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800 text-sm leading-tight">{item.title}</p>
-                      <p className="text-gray-400 text-xs mt-0.5">{item.subtitle}</p>
-                    </div>
-                  </div>
+              {cart.map((item, idx) => {
+                const product = item.productId || {};
+                const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
 
-                  {/* Price */}
-                  <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
-                    ${item.price.toFixed(2)}
-                  </div>
+                const price = variant.discountPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+                const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
+                const title = product.title;
+                const variantText = variant.title ? variant.title : null;
 
-                  {/* Quantity */}
-                  <div className="col-span-3 flex justify-center">
-                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                return (
+                  <div
+                    key={`${product._id}-${item.variantId?._id || item.variantId}`}
+                    className={`grid grid-cols-12 gap-4 px-6 py-5 items-center transition-colors ${idx !== cart.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/50`}
+                  >
+                    {/* Product */}
+                    <div className="col-span-5 flex items-center gap-4">
                       <button
-                        onClick={() => updateQty(item._id, -1)}
-                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                        onClick={() => removeItem(item)}
+                        className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+                        title="Remove item"
                       >
-                        <Icon icon="mdi:minus" />
+                        <Icon icon="mdi:close-circle" className="text-xl" />
                       </button>
-                      <span className="px-3 py-2 text-sm font-semibold text-gray-800 min-w-[2.5rem] text-center">
-                        {item.qty}
-                      </span>
-                      <button
-                        onClick={() => updateQty(item._id, 1)}
-                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
-                      >
-                        <Icon icon="mdi:plus" />
-                      </button>
+                      <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+                        <img src={image} alt={title} className="w-full h-full object-contain p-1" />
+                      </div>
+                      <div>
+                        <Link href={`/product/${product.slug || product._id}`}>
+                          <p className="font-semibold text-gray-800 text-sm leading-tight hover:text-primary-500">{title}</p>
+                        </Link>
+                        {variantText ? (
+                          <p className="text-gray-500 text-xs mt-0.5">{variantText}</p>
+                        ) : (
+                          <p className="text-gray-400 text-xs mt-0.5">{product.category?.title || "Product"}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Price */}
+                    <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
+                      ${price.toFixed(2)}
+                    </div>
+
+                    {/* Quantity */}
+                    <div className="col-span-3 flex justify-center">
+                      <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                        <button
+                          onClick={() => updateQty(item, -1)}
+                          className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                        >
+                          <Icon icon="mdi:minus" />
+                        </button>
+                        <span className="px-3 py-2 text-sm font-semibold text-gray-800 min-w-[2.5rem] text-center">
+                          {item.quantity}
+                        </span>
+                        <button
+                          onClick={() => updateQty(item, 1)}
+                          className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                        >
+                          <Icon icon="mdi:plus" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Subtotal */}
+                    <div className="col-span-2 text-right text-sm font-bold text-gray-800">
+                      ${(price * item.quantity).toFixed(2)}
                     </div>
                   </div>
-
-                  {/* Subtotal */}
-                  <div className="col-span-2 text-right text-sm font-bold text-gray-800">
-                    ${(item.price * item.qty).toFixed(2)}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
 
               {/* Coupon Row */}
               <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-wrap gap-3 items-center">

@@ -74,11 +74,11 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 ">
       <Hero />
       <OurServices />
       <VideoSection/>
-      <SellingProducts title="Products" titleHighlight="New" />
+      {/* <SellingProducts title="Products" titleHighlight="New" /> */}
       <StaticSections/>
       <FAQ />
       <GoodProducts  title="Products" titleHighlight="Good" />

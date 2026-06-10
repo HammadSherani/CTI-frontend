@@ -100,7 +100,7 @@ function CategoryModal({ mode, initial, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="fixed inset-0  z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
         <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">
@@ -185,6 +185,57 @@ function CategoryModal({ mode, initial, onClose, onSuccess }) {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── View Modal ─────────────────────────────────────────── */
+function ViewCategoryModal({ item, onClose }) {
+  if (!item) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+        <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between">
+          <h2 className="text-xl font-semibold text-gray-900">Category Details</h2>
+          <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-xl">
+            <Icon icon="mdi:close" className="w-6 h-6" />
+          </button>
+        </div>
+        <div className="p-6 space-y-4">
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 border bg-gray-50 rounded-2xl p-3 flex items-center justify-center">
+              {item.icon ? (
+                <img src={item.icon} alt={item.title} className="max-w-full max-h-full object-contain" />
+              ) : (
+                <Icon icon="mdi:image-outline" className="w-12 h-12 text-gray-400" />
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Title</label>
+            <p className="text-gray-900 font-medium">{item.title}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Slug</label>
+            <p className="text-gray-900">{item.slug || "—"}</p>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Status</label>
+            <div className="mt-1">
+              <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${item.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}>
+                {item.isActive ? "Active" : "Inactive"}
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase">Created At</label>
+            <p className="text-gray-900">{new Date(item.createdAt).toLocaleDateString()} {new Date(item.createdAt).toLocaleTimeString()}</p>
+          </div>
+        </div>
+        <div className="p-4 border-t bg-gray-50 flex justify-end">
+          <button onClick={onClose} className="px-5 py-2 text-sm bg-white border border-gray-200 rounded-xl hover:bg-gray-50">Close</button>
+        </div>
       </div>
     </div>
   );
@@ -340,10 +391,18 @@ export default function CategoriesPage() {
       ),
     },
     {
+      key: "createdAt",
+      header: "Created",
+      cell: (row) => <span className="text-sm text-gray-500">{new Date(row.createdAt).toLocaleDateString()}</span>,
+    },
+    {
       key: "actions",
       header: "Actions",
       cell: (row) => (
         <div className="flex gap-1">
+          <button onClick={() => setModal({ mode: "view", item: row })} className="p-2 hover:bg-green-50 rounded-xl text-green-600">
+            <Icon icon="mdi:eye-outline" className="w-5 h-5" />
+          </button>
           <button onClick={() => setModal({ mode: "edit", item: row })} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600">
             <Icon icon="mdi:pencil-outline" className="w-5 h-5" />
           </button>
@@ -405,7 +464,11 @@ export default function CategoriesPage() {
         />
       </div>
 
-      {modal && <CategoryModal mode={modal.mode} initial={modal.item} onClose={() => setModal(null)} onSuccess={() => fetchCategories(page)} />}
+      {modal && modal.mode === "view" ? (
+        <ViewCategoryModal item={modal.item} onClose={() => setModal(null)} />
+      ) : modal && (
+        <CategoryModal mode={modal.mode} initial={modal.item} onClose={() => setModal(null)} onSuccess={() => fetchCategories(page)} />
+      )}
       {confirm && <ConfirmDialog message={`Delete "${confirm.label}"?`} onConfirm={() => handleDelete(confirm.id)} onCancel={() => setConfirm(null)} />}
     </div>
   );

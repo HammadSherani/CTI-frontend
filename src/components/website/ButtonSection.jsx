@@ -50,11 +50,11 @@ const DashboardLink = ({ link }) => (
 );
 
 function ButtonSection() {
-  const [cartItems] = useState(1);
-  const [wishlistItems] = useState(1);
-  const [notificationCount] = useState(4);
-
   const { user } = useSelector((state) => state.auth);
+  const cartItems = useSelector((state) => state.cart?.items?.length) || 0;
+  const wishlistItems = useSelector((state) => state.wishlist?.items?.length) || 0;
+  const [notificationCount] = useState(0); // Keep static for now
+
   const dispatch = useDispatch();
   const router = useRouter();
 
@@ -93,22 +93,15 @@ function ButtonSection() {
 
   if (!user) {
     return (
-      <div className="flex items-center">
-        <Link href="/wishlist">
-          <button className="p-3 hover:bg-gray-100/60 w-12 h-12 flex justify-center rounded-full">
-            <Icon icon="mdi:heart-outline" width="22" height="22" />
-          </button>
-        </Link>
+      <div className="flex items-center gap-2">
+        <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
+            <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
 
-        <Link href="/cart">
-          <button className="p-3 hover:bg-gray-100/60 w-12 h-12 flex justify-center rounded-full">
-            <Icon icon="proicons:cart" width="22" height="22" />
-          </button>
-        </Link>
+        <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
 
         <Link
           href="/auth/register"
-          className="hidden sm:inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-[13px] font-semibold"
+          className="hidden sm:inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-[13px] font-semibold ml-2"
         >
           Get Started
         </Link>
@@ -152,12 +145,15 @@ function ButtonSection() {
 
   const renderRepairmanButtons = () => (
     <>
+      <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
       <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
+      <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
+
       <DashboardLink link="/repair-man/dashboard" />
     </>
   );
 
-    const renderSellerButtons = () => (
+  const renderSellerButtons = () => (
     <>
       <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
       <DashboardLink link="/seller/dashboard" />
@@ -174,7 +170,7 @@ function ButtonSection() {
   const roleButtons = {
     customer: renderCustomerButtons,
     repairman: renderRepairmanButtons,
-    seller:renderSellerButtons,
+    seller: renderSellerButtons,
     admin: renderAdminButtons,
   };
 

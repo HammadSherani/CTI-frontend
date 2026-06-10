@@ -1,84 +1,148 @@
 /**
- * useVariantBuilder.js (SIMPLIFIED)
+ * useVariantBuilder.js  (v3 — Multi-Attribute + Cartesian Product)
  *
- * Isolated hook that owns all variant state:
- *   - attribute type (Color OR Size OR Storage)
- *   - flat list of variants (one for each value)
- *   - per-variant price / stock / discount / sku editing
+ * State model:
+ *   selectedAttrs: { [type]: AttrValue[] }    — which attributes & values are chosen
+ *   rowData:       { [compositeKey]: RowData } — per-variant price/stock/etc.
+ *
+ * A "composite key" is the sorted join of all attribute name:value pairs,
+ * e.g.  "Color:Black|Size:M"
  */
 
 "use client";
 
 import { useState, useMemo, useCallback } from "react";
 
-/* ── Build a stable key ── */
-const rowKey = (type, value) => `${type}:${value}`;
-
-const DEFAULT_ROW = { price: "", stock: "", discountPercentage: "", sku: "" };
+/* ────────────────────────────────────────────────────────────
+   HELPERS
+──────────────────────────────────────────────────────────── */
+/**
+ * Build a stable composite key from an array of { name, label, hex? }.
+ * Sorted by name so order never matters.
+ */
+export const makeComboKey = (attrs) =>
+  [...attrs]
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((a) => `${a.name}:${a.label}`)
+    .join("|");
 
 /**
- * @param {Array} initialVariants  — from API on edit mode
+ * Cartesian product of multiple arrays.
+ * cartesian([[A,B],[X,Y]]) → [[A,X],[A,Y],[B,X],[B,Y]]
+ */
+const cartesian = (groups) =>
+  groups.reduce(
+    (acc, group) => acc.flatMap((existing) => group.map((v) => [...existing, v])),
+    [[]]
+  );
+
+const DEFAULT_ROW = {
+  price: "",
+  stock: "",
+  discountPercentage: "",
+  sku: "",
+  existingImages: [],
+  imageFiles: [],
+};
+
+/* ────────────────────────────────────────────────────────────
+   HOOK
+──────────────────────────────────────────────────────────── */
+/**
+ * @param {Array} initialVariants — from API (edit mode)
  */
 export function useVariantBuilder(initialVariants = []) {
-  /* ──────────────────────────────────────────────────
-     ATTRIBUTE TYPE & VALUES
-     type: "Color", values: [{label:"Black", hex:"#111"}]
-  ────────────────────────────────────────────────── */
-  const [attrType, setAttrType] = useState(() => {
-    if (!initialVariants?.length) return "";
-    // Find the first attribute name used (assuming all variants share the same type)
-    return initialVariants[0].attributes?.[0]?.name || "";
+
+  /* ── Does the seller want attribute-based variants? ── */
+  const [wantsVariants, setWantsVariants] = useState(() => {
+    if (!initialVariants?.length) return false;
+    // If any variant has attributes, the seller chose variants
+    return initialVariants.some((v) => v.attributes?.length > 0);
   });
 
-  const [attrValues, setAttrValues] = useState(() => {
-    if (!initialVariants?.length) return [];
-    const values = [];
+  /* ── Multi-attribute selection: { Color: [{label,hex?}], Size: [{label}] } ── */
+  const [selectedAttrs, setSelectedAttrs] = useState(() => {
+    if (!initialVariants?.length) return {};
+    const map = {};
     initialVariants.forEach((v) => {
-      const attr = v.attributes?.[0];
-      if (attr && !values.find((x) => x.label === attr.value)) {
-        values.push({ label: attr.value, hex: attr.colorHex || null });
-      }
+      (v.attributes || []).forEach((a) => {
+        if (!map[a.name]) map[a.name] = [];
+        if (!map[a.name].find((x) => x.label === a.value)) {
+          map[a.name].push({ label: a.value, hex: a.colorHex || null });
+        }
+      });
     });
-    return values;
+    return map;
   });
 
-  /* ──────────────────────────────────────────────────
-     ROW DATA  { [key]: {price, stock, discountPercentage, sku} }
-  ────────────────────────────────────────────────── */
+  /* ── Per-row data keyed by composite key or "default" ── */
   const [rowData, setRowData] = useState(() => {
     if (!initialVariants?.length) return {};
     const seed = {};
     initialVariants.forEach((v) => {
-      const attr = v.attributes?.[0];
-      if (attr) {
-        const key = rowKey(attr.name, attr.value);
-        seed[key] = {
-          price:              String(v.price || ""),
-          stock:              String(v.stock || ""),
-          discountPercentage: String(v.discountPercentage || ""),
-          sku:                v.sku || "",
-        };
-      }
+      const key =
+        v.attributes?.length
+          ? makeComboKey(v.attributes.map((a) => ({ name: a.name, label: a.value })))
+          : "default";
+      seed[key] = {
+        _id:                v._id,
+        price:              String(v.price || ""),
+        stock:              String(v.stock || ""),
+        discountPercentage: String(v.discountPercentage || ""),
+        sku:                v.sku || "",
+        existingImages:     v.images || [],
+        imageFiles:         [],
+      };
     });
     return seed;
   });
 
   /* ──────────────────────────────────────────────────
-     RESOLVED ROWS (computed from selected values)
+     COMPUTED ROWS
   ────────────────────────────────────────────────── */
   const rows = useMemo(() => {
-    if (!attrType || !attrValues.length) return [];
+    // No variant mode → single Default Variant row
+    if (!wantsVariants) {
+      return [
+        {
+          key:   "default",
+          label: "Default Variant",
+          combo: [],
+          ...(rowData["default"] || DEFAULT_ROW),
+        },
+      ];
+    }
 
-    return attrValues.map((v) => {
-      const key = rowKey(attrType, v.label);
+    const attrTypes  = Object.keys(selectedAttrs).sort();
+    const valueGroups = attrTypes.map((type) =>
+      (selectedAttrs[type] || []).map((v) => ({ ...v, type }))
+    );
+
+    // Nothing selected yet → still show default row
+    if (!valueGroups.length || valueGroups.some((g) => g.length === 0)) {
+      return [
+        {
+          key:   "default",
+          label: "Default Variant",
+          combo: [],
+          ...(rowData["default"] || DEFAULT_ROW),
+        },
+      ];
+    }
+
+    // Generate all combinations
+    return cartesian(valueGroups).map((combo) => {
+      const attrs = combo.map((v) => ({ name: v.type, label: v.label, hex: v.hex || null }));
+      const key   = makeComboKey(attrs);
+      const label = attrs.map((a) => a.label).join(" / ");
       return {
         key,
-        label: v.label,
-        combo: [{ name: attrType, value: v.label, colorHex: v.hex || null }],
+        label,
+        combo: attrs.map((a) => ({ name: a.name, value: a.label, colorHex: a.hex || null })),
         ...(rowData[key] || DEFAULT_ROW),
       };
     });
-  }, [attrType, attrValues, rowData]);
+  }, [wantsVariants, selectedAttrs, rowData]);
 
   /* ──────────────────────────────────────────────────
      SUMMARY
@@ -106,22 +170,27 @@ export function useVariantBuilder(initialVariants = []) {
         errors[`${r.key}_stock`] = `Row ${idx + 1}: stock invalid`;
       if (r.discountPercentage && (Number(r.discountPercentage) < 0 || Number(r.discountPercentage) >= 100))
         errors[`${r.key}_discount`] = `Row ${idx + 1}: discount must be 0-99`;
+      const totalImgs = (r.existingImages?.length || 0) + (r.imageFiles?.length || 0);
+      if (totalImgs === 0)
+        errors[`${r.key}_image`] = `Row ${idx + 1}: at least 1 image required`;
     });
     return errors;
   }, [rows]);
 
   /* ──────────────────────────────────────────────────
-     SERIALISE (for API submission)
+     SERIALISE
   ────────────────────────────────────────────────── */
   const serialise = useCallback(
     () =>
       rows.map((r, idx) => ({
+        _id:                r._id,
         attributes:         r.combo,
         price:              Number(r.price),
         stock:              Number(r.stock || 0),
         discountPercentage: Number(r.discountPercentage || 0),
         sku:                r.sku?.trim() || undefined,
-        isDefault:          idx === 0,
+        images:             r.existingImages || [],
+        isDefault:          r.key === "default" || idx === 0,
       })),
     [rows]
   );
@@ -129,32 +198,49 @@ export function useVariantBuilder(initialVariants = []) {
   /* ──────────────────────────────────────────────────
      MUTATORS
   ────────────────────────────────────────────────── */
-  const setAttributeType = useCallback((type) => {
-    setAttrType(type);
-    setAttrValues([]); // Clear values when type changes
-    setRowData({});    // Clear row data when type changes
-  }, []);
-
-  const toggleValue = useCallback((val) => {
-    setAttrValues((prev) => {
-      const exists = prev.find((v) => v.label === val.label);
-      return exists
-        ? prev.filter((v) => v.label !== val.label)
-        : [...prev, val];
+  /** Toggle an attribute TYPE on/off (e.g. "Color") */
+  const toggleAttrType = useCallback((type) => {
+    setSelectedAttrs((prev) => {
+      const next = { ...prev };
+      if (next[type]) {
+        delete next[type];
+      } else {
+        next[type] = [];
+      }
+      return next;
     });
   }, []);
 
-  const addCustomValue = useCallback((val) => {
-    setAttrValues((prev) => {
-      if (prev.find((v) => v.label === val.label)) return prev;
-      return [...prev, val];
+  /** Toggle a specific value within an attribute type */
+  const toggleAttrValue = useCallback((type, val) => {
+    setSelectedAttrs((prev) => {
+      const list = prev[type] || [];
+      const exists = list.find((v) => v.label === val.label);
+      return {
+        ...prev,
+        [type]: exists ? list.filter((v) => v.label !== val.label) : [...list, val],
+      };
     });
   }, []);
 
-  const removeValue = useCallback((label) => {
-    setAttrValues((prev) => prev.filter((v) => v.label !== label));
+  /** Add a custom value (from free-text input) */
+  const addCustomValue = useCallback((type, val) => {
+    setSelectedAttrs((prev) => {
+      const list = prev[type] || [];
+      if (list.find((v) => v.label === val.label)) return prev;
+      return { ...prev, [type]: [...list, val] };
+    });
   }, []);
 
+  /** Remove a specific value label from a type */
+  const removeAttrValue = useCallback((type, label) => {
+    setSelectedAttrs((prev) => ({
+      ...prev,
+      [type]: (prev[type] || []).filter((v) => v.label !== label),
+    }));
+  }, []);
+
+  /** Update a single field in a variant row */
   const updateRow = useCallback((key, field, value) => {
     setRowData((prev) => ({
       ...prev,
@@ -162,6 +248,7 @@ export function useVariantBuilder(initialVariants = []) {
     }));
   }, []);
 
+  /** Bulk-fill price/stock/discount across all current rows */
   const bulkFill = useCallback(
     ({ price, stock, discountPercentage }) => {
       setRowData((prev) => {
@@ -181,14 +268,17 @@ export function useVariantBuilder(initialVariants = []) {
   );
 
   return {
-    attrType,
-    attrValues,
+    // State
+    wantsVariants,
+    selectedAttrs,
     rows,
     summary,
-    setAttributeType,
-    toggleValue,
+    // Actions
+    setWantsVariants,
+    toggleAttrType,
+    toggleAttrValue,
     addCustomValue,
-    removeValue,
+    removeAttrValue,
     updateRow,
     bulkFill,
     validate,

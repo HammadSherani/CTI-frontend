@@ -11,8 +11,7 @@ import axiosInstance          from "@/config/axiosInstance";
 import { useSelector }        from "react-redux";
 import { useRouter }          from "@/i18n/navigation";
 
-import VariantBuilder         from "./variantBuilder";
-import { useVariantBuilder }  from "./useVariantBuilder";
+
 
 /* ══════════════════════════════════════════════════════════
    YUP SCHEMA — product fields only (no price/stock/discount)
@@ -29,11 +28,12 @@ const productSchema = yup.object({
     .string()
     .trim()
     .min(10, "Description must be at least 10 characters")
+    .max(1000, "Description too long")
     .required("Description is required"),
   categoryId:    yup.string().required("Category is required"),
   subCategoryId: yup.string().nullable(),
   brandId:       yup.string().nullable(),
-  hasVariants:   yup.boolean().default(false),
+  // hasVariants is removed from schema since it's always false for simple creation
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -194,9 +194,6 @@ export default function ProductForm({ mode = "create", initialData = null }) {
   const router   = useRouter();
   const { token } = useSelector((s) => s.auth);
 
-  /* ── Detect if this product has variants ── */
-  const initialHasVariants = initialData?.hasVariants ?? false;
-
   /* ── React Hook Form (product fields ONLY) ── */
   const {
     register,
@@ -213,14 +210,11 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       categoryId:       initialData?.categoryId?._id  || initialData?.categoryId  || "",
       subCategoryId:    initialData?.subCategoryId?._id || initialData?.subCategoryId || "",
       brandId:          initialData?.brandId?._id     || initialData?.brandId     || "",
-      hasVariants:      initialHasVariants,
     },
   });
 
   const watchCategory    = watch("categoryId");
   const watchSubCategory = watch("subCategoryId");
-  // Force boolean to avoid "true"/"false" string issues from radio buttons
-  const watchHasVariants = !!watch("hasVariants");
 
   /* ── Simple product pricing state (only used when hasVariants=false) ── */
   const [simplePricing, setSimplePricing] = useState(() => {
@@ -235,11 +229,7 @@ export default function ProductForm({ mode = "create", initialData = null }) {
     };
   });
 
-  /* ── Variant builder hook (only active when hasVariants=true) ── */
-  const variantBuilder = useVariantBuilder(
-    initialHasVariants ? (initialData?.variants || []) : []
-  );
-  const [variantErrors, setVariantErrors] = useState({});
+
 
   /* ── Dropdowns ── */
   const [categories,    setCategories]    = useState([]);
@@ -316,29 +306,14 @@ export default function ProductForm({ mode = "create", initialData = null }) {
 
   /* ── Submit ── */
   const onSubmit = async (productData) => {
-    if (previews.length === 0) {
+    if (mode === "create" && previews.length === 0) {
       setImgErr("At least 1 product image is required");
       return;
     }
 
-    /* Validate variants if applicable */
-    if (watchHasVariants) {
-      const vErrs = variantBuilder.validate();
-      if (Object.keys(vErrs).length) {
-        setVariantErrors(vErrs);
-        toast.error("Please fix variant errors before submitting");
-        return;
-      }
-      if (!variantBuilder.rows.length) {
-        toast.error("Add at least one variant with attributes");
-        return;
-      }
-      setVariantErrors({});
-    } else {
-      if (!simplePricing.price || Number(simplePricing.price) <= 0) {
-        toast.error("Price is required");
-        return;
-      }
+    if (mode === "create" && (!simplePricing.price || Number(simplePricing.price) <= 0)) {
+      toast.error("Price is required");
+      return;
     }
 
     setSubmitting(true);
@@ -348,11 +323,20 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       const fd = new FormData();
       fd.append("title",       productData.title);
       fd.append("description", productData.description);
-      fd.append("hasVariants", String(watchHasVariants));
       if (productData.shortDescription) fd.append("shortDescription", productData.shortDescription);
       if (productData.categoryId)       fd.append("categoryId",       productData.categoryId);
       if (productData.subCategoryId)    fd.append("subCategoryId",    productData.subCategoryId);
       if (productData.brandId)          fd.append("brandId",          productData.brandId);
+
+      // Append simple pricing fields directly
+      if (mode === "create") {
+        fd.append("price", Number(simplePricing.price));
+        fd.append("stock", Number(simplePricing.stock || 0));
+        fd.append("discountPercentage", simplePricing.isDiscounted ? Number(simplePricing.discountPercentage || 0) : 0);
+        if (simplePricing.sku?.trim()) {
+          fd.append("variantSku", simplePricing.sku.trim());
+        }
+      }
 
       /* Keep existing images on edit */
       if (mode === "edit") {
@@ -368,36 +352,16 @@ export default function ProductForm({ mode = "create", initialData = null }) {
         ? "/seller/product"
         : `/seller/product/${initialData._id}`;
 
-      const productRes = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
+      const res = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "multipart/form-data" },
       });
 
-      const savedProduct = productRes.data.data;
-
-      /* ── Save variants ── */
-      const variants = watchHasVariants
-        ? variantBuilder.serialise()
-        : [
-            {
-              attributes:         [],
-              price:              Number(simplePricing.price),
-              stock:              Number(simplePricing.stock || 0),
-              discountPercentage: simplePricing.isDiscounted
-                ? Number(simplePricing.discountPercentage || 0)
-                : 0,
-              sku:       simplePricing.sku?.trim() || undefined,
-              isDefault: true,
-            },
-          ];
-
-      await axiosInstance.post(
-        `/seller/product/${savedProduct._id}/variants`,
-        { variants: JSON.stringify(variants) },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
       toast.success(`Product ${isCreate ? "created" : "updated"} successfully`);
-      router.push("/seller/product");
+      if (isCreate) {
+        router.push(`/seller/product/${res.data.data._id}/variants`);
+      } else {
+        router.push("/seller/product");
+      }
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || "Something went wrong. Please try again.");
@@ -405,20 +369,19 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       setSubmitting(false);
     }
   };
-const summaryRows = watchHasVariants
-  ? [
-      { label: "Variants", value: variantBuilder.summary.variantCount || "0" },
-      { label: "Price Range", value: variantBuilder.summary.minPrice ? `$${variantBuilder.summary.minPrice} - $${variantBuilder.summary.maxPrice}` : "—" },
-      { label: "Total stock", value: variantBuilder.summary.totalStock || "0" },
-    ]
-  : [
+const summaryRows = mode === "edit" ? [
+      { label: "Pricing", value: "Managed in Variants" },
+    ] : [
       { label: "Price", value: (simplePricing.price && !isNaN(simplePricing.price)) ? `$${Number(simplePricing.price).toFixed(2)}` : "—" },
       { label: "Discount", value: (simplePricing.isDiscounted && simplePricing.discountPercentage) ? `${simplePricing.discountPercentage}%` : "—" },
       { label: "Stock", value: simplePricing.stock || "0" },
     ];
 
-const extraRows = [
+const extraRows = mode === "create" ? [
   { label: "Images", value: `${previews.length}/5` },
+  { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
+] : [
+  { label: "Images", value: "Managed in Variants" },
   { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
 ];
   /* ══════════════════════════════════════════════════════════
@@ -518,96 +481,34 @@ const extraRows = [
               </div>
             </Card>
 
-            {/* ── Product Type ── */}
-            <Card className="overflow-hidden border-2 border-gray-100 shadow-xl shadow-gray-200/20">
-              <div className="flex items-center justify-between mb-4">
-                <CardTitle icon="mdi:cube-outline">Product Inventory Type</CardTitle>
-                <div className="px-2.5 py-1 bg-gray-100 rounded-lg text-[10px] font-black text-gray-500 uppercase tracking-wider">Required</div>
-              </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {[
-                  {
-                    value:   false,
-                    label:   "Simple Product",
-                    desc:    "No variations. Just one price and stock level.",
-                    icon:    "mdi:cube-send",
-                    activeBg: "bg-blue-600",
-                    activeBorder: "border-blue-600",
-                    lightBg: "bg-blue-50",
-                    textColor: "text-blue-600",
-                  },
-                  {
-                    value:   true,
-                    label:   "Variant Product",
-                    desc:    "Single dimension (e.g. Size OR Storage) variations.",
-                    icon:    "mdi:layers-triple-outline",
-                    activeBg: "bg-primary-600",
-                    activeBorder: "border-primary-600",
-                    lightBg: "bg-primary-50",
-                    textColor: "text-primary-600",
-                  },
-                ].map((opt) => {
-                  const isActive = !!watchHasVariants === opt.value;
-                  return (
-                    <label key={String(opt.value)}
-                      className={`relative group cursor-pointer transition-all duration-300 ${
-                        isActive ? "scale-[1.02]" : "hover:scale-[1.01]"
-                      }`}>
-                      <input type="radio" className="sr-only"
-                        checked={isActive}
-                        onChange={() => setValue("hasVariants", opt.value)} />
-                      
-                      <div className={`h-full p-5 rounded-2xl border-2 transition-all duration-300 ${
-                        isActive 
-                          ? `${opt.activeBorder} ${opt.lightBg} shadow-lg shadow-${opt.value ? "primary" : "blue"}-500/10` 
-                          : "border-gray-100 bg-white hover:border-gray-200"
-                      }`}>
-                        <div className="flex items-start gap-4">
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-                            isActive ? `${opt.activeBg} text-white shadow-lg` : "bg-gray-100 text-gray-400 group-hover:bg-gray-200"
-                          }`}>
-                            <Icon icon={opt.icon} className="w-6 h-6" />
-                          </div>
-                          <div className="flex-1">
-                            <p className={`text-sm font-black uppercase tracking-tight ${isActive ? opt.textColor : "text-gray-700"}`}>
-                              {opt.label}
-                            </p>
-                            <p className="text-[11px] text-gray-400 font-medium leading-tight mt-1">
-                              {opt.desc}
-                            </p>
-                          </div>
-                        </div>
-                        {isActive && (
-                          <div className={`absolute top-4 right-4 w-5 h-5 rounded-full ${opt.activeBg} text-white flex items-center justify-center shadow-md animate-in zoom-in duration-300`}>
-                            <Icon icon="mdi:check" className="w-3 h-3" />
-                          </div>
-                        )}
-                      </div>
-                    </label>
-                  );
-                })}
-              </div>
-            </Card>
-
-            {/* ── Simple Pricing (only when no variants) ── */}
-            {!watchHasVariants && (
+            {/* ── Pricing & Variants ── */}
+            {mode === "create" ? (
               <div className="animate-in fade-in slide-in-from-top-4 duration-500">
                 <SimplePricing value={simplePricing} onChange={setSimplePricing} />
               </div>
-            )}
-
-            {/* ── Variant Builder (only when hasVariants) ── */}
-            {watchHasVariants && (
-              <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                <VariantBuilder
-                  {...variantBuilder}
-                  errors={variantErrors}
-                />
-              </div>
+            ) : (
+              <Card>
+                <div className="flex items-center justify-between">
+                  <CardTitle icon="mdi:layers-triple-outline">SKUs & Pricing</CardTitle>
+                </div>
+                <div className="bg-primary-50 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border border-primary-100">
+                  <div className="flex items-start gap-3">
+                    <Icon icon="mdi:information" className="w-5 h-5 text-primary-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm font-semibold text-primary-900 mb-1">Pricing is managed in variants.</p>
+                      <p className="text-xs text-primary-700 max-w-sm">Every product has at least one default variant. You can manage prices, stock, and add more options (like Size or Color) from the Variant Manager.</p>
+                    </div>
+                  </div>
+                  <button type="button" onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
+                    className="flex-shrink-0 px-5 py-2.5 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap">
+                    Manage Variants
+                  </button>
+                </div>
+              </Card>
             )}
 
             {/* ── Images ── */}
+            {mode === "create" && (
             <Card>
               <div className="flex items-center justify-between">
                 <CardTitle icon="mdi:image-multiple-outline">Product Images</CardTitle>
@@ -644,6 +545,7 @@ const extraRows = [
                 </p>
               )}
             </Card>
+            )}
 
           </div>{/* end left col */}
 
@@ -699,10 +601,8 @@ const extraRows = [
                 Tips
               </p>
               <ul className="text-xs text-amber-600 space-y-1.5 leading-relaxed">
-                <li>• Choose <strong>Variable Product</strong> if your item comes in different colors, sizes, storage, etc.</li>
-                <li>• Use <strong>Bulk fill</strong> in the variant grid to set the same price/stock for all rows at once.</li>
                 <li>• The first image becomes the main display image.</li>
-                <li>• SKU fields in the variant grid are optional — they're auto-generated if left blank.</li>
+                <li>• You can add variants (sizes, colors, etc.) after creating the product from the Product Management page.</li>
               </ul>
             </div>
 

@@ -108,7 +108,7 @@ export default function ProductsListPage() {
     );
     try {
       await axiosInstance.patch(
-        `/seller/product/toggle/${product._id}`,
+        `/seller/product/${product._id}/toggle`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -162,9 +162,9 @@ export default function ProductsListPage() {
       header: "Price",
       cell: (row) => (
         <div>
-          <span className="font-bold text-gray-900">${row.price?.toFixed(2)}</span>
-          {row.isDiscounted && row.discountPrice && (
-            <p className="text-[11px] text-emerald-600 font-medium">${row.discountPrice?.toFixed(2)} discounted</p>
+          <span className="font-bold text-gray-900">${row.summary?.minPrice?.toFixed(2) || "0.00"}</span>
+          {row.summary?.minSalePrice && (
+            <p className="text-[11px] text-emerald-600 font-medium">${row.summary?.minSalePrice?.toFixed(2)} discounted</p>
           )}
         </div>
       ),
@@ -172,47 +172,34 @@ export default function ProductsListPage() {
     {
       key: "stock",
       header: "Stock",
-      cell: (row) => (
-        <span
-          className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${
-            row.stock === 0
+      cell: (row) => {
+        const stock = row.summary?.totalStock || 0;
+        return (
+          <span
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${stock === 0
               ? "bg-red-50 text-red-600"
-              : row.stock < 5
-              ? "bg-amber-50 text-amber-600"
-              : "bg-emerald-50 text-emerald-600"
-          }`}
-        >
-          {row.stock} in stock
-        </span>
-      ),
+              : stock < 5
+                ? "bg-amber-50 text-amber-600"
+                : "bg-emerald-50 text-emerald-600"
+              }`}
+          >
+            {stock} in stock
+          </span>
+        );
+      },
     },
     {
-      key: "status",
-      header: "Status",
-      cell: (row) => (
-        <span
-          className={`px-3 py-1 rounded-full text-xs font-semibold ${
-            row.isActive ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"
-          }`}
-        >
-          {row.isActive ? "Active" : "Inactive"}
-        </span>
-      ),
-    },
-    {
-      key: "toggle",
-      header: "Visible",
+      key: "isActive",
+      header: "Active",
       cell: (row) => (
         <button
           onClick={() => handleToggleStatus(row)}
-          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 shadow-sm ${
-            row.isActive ? "bg-green-500" : "bg-gray-300"
-          }`}
+          className={`relative inline-flex h-7 w-12 items-center rounded-full transition-all duration-300 shadow-sm ${row.isActive ? "bg-green-500" : "bg-gray-300"
+            }`}
         >
           <span
-            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-300 ${
-              row.isActive ? "translate-x-6" : "translate-x-1"
-            }`}
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-all duration-300 ${row.isActive ? "translate-x-6" : "translate-x-1"
+              }`}
           />
         </button>
       ),
@@ -221,7 +208,7 @@ export default function ProductsListPage() {
       key: "actions",
       header: "Actions",
       cell: (row) => (
-        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-1  transition-opacity">
           <button
             onClick={() => router.push(`/seller/product/${row._id}`)}
             className="p-2 text-gray-500 hover:bg-gray-100 rounded-xl transition-colors"
@@ -235,6 +222,13 @@ export default function ProductsListPage() {
             title="Edit"
           >
             <Icon icon="mdi:pencil-outline" className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => router.push(`/seller/product/${row._id}/variants`)}
+            className="p-2 text-purple-600 hover:bg-purple-50 rounded-xl transition-colors"
+            title="Manage Variants"
+          >
+            <Icon icon="mdi:layers-triple-outline" className="w-5 h-5" />
           </button>
           <button
             onClick={() => setConfirm({ id: row._id, label: row.title })}

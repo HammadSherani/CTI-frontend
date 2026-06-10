@@ -15,7 +15,7 @@ import SectionTag from "./sectoinTag";
 export default function HowItWorks() {
 
   return (
-    <section className="py-16 max-w-7xl  mx-auto  p-4 text-black">
+    <section className="py-16 max-w-7xl h-[100vh] overflow-hidden p-12 text-black">
 
             <div className="flex flex-col  gap-2 mb-10">
           <div>
