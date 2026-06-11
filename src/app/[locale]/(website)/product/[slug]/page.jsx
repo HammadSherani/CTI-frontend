@@ -135,6 +135,7 @@ export default function ProductDetailPage() {
   const [selectedAttributes, setSelectedAttributes] = useState({});
 
   const wishlistItems = useSelector(s => s.wishlist?.items || []);
+  const cartItems = useSelector(s => s.cart?.items || []);
   const auth = useSelector(s => s.auth);
   const token = auth?.token;
 
@@ -148,6 +149,7 @@ export default function ProductDetailPage() {
         ]);
         if (res.success) {
           setProductData(res.data.product);
+          console.log('Product API Response:', res.data);
           const vList = res.data.variants || [];
           setVariants(vList);
           if (vList.length) {
@@ -169,6 +171,7 @@ export default function ProductDetailPage() {
     loadData();
   }, [params.slug]);
 
+  console.log('Product Data:', productData);
   /* ──────────────────────────────────────────────────────────
      DERIVED STATE
   ────────────────────────────────────────────────────────── */
@@ -182,19 +185,22 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-
+  console.log('Variants:', variants);
+  console.log(productData.summary);
   const selectedVariant = variants.find(v => v._id === selectedVariantId) || variants[0];
 
-  const price      = selectedVariant?.discountPrice || selectedVariant?.price || productData.summary?.minSalePrice || productData.summary?.minPrice || 0;
-  const oldPrice   = selectedVariant?.price || productData.summary?.minPrice || 0;
+  const price = selectedVariant?.discountPrice || selectedVariant?.price || productData.summary?.minSalePrice || productData.summary?.minPrice || 0;
+  const oldPrice = selectedVariant?.price || productData.summary?.minPrice || 0;
   const stockCount = selectedVariant?.stock ?? 0;
-  const inStock    = stockCount > 0;
+  const inStock = stockCount > 0;
 
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
-  const savings         = oldPrice > price ? (oldPrice - price).toFixed(2) : null;
+  const savings = oldPrice > price ? (oldPrice - price).toFixed(2) : null;
 
-  const isWishlisted = wishlistItems.some(i => i.productId?._id === productData._id && i.variantId === selectedVariant?._id);
+  const isWishlisted = wishlistItems.some(i => (i.productId?._id || i.productId) === productData._id && (i.variantId?._id || i.variantId) === selectedVariant?._id);
+  const isCartAdded = cartItems.some(i => (i.productId?._id || i.productId) === productData?._id && (i.variantId?._id || i.variantId) === selectedVariant?._id);
 
+  if (!productData) return null;
   /* ── Build image gallery:
      First show images of selected variant, then the rest ── */
   const selectedVariantImages = (selectedVariant?.images || []).map(i => i.url);
@@ -205,7 +211,7 @@ export default function ProductDetailPage() {
   if (!allImages.length) allImages.push('/assets/placeholder.jpg');
 
   const categoryName = productData.categoryId?.title || '';
-  const brandName    = productData.brandId?.title || '';
+  const brandName = productData.brandId?.title || '';
 
   /* ──────────────────────────────────────────────────────────
      ATTRIBUTE SELECTION LOGIC
@@ -249,11 +255,19 @@ export default function ProductDetailPage() {
   };
 
   const handleAddToCart = () => {
+    if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
+      toast.error('You cannot add your own product to cart');
+      return;
+    }
     dispatch(addToCart({ product: productData, variantId: selectedVariant?._id, quantity }));
     toast.success(`${productData.title} added to cart!`);
   };
 
   const handleToggleWishlist = () => {
+    if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
+      toast.error('You cannot add your own product to wishlist');
+      return;
+    }
     dispatch(toggleWishlistItem({ product: productData, variantId: selectedVariant?._id }));
     if (isWishlisted) toast.info('Removed from wishlist');
     else toast.success('Added to wishlist');
@@ -317,7 +331,7 @@ export default function ProductDetailPage() {
                 className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === i
                   ? 'border-primary-500 shadow-md shadow-primary-100'
                   : 'border-gray-100 hover:border-gray-300'
-                }`}>
+                  }`}>
                 <img src={img} alt={`thumb-${i}`} className="w-full h-full object-contain p-1" />
               </button>
             ))}
@@ -378,7 +392,7 @@ export default function ProductDetailPage() {
 
           {/* ── Attribute Selectors ── */}
           {attrTypes.map(type => {
-            const opts   = attrOptions[type] || [];
+            const opts = attrOptions[type] || [];
             const isColor = type.toLowerCase() === 'color';
             const currentVal = selectedAttributes[type];
             return (
@@ -400,7 +414,7 @@ export default function ProductDetailPage() {
                           className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
                             ? 'border-primary-500 scale-110 shadow-lg shadow-primary-500/20'
                             : `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:border-gray-400`
-                          }`}
+                            }`}
                           style={{ backgroundColor: hex }}>
                           {isSelected && (
                             <Icon icon="mdi:check" className={`w-4 h-4 ${isLight ? 'text-gray-700' : 'text-white'}`} />
@@ -414,7 +428,7 @@ export default function ProductDetailPage() {
                         className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${isSelected
                           ? 'border-primary-500 bg-primary-500 text-white shadow-md shadow-primary-500/20'
                           : 'border-gray-200 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
-                        }`}>
+                          }`}>
                         {opt.value}
                       </button>
                     );
@@ -443,13 +457,24 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <button onClick={handleAddToCart} disabled={!inStock}
-              className="flex-1 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-primary-200 text-sm flex items-center justify-center gap-2 disabled:opacity-50">
+            <button onClick={handleAddToCart} disabled={!inStock || isCartAdded}
+              className={`flex-1 ${isCartAdded ? 'bg-gray-400' : 'bg-primary-500 hover:bg-primary-600'} active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-primary-200 text-sm flex items-center justify-center gap-2 disabled:opacity-50`}>
               <Icon icon="mdi:shopping-cart" />
-              Add to Cart
+              {isCartAdded ? 'Already in Cart' : 'Add to Cart'}
             </button>
 
-            <button onClick={() => { handleAddToCart(); router.push('/checkout'); }} disabled={!inStock}
+            <button onClick={() => {
+              if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
+                toast.error('You cannot buy your own product');
+                return;
+              }
+              const params = new URLSearchParams();
+              params.append('buyNow', 'true');
+              params.append('slug', productData.slug);
+              if (selectedVariant?._id) params.append('variantId', selectedVariant._id);
+              params.append('quantity', quantity);
+              router.push(`/checkout?${params.toString()}`);
+            }} disabled={!inStock}
               className="flex-1 bg-gray-900 hover:bg-gray-800 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm disabled:opacity-50">
               Buy Now
             </button>
@@ -489,7 +514,7 @@ export default function ProductDetailPage() {
               className={`px-6 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}>
+                }`}>
               {tab.label}
             </button>
           ))}
@@ -514,9 +539,10 @@ export default function ProductDetailPage() {
                 { label: 'Category', value: categoryName },
                 { label: 'Total Variants', value: variants.length },
                 { label: 'Total Stock', value: productData.summary?.totalStock ?? variants.reduce((s, v) => s + (v.stock || 0), 0) },
-                { label: 'Price Range', value: productData.summary?.minPrice === productData.summary?.maxPrice
-                  ? `$${productData.summary?.minPrice?.toFixed(2)}`
-                  : `$${productData.summary?.minPrice?.toFixed(2)} – $${productData.summary?.maxPrice?.toFixed(2)}`
+                {
+                  label: 'Price Range', value: productData.summary?.minPrice === productData.summary?.maxPrice
+                    ? `$${productData.summary?.minPrice?.toFixed(2)}`
+                    : `$${productData.summary?.minPrice?.toFixed(2)} – $${productData.summary?.maxPrice?.toFixed(2)}`
                 },
                 ...(selectedVariant?.attributes || []).map(a => ({ label: a.name, value: a.value })),
               ].filter(Boolean).map((row, i) => (

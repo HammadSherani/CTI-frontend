@@ -126,10 +126,14 @@ export default function ProductListingPage() {
                   reviews={"0"}
                   goldPrice={""}
                   badge={null}
-                  isWishlisted={wishlistItems.some(w => w.productId?._id === p._id)}
+                  isWishlisted={wishlistItems.some(w => (w.productId?._id || w.productId) === p._id)}
                   onWishlist={() => {
+                    if (auth?.user && (auth.user._id === p.sellerId || auth.user.id === p.sellerId)) {
+                      toast.error('You cannot add your own product to wishlist');
+                      return;
+                    }
                     dispatch(toggleWishlistItem({ product: p, variantId: null }));
-                    const isW = wishlistItems.some(w => w.productId?._id === p._id);
+                    const isW = wishlistItems.some(w => (w.productId?._id || w.productId) === p._id);
                     if (isW) toast.info('Removed from wishlist');
                     else toast.success('Added to wishlist');
                   }}

@@ -18,6 +18,25 @@ export default function ViewProductPage({ params }) {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Derive allImages from all variants (product.images is only a 1-image cache)
+  const allImages = React.useMemo(() => {
+    const seen = new Set();
+    const imgs = [];
+    variants.forEach((v) => {
+      (v.images || []).forEach((img) => {
+        if (img.url && !seen.has(img.url)) {
+          seen.add(img.url);
+          imgs.push(img);
+        }
+      });
+    });
+    // Fallback to product.images if no variant images
+    if (imgs.length === 0 && product?.images?.length) {
+      return product.images;
+    }
+    return imgs;
+  }, [variants, product]);
+
   useEffect(() => {
     if (!token) return;
     const fetchData = async () => {
@@ -56,6 +75,8 @@ export default function ViewProductPage({ params }) {
   }
 
   const defaultVariant = variants.find(v => v.isDefault) || variants[0];
+  // hasVariants: true if any variant has attributes (product model has no hasVariants field)
+  const hasVariants = variants.some((v) => v.attributes?.length > 0);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -131,7 +152,7 @@ export default function ViewProductPage({ params }) {
               </h2>
             </div>
             
-            {!product.hasVariants ? (
+            {!hasVariants ? (
               <div className="p-6 grid grid-cols-3 gap-4">
                 <div>
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Price</span>
@@ -192,15 +213,21 @@ export default function ViewProductPage({ params }) {
             <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
               <Icon icon="mdi:image-multiple-outline" className="w-4 h-4 text-primary-500" />
               Images
+              {allImages.length > 0 && (
+                <span className="ml-auto text-xs font-medium text-gray-400">{allImages.length} photo{allImages.length !== 1 ? 's' : ''}</span>
+              )}
             </h2>
             <div className="grid grid-cols-2 gap-3">
-              {product.images?.map((img, i) => (
-                <div key={i} className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50">
+              {allImages.map((img, i) => (
+                <div key={i} className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 relative">
                   <img src={img.url} alt="Product" className="w-full h-full object-cover" />
+                  {i === 0 && (
+                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded font-medium">Main</span>
+                  )}
                 </div>
               ))}
             </div>
-            {(!product.images || product.images.length === 0) && (
+            {allImages.length === 0 && (
               <p className="text-sm text-gray-400 text-center py-4">No images available</p>
             )}
           </div>

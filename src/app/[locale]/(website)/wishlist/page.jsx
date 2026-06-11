@@ -221,7 +221,7 @@ export default function WishlistPage() {
           <p className="text-gray-400 text-sm mb-8 max-w-xs mx-auto">
             Save items you love by clicking the heart icon on any product page
           </p>
-          <Link href="/products">
+          <Link href="/product">
             <button className="bg-primary-500 hover:bg-primary-600 text-white font-bold px-8 py-3 rounded-xl transition-colors shadow-lg shadow-primary-100 text-sm flex items-center gap-2 mx-auto">
               <Icon icon="mdi:shopping-outline" className="text-base" />
               Explore Products

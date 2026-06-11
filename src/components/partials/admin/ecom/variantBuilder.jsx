@@ -115,10 +115,12 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
   const imgErr = errors[`${row.key}_image`];
   const priceErr = errors[`${row.key}_price`];
 
-  const allPreviews = [
+  // Stable blob URL list — avoids creating new URLs on every render
+  const allPreviews = React.useMemo(() => [
     ...(row.existingImages || []).map((i) => ({ src: i.url, isExisting: true })),
     ...(row.imageFiles || []).map((f) => ({ src: URL.createObjectURL(f), isExisting: false, file: f })),
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [row.existingImages, row.imageFiles]);
 
   const handleFiles = (files) => {
     const arr = Array.from(files);
@@ -421,6 +423,24 @@ function BulkFillBar({ onBulkFill }) {
 /* ══════════════════════════════════════════════════════════
    PANEL C — Variant Table
 ══════════════════════════════════════════════════════════ */
+
+/** Stable blob URL — only recreated when imageFiles array reference changes */
+function RowImagePreview({ imageFiles, existingImages }) {
+  const blobSrc = React.useMemo(
+    () => (imageFiles?.length ? URL.createObjectURL(imageFiles[0]) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [imageFiles]
+  );
+
+  if (blobSrc) {
+    return <img src={blobSrc} className="w-full h-full object-cover" alt="" />;
+  }
+  if (existingImages?.[0]?.url) {
+    return <img src={existingImages[0].url} className="w-full h-full object-cover" alt="" />;
+  }
+  return <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />;
+}
+
 function VariantTable({ rows, updateRow, errors, bulkFill }) {
   return (
     <div className="space-y-4">
@@ -449,13 +469,7 @@ function VariantTable({ rows, updateRow, errors, bulkFill }) {
                   {/* Image cell */}
                   <td className="px-4 py-3 w-16">
                     <div className={`relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 border flex items-center justify-center cursor-pointer transition-all ${errors[`${row.key}_image`] ? "border-red-400 ring-2 ring-red-400/20" : "border-gray-200 group-hover:border-primary-300"}`}>
-                      {row.imageFiles?.length > 0 ? (
-                        <img src={URL.createObjectURL(row.imageFiles[0])} className="w-full h-full object-cover" alt="" />
-                      ) : row.existingImages?.[0]?.url ? (
-                        <img src={row.existingImages[0].url} className="w-full h-full object-cover" alt="" />
-                      ) : (
-                        <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />
-                      )}
+                      <RowImagePreview imageFiles={row.imageFiles} existingImages={row.existingImages} />
                       {totalImgs > 1 && (
                         <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 rounded-tl font-bold">+{totalImgs - 1}</span>
                       )}
@@ -580,19 +594,21 @@ export default function VariantBuilder({
   return (
     <div className="space-y-5">
 
-      {/* ── Panel A: Default / base variant ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <StepBadge n={1} />
-          <span className="text-sm font-black text-gray-800 uppercase tracking-tight">Set Base Details</span>
+      {/* ── Panel A: Default / base variant — only shown when NOT in full variant-combo mode ── */}
+      {(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <StepBadge n={1} />
+            <span className="text-sm font-black text-gray-800 uppercase tracking-tight">Set Base Details</span>
+          </div>
+          <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} />
         </div>
-        <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} />
-      </div>
+      )}
 
       {/* ── Panel B: Variations toggle ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <StepBadge n={2} />
+          <StepBadge n={(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) ? 2 : 1} />
           <span className="text-sm font-black text-gray-800 uppercase tracking-tight">
             Variations
           </span>
@@ -634,7 +650,7 @@ export default function VariantBuilder({
       {wantsVariants && hasRealCombos && hasEnoughAttrValues && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-2 mb-3">
-            <StepBadge n={3} />
+            <StepBadge n={(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) ? 3 : 2} />
             <span className="text-sm font-black text-gray-800 uppercase tracking-tight">
               Set Prices & Photos
             </span>
