@@ -23,13 +23,9 @@ function Header() {
 
   const primaryNavLinks = [
   { name: "Dashboard",   path: "/seller/dashboard",   icon: "solar:home-2-bold-duotone" },
-
   { name: "Product Management",   path: "/seller/product",   icon: "solar:clipboard-list-bold-duotone" },
-
-
-  { name: "Order & Shipping",     path: "/seller/order",     icon: "solar:star-bold-duotone" },
-  { name: "Finance",     path: "/seller/finance",     icon: "solar:star-bold-duotone" },
-
+  { name: "Order & Shipping",     path: "/seller/order",     icon: "solar:box-minimalistic-bold-duotone" },
+  { name: "Wallet",     path: "/seller/wallet",     icon: "solar:wallet-money-bold-duotone" },
 ];
 
   const dropdownLinks = [

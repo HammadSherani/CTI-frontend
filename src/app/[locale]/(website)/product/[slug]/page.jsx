@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useRouter } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '@/store/cart';
+import { toggleCart } from '@/store/cart';
 import { toggleWishlistItem } from '@/store/wishlist';
 import { useParams } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
@@ -135,7 +135,9 @@ export default function ProductDetailPage() {
   const [selectedAttributes, setSelectedAttributes] = useState({});
 
   const wishlistItems = useSelector(s => s.wishlist?.items || []);
+  const wishlistLoadingIds = useSelector(s => s.wishlist?.loadingIds || []);
   const cartItems = useSelector(s => s.cart?.items || []);
+  const cartLoadingIds = useSelector(s => s.cart?.loadingIds || []);
   const auth = useSelector(s => s.auth);
   const token = auth?.token;
 
@@ -171,10 +173,9 @@ export default function ProductDetailPage() {
     loadData();
   }, [params.slug]);
 
-  console.log('Product Data:', productData);
-  /* ──────────────────────────────────────────────────────────
+  /* ─────────────────────────────────────────────────────────
      DERIVED STATE
-  ────────────────────────────────────────────────────────── */
+  ───────────────────────────────────────────────────────── */
   if (loading || !productData) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -185,20 +186,31 @@ export default function ProductDetailPage() {
       </div>
     );
   }
-  console.log('Variants:', variants);
-  console.log(productData.summary);
   const selectedVariant = variants.find(v => v._id === selectedVariantId) || variants[0];
 
-  const price = selectedVariant?.discountPrice || selectedVariant?.price || productData.summary?.minSalePrice || productData.summary?.minPrice || 0;
-  const oldPrice = selectedVariant?.price || productData.summary?.minPrice || 0;
+  const price = selectedVariant?.discountPrice || selectedVariant?.sellingPrice || selectedVariant?.price || productData.summary?.minSalePrice || productData.summary?.minPrice || 0;
+  const oldPrice = selectedVariant?.sellingPrice || selectedVariant?.price || productData.summary?.minPrice || 0;
   const stockCount = selectedVariant?.stock ?? 0;
   const inStock = stockCount > 0;
 
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const savings = oldPrice > price ? (oldPrice - price).toFixed(2) : null;
 
-  const isWishlisted = wishlistItems.some(i => (i.productId?._id || i.productId) === productData._id && (i.variantId?._id || i.variantId) === selectedVariant?._id);
-  const isCartAdded = cartItems.some(i => (i.productId?._id || i.productId) === productData?._id && (i.variantId?._id || i.variantId) === selectedVariant?._id);
+  // Match by productId+variantId, OR just productId if no variant was stored (e.g. wishlisted from listing page)
+  const isWishlisted = wishlistItems.some(i => {
+    const pMatch = (i.productId?._id || i.productId) === productData._id;
+    const iVarId = i.variantId?._id || i.variantId || null;
+    return pMatch && (iVarId === selectedVariant?._id || iVarId === null);
+  });
+  const isCartAdded = cartItems.some(i => {
+    const pMatch = (i.productId?._id || i.productId) === productData?._id;
+    const iVarId = i.variantId?._id || i.variantId || null;
+    return pMatch && (iVarId === selectedVariant?._id || iVarId === null);
+  });
+
+  const currentUniqueId = selectedVariant?._id ? `${productData._id}-${selectedVariant._id}` : productData._id;
+  const isWishlistLoading = wishlistLoadingIds.includes(currentUniqueId);
+  const isCartLoading = cartLoadingIds.includes(currentUniqueId);
 
   if (!productData) return null;
   /* ── Build image gallery:
@@ -259,8 +271,10 @@ export default function ProductDetailPage() {
       toast.error('You cannot add your own product to cart');
       return;
     }
-    dispatch(addToCart({ product: productData, variantId: selectedVariant?._id, quantity }));
-    toast.success(`${productData.title} added to cart!`);
+    if (isCartLoading) return; // guard against spam only
+    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity }));
+    if (isCartAdded) toast.info(`${productData.title} removed from cart!`);
+    else toast.success(`${productData.title} added to cart!`);
   };
 
   const handleToggleWishlist = () => {
@@ -268,9 +282,10 @@ export default function ProductDetailPage() {
       toast.error('You cannot add your own product to wishlist');
       return;
     }
+    if (isWishlistLoading) return; // guard against spam only
     dispatch(toggleWishlistItem({ product: productData, variantId: selectedVariant?._id }));
     if (isWishlisted) toast.info('Removed from wishlist');
-    else toast.success('Added to wishlist');
+    else toast.success('Added to wishlist!');
   };
 
   const handleAddReview = async () => {
@@ -383,6 +398,10 @@ export default function ProductDetailPage() {
             {savings && (
               <p className="text-green-600 text-sm font-semibold mt-1">You save ${savings}</p>
             )}
+            {/* <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
+              <Icon icon="mdi:information-outline" className="w-3.5 h-3.5" />
+              Includes 10% platform fee
+            </p> */}
           </div>
 
           {/* Short description */}
@@ -457,10 +476,16 @@ export default function ProductDetailPage() {
               </button>
             </div>
 
-            <button onClick={handleAddToCart} disabled={!inStock || isCartAdded}
-              className={`flex-1 ${isCartAdded ? 'bg-gray-400' : 'bg-primary-500 hover:bg-primary-600'} active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-primary-200 text-sm flex items-center justify-center gap-2 disabled:opacity-50`}>
-              <Icon icon="mdi:shopping-cart" />
-              {isCartAdded ? 'Already in Cart' : 'Add to Cart'}
+            <button
+              onClick={handleAddToCart}
+              disabled={!inStock}
+              className={`flex-1 ${isCartAdded
+                ? 'bg-gray-800 text-white hover:bg-gray-900'
+                : 'bg-primary-500 hover:bg-primary-600 text-white shadow-primary-200'
+                } font-bold py-3 px-6 rounded-xl transition-all shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50`}
+            >
+              <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
+              {isCartAdded ? 'Remove from Cart' : 'Add to Cart'}
             </button>
 
             <button onClick={() => {
@@ -479,9 +504,17 @@ export default function ProductDetailPage() {
               Buy Now
             </button>
 
-            <button onClick={handleToggleWishlist}
-              className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all text-xl ${isWishlisted ? 'border-red-400 bg-red-50 text-red-500' : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400'}`}>
-              <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
+            <button
+              onClick={handleToggleWishlist}
+              className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all text-xl ${isWishlisted
+                ? 'border-red-400 bg-red-50 text-red-500 hover:bg-red-100'
+                : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 bg-white'
+                }`}
+            >
+              <Icon
+                icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
+                className={`w-5 h-5 transition-transform ${isWishlisted ? 'scale-110' : 'scale-100'}`}
+              />
             </button>
           </div>
 

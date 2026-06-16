@@ -22,6 +22,7 @@ export const CustomDropdown = ({
   value,
   onChange,
   disabled = false,
+  isLoading = false,
   searchable = false,
 }) => {
   const [open, setOpen] = useState(false);
@@ -44,19 +45,19 @@ export const CustomDropdown = ({
   });
 
   /* SINGLE DROPDOWN CONTROL */
- const handleToggle = () => {
-  if (disabled) return;
+  const handleToggle = () => {
+    if (disabled) return;
 
-  if (activeDropdown && activeDropdown !== setOpen) {
-    activeDropdown(false);
-  }
+    if (activeDropdown && activeDropdown !== setOpen) {
+      activeDropdown(false);
+    }
 
-  if (!open) {
-    activeDropdown = setOpen;
-  }
+    if (!open) {
+      activeDropdown = setOpen;
+    }
 
-  setOpen(!open);
-};
+    setOpen(!open);
+  };
   /* cleanup */
   useEffect(() => {
     return () => {
@@ -77,7 +78,7 @@ export const CustomDropdown = ({
           className="w-full h-11 px-4 flex items-center gap-2 rounded-xl border border-gray-200 bg-white hover:border-primary-400 text-sm"
         >
           <Icon icon={icon} className="w-4 h-4 text-primary-500" />
-          <span className="flex-1 text-left truncate">{selectedLabel}</span>
+          <span className="flex-1 text-left truncate">{isLoading ? "Loading..." : selectedLabel}</span>
           <Icon icon="mdi:chevron-down" className="w-4 h-4" />
         </button>
       </div>
@@ -124,10 +125,11 @@ export const CustomDropdown = ({
                       setSearch("");
                     }}
                     className={`w-full px-4 py-2 text-left text-sm hover:bg-gray-50 ${value === opt.value
-                        ? "bg-primary-50 text-primary-600 font-medium"
-                        : ""
+                      ? "bg-primary-50 text-primary-600 font-medium"
+                      : ""
                       }`}
                   >
+                    {isLoading && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
                     {opt.label}
                   </button>
                 ))

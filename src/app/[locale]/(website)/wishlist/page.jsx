@@ -5,7 +5,7 @@ import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchWishlist, toggleWishlistItem } from '@/store/wishlist';
-import { addToCart } from '@/store/cart';
+import { toggleCart } from '@/store/cart';
 
 // ── Star Rating ──
 function StarRating({ rating = 5 }) {
@@ -25,7 +25,7 @@ function StarRating({ rating = 5 }) {
 // ── Wishlist Card ──
 function WishlistCard({ item, onRemove, onAddToCart }) {
   const [adding, setAdding] = useState(false);
-  
+
   const product = item.productId || {};
   const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
 
@@ -115,7 +115,9 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
 export default function WishlistPage() {
   const dispatch = useDispatch();
   const { items: wishlist, loading } = useSelector((state) => state.wishlist || { items: [], loading: false });
-  const [cartAdded, setCartAdded] = useState([]);
+  const { items: cartItems } = useSelector((state) => state.cart || { items: [] });
+  // Derive which wishlist items are already in cart — no local state needed
+  const cartAddedIds = cartItems.map(i => i.productId?._id || i.productId).filter(Boolean);
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
@@ -132,14 +134,22 @@ export default function WishlistPage() {
   };
 
   const handleRemove = (item) => {
-    dispatch(toggleWishlistItem({ product: item.productId, variantId: item.variantId }));
-    showNotification('Item removed from wishlist', 'info');
+    const product = item.productId;
+    if (!product) return;
+    dispatch(toggleWishlistItem({ product, variantId: item.variantId }))
+      .unwrap()
+      .then(() => showNotification('Item removed from wishlist', 'info'))
+      .catch(() => showNotification('Failed to remove item', 'error'));
   };
 
   const handleAddToCart = (item) => {
-    dispatch(addToCart({ product: item.productId, variantId: item.variantId, quantity: 1 }));
-    setCartAdded(prev => [...prev, item.productId._id]);
-    showNotification('Item added to cart!', 'success');
+    const product = item.productId;
+    if (!product) return;
+    const pId = product._id || product;
+    dispatch(toggleCart({ product: typeof product === 'object' ? product : { _id: pId }, variantId: item.variantId, quantity: 1 }))
+      .unwrap()
+      .then(() => showNotification('Item added to cart!', 'success'))
+      .catch(() => showNotification('Failed to add to cart', 'error'));
   };
 
   const handleClearAll = () => {
@@ -195,10 +205,10 @@ export default function WishlistPage() {
       {wishlist.length > 0 && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: 'mdi:heart',            label: 'Saved Items',   value: wishlist.length,                               color: 'text-red-500',   bg: 'bg-red-50'   },
-            { icon: 'mdi:check-circle',     label: 'In Stock',      value: wishlist.filter(i => i.inStock).length,        color: 'text-green-500', bg: 'bg-green-50' },
-            { icon: 'mdi:tag-outline',      label: 'On Sale',       value: wishlist.filter(i => i.badge === 'Sale').length,color: 'text-orange-500',bg: 'bg-orange-50'},
-            { icon: 'mdi:cart-check',       label: 'Added to Cart', value: cartAdded.length,                              color: 'text-blue-500',  bg: 'bg-blue-50'  },
+            { icon: 'mdi:heart', label: 'Saved Items', value: wishlist.length, color: 'text-red-500', bg: 'bg-red-50' },
+            { icon: 'mdi:check-circle', label: 'In Stock', value: wishlist.filter(i => i.inStock).length, color: 'text-green-500', bg: 'bg-green-50' },
+            { icon: 'mdi:tag-outline', label: 'On Sale', value: wishlist.filter(i => i.badge === 'Sale').length, color: 'text-orange-500', bg: 'bg-orange-50' },
+            { icon: 'mdi:cart-check', label: 'Added to Cart', value: cartAddedIds.length, color: 'text-blue-500', bg: 'bg-blue-50' },
           ].map(s => (
             <div key={s.label} className={`${s.bg} rounded-2xl p-4 flex items-center gap-3`}>
               <Icon icon={s.icon} className={`${s.color} text-2xl`} />

@@ -12,7 +12,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 
 /* ─── Confirm Delete Dialog ──────────────────────────────── */
-function ConfirmDialog({ message, onConfirm, onCancel }) {
+function ConfirmDialog({ message, onConfirm, onCancel, isLoading }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm animate-in fade-in zoom-in-95 duration-200">
@@ -34,9 +34,11 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
           </button>
           <button
             onClick={onConfirm}
+            disabled={isLoading}
+
             className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors"
           >
-            Delete
+            {isLoading ? "Deleting..." : "Delete"}
           </button>
         </div>
       </div>
@@ -52,6 +54,7 @@ export default function ProductsListPage() {
 
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -71,6 +74,7 @@ export default function ProductsListPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
 
+        console.log("Fetched products:", data);
         const list = data.data || [];
         setProducts(list);
         setPagination(data.pagination || null);
@@ -123,12 +127,14 @@ export default function ProductsListPage() {
 
   const handleDelete = async (id) => {
     try {
+      setIsDeleting(true);
       await axiosInstance.delete(`/seller/product/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Product deleted successfully");
       fetchProducts(page, search, statusFilter);
     } catch (err) {
+      setIsDeleting(false);
       toast.error(err?.response?.data?.message || "Delete failed");
     } finally {
       setConfirm(null);
@@ -162,9 +168,9 @@ export default function ProductsListPage() {
       header: "Price",
       cell: (row) => (
         <div>
-          <span className="font-bold text-gray-900">${row.summary?.minPrice?.toFixed(2) || "0.00"}</span>
-          {row.summary?.minSalePrice && (
-            <p className="text-[11px] text-emerald-600 font-medium">${row.summary?.minSalePrice?.toFixed(2)} discounted</p>
+          <span className="font-bold text-gray-900">${row.variants?.[0]?.sellingPrice?.toFixed(2) || "0.00"}</span>
+          {row.variants[0]?.discountPrice && (
+            <p className="text-[11px] text-emerald-600 font-medium">${row.variants[0]?.discountPrice?.toFixed(2)} discounted</p>
           )}
         </div>
       ),
@@ -173,7 +179,7 @@ export default function ProductsListPage() {
       key: "stock",
       header: "Stock",
       cell: (row) => {
-        const stock = row.summary?.totalStock || 0;
+        const stock = row.variants?.[0]?.stock || 0;
         return (
           <span
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${stock === 0
@@ -326,6 +332,7 @@ export default function ProductsListPage() {
           message={`Are you sure you want to delete "${confirm.label}"? This action can be undone by admin.`}
           onConfirm={() => handleDelete(confirm.id)}
           onCancel={() => setConfirm(null)}
+          isLoading={isDeleting}
         />
       )}
     </div>

@@ -12,6 +12,7 @@ import { useEffect } from 'react';
 import axiosInstance from "@/config/axiosInstance";
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleWishlistItem } from '@/store/wishlist';
+import { toggleCart } from '@/store/cart';
 import { toast } from 'react-toastify';
 
 export default function ProductListingPage() {
@@ -24,7 +25,8 @@ export default function ProductListingPage() {
 
   const router = useRouter();
   const dispatch = useDispatch();
-  const { items: wishlistItems } = useSelector((state) => state.wishlist || { items: [] });
+  const { items: wishlistItems, loadingIds: wishlistLoadingIds } = useSelector((state) => state.wishlist || { items: [], loadingIds: [] });
+  const { items: cartItems, loadingIds: cartLoadingIds } = useSelector((state) => state.cart || { items: [], loadingIds: [] });
   const auth = useSelector((state) => state.auth);
 
   useEffect(() => {
@@ -36,18 +38,19 @@ export default function ProductListingPage() {
         queryParams.append("limit", PAGE_SIZE);
         queryParams.append("sort", sort);
 
-        if (filters.categoryIds?.length)    queryParams.append('categoryIds',    filters.categoryIds.join(','));
-        if (filters.subCategoryIds?.length)  queryParams.append('subCategoryIds', filters.subCategoryIds.join(','));
-        if (filters.brandIds?.length)        queryParams.append('brandIds',       filters.brandIds.join(','));
-        if (filters.colors?.length)          queryParams.append('colors',         filters.colors.join(','));
-        if (filters.rating > 0)              queryParams.append('rating',         filters.rating);
+        if (filters.categoryIds?.length) queryParams.append('categoryIds', filters.categoryIds.join(','));
+        if (filters.subCategoryIds?.length) queryParams.append('subCategoryIds', filters.subCategoryIds.join(','));
+        if (filters.brandIds?.length) queryParams.append('brandIds', filters.brandIds.join(','));
+        if (filters.colors?.length) queryParams.append('colors', filters.colors.join(','));
+        if (filters.rating > 0) queryParams.append('rating', filters.rating);
         // Only send price when user has actually changed from defaults
-        if (filters.priceMin > 0)            queryParams.append('minPrice',       filters.priceMin);
+        if (filters.priceMin > 0) queryParams.append('minPrice', filters.priceMin);
         if (filters.priceMax && filters.priceMax < 2000) queryParams.append('maxPrice', filters.priceMax);
 
         const res = await axiosInstance.get(`/e-commerce/products?${queryParams.toString()}`);
         if (res.data.success) {
           setProducts(res.data.data);
+          console.log("Fetched products:", res.data.data);
           setTotalPages(res.data.pagination.pages);
         }
       } catch (err) {
@@ -117,27 +120,27 @@ export default function ProductListingPage() {
               {products.map(p => (
                 <ProductCard
                   key={p._id}
-                  title={p.title}
-                  img={p.images?.[0]?.url || "/assets/placeholder.jpg"}
-                  price={`$${(p.summary?.minSalePrice || p.summary?.minPrice || 0).toFixed(2)}`}
-                  oldPrice={p.summary?.minSalePrice && p.summary?.minSalePrice < p.summary?.minPrice ? `$${p.summary.minPrice.toFixed(2)}` : null}
-                  discountAmount={""}
-                  discountPercent={p.summary?.minSalePrice && p.summary?.minSalePrice < p.summary?.minPrice ? Math.round(((p.summary.minPrice - p.summary.minSalePrice) / p.summary.minPrice) * 100) : ""}
-                  reviews={"0"}
-                  goldPrice={""}
-                  badge={null}
-                  isWishlisted={wishlistItems.some(w => (w.productId?._id || w.productId) === p._id)}
+                  product={p}
+                  isWishlisted={wishlistItems.some(w =>
+                    (w.productId?._id || w.productId) === p._id
+                  )}
+                  isWishlistLoading={wishlistLoadingIds.includes(p._id)}
                   onWishlist={() => {
                     if (auth?.user && (auth.user._id === p.sellerId || auth.user.id === p.sellerId)) {
                       toast.error('You cannot add your own product to wishlist');
                       return;
                     }
-                    dispatch(toggleWishlistItem({ product: p, variantId: null }));
-                    const isW = wishlistItems.some(w => (w.productId?._id || w.productId) === p._id);
-                    if (isW) toast.info('Removed from wishlist');
-                    else toast.success('Added to wishlist');
+                    const isW = wishlistItems.some(w =>
+                      (w.productId?._id || w.productId) === p._id
+                    );
+                    dispatch(toggleWishlistItem({ product: p, variantId: null }))
+                      .unwrap()
+                      .then(() => {
+                        if (isW) toast.info('Removed from wishlist');
+                        else toast.success('Added to wishlist!');
+                      })
+                      .catch(() => toast.error('Failed to update wishlist'));
                   }}
-                  onAdd={() => router.push(`/product/${p.slug}`)}
                 />
               ))}
             </div>
@@ -170,8 +173,8 @@ export default function ProductListingPage() {
                     key={p}
                     onClick={() => handlePageChange(p)}
                     className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${p === page
-                        ? 'bg-primary-500 text-white border-primary-500'
-                        : 'border-gray-200 hover:bg-gray-50'
+                      ? 'bg-primary-500 text-white border-primary-500'
+                      : 'border-gray-200 hover:bg-gray-50'
                       }`}
                   >
                     {p}

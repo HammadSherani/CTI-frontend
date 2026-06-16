@@ -46,7 +46,7 @@ export default function CheckoutPage() {
   const [subTotal, setSubTotal] = useState(0);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // 'cod' | 'card'
+  const [paymentMethod, setPaymentMethod] = useState(); // 'cod' | 'card'
   const [saveCard, setSaveCard] = useState(false);
   const [form, setForm] = useState({
     firstName: auth?.user?.firstName || '',
@@ -56,10 +56,10 @@ export default function CheckoutPage() {
     address: '',
     city: '',
     postalCode: '',
-    cardHolder: '',
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
+    cardHolder: auth?.user?.firstName + ' ' + auth?.user?.lastName || '',
+    cardNumber: '5528790000000008',
+    expiry: '12/30',
+    cvv: '123',
   });
 
   useEffect(() => {
@@ -67,9 +67,9 @@ export default function CheckoutPage() {
     if (savedForm) {
       try {
         const parsed = JSON.parse(savedForm);
-        setForm(f => ({ 
-          ...f, 
-          ...parsed, 
+        setForm(f => ({
+          ...f,
+          ...parsed,
           email: auth?.user?.email || parsed.email || '',
           firstName: auth?.user?.firstName || parsed.firstName || '',
           lastName: auth?.user?.lastName || parsed.lastName || '',
@@ -115,9 +115,9 @@ export default function CheckoutPage() {
             variantId: variant._id,
             variantDetails: variant,
             quantity: queryQuantity,
-            price: variant.price
+            price: variant.sellingPrice
           }]);
-          setSubTotal(variant.price * queryQuantity);
+          setSubTotal(variant.sellingPrice * queryQuantity);
           setLoading(false);
         })
         .catch(err => {
@@ -155,8 +155,7 @@ export default function CheckoutPage() {
     }
   }, [isBuyNow, slug, queryVariantId, queryQuantity, cartItems, auth, router]);
 
-  const SHIPPING = 10.00;
-  const TOTAL = subTotal + SHIPPING;
+  const TOTAL = subTotal ;
 
   const handleForm = (e) => {
     const { name, value } = e.target;
@@ -195,7 +194,10 @@ export default function CheckoutPage() {
       toast.error(err.inner[0].message);
       return;
     }
-
+    if (!paymentMethod) {
+      toast.error('Please select a payment method');
+      return;
+    }
     if (paymentMethod === 'card') {
       if (!form.cardHolder || !form.cardNumber || !form.expiry || !form.cvv) {
         toast.error('Please fill in all card details');
@@ -220,7 +222,7 @@ export default function CheckoutPage() {
           addressLine: form.address,
           postalCode: form.postalCode
         },
-        paymentMethod: paymentMethod === 'card' ? 'CARD' : 'COD'
+        paymentMethod: paymentMethod
       };
 
       if (paymentMethod === 'card') {
@@ -255,7 +257,7 @@ export default function CheckoutPage() {
         if (!isBuyNow) {
           dispatch(removeFromCart());
         }
-        router.push('/my-account/orders');
+        router.push('/orders');
       } else {
         toast.error(res.data.message || 'Failed to place order');
       }
@@ -400,25 +402,6 @@ export default function CheckoutPage() {
             </h2>
 
             {/* COD Option */}
-            <button
-              onClick={() => setPaymentMethod('cod')}
-              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border-2 transition-all mb-3 text-left ${paymentMethod === 'cod'
-                ? 'border-primary-500 bg-primary-50'
-                : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-            >
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === 'cod' ? 'border-primary-500' : 'border-gray-300'
-                }`}>
-                {paymentMethod === 'cod' && (
-                  <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />
-                )}
-              </div>
-              <Icon icon="mdi:cash" className={`text-xl transition-colors ${paymentMethod === 'cod' ? 'text-primary-500' : 'text-gray-400'}`} />
-              <span className={`font-semibold text-sm transition-colors ${paymentMethod === 'cod' ? 'text-primary-600' : 'text-gray-600'}`}>
-                Cash On Delivery
-              </span>
-            </button>
-
             {/* Card Option */}
             <button
               onClick={() => setPaymentMethod('card')}
@@ -435,7 +418,7 @@ export default function CheckoutPage() {
               </div>
               <Icon icon="mdi:credit-card-plus-outline" className={`text-xl transition-colors ${paymentMethod === 'card' ? 'text-primary-500' : 'text-gray-400'}`} />
               <span className={`font-semibold text-sm transition-colors ${paymentMethod === 'card' ? 'text-primary-600' : 'text-gray-600'}`}>
-                Add New Credit / Debit Card
+                Add Credit / Debit Card
               </span>
               {/* Card brand icons */}
               <div className="flex gap-1.5 ml-auto">
@@ -565,7 +548,7 @@ export default function CheckoutPage() {
               {[
                 { label: 'Items', value: items.reduce((a, b) => a + b.quantity, 0), isCount: true },
                 { label: 'Sub total', value: subTotal },
-                { label: 'Shipping', value: SHIPPING },
+                // { label: 'Shipping', value: SHIPPING },
               ].map(r => (
                 <div key={r.label} className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">{r.label}</span>
