@@ -90,7 +90,9 @@ const wishlistSlice = createSlice({
         state.loading = true;
       })
       .addCase(fetchWishlist.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = (action.payload || []).filter(
+          (item) => item?.productId && item?.productId !== null
+        );
         state.loading = false;
       })
       .addCase(fetchWishlist.rejected, (state) => {
@@ -125,9 +127,13 @@ const wishlistSlice = createSlice({
         const vId = resolveId(variantId);
         const key = getWishlistItemKey(product._id, vId);
 
-        // Replace with authoritative server state
-        state.items = action.payload;
-        state.loadingIds = state.loadingIds.filter((id) => id !== key);
+        state.items = (action.payload || []).filter(
+          (item) => item?.productId && item?.productId !== null
+        );
+
+        state.loadingIds = state.loadingIds.filter(
+          (id) => id !== key
+        );
       })
       .addCase(toggleWishlistItem.rejected, (state, action) => {
         const { product, variantId } = action.meta.arg;

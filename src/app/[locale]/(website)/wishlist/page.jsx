@@ -22,6 +22,40 @@ function StarRating({ rating = 5 }) {
   );
 }
 
+function EmptyWishlist() {
+  return (
+    <div className="bg-white rounded-3xl border border-gray-100 shadow-sm py-24 px-6">
+      <div className="max-w-md mx-auto text-center">
+        {/* Icon */}
+        <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-red-50 flex items-center justify-center">
+          <Icon
+            icon="mdi:heart-off-outline"
+            className="text-5xl text-red-400"
+          />
+        </div>
+
+        {/* Title */}
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">
+          Your Wishlist is Empty
+        </h2>
+
+        {/* Description */}
+        <p className="text-gray-500 mb-8">
+          Looks like you haven't added any products to your wishlist yet.
+          Browse our collection and save your favorite items for later.
+        </p>
+
+        {/* Action Button */}
+        <Link href="/product">
+          <button className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary-500 hover:bg-primary-600 text-white font-semibold transition-all shadow-lg shadow-primary-100">
+            <Icon icon="mdi:shopping-outline" className="text-lg" />
+            Explore Products
+          </button>
+        </Link>
+      </div>
+    </div>
+  );
+}
 // ── Wishlist Card ──
 function WishlistCard({ item, onRemove, onAddToCart }) {
   const [adding, setAdding] = useState(false);
@@ -157,6 +191,10 @@ export default function WishlistPage() {
     // Omitting for brevity in this mock up.
     showNotification('Wishlist cleared', 'info');
   };
+  const validWishlist = wishlist.filter(
+    (item) => item?.productId
+  );
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -241,16 +279,20 @@ export default function WishlistPage() {
       ) : (
         <>
           {/* ── Grid ── */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-            {wishlist.map(item => (
-              <WishlistCard
-                key={item._id}
-                item={item}
-                onRemove={handleRemove}
-                onAddToCart={handleAddToCart}
-              />
-            ))}
-          </div>
+          {validWishlist.length === 0 ? (
+            <EmptyWishlist />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+              {validWishlist.map((item) => (
+                <WishlistCard
+                  key={item._id}
+                  item={item}
+                  onRemove={handleRemove}
+                  onAddToCart={handleAddToCart}
+                />
+              ))}
+            </div>
+          )}
 
           {/* ── Continue Shopping ── */}
           <div className="mt-10 text-center">

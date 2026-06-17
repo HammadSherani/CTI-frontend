@@ -81,7 +81,11 @@ export default function ProductListingPage() {
     { label: "Most Discounted", value: "discount" },
   ];
   return (
-    <div className="max-w-7xl mx-auto px-4 py-10">
+    <div className="max-w-7xl mx-auto px-10 py-10">
+      <div className='mb-10'>
+        <h1 className='font-semibold text-xl mb-3' >Neque porro quisquam est qui dolorem ipsum quia </h1>
+        <p className='font-normal text-gray-700 text-sm leading-6'>It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum'Ut nec justo arcu. Mauris eget dolor neque. Vivamus sit amet molestie velit. Mauris sed ex iaculis, viverra sem eget, dictum nunc. Phasellus eleifend lacus at mi tempor tincidunt. Nunc  will uncover many web sites still in theiulla facilisi. Fusce hendrerit malesuada orci, at lobortis nibh vulputate sodales. Sed at tellus sit amet nunc faucibus congue non a eros.r infancy. Various versions have evolved over Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla egestas ipsum eu leo luctus, eu imperdiet sapien ornare. Praesent semper ante id orci semper sodales. Sed vitae erat ipsum. Aenean congue eget metus quis fringilla. Nulla rutrum viverra quam et hendrerit. Donec sit amet lectus urna. Morbi sed scelerisque odio. Donec commodo tellus magna, eget porta est venenatis eget. Donec leo purus, eleifend pulvinar mattis vel, fermentum ut leo. Nullam in semper augue, at viverra arcu. Nullam dolor est, semper eu aliquet eget, scelerisque vel nulla. Suspendisse venenatis diam felis, et consectetur nunc dignissim at. Praesent eu nisi ac nisi placerat placerat eget eu orci. Donec eget leo sit amet odio porttitor efficitur vitae vel lacus. Aenean interdum lectus faucibus neque rhoncus, id elementum turpis ultrices..</p>
+      </div>
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 
         {/* ── Sidebar ── */}

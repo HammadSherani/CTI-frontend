@@ -335,25 +335,74 @@ export default function ProductDetailPage() {
       </nav>
 
       {/* ── Top Section ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 mb-16">
+      <div className="grid grid-cols-1 lg:grid-cols-8 gap-10 mb-16">
 
         {/* LEFT — Image Gallery */}
-        <div className="flex gap-3">
+        <div className="flex col-span-3 gap-3">
           {/* Thumbnails — vertical, scrollable */}
-          <div className="flex flex-col gap-2 flex-shrink-0 max-h-[480px] overflow-y-auto pr-1 scrollbar-thin">
-            {allImages.map((img, i) => (
-              <button key={i} onClick={() => setSelectedImage(i)}
-                className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === i
-                  ? 'border-primary-500 shadow-md shadow-primary-100'
-                  : 'border-gray-100 hover:border-gray-300'
-                  }`}>
-                <img src={img} alt={`thumb-${i}`} className="w-full h-full object-contain p-1" />
-              </button>
-            ))}
-          </div>
+       <div className="flex flex-col items-center gap-2 flex-shrink-0">
+
+  {/* UP BUTTON (same size as image) */}
+  <button
+    onClick={() =>
+      setSelectedImage((prev) =>
+        prev > 0 ? prev - 1 : prev
+      )
+    }
+    className="w-14 h-14 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200"
+  >
+   <Icon icon="mdi:arrow-up" className="text-lg" /> 
+  </button>
+
+  {/* 5 VISIBLE THUMBNAILS */}
+  <div className="flex flex-col gap-2">
+    {allImages
+      .slice(
+        Math.max(0, selectedImage - 2),
+        Math.max(5, selectedImage + 3)
+      )
+      .slice(0, 5)
+      .map((img, i) => {
+        const realIndex =
+          Math.max(0, selectedImage - 2) + i;
+
+        return (
+          <button
+            key={realIndex}
+            onClick={() => setSelectedImage(realIndex)}
+            className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${
+              selectedImage === realIndex
+                ? "border-primary-500 shadow-md shadow-primary-100"
+                : "border-gray-100 hover:border-gray-300"
+            }`}
+          >
+            <img
+              src={img}
+              alt={`thumb-${realIndex}`}
+              className="w-full h-full object-contain p-1"
+            />
+          </button>
+        );
+      })}
+  </div>
+
+  {/* DOWN BUTTON (same size as image) */}
+  <button
+    onClick={() =>
+      setSelectedImage((prev) =>
+        prev < allImages.length - 1 ? prev + 1 : prev
+      )
+    }
+    className="w-14 h-14 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200"
+  >
+   <Icon icon="mdi:arrow-down" className="text-lg" />
+  </button>
+</div>
 
           {/* Main image */}
-          <div className="flex-1 relative min-w-0">
+          <div className="flex-1">
+
+          <div className=" relative min-w-0">
             {discountPercent && (
               <span className="absolute top-4 left-4 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow">
                 -{discountPercent}%
@@ -361,177 +410,249 @@ export default function ProductDetailPage() {
             )}
             <ImageZoom src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
           </div>
+            {/* Quantity + Actions */}
+            <div className="flex  items-center gap-3 flex-wrap mt-5">
+              {/* Qty */}
+          
+
+              <button
+                onClick={handleAddToCart}
+                disabled={!inStock}
+                className={`flex-1 ${isCartAdded
+                  ? 'bg-gray-800 text-white flex-wrap text-wrap hover:bg-gray-900'
+                  : 'bg-primary-500 flex-wrap text-wrap hover:bg-primary-600 text-white shadow-primary-200'
+                  } font-bold py-3 px-3 rounded-xl flex-wrap text-wrap transition-all shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50`}
+              >
+                <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
+                {isCartAdded ? 'Remove from Cart' : 'Add to Cart'}
+              </button>
+
+              <button onClick={() => {
+                if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
+                  toast.error('You cannot buy your own product');
+                  return;
+                }
+                const params = new URLSearchParams();
+                params.append('buyNow', 'true');
+                params.append('slug', productData.slug);
+                if (selectedVariant?._id) params.append('variantId', selectedVariant._id);
+                params.append('quantity', quantity);
+                router.push(`/checkout?${params.toString()}`);
+              }} disabled={!inStock}
+                className="flex-1 bg-gray-900 hover:bg-gray-800 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm disabled:opacity-50">
+                Buy Now
+              </button>
+
+              <button
+                onClick={handleToggleWishlist}
+                className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all text-xl ${isWishlisted
+                  ? 'border-red-400 bg-red-50 text-red-500 hover:bg-red-100'
+                  : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 bg-white'
+                  }`}
+              >
+                <Icon
+                  icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
+                  className={`w-5 h-5 transition-transform ${isWishlisted ? 'scale-110' : 'scale-100'}`}
+                />
+              </button>
+            </div>
+                      </div>
+
         </div>
 
         {/* RIGHT — Product Info */}
-        <div className="flex flex-col gap-5">
+        <div className="col-span-5 flex flex-row">
 
-          {/* Brand + Title */}
-          <div>
-            {brandName && (
-              <span className="text-primary-500 text-xs font-black uppercase tracking-widest">{brandName}</span>
-            )}
-            <h1 className="text-2xl font-extrabold text-gray-900 mt-1 leading-tight">{productData.title}</h1>
-          </div>
+          <div className="flex flex-col px-1 gap-5 w-fit">
 
-          {/* Ratings + Stock */}
-          <div className="flex items-center gap-3 flex-wrap">
-            <StarRating rating={productData.ratings?.average || 0} size="md" />
-            <span className="text-yellow-500 font-bold text-sm">{productData.ratings?.average?.toFixed(1) || '0.0'}</span>
-            <span className="text-gray-400 text-sm">({productData.ratings?.count || 0} reviews)</span>
-            <span className={`ml-2 text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
-              {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
-            </span>
-          </div>
+            {/* Brand + Title */}
+            <div>
+              <h1 className="text-2xl font-extrabold text-gray-900 mt-1 leading-tight">{productData.title}</h1>
+              <p className="text-gray-600 text-sm w-fit ">{productData.shortDescription}</p>
+            </div>
 
-          {/* Price */}
-          <div className="bg-gradient-to-r from-primary-50 to-orange-50 rounded-2xl p-4 border border-primary-100">
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-3xl font-extrabold text-primary-600">${price.toFixed(2)}</span>
-              {oldPrice > price && (
-                <span className="text-lg text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
-              )}
+            <div className="flex flex-wrap p-1 shadow-md gap-2 border-gray-400 border w-fit">
+              <div className='bg-green-600   rounded-lg w-fit px-3 py-1 flex justify-center items-center text-white font-semibold'>4.3 <Icon icon="mdi:star" className="w-4 h-4 text-yellow-400" /></div>
+              <div className=' flex justify-center items-center text-gray-700  font-normal'>33 reviews</div>
+
+            </div>
+
+            <div className="flex rounded-2xl gap-2 ">
               {discountPercent && (
-                <span className="bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">{discountPercent}% OFF</span>
+                <span className="text-3xl text-primary-500 font-bold rounded-full">-{discountPercent}%</span>
+              )}
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className="text-3xl font-extrabold text-gray-800">${price.toFixed(2)}</span>
+                {oldPrice > price && (
+                  <span className="text-lg text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
+                )}
+  <span className={`ml-2 w-fit text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
+                {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
+              </span>
+              </div>
+
+            </div>
+
+            <div className="flex items-center gap-3 flex-wrap text-white -mt-4 bg-black w-[27%] rounded-2xl px-2 py-1 justify-center">
+              {savings && (
+                <p className=" text-sm font-semibold">You save  <span className="font-bold text-yellow-500">${savings}</span></p>
               )}
             </div>
-            {savings && (
-              <p className="text-green-600 text-sm font-semibold mt-1">You save ${savings}</p>
-            )}
-            {/* <p className="text-[11px] text-gray-500 mt-2 flex items-center gap-1">
-              <Icon icon="mdi:information-outline" className="w-3.5 h-3.5" />
-              Includes 10% platform fee
-            </p> */}
-          </div>
+            {/* Ratings + Stock */}
+           
+ 
+            {/* Qty */}
+    <div className={`flex items-center border rounded-xl  w-fit overflow-hidden ${inStock ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
+                <button disabled={!inStock || quantity <= 1}
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 font-bold text-lg transition-colors disabled:opacity-50">
+                  −
+                </button>
+                <span className="px-4 py-2.5 font-semibold text-gray-800 min-w-[3rem] text-center">
+                  {inStock ? quantity : 0}
+                </span>
+                <button disabled={!inStock || quantity >= stockCount}
+                  onClick={() => setQuantity(q => Math.min(stockCount, q + 1))}
+                  className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 font-bold text-lg transition-colors disabled:opacity-50">
+                  +
+                </button>
+              </div>
 
-          {/* Short description */}
-          <p className="text-gray-500 text-sm leading-relaxed line-clamp-3">
-            {productData.shortDescription || productData.description}
-          </p>
 
-          {/* ── Attribute Selectors ── */}
-          {attrTypes.map(type => {
-            const opts = attrOptions[type] || [];
-            const isColor = type.toLowerCase() === 'color';
-            const currentVal = selectedAttributes[type];
-            return (
-              <div key={type}>
-                <p className="text-sm font-bold text-gray-700 mb-2.5">
-                  {type}:{' '}
-                  <span className="text-gray-500 font-normal">{currentVal || 'Select'}</span>
-                </p>
-                <div className="flex gap-2 flex-wrap">
-                  {opts.map(opt => {
-                    const isSelected = currentVal === opt.value;
-                    if (isColor) {
-                      // Color swatch — use hex from variant attribute
-                      const hex = opt.hex || '#ccc';
-                      const isLight = hex === '#FFFFFF' || hex === '#f5f5f5' || hex === '#f0f0f0';
+            {/* ── Attribute Selectors ── */}
+            {attrTypes.map(type => {
+              const opts = attrOptions[type] || [];
+              const isColor = type.toLowerCase() === 'color';
+              const currentVal = selectedAttributes[type];
+              return (
+                <div key={type}>
+                  <p className="text-sm font-bold text-gray-700 mb-2.5">
+                    {type}:{' '}
+                    <span className="text-gray-500 font-normal">{currentVal || 'Select'}</span>
+                  </p>
+                  <div className="flex gap-2 flex-wrap">
+                    {opts.map(opt => {
+                      const isSelected = currentVal === opt.value;
+                      if (isColor) {
+                        // Color swatch — use hex from variant attribute
+                        const hex = opt.hex || '#ccc';
+                        const isLight = hex === '#FFFFFF' || hex === '#f5f5f5' || hex === '#f0f0f0';
+                        return (
+                          <button key={opt.value} title={opt.value}
+                            onClick={() => handleAttrSelect(type, opt.value)}
+                            className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                              ? 'border-primary-500 scale-110 shadow-lg shadow-primary-500/20'
+                              : `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:border-gray-400`
+                              }`}
+                            style={{ backgroundColor: hex }}>
+                            {isSelected && (
+                              <Icon icon="mdi:check" className={`w-4 h-4 ${isLight ? 'text-gray-700' : 'text-white'}`} />
+                            )}
+                          </button>
+                        );
+                      }
                       return (
-                        <button key={opt.value} title={opt.value}
+                        <button key={opt.value}
                           onClick={() => handleAttrSelect(type, opt.value)}
-                          className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                            ? 'border-primary-500 scale-110 shadow-lg shadow-primary-500/20'
-                            : `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:border-gray-400`
-                            }`}
-                          style={{ backgroundColor: hex }}>
-                          {isSelected && (
-                            <Icon icon="mdi:check" className={`w-4 h-4 ${isLight ? 'text-gray-700' : 'text-white'}`} />
-                          )}
+                          className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${isSelected
+                            ? 'border-primary-500 bg-primary-500 text-white shadow-md shadow-primary-500/20'
+                            : 'border-gray-200 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
+                            }`}>
+                          {opt.value}
                         </button>
                       );
-                    }
-                    return (
-                      <button key={opt.value}
-                        onClick={() => handleAttrSelect(type, opt.value)}
-                        className={`px-4 py-2 rounded-xl border-2 text-sm font-bold transition-all ${isSelected
-                          ? 'border-primary-500 bg-primary-500 text-white shadow-md shadow-primary-500/20'
-                          : 'border-gray-200 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
-                          }`}>
-                        {opt.value}
-                      </button>
-                    );
-                  })}
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
 
-          {/* Quantity + Actions */}
-          <div className="flex items-center gap-3 flex-wrap mt-1">
-            {/* Qty */}
-            <div className={`flex items-center border rounded-xl overflow-hidden ${inStock ? 'border-gray-200' : 'border-gray-100 opacity-50'}`}>
-              <button disabled={!inStock || quantity <= 1}
-                onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 font-bold text-lg transition-colors disabled:opacity-50">
-                −
-              </button>
-              <span className="px-4 py-2.5 font-semibold text-gray-800 min-w-[3rem] text-center">
-                {inStock ? quantity : 0}
-              </span>
-              <button disabled={!inStock || quantity >= stockCount}
-                onClick={() => setQuantity(q => Math.min(stockCount, q + 1))}
-                className="px-4 py-2.5 text-gray-600 hover:bg-gray-50 font-bold text-lg transition-colors disabled:opacity-50">
-                +
-              </button>
+          
+
+            {/* Share */}
+            <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+              <span className="text-sm text-gray-500 font-medium">Share:</span>
+              {[
+                { name: 'Facebook', icon: 'mdi:facebook' },
+                { name: 'Instagram', icon: 'mdi:instagram' },
+                { name: 'Twitter', icon: 'mdi:twitter' },
+              ].map(s => (
+                <button key={s.name} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-primary-100 hover:text-primary-500 flex items-center justify-center text-gray-500 transition-colors">
+                  <Icon icon={s.icon} className="text-lg" />
+                </button>
+              ))}
             </div>
-
-            <button
-              onClick={handleAddToCart}
-              disabled={!inStock}
-              className={`flex-1 ${isCartAdded
-                ? 'bg-gray-800 text-white hover:bg-gray-900'
-                : 'bg-primary-500 hover:bg-primary-600 text-white shadow-primary-200'
-                } font-bold py-3 px-6 rounded-xl transition-all shadow-lg text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50`}
-            >
-              <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
-              {isCartAdded ? 'Remove from Cart' : 'Add to Cart'}
-            </button>
-
-            <button onClick={() => {
-              if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
-                toast.error('You cannot buy your own product');
-                return;
-              }
-              const params = new URLSearchParams();
-              params.append('buyNow', 'true');
-              params.append('slug', productData.slug);
-              if (selectedVariant?._id) params.append('variantId', selectedVariant._id);
-              params.append('quantity', quantity);
-              router.push(`/checkout?${params.toString()}`);
-            }} disabled={!inStock}
-              className="flex-1 bg-gray-900 hover:bg-gray-800 active:scale-95 text-white font-bold py-3 px-6 rounded-xl transition-all text-sm disabled:opacity-50">
-              Buy Now
-            </button>
-
-            <button
-              onClick={handleToggleWishlist}
-              className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all text-xl ${isWishlisted
-                ? 'border-red-400 bg-red-50 text-red-500 hover:bg-red-100'
-                : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 bg-white'
-                }`}
-            >
-              <Icon
-                icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
-                className={`w-5 h-5 transition-transform ${isWishlisted ? 'scale-110' : 'scale-100'}`}
-              />
-            </button>
           </div>
 
-          {/* Share */}
-          <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
-            <span className="text-sm text-gray-500 font-medium">Share:</span>
-            {[
-              { name: 'Facebook', icon: 'mdi:facebook' },
-              { name: 'Instagram', icon: 'mdi:instagram' },
-              { name: 'Twitter', icon: 'mdi:twitter' },
-            ].map(s => (
-              <button key={s.name} className="w-8 h-8 rounded-full bg-gray-100 hover:bg-primary-100 hover:text-primary-500 flex items-center justify-center text-gray-500 transition-colors">
-                <Icon icon={s.icon} className="text-lg" />
-              </button>
-            ))}
+          {/* Store */}
+          <div>
+            {/* Seller Information Section */}
+            <div className=" space-y-4">
+
+              {/* Shipping Campaign Banner */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Icon icon="mdi:gift" className="text-blue-600 text-2xl" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-sm">Free Shipping on Orders Over $350</p>
+                  <p className="text-xs text-gray-500">(Seller Pays)</p>
+                </div>
+             
+              </div>
+
+              {/* Seller Card */}
+              <div className="bg-white border border-gray-200 rounded-2xl p-5">
+                <div className="flex items-center justify-between">
+                  <div className="bg-blue-50 w-full p-3 rounded-xl flex items-start  flex-col">
+                    <div className="flex items-center gap-2 ">
+                      <h3 className="font-bold text-lg">Panda Import</h3>
+                      <div className="bg-green-600 text-white text-sm font-semibold px-2.5 py-0.5 rounded">
+                        9.4 
+                      </div>
+                      {/* <span><Icon icon="mdi:info" className="text-blue-400 cursor-pointer" /></span> */}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1 border-green-600 border rounded-full ">
+                      <span className="bg-green-500 text-white text-xs font-medium py-1 px-1 rounded-full flex items-center gap-1">
+                        <Icon icon="mdi:verified" className="text-lg bg-green-500 rounded-full" />
+                      </span>
+                      <span className="text-sm pr-3 text-gray-700 font-semibold">Verified Seller</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="mt-5 space-y-3">
+                  <div className="flex items-center gap-3 text-sm">
+                    <div className="w-5 h-5 bg-green-100 text-green-600 rounded flex items-center justify-center">
+                      <Icon icon="mdi:check-circle" className="text-lg" />
+                    </div>
+                    <span className="font-medium">Following</span>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-sm cursor-pointer hover:bg-gray-50 p-1 rounded-lg transition">
+                    <div className="w-5 h-5 bg-gray-100 text-gray-600 rounded flex items-center justify-center">
+                      <Icon icon="mdi:chat-question" className="text-lg" />
+                    </div>
+                    <span className="font-medium">Seller Questions (68)</span>
+                    <span className="ml-auto text-gray-400">
+                      <Icon icon="mdi:chevron-right" />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Store Button */}
+                <button className="mt-6 w-full bg-gray-900 hover:bg-black text-white font-semibold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2">
+                  GO TO STORE
+                  <Icon icon="mdi:arrow-right" className="text-lg" />
+                </button>
+              </div>
+            </div>
           </div>
+
         </div>
+
+
       </div>
 
       {/* ── Tabs ── */}
