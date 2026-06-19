@@ -130,6 +130,17 @@ export default function ViewProductPage({ params }) {
                 <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Description</span>
                 <p className="text-sm text-gray-600 whitespace-pre-wrap leading-relaxed">{product.description}</p>
               </div>
+              {/* Tags */}
+              {product.tags?.length > 0 && (
+                <div>
+                  <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-2">Tags</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.tags.map(tag => (
+                      <span key={tag} className="px-2.5 py-1 rounded-full bg-primary-50 border border-primary-100 text-xs font-bold text-primary-600">#{tag}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Category</span>
@@ -152,7 +163,68 @@ export default function ViewProductPage({ params }) {
               </h2>
             </div>
             
-            {!hasVariants ? (
+            {hasVariants ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left">
+                  <thead className="bg-gray-50/80 border-b border-gray-100">
+                    <tr>
+                      <th className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">Variant</th>
+                      <th className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">Attributes</th>
+                      <th className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">Price</th>
+                      <th className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">Stock</th>
+                      <th className="px-6 py-4 font-bold text-gray-400 uppercase tracking-wider text-xs">Specs</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {variants.map(v => (
+                      <tr key={v._id} className="hover:bg-gray-50/50">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            {v.images?.[0]?.url ? (
+                              <img src={v.images[0].url} alt={v.title} className="w-8 h-8 rounded-lg object-cover" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center">
+                                <Icon icon="mdi:image-outline" className="text-gray-400 w-4 h-4" />
+                              </div>
+                            )}
+                            <span className="font-semibold text-gray-800">{v.title}</span>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-wrap gap-1">
+                            {(v.attributes || []).map(a => (
+                              <span key={a.name} className="px-2 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-600">
+                                {a.name}: {a.value}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 font-bold text-gray-900">${v.price?.toFixed(2)}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${v.stock > 0 ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"}`}>
+                            {v.stock} in stock
+                          </span>
+                        </td>
+                        <td className="px-6 py-4">
+                          {v.specs?.length > 0 ? (
+                            <div className="space-y-0.5">
+                              {v.specs.map(s => (
+                                <div key={s.name} className="flex gap-1 text-xs">
+                                  <span className="font-bold text-violet-700">{s.name}:</span>
+                                  <span className="text-gray-600">{s.value}</span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-300">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
               <div className="p-6 grid grid-cols-3 gap-4">
                 <div>
                   <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider block mb-1">Price</span>
@@ -202,35 +274,60 @@ export default function ViewProductPage({ params }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
             )}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
-              <Icon icon="mdi:image-multiple-outline" className="w-4 h-4 text-primary-500" />
-              Images
-              {allImages.length > 0 && (
-                <span className="ml-auto text-xs font-medium text-gray-400">{allImages.length} photo{allImages.length !== 1 ? 's' : ''}</span>
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Images */}
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Icon icon="mdi:image-multiple-outline" className="w-4 h-4 text-primary-500" />
+                Images
+                {allImages.length > 0 && (
+                  <span className="ml-auto text-xs font-medium text-gray-400">{allImages.length} photo{allImages.length !== 1 ? 's' : ''}</span>
+                )}
+              </h2>
+              <div className="grid grid-cols-2 gap-3">
+                {allImages.map((img, i) => (
+                  <div key={i} className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 relative">
+                    <img src={img.url} alt="Product" className="w-full h-full object-cover" />
+                    {i === 0 && (
+                      <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded font-medium">Main</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {allImages.length === 0 && (
+                <p className="text-sm text-gray-400 text-center py-4">No images available</p>
               )}
-            </h2>
-            <div className="grid grid-cols-2 gap-3">
-              {allImages.map((img, i) => (
-                <div key={i} className="aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50 relative">
-                  <img src={img.url} alt="Product" className="w-full h-full object-cover" />
-                  {i === 0 && (
-                    <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded font-medium">Main</span>
-                  )}
-                </div>
-              ))}
             </div>
-            {allImages.length === 0 && (
-              <p className="text-sm text-gray-400 text-center py-4">No images available</p>
-            )}
-          </div>
+
+          {/* Videos card — shown only if product has videos */}
+          {product?.videos?.length > 0 && (
+            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
+              <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
+                <Icon icon="mdi:video-outline" className="w-4 h-4 text-primary-500" />
+                Videos
+                <span className="ml-auto text-xs font-medium text-gray-400">
+                  {product.videos.length} video{product.videos.length !== 1 ? 's' : ''}
+                </span>
+              </h2>
+              <div className="space-y-3">
+                {product.videos.map((vid, i) => (
+                  <div key={i} className="rounded-xl overflow-hidden border border-gray-100 bg-gray-900">
+                    <video
+                      src={vid.url}
+                      controls
+                      className="w-full max-h-48 object-contain"
+                      preload="metadata"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-sm font-bold text-gray-800 mb-4 flex items-center gap-2">
@@ -247,6 +344,22 @@ export default function ViewProductPage({ params }) {
                <div className="flex justify-between items-center py-2 border-b border-gray-50">
                  <span className="text-xs font-semibold text-gray-400 uppercase">Total Stock</span>
                  <span className="text-sm font-bold text-gray-800">{product.summary?.totalStock || 0}</span>
+               </div>
+               <div className="flex justify-between items-center py-2 border-b border-gray-50">
+                 <span className="text-xs font-semibold text-gray-400 uppercase">Variants</span>
+                 <span className="text-sm font-bold text-gray-800">{variants.length}</span>
+               </div>
+               {/* Warranty badge */}
+               <div className="flex justify-between items-center py-2">
+                 <span className="text-xs font-semibold text-gray-400 uppercase">Warranty</span>
+                 {product.warranty?.type === "yes" ? (
+                   <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-700">
+                     <Icon icon="mdi:shield-check" className="w-3.5 h-3.5" />
+                     {product.warranty.months}m warranty
+                   </span>
+                 ) : (
+                   <span className="px-2 py-1 rounded-full bg-gray-100 text-xs font-medium text-gray-400">None</span>
+                 )}
                </div>
             </div>
           </div>

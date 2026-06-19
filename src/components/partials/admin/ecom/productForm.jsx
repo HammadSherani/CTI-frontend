@@ -281,6 +281,18 @@ export default function ProductForm({ mode = "create", initialData = null }) {
   const [files, setFiles] = useState([]);
   const [imgErr, setImgErr] = useState("");
 
+  /* ── Videos (additive, optional) ── */
+  const [videoPreviews, setVideoPreviews] = useState(initialData?.videos?.map((v) => v.url) || []);
+  const [videoFiles, setVideoFiles] = useState([]);
+
+  /* ── Tags ── */
+  const [tags, setTags] = useState(initialData?.tags || []);
+  const [tagInput, setTagInput] = useState("");
+
+  /* ── Warranty ── */
+  const [hasWarranty, setHasWarranty] = useState(initialData?.warranty?.type === "yes" || false);
+  const [warrantyMonths, setWarrantyMonths] = useState(initialData?.warranty?.months || 12);
+
   /* ── Submission state ── */
   const [submitting, setSubmitting] = useState(false);
 
@@ -449,6 +461,28 @@ export default function ProductForm({ mode = "create", initialData = null }) {
     }
   };
 
+  /* ── Video helpers (additive) ── */
+  const onVideoChange = (e) => {
+    const picked = Array.from(e.target.files);
+    if (picked.length + videoPreviews.length > 3) {
+      toast.warning("Maximum 3 videos allowed");
+      return;
+    }
+    setVideoPreviews((p) => [...p, ...picked.map((f) => URL.createObjectURL(f))]);
+    setVideoFiles((p) => [...p, ...picked]);
+  };
+
+  const removeVideo = (i) => {
+    const url = videoPreviews[i];
+    setVideoPreviews((p) => p.filter((_, idx) => idx !== i));
+    if (url.startsWith("blob:")) {
+      setVideoFiles((p) => {
+        const idx = p.findIndex((f) => URL.createObjectURL(f) === url);
+        return idx === -1 ? p : p.filter((_, fi) => fi !== idx);
+      });
+    }
+  };
+
   /* ── Submit ── */
   const onSubmit = async (productData) => {
     if (mode === "create" && previews.length === 0) {
@@ -485,8 +519,23 @@ export default function ProductForm({ mode = "create", initialData = null }) {
         previews
           .filter((u) => !u.startsWith("blob:"))
           .forEach((u) => fd.append("existingImages", u));
+
+        // Keep existing videos that are not replaced
+        videoPreviews
+          .filter((u) => !u.startsWith("blob:"))
+          .forEach((u) => fd.append("existingVideos", u));
       }
       files.forEach((f) => fd.append("images", f));
+
+      // Append new video files (optional)
+      videoFiles.forEach((f) => fd.append("videos", f));
+
+      // Tags (sent as JSON string)
+      fd.append("tags", JSON.stringify(tags));
+
+      // Warranty
+      fd.append("warranty[type]", hasWarranty ? "yes" : "no");
+      fd.append("warranty[months]", hasWarranty ? warrantyMonths : 0);
 
       const isCreate = mode === "create";
       const productUrl = isCreate
@@ -530,9 +579,11 @@ export default function ProductForm({ mode = "create", initialData = null }) {
 
   const extraRows = mode === "create" ? [
     { label: "Images", value: `${previews.length}/5` },
+    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/3` : "None" },
     { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
   ] : [
     { label: "Images", value: "Managed in Variants" },
+    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/3` : "None" },
     { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
   ];
 
@@ -724,6 +775,155 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                 )}
               </Card>
             )}
+
+            {/* Product Videos — optional, shown in both create and edit modes */}
+            <Card>
+              <div className="flex items-center justify-between">
+                <CardTitle icon="mdi:video-outline">Product Videos</CardTitle>
+                <span className="text-xs text-gray-400">
+                  {videoPreviews.length}/3
+                  <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold">OPTIONAL</span>
+                </span>
+              </div>
+
+              {/* Video previews */}
+              {videoPreviews.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
+                  {videoPreviews.map((url, i) => (
+                    <div key={i} className="relative group rounded-xl overflow-hidden border border-gray-100 bg-gray-900">
+                      <video
+                        src={url}
+                        className="w-full h-28 object-cover opacity-90"
+                        muted
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all rounded-xl" />
+                      <button
+                        type="button"
+                        onClick={() => removeVideo(i)}
+                        className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                      >
+                        <Icon icon="mdi:close" className="w-3 h-3" />
+                      </button>
+                      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1">
+                        <Icon icon="mdi:play-circle-outline" className="w-4 h-4 text-white/80" />
+                        <span className="text-[9px] text-white/70 font-medium">Video {i + 1}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload button */}
+              {videoPreviews.length < 3 && (
+                <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-400 hover:bg-primary-50/20 cursor-pointer transition-all group">
+                  <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-primary-100 flex items-center justify-center transition-colors">
+                    <Icon icon="mdi:video-plus-outline" className="w-5 h-5 text-gray-400 group-hover:text-primary-500" />
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs font-semibold text-gray-600 group-hover:text-primary-600">Click to upload video</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">MP4, WebM, MOV — up to 50MB each</p>
+                  </div>
+                  <input
+                    type="file"
+                    multiple
+                    accept="video/mp4,video/webm,video/quicktime,video/mkv"
+                    className="hidden"
+                    onChange={onVideoChange}
+                  />
+                </label>
+              )}
+
+              {videoPreviews.length === 0 && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Videos help buyers see the product in action. You can add up to 3.
+                </p>
+              )}
+            </Card>
+
+            {/* Tags & Warranty */}
+            <Card>
+              {/* Tags */}
+              <CardTitle icon="mdi:tag-multiple-outline">Tags</CardTitle>
+              <div className="space-y-2.5">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === ",") {
+                        e.preventDefault();
+                        const t = tagInput.trim().toLowerCase().replace(/,/g, "");
+                        if (t && !tags.includes(t)) setTags(p => [...p, t]);
+                        setTagInput("");
+                      }
+                    }}
+                    placeholder="Type a tag and press Enter…"
+                    className="flex-1 h-9 px-3 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/10 transition-all"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const t = tagInput.trim().toLowerCase();
+                      if (t && !tags.includes(t)) setTags(p => [...p, t]);
+                      setTagInput("");
+                    }}
+                    className="h-9 px-3 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition-all"
+                  >
+                    Add
+                  </button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map(tag => (
+                      <span key={tag} className="flex items-center gap-1 pl-2.5 pr-1.5 py-1 rounded-full bg-primary-50 border border-primary-100 text-xs font-bold text-primary-700">
+                        #{tag}
+                        <button type="button" onClick={() => setTags(p => p.filter(t => t !== tag))}
+                          className="w-4 h-4 flex items-center justify-center rounded-full hover:bg-primary-200/50 transition-colors">
+                          <Icon icon="mdi:close" className="w-2.5 h-2.5" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[10px] text-gray-400">e.g. gaming, premium, sale, refurbished</p>
+              </div>
+
+              {/* Warranty */}
+              <div className="mt-5 pt-4 border-t border-gray-100">
+                <CardTitle icon="mdi:shield-check-outline">Warranty</CardTitle>
+                <div className="flex gap-2 mt-2">
+                  {["no", "yes"].map((opt) => (
+                    <button
+                      key={opt}
+                      type="button"
+                      onClick={() => setHasWarranty(opt === "yes")}
+                      className={`flex-1 py-2 rounded-xl border-2 text-sm font-bold transition-all ${(opt === "yes") === hasWarranty
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
+                      }`}
+                    >
+                      {opt === "yes" ? "✓ Yes, has warranty" : "✗ No warranty"}
+                    </button>
+                  ))}
+                </div>
+                {hasWarranty && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <label className="text-xs font-bold text-gray-600 whitespace-nowrap">Duration (months)</label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={120}
+                      value={warrantyMonths}
+                      onChange={(e) => setWarrantyMonths(Number(e.target.value))}
+                      className="w-24 h-9 px-3 text-sm text-center font-bold rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-400 transition-all"
+                    />
+                    <span className="text-xs text-gray-400">{warrantyMonths >= 12 ? `(${Math.floor(warrantyMonths/12)} yr${warrantyMonths >= 24 ? 's' : ''})` : ""}</span>
+                  </div>
+                )}
+              </div>
+            </Card>
           </div>
 
           {/* RIGHT COLUMN */}

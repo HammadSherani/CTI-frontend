@@ -42,6 +42,9 @@ export default function ProductListingPage() {
         if (filters.subCategoryIds?.length) queryParams.append('subCategoryIds', filters.subCategoryIds.join(','));
         if (filters.brandIds?.length) queryParams.append('brandIds', filters.brandIds.join(','));
         if (filters.colors?.length) queryParams.append('colors', filters.colors.join(','));
+        if (filters.dynamicFilters && Object.keys(filters.dynamicFilters).length > 0) {
+          queryParams.append('dynamicFilters', JSON.stringify(filters.dynamicFilters));
+        }
         if (filters.rating > 0) queryParams.append('rating', filters.rating);
         // Only send price when user has actually changed from defaults
         if (filters.priceMin > 0) queryParams.append('minPrice', filters.priceMin);
