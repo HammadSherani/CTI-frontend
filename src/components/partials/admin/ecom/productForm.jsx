@@ -9,6 +9,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import { useSelector } from "react-redux";
 import { useRouter } from "@/i18n/navigation";
+import RichTextEditor from "./RichTextEditor";
 
 
 /* ══════════════════════════════════════════════════════════
@@ -24,13 +25,19 @@ const productSchema = yup.object({
   shortDescription: yup.string().trim().max(500).nullable(),
   description: yup
     .string()
-    .trim()
-    .min(10, "Description must be at least 10 characters")
-    .max(1000, "Description too long")
+    .test(
+      "html-min",
+      "Description must be at least 10 characters",
+      (val) => {
+        if (!val) return false;
+        return val.replace(/<[^>]*>/g, "").trim().length >= 10;
+      }
+    )
     .required("Description is required"),
   categoryId: yup.string().required("Category is required"),
   subCategoryId: yup.string().nullable(),
   brandId: yup.string().nullable(),
+  modelNumber: yup.string().trim().required("Model number is required"),
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -136,13 +143,13 @@ function SimplePricing({ value, onChange }) {
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">
-            SKU (Optional)
+            Model Number <span className="text-red-500">*</span>
           </label>
           <Input
             type="text"
-            value={value.sku || ""}
-            onChange={(e) => set("sku", e.target.value)}
-            placeholder="e.g. TSHIRT-BLK-M"
+            value={value.modelNumber || ""}
+            onChange={(e) => set("modelNumber", e.target.value)}
+            placeholder="e.g. MOD-1234"
           />
         </div>
       </div>
@@ -243,7 +250,7 @@ export default function ProductForm({ mode = "create", initialData = null }) {
     watch,
     setValue,
     reset,
-    formState: { errors },
+    formState: { errors, dirtyFields },
   } = useForm({
     resolver: yupResolver(productSchema),
     defaultValues: {
@@ -253,11 +260,13 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       categoryId: "",
       subCategoryId: "",
       brandId: "",
+      modelNumber: "",
     },
   });
 
   const watchCategory = watch("categoryId");
   const watchSubCategory = watch("subCategoryId");
+  const watchDescription = watch("description");
 
   /* ── Simple product pricing state ── */
   const [simplePricing, setSimplePricing] = useState(() => {
@@ -266,7 +275,6 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       price: String(def?.price || ""),
       stock: String(def?.stock || ""),
       discountPercentage: String(def?.discountPercentage || ""),
-      sku: def?.sku || "",
       isDiscounted: (def?.discountPercentage || 0) > 0,
     };
   });
@@ -499,32 +507,39 @@ export default function ProductForm({ mode = "create", initialData = null }) {
 
     try {
       const fd = new FormData();
-      fd.append("title", productData.title);
-      fd.append("description", productData.description);
-      if (productData.shortDescription) fd.append("shortDescription", productData.shortDescription);
-      if (productData.categoryId) fd.append("categoryId", productData.categoryId);
-      if (productData.subCategoryId) fd.append("subCategoryId", productData.subCategoryId);
-      if (productData.brandId) fd.append("brandId", productData.brandId);
 
       if (mode === "create") {
+        fd.append("title", productData.title);
+        fd.append("description", productData.description);
+        fd.append("modelNumber", productData.modelNumber);
+        if (productData.shortDescription) fd.append("shortDescription", productData.shortDescription);
+        if (productData.categoryId) fd.append("categoryId", productData.categoryId);
+        if (productData.subCategoryId) fd.append("subCategoryId", productData.subCategoryId);
+        if (productData.brandId) fd.append("brandId", productData.brandId);
+        
         fd.append("price", Number(simplePricing.price));
         fd.append("stock", Number(simplePricing.stock || 0));
         fd.append("discountPercentage", simplePricing.isDiscounted ? Number(simplePricing.discountPercentage || 0) : 0);
-        if (simplePricing.sku?.trim()) {
-          fd.append("variantSku", simplePricing.sku.trim());
-        }
-      }
+      } else {
+        // Edit mode: only append changed fields
+        if (dirtyFields.title) fd.append("title", productData.title);
+        if (dirtyFields.description) fd.append("description", productData.description);
+        if (dirtyFields.modelNumber) fd.append("modelNumber", productData.modelNumber);
+        if (dirtyFields.shortDescription) fd.append("shortDescription", productData.shortDescription);
+        if (dirtyFields.categoryId) fd.append("categoryId", productData.categoryId);
+        if (dirtyFields.subCategoryId) fd.append("subCategoryId", productData.subCategoryId);
+        if (dirtyFields.brandId) fd.append("brandId", productData.brandId);
 
-      if (mode === "edit") {
         previews
           .filter((u) => !u.startsWith("blob:"))
           .forEach((u) => fd.append("existingImages", u));
 
-        // Keep existing videos that are not replaced
         videoPreviews
           .filter((u) => !u.startsWith("blob:"))
           .forEach((u) => fd.append("existingVideos", u));
       }
+
+
       files.forEach((f) => fd.append("images", f));
 
       // Append new video files (optional)
@@ -635,6 +650,13 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                 <FieldError err={errors.title} />
               </div>
               <div>
+                <label className="block text-xs font-semibold text-gray-600 mb-1">
+                  Model Number <span className="text-red-500">*</span>
+                </label>
+                <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. MOD-1234" />
+                <FieldError err={errors.modelNumber} />
+              </div>
+              <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
                 <Input {...register("shortDescription")} placeholder="One-line summary..." />
               </div>
@@ -642,10 +664,12 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                 <label className="block text-xs font-semibold text-gray-600 mb-1">
                   Description <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  {...register("description")}
-                  rows={4}
-                  className={`w-full px-4 py-3 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all resize-none ${errors.description ? "border-red-400 bg-red-50/40" : "border-gray-200 focus:border-primary-500"}`}
+                <RichTextEditor
+                  value={watchDescription}
+                  onChange={(val) =>
+                    setValue("description", val, { shouldValidate: true })
+                  }
+                  error={errors.description}
                   placeholder="Detailed product description..."
                 />
                 <FieldError err={errors.description} />
@@ -688,12 +712,12 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
-                 <select 
-                    {...register("brandId")} 
+                  <select
+                    {...register("brandId")}
                     disabled={!watchSubCategory}
-                    className={SEL} 
+                    className={SEL}
                     style={{ backgroundImage: CHEVRON }}
-                    key={watchSubCategory} // Force re-render when subcategory changes
+                  // key={watchSubCategory} // Force re-render when subcategory changes
                   >
                     <option value="">Select</option>
                     {brands.map((b) => (
@@ -902,7 +926,7 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                       className={`flex-1 py-2 rounded-xl border-2 text-sm font-bold transition-all ${(opt === "yes") === hasWarranty
                         ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                         : "border-gray-200 bg-white text-gray-500 hover:border-gray-300"
-                      }`}
+                        }`}
                     >
                       {opt === "yes" ? "✓ Yes, has warranty" : "✗ No warranty"}
                     </button>
@@ -919,10 +943,20 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                       onChange={(e) => setWarrantyMonths(Number(e.target.value))}
                       className="w-24 h-9 px-3 text-sm text-center font-bold rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-400 transition-all"
                     />
-                    <span className="text-xs text-gray-400">{warrantyMonths >= 12 ? `(${Math.floor(warrantyMonths/12)} yr${warrantyMonths >= 24 ? 's' : ''})` : ""}</span>
+                    <span className="text-xs text-gray-400">{warrantyMonths >= 12 ? `(${Math.floor(warrantyMonths / 12)} yr${warrantyMonths >= 24 ? 's' : ''})` : ""}</span>
                   </div>
                 )}
               </div>
+
+              <div className="mt-4 text-xs text-gray-400">
+                <CardTitle icon="mdi:alert-circle-outline" className="text-gray-500">Model Number</CardTitle>
+                <div>
+
+                  <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. XYZ-123" />
+                  <FieldError err={errors.modelNumber} />
+                </div>
+              </div>
+
             </Card>
           </div>
 

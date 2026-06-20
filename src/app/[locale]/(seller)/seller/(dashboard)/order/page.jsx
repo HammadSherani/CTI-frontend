@@ -1,501 +1,360 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "@/i18n/navigation";
+import { useEffect, useState, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
-import { DataTable } from "@/components/partials/admin/ecom/DataTable";
-import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
-import SearchInput from "@/components/partials/admin/ecom/SearchInput";
-import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
-import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
-import moment from "moment";
+import { useSelector } from "react-redux";
+import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 
-// Date Range Picker Component
-const DateRangePicker = ({ startDate, endDate, onStartChange, onEndChange, onClear }) => {
-  return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <div className="relative">
-        <input
-          type="date"
-          value={startDate}
-          onChange={(e) => onStartChange(e.target.value)}
-          className="h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-          placeholder="Start Date"
-        />
-      </div>
-      <span className="text-gray-400">to</span>
-      <div className="relative">
-        <input
-          type="date"
-          value={endDate}
-          onChange={(e) => onEndChange(e.target.value)}
-          className="h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-500/20 transition-all"
-          placeholder="End Date"
-        />
-      </div>
-      {(startDate || endDate) && (
-        <button
-          onClick={onClear}
-          className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <Icon icon="mdi:close-circle" className="w-5 h-5" />
-        </button>
-      )}
-    </div>
-  );
-};
+const TABS = [
+  { id: "", label: "All Orders", icon: "mdi:format-list-bulleted" },
+  { id: "new", label: "New Orders", icon: "mdi:new-box" },
+  { id: "shipping", label: "In Transport", icon: "mdi:truck-delivery-outline" },
+  { id: "delivered", label: "Delivered", icon: "mdi:check-circle-outline" },
+  { id: "on_hold", label: "On Hold", icon: "mdi:pause-circle-outline" },
+];
 
-export default function SellerOrdersPage() {
-  const router = useRouter();
-  const { token } = useSelector((state) => state.auth);
-  const debounceRef = useRef(null);
-  const [loadingItem, setLoadingItem] = useState(null);
-  const [orders, setOrders] = useState([]);
+export default function SellerOrderPage() {
+  const { token } = useSelector((s) => s.auth);
+
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [orders, setOrders] = useState([]);
+  
+  // Pagination
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const limit = 10;
 
-  const [summary, setSummary] = useState({
-    totalOrders: 0,
-    totalEarnings: 0,
-    pending: 0,
-    shipped: 0,
-    delivered: 0,
-    cancelled: 0,
-  });
+  // Filters
+  const [statusTab, setStatusTab] = useState("");
+  const [search, setSearch] = useState("");
+  
+  const [orderDateFrom, setOrderDateFrom] = useState("");
+  const [orderDateTo, setOrderDateTo] = useState("");
+  const [completionDateFrom, setCompletionDateFrom] = useState("");
+  const [completionDateTo, setCompletionDateTo] = useState("");
 
-  const STATUS_CONFIG = {
-    PLACED: { label: "Placed", color: "bg-blue-100 text-blue-700", icon: "mdi:clock-outline" },
-    CONFIRMED: { label: "Confirmed", color: "bg-indigo-100 text-indigo-700", icon: "mdi:check-circle-outline" },
-    SHIPPED: { label: "Shipped", color: "bg-amber-100 text-amber-700", icon: "mdi:truck-delivery-outline" },
-    DELIVERED: { label: "Delivered", color: "bg-emerald-100 text-emerald-700", icon: "mdi:package-check" },
-    CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-700", icon: "mdi:cancel" },
-  };
+  const [debouncedFilters, setDebouncedFilters] = useState({});
+  const [exporting, setExporting] = useState(false);
+  const [statusUpdateLoading, setStatusUpdateLoading] = useState(null);
 
-  const fetchOrders = useCallback(async (currentPage = 1, currentSearch = search, status = statusFilter, from = startDate, to = endDate) => {
+  // Debounce simple text inputs
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilters({
+        search,
+        orderDateFrom, orderDateTo, completionDateFrom, completionDateTo
+      });
+      setPage(1); // reset to page 1 on search change
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [search, orderDateFrom, orderDateTo, completionDateFrom, completionDateTo]);
+
+  const fetchOrders = useCallback(async () => {
+    if (!token) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ 
-        page: currentPage, 
-        limit: 10 
+      const params = new URLSearchParams({
+        page,
+        limit,
+        status: statusTab,
+        ...debouncedFilters
       });
-      if (currentSearch) params.set("search", currentSearch);
-      if (status) params.set("status", status);
-      if (from) params.set("startDate", from);
-      if (to) params.set("endDate", to);
+      
+      // Clean up empty params
+      for (const [key, value] of Array.from(params.entries())) {
+        if (!value) params.delete(key);
+      }
 
-      const { data } = await axiosInstance.get(`/seller/orders?${params}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await axiosInstance.get(`/seller/orders?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
       });
-
-      setOrders(data.data || []);
-      setPagination(data.pagination || null);
-
-      // Calculate summary stats
-      const allOrders = data.data || [];
-      const totalEarnings = allOrders.reduce((sum, order) => sum + (order.sellerTotal || 0), 0);
-      
-      const pending = allOrders.filter(o => 
-        o.items.some(i => ["PLACED", "CONFIRMED"].includes(i.itemStatus))
-      ).length;
-      
-      const shipped = allOrders.filter(o => 
-        o.items.some(i => i.itemStatus === "SHIPPED")
-      ).length;
-      
-      const delivered = allOrders.filter(o => 
-        o.items.every(i => i.itemStatus === "DELIVERED")
-      ).length;
-      
-      const cancelled = allOrders.filter(o => 
-        o.items.every(i => i.itemStatus === "CANCELLED")
-      ).length;
-
-      setSummary({
-        totalOrders: data.pagination?.totalItems || 0,
-        totalEarnings,
-        pending,
-        shipped,
-        delivered,
-        cancelled,
-      });
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to fetch orders");
+      setOrders(res.data.data);
+      setPagination(res.data.pagination);
+    } catch (error) {
+      toast.error("Failed to load orders");
     } finally {
       setLoading(false);
     }
-  }, [search, statusFilter, startDate, endDate, token]);
+  }, [page, statusTab, debouncedFilters, token]);
 
   useEffect(() => {
-    if (token) fetchOrders(page);
-  }, [page, statusFilter, startDate, endDate, token, fetchOrders]);
+    fetchOrders();
+  }, [fetchOrders]);
 
-  const handleSearchChange = (val) => {
-    setSearch(val);
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      fetchOrders(1, val, statusFilter, startDate, endDate);
-    }, 400);
-  };
-
-  const handleDateChange = (type, value) => {
-    if (type === 'start') {
-      setStartDate(value);
-    } else {
-      setEndDate(value);
-    }
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      setPage(1);
-      fetchOrders(1, search, statusFilter, 
-        type === 'start' ? value : startDate,
-        type === 'end' ? value : endDate
-      );
-    }, 400);
-  };
-
-  const clearDateFilters = () => {
-    setStartDate('');
-    setEndDate('');
-    setPage(1);
-    fetchOrders(1, search, statusFilter, '', '');
-  };
-
-  const updateItemStatus = async (orderId, productId, newStatus) => {
-    const key = `${orderId}-${productId}`;
-
+  const handleExportCSV = async () => {
+    setExporting(true);
     try {
-      setLoadingItem(key);
-
-      const { data } = await axiosInstance.put(
-        "/seller/orders/status",
-        {
-          orderId,
-          productId,
-          itemStatus: newStatus,
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (data.success) {
-        toast.success("Status updated");
-        fetchOrders(page, search, statusFilter, startDate, endDate);
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to update");
-    } finally {
-      setLoadingItem(null);
-    }
-  };
-
-  const viewOrderDetails = (orderId) => {
-    router.push(`/seller/order/${orderId}`);
-  };
-
-  // CSV Export Function
-  const exportCSV = () => {
-    if (!orders.length) {
-      toast.warning("No orders to export");
-      return;
-    }
-
-    // Flatten orders for CSV
-    const csvData = [];
-    orders.forEach(order => {
-      order.items.forEach(item => {
-        csvData.push({
-          'Order Number': order.orderNumber,
-          'Order Date': moment(order.createdAt).format('DD MMM YYYY HH:mm'),
-          'Customer Name': order.shippingAddress?.fullName || '',
-          'Customer Phone': order.shippingAddress?.phone || '',
-          'Customer Email': order.userId?.email || '',
-          'Product': item.productId?.title || '',
-          'Quantity': item.quantity,
-          'Price': item.price,
-          'Total': (item.price * item.quantity).toFixed(2),
-          'Status': item.itemStatus,
-          'Payment Status': order.paymentStatus,
-          'Order Status': order.orderStatus,
-          'City': order.shippingAddress?.city || '',
-          'Area': order.shippingAddress?.area || '',
-          'Address': order.shippingAddress?.addressLine || '',
-        });
+      const params = new URLSearchParams({
+        status: statusTab,
+        ...debouncedFilters
       });
-    });
+      for (const [key, value] of Array.from(params.entries())) {
+        if (!value) params.delete(key);
+      }
 
-    // Convert to CSV
-    const headers = Object.keys(csvData[0]);
-    const csvRows = [
-      headers.join(','),
-      ...csvData.map(row => 
-        headers.map(header => 
-          `"${(row[header] || '').toString().replace(/"/g, '""')}"`
-        ).join(',')
-      )
-    ];
+      const res = await axiosInstance.get(`/seller/orders/csv/export?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        responseType: 'blob'
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `Orders_Export_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode.removeChild(link);
+    } catch (err) {
+      toast.error("Failed to export CSV");
+    } finally {
+      setExporting(false);
+    }
+  };
 
-    const csvString = csvRows.join('\n');
-    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', `orders_${moment().format('YYYY-MM-DD_HH-mm')}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success("CSV exported successfully");
+  const updateStatus = async (oId, newStatus) => {
+    setStatusUpdateLoading(oId);
+    try {
+      await axiosInstance.put('/seller/orders/status', {
+        orderId: oId,
+        status: newStatus
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      toast.success("Order status updated");
+      fetchOrders();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update status");
+    } finally {
+      setStatusUpdateLoading(null);
+    }
+  };
+
+  const getStatusBadge = (status) => {
+    switch(status) {
+      case "new": return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider">New</span>;
+      case "processing": return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold uppercase tracking-wider">Processing</span>;
+      case "shipping": return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold uppercase tracking-wider">Shipping</span>;
+      case "delivered": return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">Delivered</span>;
+      case "on_hold": return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold uppercase tracking-wider">On Hold</span>;
+      default: return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold uppercase tracking-wider">{status}</span>;
+    }
   };
 
   const columns = [
     {
-      key: "orderInfo",
-      header: "Order Information",
+      header: "Order Info",
       cell: (row) => (
-        <div>
-          <div className="font-semibold text-gray-900 cursor-pointer hover:text-primary-600" onClick={() => viewOrderDetails(row._id)}>
-            #{row.orderNumber}
-          </div>
-          <div className="text-xs text-gray-500 mt-0.5">
-            {moment(row.createdAt).format('DD MMM YYYY')}
-          </div>
-          <div className="text-xs text-gray-400">
-            {moment(row.createdAt).format('hh:mm A')}
-          </div>
+        <div className="flex flex-col gap-1">
+          <span className="font-bold text-gray-900">{row.orderNo || "N/A"}</span>
+          <span className="text-[10px] text-gray-500 font-mono">{row.orderId}</span>
+          <span className="text-xs text-gray-500">{new Date(row.createdAt).toLocaleDateString()}</span>
         </div>
-      ),
+      )
     },
     {
-      key: "customer",
-      header: "Customer Name",
+      header: "Customer",
       cell: (row) => (
-        <div>
-          <div className="font-medium text-gray-900">{row.shippingAddress?.fullName || 'N/A'}</div>
-          <div className="text-xs text-gray-500">{row.shippingAddress?.phone || 'N/A'}</div>
-          <div className="text-xs text-gray-400 truncate max-w-[120px]">{row.userId?.email || ''}</div>
-        </div>
-      ),
+        <span className="font-medium text-gray-800">{row.customerName}</span>
+      )
     },
     {
-      key: "productName",
-      header: "Product Name",
-      cell: (row) => (
-        <div className="space-y-2 max-w-[180px]">
-          {row.items?.slice(0, 2).map((item, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <img
-                src={item.productId?.images?.[0]?.url || 'https://via.placeholder.com/32'}
-                alt=""
-                className="w-8 h-8 rounded-lg object-cover border border-gray-200 flex-shrink-0"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/32?text=No+Image';
-                }}
-              />
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{item.productId?.title || 'Unknown Product'}</p>
-                <div className="flex items-center gap-2">
-                  {item.variant?.color && (
-                    <span className="text-xs text-gray-500 flex items-center gap-1">
-                      <span 
-                        className="w-2 h-2 rounded-full inline-block"
-                        style={{ backgroundColor: item.variant.colorHex || '#666' }}
-                      />
-                      {item.variant.color}
-                    </span>
-                  )}
-                  {item.variant?.size && (
-                    <span className="text-xs text-gray-500">Size: {item.variant.size}</span>
-                  )}
-                </div>
-              </div>
+      header: "Items Summary",
+      cell: (row) => {
+        const count = row.items?.length || 0;
+        const firstItem = row.items?.[0];
+        return (
+          <div className="flex flex-col">
+            <span className="text-sm font-semibold text-gray-900 line-clamp-1" title={firstItem?.product?.title}>
+              {firstItem?.product?.title || "Unknown Product"}
+            </span>
+            <div className="flex items-center gap-2 mt-1">
+              {count > 1 && <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded font-bold">+{count - 1} more</span>}
+              <span className="text-xs text-gray-500 font-mono" title="Barcode">
+                 {firstItem?.product?.barcode || "No Barcode"}
+              </span>
             </div>
-          ))}
-          {row.items?.length > 2 && (
-            <p className="text-xs text-gray-400">+{row.items.length - 2} more items</p>
-          )}
-        </div>
-      ),
+          </div>
+        );
+      }
     },
     {
-      key: "price",
-      header: "Price",
-      cell: (row) => (
-        <div className="space-y-1">
-          {row.items?.map((item, idx) => (
-            <div key={idx} className="text-sm">
-              <span className="font-medium">${item.price?.toFixed(2)}</span>
-              <span className="text-xs text-gray-400"> × {item.quantity}</span>
-            </div>
-          ))}
-        </div>
-      ),
-    },
-    {
-      key: "total",
       header: "Total",
       cell: (row) => (
-        <div className="font-bold text-emerald-600">
-          ${row.sellerTotal?.toFixed(2)}
-        </div>
-      ),
+        <span className="font-bold text-emerald-600">${(row.sellerTotal || 0).toFixed(2)}</span>
+      )
     },
     {
-      key: "status",
       header: "Status",
-      cell: (row) => (
-        <div className="space-y-2 min-w-[180px]">
-          {row.items?.map((item, idx) => {
-            const status = item.itemStatus || "PLACED";
-            const config = STATUS_CONFIG[status] || { label: status, color: "bg-gray-100 text-gray-600", icon: "mdi:help" };
-            const key = `${row._id}-${item.productId?._id}`;
-            const isUpdating = loadingItem === key;
-
-            return (
-              <div key={idx} className="flex items-center gap-2">
-                <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-2xl text-xs font-semibold whitespace-nowrap ${config.color}`}>
-                  <Icon icon={config.icon} className="w-4 h-4" />
-                  {config.label}
-                </div>
-                <div className="w-36">
-                  <CustomDropdown
-                    icon="mdi:chevron-down"
-                    options={[
-                      { label: "Placed", value: "PLACED" },
-                      { label: "Confirmed", value: "CONFIRMED" },
-                      { label: "Shipped", value: "SHIPPED" },
-                      { label: "Delivered", value: "DELIVERED" },
-                      { label: "Cancelled", value: "CANCELLED" },
-                    ]}
-                    value={status}
-                    disabled={isUpdating || status === "DELIVERED" || status === "CANCELLED"}
-                    isLoading={isUpdating}
-                    onChange={(val) => updateItemStatus(row._id, item.productId?._id, val)}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ),
+      cell: (row) => getStatusBadge(row.orderStatus)
     },
     {
-      key: "actions",
-      header: "Actions",
+      header: "Completion",
       cell: (row) => (
-        <div className="flex gap-1">
-          <button
-            onClick={() => viewOrderDetails(row._id)}
-            className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-gray-700 transition-colors"
-            title="View Order Details"
-          >
-            <Icon icon="mdi:eye-outline" className="w-5 h-5" />
-          </button>
-          <button
-            onClick={() => {
-              // Generate invoice or print
-              window.print();
-            }}
-            className="p-2 hover:bg-gray-100 rounded-xl text-gray-500 hover:text-gray-700 transition-colors"
-            title="Print Invoice"
-          >
-            <Icon icon="mdi:printer-outline" className="w-5 h-5" />
-          </button>
-        </div>
-      ),
+        <span className="text-xs text-gray-500">
+          {row.completionDate ? new Date(row.completionDate).toLocaleDateString() : "-"}
+        </span>
+      )
     },
+    {
+      header: "Actions",
+      cell: (row) => {
+        const s = row.orderStatus;
+        const isL = statusUpdateLoading === row._id;
+
+        return (
+          <div className="flex gap-2 items-center">
+            <button
+              onClick={() => router.push(`/seller/order/${row._id}`)}
+              className="p-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors" title="View Details"
+            >
+              <Icon icon="mdi:eye-outline" className="w-5 h-5" />
+            </button>
+            {s === "new" && (
+              <>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "shipping")} className="p-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg transition-colors" title="Move to Shipping">
+                  <Icon icon="mdi:truck-fast-outline" className="w-5 h-5" />
+                </button>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "on_hold")} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors" title="Put On Hold">
+                  <Icon icon="mdi:pause-circle-outline" className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            {s === "shipping" && (
+              <>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "delivered")} className="p-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors" title="Mark Delivered">
+                  <Icon icon="mdi:check-circle-outline" className="w-5 h-5" />
+                </button>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "on_hold")} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors" title="Put On Hold">
+                  <Icon icon="mdi:pause-circle-outline" className="w-5 h-5" />
+                </button>
+              </>
+            )}
+            {s === "on_hold" && (
+              <>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "new")} className="p-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors" title="Resume to New">
+                  <Icon icon="mdi:play-circle-outline" className="w-5 h-5" />
+                </button>
+                <button disabled={isL} onClick={() => updateStatus(row._id, "shipping")} className="p-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg transition-colors" title="Resume to Shipping">
+                  <Icon icon="mdi:truck-fast-outline" className="w-5 h-5" />
+                </button>
+              </>
+            )}
+          </div>
+        )
+      }
+    }
   ];
+
+  const clearFilters = () => {
+    setSearch("");
+    setOrderDateFrom("");
+    setOrderDateTo("");
+    setCompletionDateFrom("");
+    setCompletionDateTo("");
+    setStatusTab("");
+    setPage(1);
+  };
+
+  const hasFilters = search || orderDateFrom || orderDateTo || completionDateFrom || completionDateTo || statusTab;
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
-      <div className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Order Management</h1>
-          <p className="text-gray-500 mt-1">Track and manage all customer orders for your products</p>
+          <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Orders & Shipping</h1>
+          <p className="text-gray-400 text-sm mt-0.5">Manage and track your customer orders</p>
         </div>
-        <div className="flex gap-2">
+        <div>
           <button
-            onClick={exportCSV}
-            className="px-4 py-2.5 bg-emerald-600 text-white text-sm font-semibold rounded-xl hover:bg-emerald-700 transition-colors flex items-center gap-2 shadow-sm"
+            onClick={handleExportCSV}
+            disabled={exporting}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white text-emerald-700 border border-emerald-200 font-bold rounded-xl hover:bg-emerald-50 transition-all shadow-sm disabled:opacity-50"
           >
-            <Icon icon="mdi:file-export-outline" className="w-5 h-5" />
+            {exporting ? <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" /> : <Icon icon="mdi:file-excel" className="w-5 h-5" />}
             Export CSV
           </button>
         </div>
       </div>
 
-      <SummaryCards data={[
-        { label: "Total Orders", value: summary.totalOrders, icon: "mdi:cart-outline", color: "#6366f1" },
-        { label: "Pending", value: summary.pending, icon: "mdi:clock-time-eight-outline", color: "#f59e0b" },
-        { label: "Shipped", value: summary.shipped, icon: "mdi:truck-delivery-outline", color: "#8b5cf6" },
-        { label: "Delivered", value: summary.delivered, icon: "mdi:package-check", color: "#34d399" },
-      ]} />
+      {/* Tabs */}
+      <div className="mb-6 flex overflow-x-auto gap-2 pb-2 hide-scrollbar border-b border-gray-200">
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => { setStatusTab(tab.id); setPage(1); }}
+            className={`flex items-center gap-2 px-5 py-3 rounded-t-xl font-bold transition-all ${
+              statusTab === tab.id 
+                ? "bg-white text-primary-600 border-t-2 border-primary-600 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]" 
+                : "text-gray-500 hover:text-gray-800 hover:bg-gray-50"
+            }`}
+          >
+            <Icon icon={tab.icon} className="w-5 h-5" />
+            {tab.label}
+          </button>
+        ))}
+      </div>
 
-      {/* Filters */}
-      <div className="mt-8 bg-white rounded-3xl shadow-sm border border-gray-100 p-5">
-        <div className="flex flex-col gap-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
-            <div className="md:col-span-2">
-              <SearchInput
-                value={search}
-                onChange={handleSearchChange}
-                placeholder="Search by order number, customer name, product name, or barcode..."
-              />
-            </div>
-            <div>
-              <CustomDropdown
-                icon="mdi:filter-variant"
-                placeholder="All Status"
-                options={[
-                  { label: "All Status", value: "" },
-                  { label: "Placed", value: "PLACED" },
-                  { label: "Confirmed", value: "CONFIRMED" },
-                  { label: "Shipped", value: "SHIPPED" },
-                  { label: "Delivered", value: "DELIVERED" },
-                  { label: "Cancelled", value: "CANCELLED" },
-                ]}
-                value={statusFilter}
-                onChange={(val) => { 
-                  setStatusFilter(val); 
-                  setPage(1);
-                  fetchOrders(1, search, val, startDate, endDate);
-                }}
-              />
-            </div>
-            <div>
-              <DateRangePicker
-                startDate={startDate}
-                endDate={endDate}
-                onStartChange={(val) => handleDateChange('start', val)}
-                onEndChange={(val) => handleDateChange('end', val)}
-                onClear={clearDateFilters}
-              />
-            </div>
+      {/* Filter Bar */}
+      <div className="mb-6 bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-4 sticky top-4 z-10">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <input type="text" placeholder="Search by Order No, Customer, Product, Barcode..." value={search} onChange={e=>setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none transition-all" />
           </div>
+          <div className="w-full sm:w-48 relative">
+            <select value={statusTab} onChange={e => { setStatusTab(e.target.value); setPage(1); }} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none appearance-none font-medium text-gray-700">
+              <option value="">All Statuses</option>
+              <option value="new">New</option>
+              <option value="processing">Processing</option>
+              <option value="shipping">Shipping</option>
+              <option value="delivered">Delivered</option>
+              <option value="on_hold">On Hold</option>
+            </select>
+            <Icon icon="mdi:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+          </div>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row items-center gap-4 justify-between">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-bold text-gray-500">Order Date:</label>
+              <input type="date" value={orderDateFrom} onChange={e=>setOrderDateFrom(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+              <span className="text-gray-400">-</span>
+              <input type="date" value={orderDateTo} onChange={e=>setOrderDateTo(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+            </div>
+            {statusTab === "delivered" && (
+              <div className="flex items-center gap-2">
+                <label className="text-xs font-bold text-gray-500">Completion:</label>
+                <input type="date" value={completionDateFrom} onChange={e=>setCompletionDateFrom(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+                <span className="text-gray-400">-</span>
+                <input type="date" value={completionDateTo} onChange={e=>setCompletionDateTo(e.target.value)} className="px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm" />
+              </div>
+            )}
+          </div>
+          
+          {hasFilters && (
+            <button onClick={clearFilters} className="px-4 py-2 bg-red-50 text-red-600 font-bold rounded-lg text-sm hover:bg-red-100 transition-colors shrink-0">
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
 
       {/* Data Table */}
-      <div className="mt-6 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-1">
         <DataTable
-          data={orders}
           columns={columns}
+          data={orders}
           loading={loading}
           pagination={pagination}
           onPageChange={setPage}
-          emptyIcon="mdi:cart-outline"
-          emptyTitle="No orders yet"
-          emptyDescription="New orders will appear here once customers purchase your products."
         />
       </div>
+
     </div>
   );
 }
