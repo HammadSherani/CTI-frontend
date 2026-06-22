@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
-import { removeFromCart } from '@/store/cart';
+import { removeFromCart, clearCart } from '@/store/cart';
 import * as yup from 'yup';
 import LoginModal from './LoginModal';
 
@@ -32,6 +32,7 @@ export default function CheckoutPage() {
   const { token, isAuthenticated } = useSelector(s => s.auth);
   console.log("token", token)
   const auth = useSelector(s => s.auth);
+  console.log("auth in checkout", auth)
   const cartItems = useSelector(s => s.cart?.items || []);
   const cartId = useSelector(s => s.cart?.cartId);
   const [errors, setErrors] = useState({});
@@ -49,14 +50,14 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState(); // 'cod' | 'card'
   const [saveCard, setSaveCard] = useState(false);
   const [form, setForm] = useState({
-    firstName: auth?.user?.firstName || '',
-    lastName: auth?.user?.lastName || '',
+    firstName: auth?.user?.name || '',
+    lastName:  '',
     email: auth?.user?.email || '',
     phone: auth?.user?.phone || '',
     address: '',
     city: '',
     postalCode: '',
-    cardHolder: auth?.user?.firstName + ' ' + auth?.user?.lastName || '',
+    cardHolder: auth?.user?.name || '',
     cardNumber: '5528790000000008',
     expiry: '12/30',
     cvv: '123',
@@ -254,8 +255,17 @@ export default function CheckoutPage() {
       if (res.data.success) {
         toast.success('Order placed successfully!');
         localStorage.removeItem('checkout_form_data');
-        if (!isBuyNow) {
-          dispatch(removeFromCart());
+        // Clear the cart immediately in Redux state
+        dispatch(clearCart());
+        // Also clear the backend cart if not a Buy Now
+        if (!isBuyNow && token) {
+          try {
+            await axiosInstance.delete('/e-commerce/cart/my-cart/clear', {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+          } catch (_) {
+            // Ignore — cart may already be cleared by backend during order creation
+          }
         }
         router.push('/orders');
       } else {

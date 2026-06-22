@@ -26,16 +26,17 @@ export const fetchCart = createAsyncThunk(
         const res = await axiosInstance.get("/e-commerce/cart/my-cart", {
           headers: { Authorization: `Bearer ${auth.token}` },
         });
-        return res.data.data?.items || [];
+        // Return both items and cart _id
+        return { items: res.data.data?.items || [], cartId: res.data.data?._id || null };
       } catch {
-        return [];
+        return { items: [], cartId: null };
       }
     }
     if (typeof window !== "undefined") {
       const local = localStorage.getItem("cart");
-      return local ? JSON.parse(local) : [];
+      return { items: local ? JSON.parse(local) : [], cartId: null };
     }
-    return [];
+    return { items: [], cartId: null };
   }
 );
 
@@ -158,10 +159,21 @@ const cartSlice = createSlice({
   name: "cart",
   initialState: {
     items: [],
+    cartId: null,
     loading: false,
     loadingIds: [], // per-item loading – prevents spam clicks
   },
-  reducers: {},
+  reducers: {
+    // Synchronously clear all cart items (used after successful order placement)
+    clearCart: (state) => {
+      state.items = [];
+      state.cartId = null;
+      state.loadingIds = [];
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("cart");
+      }
+    },
+  },
   extraReducers: (builder) => {
     // ── Fetch ──
     builder
@@ -169,7 +181,8 @@ const cartSlice = createSlice({
         state.loading = true;
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
-        state.items = action.payload;
+        state.items = action.payload.items;
+        state.cartId = action.payload.cartId;
         state.loading = false;
       })
       .addCase(fetchCart.rejected, (state) => {
@@ -305,4 +318,5 @@ const cartSlice = createSlice({
   },
 });
 
+export const { clearCart } = cartSlice.actions;
 export default cartSlice.reducer;

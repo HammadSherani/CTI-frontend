@@ -63,9 +63,9 @@ function EcomHeader() {
         {
           category: "Order Management",
           items: [
-            { name: "All Orders", icon: "mdi:clipboard-list-outline", path: "/admin/ecom/orders" },
-            { name: "Pending Orders", icon: "mdi:clock-outline", path: "/admin/ecom/orders/pending" },
-            { name: "Completed Orders", icon: "mdi:check-circle-outline", path: "/admin/ecom/orders/completed" },
+            { name: "All Orders",        icon: "mdi:clipboard-list-outline",          path: "/admin/ecom/orders" },
+            { name: "Returns",           icon: "mdi:package-variant-closed-remove",   path: "/admin/ecom/returns" },
+            { name: "Customer Requests", icon: "mdi:message-text-outline",            path: "/admin/ecom/returns?tab=__cr__" },
           ],
         },
       ],
@@ -76,9 +76,14 @@ function EcomHeader() {
       icon: "mdi:store-outline",
     },
     {
-      name: "Transactions",
-      path: "/admin/ecom/transactions",
-      icon: "mdi:cash-multiple",
+      name: "Returns",
+      path: "/admin/ecom/returns",
+      icon: "mdi:package-variant-closed-remove",
+    },
+    {
+      name: "Wallet",
+      path: "/admin/ecom/wallet",
+      icon: "mdi:wallet-outline",
     },
   ];
 

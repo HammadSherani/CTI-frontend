@@ -239,7 +239,7 @@ function SimplePricing({ value, onChange }) {
 /* ══════════════════════════════════════════════════════════
    MAIN FORM
 ══════════════════════════════════════════════════════════ */
-export default function ProductForm({ mode = "create", initialData = null }) {
+export default function ProductForm({ mode = "create", initialData = null, adminMode = false }) {
   const router = useRouter();
   const { token } = useSelector((s) => s.auth);
 
@@ -304,38 +304,44 @@ export default function ProductForm({ mode = "create", initialData = null }) {
   /* ── Submission state ── */
   const [submitting, setSubmitting] = useState(false);
 
+  /* ── Admin mode: sellers dropdown ── */
+  const [sellers, setSellers] = useState([]);
+  const [selectedSellerId, setSelectedSellerId] = useState("");
+
   /* Load helper for brands */
 
 
   /* Load Categories */
   useEffect(() => {
+    const url = adminMode ? "/admin/e-commerce/product/categories" : "/seller/product/categories";
     axiosInstance
-      .get("/seller/product/categories", { headers: { Authorization: `Bearer ${token}` } })
+      .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setCategories(data.data || []))
       .catch(() => toast.error("Failed to load categories"));
-  }, [token]);
+  }, [token, adminMode]);
 
   /* Load Subcategories */
   useEffect(() => {
     if (!watchCategory) {
       setSubCategories([]);
-      setBrands([]);
+      if (!adminMode) setBrands([]);
       return;
     }
+    const url = adminMode
+      ? `/admin/e-commerce/product/subcategories/${watchCategory}`
+      : `/seller/product/subcategories/${watchCategory}`;
     axiosInstance
-      .get(`/seller/product/subcategories/${watchCategory}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setSubCategories(data.data || []))
       .catch(() => toast.error("Failed to load subcategories"));
-  }, [watchCategory, token]);
+  }, [watchCategory, token, adminMode]);
 
 
 
   const loadBrands = useCallback((subId) => {
+    if (adminMode) return; // admin brands are loaded on mount (all brands, no subcategory filter)
     if (!subId) {
       setBrands([]);
-      console.log("No subcategory selected, skipping brand load");
       return;
     }
     axiosInstance
@@ -345,20 +351,16 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       .then(({ data }) => {
         setBrands(data.data || []);
 
-        // After brands are loaded, set the brand value if it exists in initialData
         if (mode === "edit" && initialData) {
           const brandId = initialData?.brandId?._id || initialData?.brandId || "";
           if (brandId) {
-            // Check if the brand exists in the loaded list
             const brandExists = data.data.some(b => b._id === brandId);
-            if (brandExists) {
-              setValue("brandId", brandId);
-            }
+            if (brandExists) setValue("brandId", brandId);
           }
         }
       })
       .catch(() => toast.error("Failed to load brands"));
-  }, [token, mode, initialData, setValue]);
+  }, [token, mode, initialData, setValue, adminMode]);
   /* Handle Edit Mode - Pre-fill everything including Brand */
 
 
@@ -386,37 +388,33 @@ export default function ProductForm({ mode = "create", initialData = null }) {
 
     // Load subcategories and brands for edit mode
     if (catId) {
+      const subUrl = adminMode
+        ? `/admin/e-commerce/product/subcategories/${catId}`
+        : `/seller/product/subcategories/${catId}`;
       axiosInstance
-        .get(`/seller/product/subcategories/${catId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
+        .get(subUrl, { headers: { Authorization: `Bearer ${token}` } })
         .then(({ data }) => {
           setSubCategories(data.data || []);
-          // Load brands after subcategories are loaded
-          if (subId) {
-            loadBrands(subId);
-          }
+          if (subId) loadBrands(subId);
         });
     }
-  }, [initialData, mode, reset, token, loadBrands]);
+  }, [initialData, mode, reset, token, loadBrands, adminMode]);
 
   /* ── Load subcategories ── */
   useEffect(() => {
     if (!watchCategory) {
       setSubCategories([]);
-      setBrands([]);
+      if (!adminMode) setBrands([]);
       return;
     }
-
+    const url = adminMode
+      ? `/admin/e-commerce/product/subcategories/${watchCategory}`
+      : `/seller/product/subcategories/${watchCategory}`;
     axiosInstance
-      .get(`/seller/product/subcategories/${watchCategory}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then(({ data }) => {
-        setSubCategories(data.data || []);
-      })
+      .get(url, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setSubCategories(data.data || []))
       .catch(() => toast.error("Failed to load subcategories"));
-  }, [watchCategory, token]);
+  }, [watchCategory, token, adminMode]);
 
   /* ── Load brands when subcategory changes ── */
   useEffect(() => {
@@ -445,6 +443,24 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       }
     }
   }, [initialData, reset, loadBrands]);
+
+  /* ── Admin mode: load all brands on mount (no subcategory filter) ── */
+  useEffect(() => {
+    if (!adminMode) return;
+    axiosInstance
+      .get("/admin/e-commerce/product/brands", { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setBrands(data.data || []))
+      .catch(() => toast.error("Failed to load brands"));
+  }, [adminMode, token]);
+
+  /* ── Admin mode: load sellers for seller dropdown ── */
+  useEffect(() => {
+    if (!adminMode) return;
+    axiosInstance
+      .get("/admin/e-commerce/seller?limit=100", { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setSellers(data.data || []))
+      .catch(() => toast.error("Failed to load sellers"));
+  }, [adminMode, token]);
 
   /* ── Image helpers ── */
   const onFileChange = (e) => {
@@ -503,6 +519,11 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       return;
     }
 
+    if (adminMode && mode === "create" && !selectedSellerId) {
+      toast.error("Please select a seller");
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -553,9 +574,13 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       fd.append("warranty[months]", hasWarranty ? warrantyMonths : 0);
 
       const isCreate = mode === "create";
+
+      // Admin mode: include sellerId on create
+      if (adminMode && isCreate) fd.append("sellerId", selectedSellerId);
+
       const productUrl = isCreate
-        ? "/seller/product"
-        : `/seller/product/${initialData._id}`;
+        ? (adminMode ? "/admin/e-commerce/product" : "/seller/product")
+        : (adminMode ? `/admin/e-commerce/product/${initialData._id}` : `/seller/product/${initialData._id}`);
 
       const res = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
         headers: {
@@ -565,7 +590,9 @@ export default function ProductForm({ mode = "create", initialData = null }) {
       });
 
       toast.success(`Product ${isCreate ? "created" : "updated"} successfully`);
-      if (isCreate) {
+      if (adminMode) {
+        router.push("/admin/ecom/products");
+      } else if (isCreate) {
         router.push(`/seller/product/${res.data.data._id}/variants`);
       } else {
         router.push("/seller/product");
@@ -620,7 +647,7 @@ export default function ProductForm({ mode = "create", initialData = null }) {
           <div className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
             <span
               className="hover:text-primary-600 cursor-pointer"
-              onClick={() => router.push("/seller/product")}
+              onClick={() => router.push(adminMode ? "/admin/ecom/products" : "/seller/product")}
             >
               Products
             </span>
@@ -676,6 +703,34 @@ export default function ProductForm({ mode = "create", initialData = null }) {
               </div>
             </Card>
 
+            {/* Admin-only: Seller selector */}
+            {adminMode && mode === "create" && (
+              <Card>
+                <CardTitle icon="mdi:storefront-outline">Seller</CardTitle>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Assign to Seller <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={selectedSellerId}
+                    onChange={(e) => setSelectedSellerId(e.target.value)}
+                    className={`${SEL} ${!selectedSellerId ? "border-red-200" : ""}`}
+                    style={{ backgroundImage: CHEVRON }}
+                  >
+                    <option value="">Select seller...</option>
+                    {sellers.map((s) => (
+                      <option key={s._id} value={s.userId?._id || s.userId}>
+                        {s.businessName || s.fullName || "Unnamed Seller"}
+                      </option>
+                    ))}
+                  </select>
+                  {!selectedSellerId && (
+                    <p className="text-[11px] text-gray-400 mt-1">Required — choose which seller owns this product</p>
+                  )}
+                </div>
+              </Card>
+            )}
+
             {/* Categorization */}
             <Card>
               <CardTitle icon="mdi:shape-outline">Categorization</CardTitle>
@@ -714,10 +769,9 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
                   <select
                     {...register("brandId")}
-                    disabled={!watchSubCategory}
+                    disabled={adminMode ? false : !watchSubCategory}
                     className={SEL}
                     style={{ backgroundImage: CHEVRON }}
-                  // key={watchSubCategory} // Force re-render when subcategory changes
                   >
                     <option value="">Select</option>
                     {brands.map((b) => (
@@ -746,13 +800,15 @@ export default function ProductForm({ mode = "create", initialData = null }) {
                       <p className="text-xs text-primary-700 max-w-sm">Every product has at least one default variant. Manage prices, stock, and options from the Variant Manager.</p>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
-                    className="flex-shrink-0 px-5 py-2.5 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
-                  >
-                    Manage Variants
-                  </button>
+                  {!adminMode && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
+                      className="flex-shrink-0 px-5 py-2.5 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
+                    >
+                      Manage Variants
+                    </button>
+                  )}
                 </div>
               </Card>
             )}

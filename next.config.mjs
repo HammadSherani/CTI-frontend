@@ -18,7 +18,6 @@ const nextConfig = {
         hostname: "picsum.photos",
         pathname: "/**",
       },
-
       {
         protocol: "https",
         hostname: "images.unsplash.com",
@@ -32,6 +31,31 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "via.placeholder.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "**.cloudinary.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.shopify.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "i.imgur.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "http",
+        hostname: "localhost",
         pathname: "/**",
       },
     ],

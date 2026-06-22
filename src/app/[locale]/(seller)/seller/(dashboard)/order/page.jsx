@@ -6,20 +6,23 @@ import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
-
+import { useRouter } from "@/i18n/navigation";
 const TABS = [
   { id: "", label: "All Orders", icon: "mdi:format-list-bulleted" },
-  { id: "new", label: "New Orders", icon: "mdi:new-box" },
-  { id: "shipping", label: "In Transport", icon: "mdi:truck-delivery-outline" },
+  { id: "pending", label: "Pending", icon: "mdi:new-box" },
+  { id: "processing", label: "Processing", icon: "mdi:cogs" },
+  { id: "shipped", label: "Shipped", icon: "mdi:truck-delivery-outline" },
   { id: "delivered", label: "Delivered", icon: "mdi:check-circle-outline" },
   { id: "on_hold", label: "On Hold", icon: "mdi:pause-circle-outline" },
+  { id: "cancelled", label: "Cancelled", icon: "mdi:cancel" },
 ];
 
 export default function SellerOrderPage() {
   const { token } = useSelector((s) => s.auth);
-
+  
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
+  const router = useRouter();
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -133,11 +136,12 @@ export default function SellerOrderPage() {
 
   const getStatusBadge = (status) => {
     switch(status) {
-      case "new": return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider">New</span>;
+      case "pending": return <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold uppercase tracking-wider">Pending</span>;
       case "processing": return <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-lg text-xs font-bold uppercase tracking-wider">Processing</span>;
-      case "shipping": return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold uppercase tracking-wider">Shipping</span>;
+      case "shipped": return <span className="px-2 py-1 bg-orange-100 text-orange-700 rounded-lg text-xs font-bold uppercase tracking-wider">Shipped</span>;
       case "delivered": return <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold uppercase tracking-wider">Delivered</span>;
       case "on_hold": return <span className="px-2 py-1 bg-red-100 text-red-700 rounded-lg text-xs font-bold uppercase tracking-wider">On Hold</span>;
+      case "cancelled": return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold uppercase tracking-wider">Cancelled</span>;
       default: return <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-bold uppercase tracking-wider">{status}</span>;
     }
   };
@@ -211,36 +215,19 @@ export default function SellerOrderPage() {
             >
               <Icon icon="mdi:eye-outline" className="w-5 h-5" />
             </button>
-            {s === "new" && (
-              <>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "shipping")} className="p-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg transition-colors" title="Move to Shipping">
-                  <Icon icon="mdi:truck-fast-outline" className="w-5 h-5" />
-                </button>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "on_hold")} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors" title="Put On Hold">
-                  <Icon icon="mdi:pause-circle-outline" className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            {s === "shipping" && (
-              <>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "delivered")} className="p-1.5 bg-emerald-100 text-emerald-700 hover:bg-emerald-200 rounded-lg transition-colors" title="Mark Delivered">
-                  <Icon icon="mdi:check-circle-outline" className="w-5 h-5" />
-                </button>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "on_hold")} className="p-1.5 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg transition-colors" title="Put On Hold">
-                  <Icon icon="mdi:pause-circle-outline" className="w-5 h-5" />
-                </button>
-              </>
-            )}
-            {s === "on_hold" && (
-              <>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "new")} className="p-1.5 bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-lg transition-colors" title="Resume to New">
-                  <Icon icon="mdi:play-circle-outline" className="w-5 h-5" />
-                </button>
-                <button disabled={isL} onClick={() => updateStatus(row._id, "shipping")} className="p-1.5 bg-orange-100 text-orange-700 hover:bg-orange-200 rounded-lg transition-colors" title="Resume to Shipping">
-                  <Icon icon="mdi:truck-fast-outline" className="w-5 h-5" />
-                </button>
-              </>
-            )}
+            <select
+              disabled={isL || s === "delivered" || s === "cancelled"}
+              value={s}
+              onChange={(e) => updateStatus(row._id, e.target.value)}
+              className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
+            >
+              <option value="pending">Pending</option>
+              <option value="processing">Processing</option>
+              <option value="shipped">Shipped</option>
+              <option value="delivered">Delivered</option>
+              <option value="on_hold">On Hold</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
           </div>
         )
       }
@@ -268,7 +255,14 @@ export default function SellerOrderPage() {
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Orders & Shipping</h1>
           <p className="text-gray-400 text-sm mt-0.5">Manage and track your customer orders</p>
         </div>
-        <div>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push("/seller/order/cancelled")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-white text-red-600 border border-red-200 font-bold rounded-xl hover:bg-red-50 transition-all shadow-sm"
+          >
+            <Icon icon="mdi:cancel" className="w-5 h-5" />
+            Cancelled Orders
+          </button>
           <button
             onClick={handleExportCSV}
             disabled={exporting}
@@ -308,11 +302,12 @@ export default function SellerOrderPage() {
           <div className="w-full sm:w-48 relative">
             <select value={statusTab} onChange={e => { setStatusTab(e.target.value); setPage(1); }} className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-500 outline-none appearance-none font-medium text-gray-700">
               <option value="">All Statuses</option>
-              <option value="new">New</option>
+              <option value="pending">Pending</option>
               <option value="processing">Processing</option>
-              <option value="shipping">Shipping</option>
+              <option value="shipped">Shipped</option>
               <option value="delivered">Delivered</option>
               <option value="on_hold">On Hold</option>
+              <option value="cancelled">Cancelled</option>
             </select>
             <Icon icon="mdi:chevron-down" className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
           </div>
