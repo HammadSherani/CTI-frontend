@@ -82,6 +82,7 @@ export default function FilterSidebar({ onFiltersChange }) {
   const [subcategories, setSubcategories] = useState([]);
   const [brands, setBrands] = useState([]);
   const [availableColors, setAvailableColors] = useState([]);
+  const [dynamicAttributes, setDynamicAttributes] = useState([]);
 
   /* ── Loading ── */
   const [loadingCats, setLoadingCats] = useState(true);
@@ -93,6 +94,7 @@ export default function FilterSidebar({ onFiltersChange }) {
   const [selectedSubIds, setSelectedSubIds] = useState([]);
   const [selectedBrandIds, setSelectedBrandIds] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
+  const [selectedDynamicFilters, setSelectedDynamicFilters] = useState({});
   const [rating, setRating] = useState(0);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
   const [priceMax, setPriceMax] = useState(MAX_PRICE);
@@ -117,6 +119,7 @@ export default function FilterSidebar({ onFiltersChange }) {
               isLight: c.name === 'White' || c.name === 'Beige',
             }))
           );
+          setDynamicAttributes(data.data.dynamicAttributes || []);
         }
       } catch (e) {
         console.error('Failed to load filters', e);
@@ -202,28 +205,44 @@ export default function FilterSidebar({ onFiltersChange }) {
       subCategoryIds: selectedSubIds,
       brandIds: selectedBrandIds,
       colors: selectedColors,
+      dynamicFilters: selectedDynamicFilters,
       rating,
       priceMin,
       priceMax,
     });
-  }, [selectedCategoryIds, selectedSubIds, selectedBrandIds, selectedColors, rating, priceMin, priceMax]);
+  }, [selectedCategoryIds, selectedSubIds, selectedBrandIds, selectedColors, selectedDynamicFilters, rating, priceMin, priceMax]);
 
-  /* ── Toggle helpers ── */
   const toggleId = (list, setList, id) =>
     setList(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
+
+  const toggleDynamicFilter = (attrName, attrValue) => {
+    setSelectedDynamicFilters(prev => {
+      const current = prev[attrName] || [];
+      const updated = current.includes(attrValue)
+        ? current.filter(v => v !== attrValue)
+        : [...current, attrValue];
+      
+      const newFilters = { ...prev };
+      if (updated.length > 0) newFilters[attrName] = updated;
+      else delete newFilters[attrName];
+      return newFilters;
+    });
+  };
 
   const clearAll = () => {
     setSelectedCategoryIds([]);
     setSelectedSubIds([]);
     setSelectedBrandIds([]);
     setSelectedColors([]);
+    setSelectedDynamicFilters({});
     setRating(0);
     setPriceMin(MIN_PRICE);
     setPriceMax(MAX_PRICE);
   };
 
+  const dynamicCount = Object.values(selectedDynamicFilters).reduce((sum, arr) => sum + arr.length, 0);
   const activeCount = selectedCategoryIds.length + selectedSubIds.length +
-    selectedBrandIds.length + selectedColors.length + (rating > 0 ? 1 : 0) +
+    selectedBrandIds.length + selectedColors.length + dynamicCount + (rating > 0 ? 1 : 0) +
     (priceMin > MIN_PRICE || priceMax < MAX_PRICE ? 1 : 0);
 
   return (
@@ -310,7 +329,43 @@ export default function FilterSidebar({ onFiltersChange }) {
           </Section>
         )}
 
+        {/* ── Colors ── */}
+        {availableColors.length > 0 && (
+          <Section title="Colors" badge={selectedColors.length || null}>
+            <div className="flex flex-wrap gap-2">
+              {availableColors.map(c => {
+                const active = selectedColors.includes(c.name);
+                return (
+                  <button key={c.name} title={c.name}
+                    onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${
+                      active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                    }`}
+                    style={{ backgroundColor: c.hex }}
+                  >
+                    {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
+                  </button>
+                );
+              })}
+            </div>
+          </Section>
+        )}
 
+        {/* ── Dynamic Attributes (Specs) ── */}
+        {dynamicAttributes.map(attr => (
+          <Section key={attr.name} title={attr.name} badge={selectedDynamicFilters[attr.name]?.length || null}>
+            <div className="space-y-1">
+              {attr.values.map(val => (
+                <CheckItem
+                  key={val}
+                  label={val}
+                  checked={(selectedDynamicFilters[attr.name] || []).includes(val)}
+                  onChange={() => toggleDynamicFilter(attr.name, val)}
+                />
+              ))}
+            </div>
+          </Section>
+        ))}
 
         {/* ── Price Range ── */}
         <Section title="Price Range" collapsible>

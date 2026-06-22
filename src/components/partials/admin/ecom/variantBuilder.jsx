@@ -107,6 +107,103 @@ const StepBadge = ({ n }) => (
   </div>
 );
 
+/* ════════════════════════════════════════════════════════
+   SPECS EDITOR — Reusable inline key-value editor (additive)
+════════════════════════════════════════════════════════ */
+function SpecsEditor({ specs = [], onChange }) {
+  const [open, setOpen] = useState(false);
+  const [draftName, setDraftName] = useState("");
+  const [draftValue, setDraftValue] = useState("");
+
+  const addSpec = () => {
+    if (!draftName.trim() || !draftValue.trim()) return;
+    onChange([...specs, { name: draftName.trim(), value: draftValue.trim() }]);
+    setDraftName("");
+    setDraftValue("");
+  };
+
+  const removeSpec = (idx) => onChange(specs.filter((_, i) => i !== idx));
+
+  return (
+    <div className="border border-gray-100 rounded-xl overflow-hidden">
+      {/* Toggle header */}
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4, py-2.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          <Icon icon="mdi:tag-text-outline" className="w-4 h-4 text-violet-500" />
+          <span className="text-xs font-bold text-gray-700">Extra Specs</span>
+          {specs.length > 0 && (
+            <span className="px-1.5 py-0.5 bg-violet-100 text-violet-600 rounded text-[9px] font-black">
+              {specs.length}
+            </span>
+          )}
+          <span className="text-[10px] text-gray-400 font-medium">
+            (RAM, Weight, Material&hellip;)
+          </span>
+        </div>
+        <Icon
+          icon={open ? "mdi:chevron-up" : "mdi:chevron-down"}
+          className="w-4 h-4 text-gray-400"
+        />
+      </button>
+
+      {open && (
+        <div className="p-3 space-y-2.5 bg-white">
+          {/* Existing specs */}
+          {specs.length > 0 && (
+            <div className="space-y-1.5">
+              {specs.map((s, i) => (
+                <div key={i} className="flex items-center gap-2 p-2 bg-violet-50 rounded-lg border border-violet-100">
+                  <span className="text-xs font-bold text-violet-700 min-w-0 flex-1 truncate">{s.name}</span>
+                  <span className="text-gray-300 text-xs">:</span>
+                  <span className="text-xs font-semibold text-gray-700 min-w-0 flex-1 truncate">{s.value}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeSpec(i)}
+                    className="w-5 h-5 flex items-center justify-center rounded text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0"
+                  >
+                    <Icon icon="mdi:close" className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add new spec row */}
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={draftName}
+              onChange={(e) => setDraftName(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSpec(); } }}
+              placeholder="Name (e.g. RAM)"
+              className="flex-1 h-8 px-2.5 text-xs rounded-lg border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/10 transition-all"
+            />
+            <input
+              type="text"
+              value={draftValue}
+              onChange={(e) => setDraftValue(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSpec(); } }}
+              placeholder="Value (e.g. 8GB)"
+              className="flex-1 h-8 px-2.5 text-xs rounded-lg border border-gray-200 focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-400/10 transition-all"
+            />
+            <button
+              type="button"
+              onClick={addSpec}
+              className="h-8 px-3 bg-violet-600 text-white rounded-lg text-xs font-bold hover:bg-violet-700 transition-all flex items-center gap-1 whitespace-nowrap"
+            >
+              <Icon icon="mdi:plus" className="w-3.5 h-3.5" /> Add
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ══════════════════════════════════════════════════════════
    PANEL A — Default / Single Variant
 ══════════════════════════════════════════════════════════ */
@@ -115,10 +212,12 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
   const imgErr = errors[`${row.key}_image`];
   const priceErr = errors[`${row.key}_price`];
 
-  const allPreviews = [
+  // Stable blob URL list — avoids creating new URLs on every render
+  const allPreviews = React.useMemo(() => [
     ...(row.existingImages || []).map((i) => ({ src: i.url, isExisting: true })),
     ...(row.imageFiles || []).map((f) => ({ src: URL.createObjectURL(f), isExisting: false, file: f })),
-  ];
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ], [row.existingImages, row.imageFiles]);
 
   const handleFiles = (files) => {
     const arr = Array.from(files);
@@ -227,6 +326,12 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
           )}
         </div>
       </div>
+
+      {/* Extra Specs — additive dynamic attributes */}
+      <SpecsEditor
+        specs={row.specs || []}
+        onChange={(newSpecs) => updateRow(row.key, "specs", newSpecs)}
+      />
     </div>
   );
 }
@@ -309,14 +414,71 @@ function AttributeValuePicker({ type, selectedValues, onToggle, onAdd, onRemove 
 }
 
 /* ══════════════════════════════════════════════════════════
+   GENERIC VALUE PICKER — for custom attribute types (no presets)
+══════════════════════════════════════════════════════════ */
+function GenericValuePicker({ type, selectedValues, onAdd, onRemove }) {
+  const [draft, setDraft] = useState("");
+
+  const handleAdd = () => {
+    if (!draft.trim()) return;
+    onAdd({ label: draft.trim() });
+    setDraft("");
+  };
+
+  return (
+    <div className="space-y-2.5">
+      {/* Selected chips */}
+      {selectedValues?.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {selectedValues.map((v) => (
+            <span key={v.label} className="flex items-center gap-1.5 pl-3 pr-1.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-xs font-bold text-indigo-700">
+              {v.label}
+              <button type="button" onClick={() => onRemove(v.label)}
+                className="w-4 h-4 flex items-center justify-center rounded hover:bg-indigo-200/50">
+                <Icon icon="mdi:close" className="w-2.5 h-2.5" />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {/* Input row */}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAdd(); } }}
+          placeholder={`Add ${type} value (e.g. 6.1", 5000mAh…)`}
+          className="flex-1 h-9 px-3 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400/10 transition-all"
+        />
+        <button type="button" onClick={handleAdd}
+          className="h-9 px-4 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-all flex items-center gap-1">
+          <Icon icon="mdi:plus" className="w-3.5 h-3.5" /> Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════════════════════
    PANEL B wrapper — Attribute selection section
 ══════════════════════════════════════════════════════════ */
 function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCustomValue, removeAttrValue }) {
   const activeTypes = Object.keys(selectedAttrs);
+  const [customAttrName, setCustomAttrName] = useState("");
+
+  const handleAddCustomAttrType = () => {
+    const name = customAttrName.trim();
+    if (!name) return;
+    if (!(name in selectedAttrs)) {
+      toggleAttrType(name); // activates the new custom type
+    }
+    setCustomAttrName("");
+  };
 
   return (
     <div className="space-y-5">
-      {/* Type chips */}
+      {/* Preset type chips */}
       <div>
         <p className="text-xs font-bold text-gray-500 mb-3 uppercase tracking-wide">
           Which options does your product have?
@@ -337,30 +499,84 @@ function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCus
               </button>
             );
           })}
+
+          {/* Custom attribute type chips (non-preset) */}
+          {activeTypes
+            .filter(t => !(t in ATTRIBUTE_OPTIONS))
+            .map(type => (
+              <div key={type} className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl border-2 bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm text-sm font-bold">
+                <Icon icon="mdi:tag-edit-outline" className="w-4 h-4" />
+                {type}
+                <button type="button" onClick={() => toggleAttrType(type)}
+                  className="ml-1 w-4 h-4 flex items-center justify-center rounded-full hover:bg-indigo-200 transition-colors">
+                  <Icon icon="mdi:close" className="w-2.5 h-2.5" />
+                </button>
+              </div>
+            ))
+          }
         </div>
+      </div>
+
+      {/* ── Add Custom Attribute button ── */}
+      <div className="flex gap-2 items-center">
+        <div className="flex-1 relative">
+          <Icon icon="mdi:tag-plus-outline" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400 pointer-events-none" />
+          <input
+            type="text"
+            value={customAttrName}
+            onChange={(e) => setCustomAttrName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleAddCustomAttrType(); } }}
+            placeholder="e.g. Screen Size, Battery, Connectivity…"
+            className="w-full h-10 pl-9 pr-3 text-sm rounded-xl border-2 border-dashed border-indigo-300 bg-indigo-50/50 focus:outline-none focus:border-indigo-500 focus:bg-white transition-all font-medium text-indigo-900 placeholder:text-indigo-300"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleAddCustomAttrType}
+          disabled={!customAttrName.trim()}
+          className="h-10 px-4 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 shadow-md shadow-indigo-600/20 whitespace-nowrap"
+        >
+          <Icon icon="mdi:plus" className="w-4 h-4" />
+          Add Custom Attribute
+        </button>
       </div>
 
       {/* Value pickers for each selected type */}
       {activeTypes.length > 0 && (
         <div className="space-y-4">
           {activeTypes.map((type) => {
-            const cfg = ATTRIBUTE_OPTIONS[type];
+            const cfg = ATTRIBUTE_OPTIONS[type]; // may be undefined for custom types
+            const isCustom = !cfg;
+            const borderCls  = isCustom ? "border-indigo-200" : cfg.border;
+            const bgCls      = isCustom ? "bg-indigo-50/40"   : `${cfg.bg}/40`;
+            const iconName   = isCustom ? "mdi:tag-edit-outline" : cfg.icon;
+            const colorCls   = isCustom ? "text-indigo-600"    : cfg.color;
             return (
-              <div key={type} className={`p-4 rounded-2xl border ${cfg.border} ${cfg.bg}/40 space-y-3`}>
+              <div key={type} className={`p-4 rounded-2xl border ${borderCls} ${bgCls} space-y-3`}>
                 <div className="flex items-center gap-2">
-                  <Icon icon={cfg.icon} className={`w-4 h-4 ${cfg.color}`} />
-                  <span className={`text-xs font-black uppercase tracking-tight ${cfg.color}`}>{type}</span>
+                  <Icon icon={iconName} className={`w-4 h-4 ${colorCls}`} />
+                  <span className={`text-xs font-black uppercase tracking-tight ${colorCls}`}>{type}</span>
                   <span className="ml-auto text-xs text-gray-400 font-medium">
                     {selectedAttrs[type]?.length || 0} selected
                   </span>
                 </div>
-                <AttributeValuePicker
-                  type={type}
-                  selectedValues={selectedAttrs[type]}
-                  onToggle={(val) => toggleAttrValue(type, val)}
-                  onAdd={(val) => addCustomValue(type, val)}
-                  onRemove={(label) => removeAttrValue(type, label)}
-                />
+                {isCustom ? (
+                  /* Generic free-text value picker for custom attribute types */
+                  <GenericValuePicker
+                    type={type}
+                    selectedValues={selectedAttrs[type]}
+                    onAdd={(val) => addCustomValue(type, val)}
+                    onRemove={(label) => removeAttrValue(type, label)}
+                  />
+                ) : (
+                  <AttributeValuePicker
+                    type={type}
+                    selectedValues={selectedAttrs[type]}
+                    onToggle={(val) => toggleAttrValue(type, val)}
+                    onAdd={(val) => addCustomValue(type, val)}
+                    onRemove={(label) => removeAttrValue(type, label)}
+                  />
+                )}
               </div>
             );
           })}
@@ -421,6 +637,24 @@ function BulkFillBar({ onBulkFill }) {
 /* ══════════════════════════════════════════════════════════
    PANEL C — Variant Table
 ══════════════════════════════════════════════════════════ */
+
+/** Stable blob URL — only recreated when imageFiles array reference changes */
+function RowImagePreview({ imageFiles, existingImages }) {
+  const blobSrc = React.useMemo(
+    () => (imageFiles?.length ? URL.createObjectURL(imageFiles[0]) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [imageFiles]
+  );
+
+  if (blobSrc) {
+    return <img src={blobSrc} className="w-full h-full object-cover" alt="" />;
+  }
+  if (existingImages?.[0]?.url) {
+    return <img src={existingImages[0].url} className="w-full h-full object-cover" alt="" />;
+  }
+  return <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />;
+}
+
 function VariantTable({ rows, updateRow, errors, bulkFill }) {
   return (
     <div className="space-y-4">
@@ -449,13 +683,7 @@ function VariantTable({ rows, updateRow, errors, bulkFill }) {
                   {/* Image cell */}
                   <td className="px-4 py-3 w-16">
                     <div className={`relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 border flex items-center justify-center cursor-pointer transition-all ${errors[`${row.key}_image`] ? "border-red-400 ring-2 ring-red-400/20" : "border-gray-200 group-hover:border-primary-300"}`}>
-                      {row.imageFiles?.length > 0 ? (
-                        <img src={URL.createObjectURL(row.imageFiles[0])} className="w-full h-full object-cover" alt="" />
-                      ) : row.existingImages?.[0]?.url ? (
-                        <img src={row.existingImages[0].url} className="w-full h-full object-cover" alt="" />
-                      ) : (
-                        <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />
-                      )}
+                      <RowImagePreview imageFiles={row.imageFiles} existingImages={row.existingImages} />
                       {totalImgs > 1 && (
                         <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 rounded-tl font-bold">+{totalImgs - 1}</span>
                       )}
@@ -469,20 +697,27 @@ function VariantTable({ rows, updateRow, errors, bulkFill }) {
                     </div>
                   </td>
 
-                  {/* Variant label */}
+                  {/* Variant label + specs summary */}
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {row.combo.map((c, ci) => (
-                        <span key={ci} className="flex items-center gap-1">
-                          {c.colorHex && <span className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ backgroundColor: c.colorHex }} />}
-                          <span className="font-bold text-gray-800">{c.value}</span>
-                          {ci < row.combo.length - 1 && <span className="text-gray-300 font-medium">/</span>}
-                        </span>
-                      ))}
-                      {row.combo.length === 0 && <span className="font-bold text-gray-800">Default</span>}
-                      {idx === 0 && row.combo.length === 0 && (
-                        <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black border border-emerald-100">DEFAULT</span>
-                      )}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {row.combo.map((c, ci) => (
+                          <span key={ci} className="flex items-center gap-1">
+                            {c.colorHex && <span className="w-3.5 h-3.5 rounded-full border border-gray-200" style={{ backgroundColor: c.colorHex }} />}
+                            <span className="font-bold text-gray-800">{c.value}</span>
+                            {ci < row.combo.length - 1 && <span className="text-gray-300 font-medium">/</span>}
+                          </span>
+                        ))}
+                        {row.combo.length === 0 && <span className="font-bold text-gray-800">Default</span>}
+                        {idx === 0 && row.combo.length === 0 && (
+                          <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-600 rounded text-[9px] font-black border border-emerald-100">DEFAULT</span>
+                        )}
+                      </div>
+                      {/* Inline specs editor (compact) */}
+                      <SpecsEditor
+                        specs={row.specs || []}
+                        onChange={(newSpecs) => updateRow(row.key, "specs", newSpecs)}
+                      />
                     </div>
                   </td>
 
@@ -580,19 +815,21 @@ export default function VariantBuilder({
   return (
     <div className="space-y-5">
 
-      {/* ── Panel A: Default / base variant ── */}
-      <div>
-        <div className="flex items-center gap-2 mb-3">
-          <StepBadge n={1} />
-          <span className="text-sm font-black text-gray-800 uppercase tracking-tight">Set Base Details</span>
+      {/* ── Panel A: Default / base variant — only shown when NOT in full variant-combo mode ── */}
+      {(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <StepBadge n={1} />
+            <span className="text-sm font-black text-gray-800 uppercase tracking-tight">Set Base Details</span>
+          </div>
+          <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} />
         </div>
-        <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} />
-      </div>
+      )}
 
       {/* ── Panel B: Variations toggle ── */}
       <div>
         <div className="flex items-center gap-2 mb-3">
-          <StepBadge n={2} />
+          <StepBadge n={(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) ? 2 : 1} />
           <span className="text-sm font-black text-gray-800 uppercase tracking-tight">
             Variations
           </span>
@@ -634,7 +871,7 @@ export default function VariantBuilder({
       {wantsVariants && hasRealCombos && hasEnoughAttrValues && (
         <div className="animate-in fade-in slide-in-from-top-2 duration-500">
           <div className="flex items-center gap-2 mb-3">
-            <StepBadge n={3} />
+            <StepBadge n={(!wantsVariants || !hasRealCombos || !hasEnoughAttrValues) ? 3 : 2} />
             <span className="text-sm font-black text-gray-800 uppercase tracking-tight">
               Set Prices & Photos
             </span>

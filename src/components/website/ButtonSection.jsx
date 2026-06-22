@@ -177,8 +177,11 @@ function ButtonSection() {
         </div>
       )}
       <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
-
-      <div className="relative" ref={dropdownRef}>
+      <IconButton
+        icon="mdi:clipboard-list-outline"
+        label="My Orders"
+        href="/orders"
+      />      <div className="relative" ref={dropdownRef}>
         <button onClick={toggleDropdown} className="flex items-center gap-2 px-2 py-1.5 rounded-xl">
           <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
             <span className="text-xs text-white">{getInitials(user?.name)}</span>
@@ -217,7 +220,9 @@ function ButtonSection() {
 
   const renderSellerButtons = () => (
     <>
+      <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
       <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
+      <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
       <DashboardLink link="/seller/dashboard" />
     </>
   );

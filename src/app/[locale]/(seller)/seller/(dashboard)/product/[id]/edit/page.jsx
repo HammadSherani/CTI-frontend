@@ -62,6 +62,7 @@ export default function EditProductPage() {
         const { data } = await axiosInstance.get(`/seller/product/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        console.log("Fetched product:", data);
         setProduct(data.data);
       } catch (err) {
         toast.error(err?.response?.data?.message || "Failed to load product");

@@ -43,6 +43,7 @@ const DEFAULT_ROW = {
   sku: "",
   existingImages: [],
   imageFiles: [],
+  specs: [],  // dynamic key-value specs (additive)
 };
 
 /* ────────────────────────────────────────────────────────────
@@ -92,6 +93,7 @@ export function useVariantBuilder(initialVariants = []) {
         sku:                v.sku || "",
         existingImages:     v.images || [],
         imageFiles:         [],
+        specs:              v.specs || [],  // seed existing specs
       };
     });
     return seed;
@@ -191,6 +193,7 @@ export function useVariantBuilder(initialVariants = []) {
         sku:                r.sku?.trim() || undefined,
         images:             r.existingImages || [],
         isDefault:          r.key === "default" || idx === 0,
+        specs:              r.specs || [],  // include dynamic specs
       })),
     [rows]
   );

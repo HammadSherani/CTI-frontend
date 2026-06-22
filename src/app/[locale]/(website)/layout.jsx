@@ -9,6 +9,8 @@ import Loader from '@/components/Loader'
 import { useDispatch, useSelector } from 'react-redux'
 import axiosInstance from '@/config/axiosInstance'
 import { setUserDetails } from '@/store/auth'
+import { fetchWishlist } from '@/store/wishlist'
+import { fetchCart } from '@/store/cart'
 import handleError from '@/helper/handleError'
 import { useLocale } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
@@ -64,6 +66,12 @@ function Layout({ children }) {
     return () => {
       isMounted = false;
     };
+  }, [token, dispatch]);
+
+  // Hydrate wishlist + cart from backend whenever auth state changes
+  useEffect(() => {
+    dispatch(fetchWishlist());
+    dispatch(fetchCart());
   }, [token, dispatch]);
 
   useEffect(() => {
