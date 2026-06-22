@@ -6,6 +6,8 @@ import { Icon } from '@iconify/react';
 import { useRouter, Link } from '@/i18n/navigation';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import useNotifications from '@/hooks/useNotifications';
+import NotificationPanel from '../partials/repairman/NotificationPanel';
 
 const IconButton = ({
   icon,
@@ -50,16 +52,43 @@ const DashboardLink = ({ link }) => (
 );
 
 function ButtonSection() {
-  const { user } = useSelector((state) => state.auth);
+  // const { user } = useSelector((state) => state.auth);
   const cartItems = useSelector((state) => state.cart?.items?.length) || 0;
   const wishlistItems = useSelector((state) => state.wishlist?.items?.length) || 0;
   const [notificationCount] = useState(0); // Keep static for now
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notificationRef = useRef(null);
+
+   useEffect(() => {
+      const handleClickOutside = (event) => {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+          setIsDropdownOpen(false);
+        }
+        if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+          setShowNotifications(false);
+        }
+      };
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+     const toggleNotifications = useCallback(() => {
+        setShowNotifications(prev => !prev);
+      }, []);
 
   const dispatch = useDispatch();
   const router = useRouter();
 
   const dropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const { unreadCount, notifications } = useNotifications();
+  const { user, token } = useSelector((state) => state.auth);
+
+
+  console.log("unreadCount", unreadCount);
+  console.log("notifications", notifications);
+  
+  
 
   const handleLogout = useCallback(() => {
     dispatch(clearAuth());
@@ -95,7 +124,7 @@ function ButtonSection() {
     return (
       <div className="flex items-center gap-2">
         <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
-            <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
+        <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
 
         <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
 
@@ -113,7 +142,40 @@ function ButtonSection() {
   const renderCustomerButtons = () => (
     <>
       <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
-      <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
+      {/* <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} /> */}
+
+
+      {user?.role === 'customer' && (
+        <div className="relative" ref={notificationRef}>
+          <button
+            onClick={toggleNotifications}
+            className={`relative p-2 rounded-lg transition-all duration-200
+                          ${showNotifications
+                ? 'text-primary-600 bg-primary-50'
+                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+              }`}
+            aria-label="Notifications"
+          >
+            <Icon
+              icon={showNotifications ? "solar:bell-bold-duotone" : "solar:bell-linear"}
+              className="w-5 h-5"
+            />
+            {unreadCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {showNotifications && (
+            <NotificationPanel
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              userToken={token}
+            />
+          )}
+        </div>
+      )}
       <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
 
       <div className="relative" ref={dropdownRef}>

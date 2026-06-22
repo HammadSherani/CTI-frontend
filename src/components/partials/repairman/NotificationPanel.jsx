@@ -3,6 +3,10 @@
 import React, { useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import useNotifications from '@/hooks/useNotifications';
+import { useRouter,Link } from '@/i18n/navigation';
+import { getRedirectUrl } from '@/constant/notificationRoutes';
+
+
 
 const NotificationPanel = ({ isOpen, onClose }) => {
   const { 
@@ -15,23 +19,21 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     deleteNotification 
   } = useNotifications();
 
+  const router = useRouter();
+
   useEffect(() => {
     if (isOpen) {
       fetchNotifications();
     }
-  }, [isOpen]);
+  }, []);
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) {
       markAsRead(notification._id);
     }
     
-    // Navigate based on notification type
-    if (notification.type === 'new_job') {
-      window.location.href = `/repair-man/job-board/${notification.data.jobId}`;
-    } else if (notification.type === 'offer_accepted') {
-      window.location.href = `/repair-man/my-jobs/${notification.data.jobId}`;
-    }
+    const url = getRedirectUrl(user.role, notification.type, notification.data);
+    router.push(url);
     
     onClose();
   };
@@ -56,6 +58,9 @@ const NotificationPanel = ({ isOpen, onClose }) => {
         return '📢';
     }
   };
+
+  console.log("notifications", notifications);
+  
 
   const getNotificationTitle = (notification) => {
     return notification.title || 'Notification';

@@ -357,7 +357,7 @@ function JobDetailPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                {/* <div className="grid grid-cols-2 gap-3">
                   <div className="bg-gray-50 border border-gray-100 rounded-xl p-3">
                     <div className="flex items-center gap-1.5 mb-1">
                       <Icon icon="solar:routing-bold-duotone" className="w-3.5 h-3.5 text-gray-400" />
@@ -372,7 +372,7 @@ function JobDetailPage() {
                     </div>
                     <p className="text-sm font-semibold text-gray-800">{job?.autoSelectBest ? 'Enabled' : 'Disabled'}</p>
                   </div>
-                </div>
+                </div> */}
               </div>
 
               {/* Bid Form */}
