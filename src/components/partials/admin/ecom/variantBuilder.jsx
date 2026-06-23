@@ -207,10 +207,10 @@ function SpecsEditor({ specs = [], onChange }) {
 /* ══════════════════════════════════════════════════════════
    PANEL A — Default / Single Variant
 ══════════════════════════════════════════════════════════ */
-function DefaultVariantPanel({ row, updateRow, errors }) {
+function DefaultVariantPanel({ row, updateRow, errors, product }) {
   const totalImgs = (row.existingImages?.length || 0) + (row.imageFiles?.length || 0);
-  const imgErr = errors[`${row.key}_image`];
   const priceErr = errors[`${row.key}_price`];
+  const productImages = product?.images || [];
 
   // Stable blob URL list — avoids creating new URLs on every render
   const allPreviews = React.useMemo(() => [
@@ -251,7 +251,7 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
         {/* Price */}
         <div>
           <label className="block text-xs font-bold text-gray-600 mb-1.5">
-            Price <span className="text-red-500">*</span>
+            Price <span className="text-gray-400 font-normal text-[10px]">(optional)</span>
           </label>
           <div className="relative">
             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
@@ -299,11 +299,13 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
       {/* Images */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className={`text-xs font-bold ${imgErr ? "text-red-500" : "text-gray-600"}`}>
-            Photos {imgErr ? "(at least 1 required)" : `(${totalImgs}/5)`}
+          <label className="text-xs font-bold text-gray-600">
+            Photos <span className="text-gray-400 font-normal text-[10px]">(optional — uses product images if empty)</span>
           </label>
+          <span className="text-[10px] text-gray-400">{totalImgs}/5</span>
         </div>
         <div className="flex flex-wrap gap-3">
+          {/* Variant-specific images */}
           {allPreviews.map((img, idx) => (
             <div key={idx} className="relative w-16 h-16 group rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
               <img src={img.src} className="w-full h-full object-cover" alt="" />
@@ -317,14 +319,26 @@ function DefaultVariantPanel({ row, updateRow, errors }) {
               {idx === 0 && <span className="absolute bottom-0.5 left-0.5 text-[8px] bg-black/60 text-white px-1 rounded font-bold">Main</span>}
             </div>
           ))}
+          {/* Fallback: show product images dimmed when no variant images set */}
+          {totalImgs === 0 && productImages.slice(0, 3).map((img, idx) => (
+            <div key={`pf-${idx}`} className="relative w-16 h-16 rounded-xl overflow-hidden border border-dashed border-gray-300 bg-gray-50 opacity-50">
+              <img src={img.url} className="w-full h-full object-cover" alt="" />
+              <span className="absolute bottom-0 inset-x-0 text-[8px] bg-black/50 text-white text-center font-bold py-0.5">product</span>
+            </div>
+          ))}
           {totalImgs < 5 && (
-            <label className={`w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed rounded-xl cursor-pointer transition-all group ${imgErr ? "border-red-400 bg-red-50/30" : "border-gray-200 hover:border-primary-400 hover:bg-primary-50/30"}`}>
-              <Icon icon="mdi:camera-plus-outline" className={`w-5 h-5 ${imgErr ? "text-red-400" : "text-gray-300 group-hover:text-primary-400"}`} />
+            <label className="w-16 h-16 flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-primary-400 hover:bg-primary-50/30 rounded-xl cursor-pointer transition-all group">
+              <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300 group-hover:text-primary-400" />
               <span className="text-[9px] text-gray-400 mt-0.5">Add</span>
               <input type="file" multiple accept="image/*" className="hidden" onChange={(e) => handleFiles(e.target.files)} />
             </label>
           )}
         </div>
+        {totalImgs === 0 && productImages.length > 0 && (
+          <p className="text-[10px] text-blue-500 mt-1.5 font-medium">
+            ↑ Showing product images as preview — customers will see these if no variant photos are added.
+          </p>
+        )}
       </div>
 
       {/* Extra Specs — additive dynamic attributes */}
@@ -639,7 +653,7 @@ function BulkFillBar({ onBulkFill }) {
 ══════════════════════════════════════════════════════════ */
 
 /** Stable blob URL — only recreated when imageFiles array reference changes */
-function RowImagePreview({ imageFiles, existingImages }) {
+function RowImagePreview({ imageFiles, existingImages, productImages }) {
   const blobSrc = React.useMemo(
     () => (imageFiles?.length ? URL.createObjectURL(imageFiles[0]) : null),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -652,10 +666,21 @@ function RowImagePreview({ imageFiles, existingImages }) {
   if (existingImages?.[0]?.url) {
     return <img src={existingImages[0].url} className="w-full h-full object-cover" alt="" />;
   }
+  // Fall back to product's first image as a dimmed preview
+  if (productImages?.[0]?.url) {
+    return (
+      <div className="relative w-full h-full">
+        <img src={productImages[0].url} className="w-full h-full object-cover opacity-40" alt="" />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Icon icon="mdi:camera-plus-outline" className="w-4 h-4 text-gray-500" />
+        </div>
+      </div>
+    );
+  }
   return <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />;
 }
 
-function VariantTable({ rows, updateRow, errors, bulkFill }) {
+function VariantTable({ rows, updateRow, errors, bulkFill, productImages }) {
   return (
     <div className="space-y-4">
       {rows.length > 1 && <BulkFillBar onBulkFill={bulkFill} />}
@@ -664,9 +689,9 @@ function VariantTable({ rows, updateRow, errors, bulkFill }) {
         <table className="w-full text-xs text-left">
           <thead>
             <tr className="bg-gray-50/80 border-b border-gray-100">
-              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Photo</th>
+              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Photo <span className="normal-case font-normal text-[9px]">(opt.)</span></th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Variant</th>
-              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Price ($)</th>
+              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Price ($) <span className="normal-case font-normal text-[9px]">(opt.)</span></th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Stock</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Disc %</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Sale Price</th>
@@ -675,15 +700,15 @@ function VariantTable({ rows, updateRow, errors, bulkFill }) {
           <tbody className="divide-y divide-gray-50 bg-white">
             {rows.map((row, idx) => {
               const salePrice = calcFinalPrice(row.price, row.discountPercentage);
-              const hasErr = errors[`${row.key}_price`] || errors[`${row.key}_stock`] || errors[`${row.key}_image`];
+              const hasErr = errors[`${row.key}_price`] || errors[`${row.key}_stock`];
               const totalImgs = (row.existingImages?.length || 0) + (row.imageFiles?.length || 0);
 
               return (
                 <tr key={row.key} className={`group hover:bg-gray-50/40 transition-colors ${hasErr ? "bg-red-50/30" : ""}`}>
                   {/* Image cell */}
                   <td className="px-4 py-3 w-16">
-                    <div className={`relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 border flex items-center justify-center cursor-pointer transition-all ${errors[`${row.key}_image`] ? "border-red-400 ring-2 ring-red-400/20" : "border-gray-200 group-hover:border-primary-300"}`}>
-                      <RowImagePreview imageFiles={row.imageFiles} existingImages={row.existingImages} />
+                    <div className="relative w-12 h-12 rounded-xl overflow-hidden bg-gray-100 border border-gray-200 group-hover:border-primary-300 flex items-center justify-center cursor-pointer transition-all">
+                      <RowImagePreview imageFiles={row.imageFiles} existingImages={row.existingImages} productImages={productImages} />
                       {totalImgs > 1 && (
                         <span className="absolute bottom-0 right-0 bg-black/70 text-white text-[8px] px-1 rounded-tl font-bold">+{totalImgs - 1}</span>
                       )}
@@ -806,6 +831,7 @@ export default function VariantBuilder({
   updateRow,
   bulkFill,
   errors = {},
+  product,
 }) {
   const defaultRow = rows[0]; // always exists (default or first combo)
   const hasRealCombos = rows.length > 1 || (rows.length === 1 && rows[0].combo.length > 0);
@@ -822,7 +848,7 @@ export default function VariantBuilder({
             <StepBadge n={1} />
             <span className="text-sm font-black text-gray-800 uppercase tracking-tight">Set Base Details</span>
           </div>
-          <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} />
+          <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} product={product} />
         </div>
       )}
 
@@ -881,7 +907,7 @@ export default function VariantBuilder({
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
-            <VariantTable rows={rows} updateRow={updateRow} errors={errors} bulkFill={bulkFill} />
+            <VariantTable rows={rows} updateRow={updateRow} errors={errors} bulkFill={bulkFill} productImages={product?.images} />
             <div className="pt-4 border-t border-gray-100">
               <SummaryStrip summary={summary} />
             </div>

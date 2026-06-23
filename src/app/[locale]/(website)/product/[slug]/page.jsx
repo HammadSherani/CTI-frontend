@@ -563,6 +563,7 @@ export default function ProductDetailPage() {
           {/* Seller Card */}
           <div className="xl:col-span-2">
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+              {/* Header banner */}
               <div
                 className="relative h-14"
                 style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}
@@ -596,6 +597,7 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="pt-8 px-3 pb-3 flex flex-col gap-3">
+                {/* Name + address */}
                 <div>
                   <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
                     {seller?.businessName || 'Unknown Store'}
@@ -608,25 +610,60 @@ export default function ProductDetailPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 text-center">
+                {/* Stats: Rating / Items / Orders */}
+                <div className="grid grid-cols-3 gap-1.5 text-center">
                   <div className="bg-gray-50 rounded-lg py-1.5 px-1">
                     <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.rating ? `${seller.rating}★` : '—'}
+                      {seller?.avgRating ? `${seller.avgRating}★` : '—'}
                     </p>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide">Rating</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg py-1.5 px-1">
                     <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.productCount || '—'}
+                      {seller?.productCount ?? '—'}
                     </p>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide">Items</p>
                   </div>
+                  <div className="bg-gray-50 rounded-lg py-1.5 px-1">
+                    <p className="text-xs font-extrabold text-gray-800">
+                      {seller?.completedOrders ?? '—'}
+                    </p>
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">Orders</p>
+                  </div>
                 </div>
 
-                <button className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs">
+                {/* Top 3 products */}
+                {seller?.topProducts?.length > 0 && (
+                  <div className="border-t border-gray-100 pt-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                      Top Products
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {seller.topProducts.map(p => (
+                        <Link
+                          key={p._id}
+                          href={`/product/${p.slug}`}
+                          className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors group"
+                        >
+                          <p className="text-[11px] text-gray-700 font-medium truncate group-hover:text-primary-600 flex-1">
+                            {p.title}
+                          </p>
+                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-yellow-500 flex-shrink-0">
+                            ★ {p.rating > 0 ? p.rating.toFixed(1) : '—'}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Link
+                  href={seller ? `/store/${seller._id}` : '#'}
+                  className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                >
                   <Icon icon="mdi:store" className="w-3.5 h-3.5" />
                   Visit Store
-                </button>
+                </Link>
               </div>
             </div>
           </div>

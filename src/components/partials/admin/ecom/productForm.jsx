@@ -676,13 +676,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                 <Input {...register("title")} error={errors.title} placeholder="e.g. Premium Cotton T-Shirt" />
                 <FieldError err={errors.title} />
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Model Number <span className="text-red-500">*</span>
-                </label>
-                <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. MOD-1234" />
-                <FieldError err={errors.modelNumber} />
-              </div>
+ 
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
                 <Input {...register("shortDescription")} placeholder="One-line summary..." />
@@ -1004,14 +998,6 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                 )}
               </div>
 
-              <div className="mt-4 text-xs text-gray-400">
-                <CardTitle icon="mdi:alert-circle-outline" className="text-gray-500">Model Number</CardTitle>
-                <div>
-
-                  <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. XYZ-123" />
-                  <FieldError err={errors.modelNumber} />
-                </div>
-              </div>
 
             </Card>
           </div>

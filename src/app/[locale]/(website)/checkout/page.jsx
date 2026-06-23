@@ -126,12 +126,6 @@ export default function CheckoutPage() {
           router.push('/');
         });
     } else {
-      // Cart Flow
-      if (cartItems.length === 0) {
-        toast.error('Your cart is empty');
-        router.push('/cart');
-        return;
-      }
 
       let currentSubTotal = 0;
       const formattedItems = cartItems.map(item => {

@@ -14,24 +14,24 @@ const primaryNavLinks = [
     icon: "solar:home-2-bold-duotone",
   },
   {
-    name: "Products",
-    path: "#",
+    name: "Product Management",
+    path: "/seller/product",
     icon: "solar:clipboard-list-bold-duotone",
-    hasSubmenu: true,
-    submenu: [
-      { name: "All Products",  path: "/seller/product",          icon: "solar:box-bold-duotone" },
-      { name: "Add Product",   path: "/seller/product/add",      icon: "solar:add-square-bold-duotone" },
-    ],
+    // hasSubmenu: true,
+    // submenu: [
+    //   { name: "All Products",  path: "/seller/product",          icon: "solar:box-bold-duotone" },
+    //   { name: "Add Product",   path: "/seller/product/add",      icon: "solar:add-square-bold-duotone" },
+    // ],
   },
   {
-    name: "Orders",
+    name: "Order Management",
     path: "#",
     icon: "solar:box-minimalistic-bold-duotone",
     hasSubmenu: true,
     submenu: [
-      { name: "All Orders",       path: "/seller/order",           icon: "solar:clipboard-list-bold-duotone" },
+      { name: "All Orders", path: "/seller/order", icon: "solar:clipboard-list-bold-duotone" },
       { name: "Cancelled Orders", path: "/seller/order/cancelled", icon: "solar:close-circle-bold-duotone" },
-      { name: "Returns",          path: "/seller/returns",         icon: "solar:arrow-left-bold-duotone" },
+      { name: "Returns", path: "/seller/returns", icon: "solar:arrow-left-bold-duotone" },
     ],
   },
   {
@@ -39,21 +39,31 @@ const primaryNavLinks = [
     path: "/seller/wallet",
     icon: "solar:wallet-money-bold-duotone",
   },
+  {
+    name: "Reports",
+    path: "/seller/reports",
+    icon: "solar:document-text-bold-duotone",
+  },
+  {
+    name: "Invoices",
+    path: "/seller/invoice",
+    icon: "solar:bill-list-bold-duotone",
+  },
 ];
 
 const dropdownLinks = [
-  { name: "Profile Settings", path: "/seller/profile",  icon: "solar:user-id-bold-duotone" },
-  { name: "Help & Support",   path: "/help-support",    icon: "solar:question-circle-bold-duotone" },
-  { name: "Sign Out",         path: "/auth/logout",     icon: "solar:logout-3-bold-duotone", isLogout: true },
+  { name: "Profile Settings", path: "/seller/profile", icon: "solar:user-id-bold-duotone" },
+  { name: "Help & Support", path: "/help-support", icon: "solar:question-circle-bold-duotone" },
+  { name: "Sign Out", path: "/auth/logout", icon: "solar:logout-3-bold-duotone", isLogout: true },
 ];
 
 function Header() {
   const pathname = usePathname();
   const profileDropdownRef = useRef(null);
-  const notificationRef    = useRef(null);
+  const notificationRef = useRef(null);
 
-  const [isProfileOpen,     setIsProfileOpen]     = useState(false);
-  const [openSubmenu,       setOpenSubmenu]        = useState(null); // name of open submenu
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState(null); // name of open submenu
   const submenuRefs = useRef({});
 
   const dispatch = useDispatch();
@@ -66,7 +76,7 @@ function Header() {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
         setIsProfileOpen(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) {}
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) { }
       // close any submenu if clicked outside all submenu containers
       const clickedInsideSomeSubmenu = Object.values(submenuRefs.current).some(
         (ref) => ref && ref.contains(e.target)
@@ -95,7 +105,7 @@ function Header() {
 
   const renderNavLink = (link) => {
     if (link.hasSubmenu) {
-      const isOpen   = openSubmenu === link.name;
+      const isOpen = openSubmenu === link.name;
       const isActive = isSubmenuActive(link.submenu);
       return (
         <div
