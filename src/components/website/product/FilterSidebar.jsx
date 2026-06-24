@@ -76,7 +76,12 @@ function LoadingSkeleton({ lines = 4 }) {
 /* ══════════════════════════════════════════════════════════
    MAIN COMPONENT
 ══════════════════════════════════════════════════════════ */
-export default function FilterSidebar({ onFiltersChange }) {
+export default function FilterSidebar({
+  onFiltersChange,
+  initialCategoryIds    = [],
+  initialBrandIds       = [],
+  initialSubCategoryIds = [],
+}) {
   /* ── Raw Data ── */
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -89,15 +94,29 @@ export default function FilterSidebar({ onFiltersChange }) {
   const [loadingSubs, setLoadingSubs] = useState(false);
   const [loadingBrands, setLoadingBrands] = useState(false);
 
-  /* ── Selections (store IDs) ── */
-  const [selectedCategoryIds, setSelectedCategoryIds] = useState([]);
-  const [selectedSubIds, setSelectedSubIds] = useState([]);
-  const [selectedBrandIds, setSelectedBrandIds] = useState([]);
-  const [selectedColors, setSelectedColors] = useState([]);
+  /* ── Selections (store IDs) — seeded from URL params ── */
+  const [selectedCategoryIds, setSelectedCategoryIds] = useState(initialCategoryIds);
+  const [selectedSubIds,      setSelectedSubIds]      = useState(initialSubCategoryIds);
+  const [selectedBrandIds,    setSelectedBrandIds]    = useState(initialBrandIds);
+  const [selectedColors,      setSelectedColors]      = useState([]);
   const [selectedDynamicFilters, setSelectedDynamicFilters] = useState({});
-  const [rating, setRating] = useState(0);
+  const [rating,   setRating]   = useState(0);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
   const [priceMax, setPriceMax] = useState(MAX_PRICE);
+
+  /* Re-seed when URL params change (header nav to different filter) */
+  const initKey = initialCategoryIds.join(',') + '|' + initialBrandIds.join(',') + '|' + initialSubCategoryIds.join(',');
+  /* Guard: when true, the cascading effects should NOT wipe pre-seeded ids */
+  const isSeeding = useRef(false);
+  useEffect(() => {
+    isSeeding.current = true;
+    setSelectedCategoryIds(initialCategoryIds);
+    setSelectedSubIds(initialSubCategoryIds);
+    setSelectedBrandIds(initialBrandIds);
+    /* Allow cascade effects to settle before clearing the guard */
+    setTimeout(() => { isSeeding.current = false; }, 100);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initKey]);
 
   /* ── Price slider ── */
   const trackRef = useRef(null);
@@ -132,8 +151,11 @@ export default function FilterSidebar({ onFiltersChange }) {
 
   /* ── 2. Load subcategories whenever selected categories change ── */
   useEffect(() => {
-    setSelectedSubIds([]);
-    setSelectedBrandIds([]);
+    /* Don't wipe pre-seeded selections while URL params are being applied */
+    if (!isSeeding.current) {
+      setSelectedSubIds([]);
+      setSelectedBrandIds([]);
+    }
     setSubcategories([]);
     setBrands([]);
 
@@ -163,29 +185,31 @@ export default function FilterSidebar({ onFiltersChange }) {
     load();
   }, [selectedCategoryIds]);
 
-  /* ── 3. Load brands whenever selected subcategories change ── */
+  /* ── 3. Load brands whenever selected subcategories / categories change ── */
   useEffect(() => {
-    setSelectedBrandIds([]);
+    const hasInitialBrands = initialBrandIds.length > 0;
+    if (!hasInitialBrands && !isSeeding.current) setSelectedBrandIds([]);
     setBrands([]);
 
     const subIds = selectedSubIds;
-    if (!subIds.length && !selectedCategoryIds.length) return;
+
+    /* If brand IDs came from URL but no category selected yet, load all brands */
+    const loadAll = hasInitialBrands && !selectedCategoryIds.length && !subIds.length;
+    if (!subIds.length && !selectedCategoryIds.length && !loadAll) return;
 
     const load = async () => {
       setLoadingBrands(true);
       try {
         let brandMap = new Map();
         if (subIds.length) {
-          // Brands per selected subcategory
           const results = await Promise.all(
             subIds.map(id => axiosInstance.get(`/e-commerce/products/filters/brands/${id}`))
           );
           results.forEach(r => (r.data.data || []).forEach(b => brandMap.set(String(b._id), b)));
         } else {
-          // All brands for selected categories — use "all" sentinel
-          const results = await Promise.all(
-            selectedCategoryIds.map(() => axiosInstance.get(`/e-commerce/products/filters/brands/all`))
-          );
+          const results = await Promise.all([
+            axiosInstance.get(`/e-commerce/products/filters/brands/all`)
+          ]);
           results.forEach(r => (r.data.data || []).forEach(b => brandMap.set(String(b._id), b)));
         }
         setBrands(Array.from(brandMap.values()));
@@ -196,7 +220,8 @@ export default function FilterSidebar({ onFiltersChange }) {
       }
     };
     load();
-  }, [selectedSubIds, selectedCategoryIds]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubIds, selectedCategoryIds, initKey]);
 
   /* ── Notify parent on filter change ── */
   useEffect(() => {

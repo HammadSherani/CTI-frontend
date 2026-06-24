@@ -88,31 +88,17 @@ function BarcodeModal({ barcode, barcodeImage, onClose }) {
   );
 }
 
-/* ─── CSV Template download helper ──────────────────── */
-function downloadCSVTemplate() {
-  const header = "title,modelNumber,barcode,categoryName,brandName,price,stock,discountPercentage,shortDescription";
-  const example = "Example Product,MOD-001,,Electronics,Samsung,99.99,50,10,A great product";
-  const content = [header, example].join("\r\n");
-  const url = URL.createObjectURL(new Blob([content], { type: "text/csv" }));
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "products-import-template.csv";
-  a.click();
-  URL.revokeObjectURL(url);
-}
 
 /* ─── Main Products List Page ────────────────────────── */
 export default function ProductsListPage() {
   const router = useRouter();
   const { token } = useSelector((state) => state.auth);
   const debounceRef = useRef(null);
-  const csvInputRef = useRef(null);
 
   /* ── Data state ── */
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [importing, setImporting] = useState(false);
 
   /* ── Filter state ── */
   const [search, setSearch] = useState("");
@@ -256,52 +242,6 @@ export default function ProductsListPage() {
     }
   };
 
-  /* ── Export CSV ── */
-  const handleExportCSV = async () => {
-    try {
-      const res = await axiosInstance.get("/seller/product/export-csv", {
-        headers: { Authorization: `Bearer ${token}` },
-        responseType: "blob",
-      });
-      const url = URL.createObjectURL(new Blob([res.data], { type: "text/csv" }));
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "products.csv";
-      a.click();
-      URL.revokeObjectURL(url);
-      toast.success("CSV exported successfully");
-    } catch {
-      toast.error("Failed to export CSV");
-    }
-  };
-
-  /* ── Import CSV ── */
-  const handleImportCSV = async (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setImporting(true);
-    try {
-      const fd = new FormData();
-      fd.append("csv", file);
-      const { data } = await axiosInstance.post("/seller/product/import-csv", fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      toast.success(`Imported ${data.created} product${data.created !== 1 ? "s" : ""}`);
-      if (data.errors?.length) {
-        toast.warning(`${data.errors.length} row${data.errors.length !== 1 ? "s" : ""} skipped — check console`);
-        console.warn("CSV import errors:", data.errors);
-      }
-      fetchProducts(1);
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Import failed");
-    } finally {
-      setImporting(false);
-      e.target.value = "";
-    }
-  };
 
   /* ── Table columns ── */
   const columns = [
@@ -506,28 +446,14 @@ export default function ProductsListPage() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Export */}
+            {/* Import / Export */}
             <button
-              onClick={handleExportCSV}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors"
+              onClick={() => router.push('/seller/product/import-export')}
+              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl hover:bg-violet-100 transition-colors"
             >
-              <Icon icon="mdi:file-download-outline" className="w-4 h-4" />
-              Export
+              <Icon icon="mdi:swap-horizontal" className="w-4 h-4" />
+              Import / Export
             </button>
-
-            {/* Import */}
-            <button
-              onClick={() => csvInputRef.current?.click()}
-              disabled={importing}
-              className="flex items-center gap-2 px-4 py-2.5 text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors disabled:opacity-50"
-            >
-              {importing
-                ? <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
-                : <Icon icon="mdi:file-upload-outline" className="w-4 h-4" />
-              }
-              {importing ? 'Importing...' : 'Import'}
-            </button>
-            <input ref={csvInputRef} type="file" accept=".csv" className="hidden" onChange={handleImportCSV} />
 
             {/* View toggle */}
             <div className="flex bg-gray-100 rounded-xl p-1">

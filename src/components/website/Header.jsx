@@ -8,106 +8,202 @@ import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import Marquee from "react-fast-marquee";
 import ButtonSection from "./ButtonSection";
 import { AnimatePresence, motion } from "framer-motion";
-import GoogleTranslate from "../GoogleTranslate";
 import CustomTranslate from "../Translate";
 import { useLocale, useTranslations } from "next-intl";
-
-/* ════════════════════════════════════════════
-   MOCK SEARCH DATA  (replace with real API)
-════════════════════════════════════════════ */
-const SEARCH_SUGGESTIONS = [
-  { id: 1, type: "product", icon: "mdi:cellphone", label: "iPhone 14 Pro Max", category: "Smartphones" },
-  { id: 2, type: "product", icon: "mdi:cellphone", label: "Samsung Galaxy S24", category: "Smartphones" },
-  { id: 3, type: "product", icon: "mdi:laptop", label: "MacBook Pro 14\" Refurbished", category: "Laptops" },
-  { id: 4, type: "product", icon: "mdi:tablet", label: "iPad Air 5th Gen", category: "Tablets" },
-  { id: 5, type: "repair", icon: "mdi:tools", label: "Screen Repair – iPhone 13", category: "Repair" },
-  { id: 6, type: "repair", icon: "mdi:battery-charging", label: "Battery Replacement", category: "Repair" },
-  { id: 7, type: "repair", icon: "mdi:wrench", label: "Water Damage Repair", category: "Repair" },
-  { id: 8, type: "product", icon: "mdi:headphones", label: "AirPods Pro 2nd Gen", category: "Accessories" },
-  { id: 9, type: "product", icon: "mdi:watch", label: "Apple Watch Series 9", category: "Wearables" },
-  { id: 10, type: "repair", icon: "mdi:camera", label: "Camera Lens Repair", category: "Repair" },
-];
-
-const TRENDING = ["iPhone 15", "Samsung S24", "Screen Repair", "MacBook", "AirPods"];
+import axiosInstance from "@/config/axiosInstance";
+import useDebounce from "@/hooks/useDebounce";
 
 /* ════════════════════════════════════════════
    SEARCH SUGGESTIONS DROPDOWN
 ════════════════════════════════════════════ */
-function SearchSuggestions({ query, results, onSelect, onClose, visible }) {
+function SearchSuggestions({ query, data, loading, onSelect, visible }) {
   if (!visible) return null;
 
-  const typeColor = { product: "text-blue-500", repair: "text-orange-500" };
-  const typeBg = { product: "bg-blue-50", repair: "bg-orange-50" };
+  const hasResults =
+    data.products.length > 0 ||
+    data.categories.length > 0 ||
+    data.brands.length > 0 ||
+    data.sellers.length > 0;
+
+  const highlight = (text) => {
+    if (!query.trim()) return text;
+    const parts = text.split(new RegExp(`(${query})`, "gi"));
+    return parts.map((part, i) =>
+      part.toLowerCase() === query.toLowerCase() ? (
+        <mark key={i} className="bg-orange-100 text-orange-600 rounded px-0.5 not-italic">
+          {part}
+        </mark>
+      ) : part
+    );
+  };
 
   return (
     <div className="absolute top-full left-0 right-0 mt-1.5 z-[200] bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden">
-      {/* ── No query → show trending ── */}
-      {!query.trim() && (
-        <div className="p-4">
-          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
-            <Icon icon="mdi:fire" className="text-orange-500 w-3.5 h-3.5" /> Trending Searches
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {TRENDING.map((t) => (
-              <button
-                key={t}
-                onMouseDown={() => onSelect(t)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-600 text-[12px] font-medium rounded-full transition-colors"
-              >
-                <Icon icon="mdi:trending-up" className="w-3.5 h-3.5" /> {t}
-              </button>
-            ))}
-          </div>
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-400">
+          <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
+          Searching…
         </div>
       )}
 
-      {/* ── Has query → show results ── */}
-      {query.trim() && results.length > 0 && (
-        <div className="py-2 max-h-72 overflow-y-auto">
-          {results.map((item, i) => (
-            <button
-              key={item.id}
-              onMouseDown={() => onSelect(item.label)}
-              className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
-            >
-              {/* Icon bubble */}
-              <span className={`flex-shrink-0 w-8 h-8 rounded-lg ${typeBg[item.type]} flex items-center justify-center`}>
-                <Icon icon={item.icon} className={`w-4 h-4 ${typeColor[item.type]}`} />
-              </span>
-              <div className="flex-1 min-w-0">
-                {/* Highlight matching text */}
-                <span className="text-[13px] font-medium text-gray-800 leading-tight block truncate">
-                  {item.label.split(new RegExp(`(${query})`, 'gi')).map((part, j) =>
-                    part.toLowerCase() === query.toLowerCase()
-                      ? <mark key={j} className="bg-orange-100 text-orange-600 rounded px-0.5">{part}</mark>
-                      : part
+      {/* No query — show hint */}
+      {!loading && !query.trim() && (
+        <div className="px-4 py-4 text-sm text-gray-400 text-center">
+          Start typing to search products, stores, categories…
+        </div>
+      )}
+
+      {/* Has results */}
+      {!loading && query.trim() && hasResults && (
+        <div className="py-2 max-h-[420px] overflow-y-auto divide-y divide-gray-50">
+
+          {/* Products */}
+          {data.products.length > 0 && (
+            <div className="pb-1">
+              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Products
+              </p>
+              {data.products.map((item) => (
+                <button
+                  key={item._id}
+                  onMouseDown={() => onSelect({ type: "product", value: item.title, slug: item.slug })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                >
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                    <Icon icon="mdi:cellphone" className="w-4 h-4 text-blue-500" />
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium text-gray-800 leading-tight block truncate">
+                      {highlight(item.title)}
+                    </span>
+                    {item.category && (
+                      <span className="text-[11px] text-gray-400">{item.category}</span>
+                    )}
+                  </div>
+                  {item.minPrice > 0 && (
+                    <span className="text-[12px] font-bold text-orange-500 flex-shrink-0">
+                      ${item.minPrice.toFixed(2)}
+                    </span>
                   )}
-                </span>
-                <span className="text-[11px] text-gray-400">{item.category}</span>
-              </div>
-              <Icon icon="mdi:arrow-top-left" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 transition-colors flex-shrink-0" />
-            </button>
-          ))}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Categories */}
+          {data.categories.length > 0 && (
+            <div className="pb-1">
+              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Categories
+              </p>
+              {data.categories.map((item) => (
+                <button
+                  key={item._id}
+                  onMouseDown={() => onSelect({ type: "category", value: item.title, id: item._id })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                >
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-50 overflow-hidden flex items-center justify-center">
+                    {item.icon ? (
+                      <img src={item.icon} alt={item.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <Icon icon="mdi:tag" className="w-4 h-4 text-purple-500" />
+                    )}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium text-gray-800 block truncate">
+                      {highlight(item.title)}
+                    </span>
+                    {item.productCount > 0 && (
+                      <span className="text-[11px] text-gray-400">{item.productCount} products</span>
+                    )}
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Brands */}
+          {data.brands.length > 0 && (
+            <div className="pb-1">
+              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Brands
+              </p>
+              {data.brands.map((item) => (
+                <button
+                  key={item._id}
+                  onMouseDown={() => onSelect({ type: "brand", value: item.title, id: item._id })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                >
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-green-50 overflow-hidden flex items-center justify-center">
+                    {item.icon ? (
+                      <img src={item.icon} alt={item.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <Icon icon="mdi:tag-outline" className="w-4 h-4 text-green-500" />
+                    )}
+                  </span>
+                  <span className="text-[13px] font-medium text-gray-800 truncate">
+                    {highlight(item.title)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Sellers */}
+          {data.sellers.length > 0 && (
+            <div className="pb-1">
+              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Stores
+              </p>
+              {data.sellers.map((item) => (
+                <button
+                  key={item._id}
+                  onMouseDown={() => onSelect({ type: "seller", value: item.businessName, id: item._id })}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                >
+                  {item.logo ? (
+                    <img src={item.logo} alt={item.businessName} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                  ) : (
+                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center font-bold text-orange-500 text-sm">
+                      {item.businessName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium text-gray-800 block truncate">
+                      {highlight(item.businessName)}
+                    </span>
+                    {item.address && (
+                      <span className="text-[11px] text-gray-400 truncate block">{item.address}</span>
+                    )}
+                  </div>
+                  <Icon icon="mdi:store" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
-      {/* ── Has query but no results ── */}
-      {query.trim() && results.length === 0 && (
+      {/* No results */}
+      {!loading && query.trim() && !hasResults && (
         <div className="px-4 py-6 text-center">
           <Icon icon="mdi:magnify-remove-outline" className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <p className="text-[13px] text-gray-400">No results for <strong className="text-gray-600">"{query}"</strong></p>
+          <p className="text-[13px] text-gray-400">
+            No results for <strong className="text-gray-600">"{query}"</strong>
+          </p>
         </div>
       )}
 
-      {/* ── Footer ── */}
-      {query.trim() && results.length > 0 && (
+      {/* Footer — view all */}
+      {!loading && query.trim() && hasResults && (
         <div className="border-t border-gray-100 px-4 py-2.5">
           <button
-            onMouseDown={() => onSelect(query)}
+            onMouseDown={() => onSelect({ type: "all", value: query })}
             className="text-[12px] font-semibold text-orange-500 hover:text-orange-600 flex items-center gap-1"
           >
             <Icon icon="mdi:magnify" className="w-4 h-4" />
-            Search for "{query}"
+            See all results for "{query}"
           </button>
         </div>
       )}
@@ -118,72 +214,173 @@ function SearchSuggestions({ query, results, onSelect, onClose, visible }) {
 /* ════════════════════════════════════════════
    SEARCH BAR
 ════════════════════════════════════════════ */
+const EMPTY_RESULTS = { products: [], categories: [], brands: [], sellers: [] };
+
 function SearchBar({ className = "" }) {
-  const [query, setQuery] = useState("");
+  const [query, setQuery]     = useState("");
   const [focused, setFocused] = useState(false);
-  const [results, setResults] = useState([]);
-  const router = useRouter();
-  const inputRef = useRef(null);
-  const wrapRef = useRef(null);
+  const [results, setResults] = useState(EMPTY_RESULTS);
+  const [loading, setLoading] = useState(false);
+  const router    = useRouter();
+  const inputRef  = useRef(null);
+  const debouncedQuery = useDebounce(query, 350);
 
-  // Filter suggestions on query change
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
-    const q = query.toLowerCase();
-    setResults(SEARCH_SUGGESTIONS.filter(
-      (s) => s.label.toLowerCase().includes(q) || s.category.toLowerCase().includes(q)
-    ));
-  }, [query]);
+    if (!debouncedQuery.trim()) {
+      setResults(EMPTY_RESULTS);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    axiosInstance
+      .get(`/e-commerce/search?q=${encodeURIComponent(debouncedQuery)}`)
+      .then(({ data }) => {
+        if (!cancelled && data.success) setResults(data.data);
+      })
+      .catch(() => {})
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [debouncedQuery]);
 
-  const handleSelect = (value) => {
+  const handleSelect = useCallback(({ type, value, slug, id }) => {
     setQuery(value);
     setFocused(false);
     inputRef.current?.blur();
-    router.push(`/coming?q=${encodeURIComponent(value)}`)
-  };
+
+    if (type === "product" && slug)       router.push(`/product/${slug}`);
+    else if (type === "category" && id)   router.push(`/product?categoryIds=${id}`);
+    else if (type === "brand" && id)      router.push(`/product?brandIds=${id}`);
+    else if (type === "seller" && id)     router.push(`/store/${id}`);
+    else                                  router.push(`/product?q=${encodeURIComponent(value)}`);
+  }, [router]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (query.trim()) handleSelect(query.trim());
+    if (query.trim()) handleSelect({ type: "all", value: query.trim() });
   };
 
-  const showDropdown = focused;
-
   return (
-    <form onSubmit={handleSubmit} className={`relative ${className}`} ref={wrapRef}>
-      <div className={`flex items-center bg-white border-2 rounded-xl px-4 py-2.5 transition-all duration-200 ${focused ? "border-orange-500 shadow-lg shadow-orange-100" : "border-gray-200 hover:border-gray-300"
-        }`}>
+    <form onSubmit={handleSubmit} className={`relative ${className}`}>
+      <div className={`flex items-center bg-white border-2 rounded-xl px-4 py-2.5 transition-all duration-200 ${
+        focused ? "border-orange-500 shadow-lg shadow-orange-100" : "border-gray-200 hover:border-gray-300"
+      }`}>
+        <Icon icon="mdi:magnify" className="w-5 h-5 text-gray-400 flex-shrink-0" />
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search products, repairs, brands…"
+          placeholder="Search products, brands, stores…"
           className="flex-1 bg-transparent outline-none text-[14px] placeholder-gray-400 text-gray-800 mx-3"
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
         />
         {query && (
-          <button type="button" onClick={() => setQuery("")} className="text-gray-300 hover:text-gray-500 transition-colors mr-1">
-            <Icon icon="mdi:close-circle" className="w-4.5 h-4.5" />
+          <button
+            type="button"
+            onClick={() => { setQuery(""); setResults(EMPTY_RESULTS); }}
+            className="text-gray-300 hover:text-gray-500 transition-colors"
+          >
+            <Icon icon="mdi:close-circle" className="w-4 h-4" />
           </button>
         )}
-
-        <button type="button" className="text-gray-400 hover:text-orange-500 transition-colors ml-1">
-          <Icon icon="mdi:magnify" className="w-5 h-5" />
-        </button>
-        <button type="button" className="text-gray-400 hover:text-orange-500 transition-colors ml-1">
-          <Icon icon="mdi:microphone-outline" className="w-5 h-5" />
-        </button>
       </div>
 
       <SearchSuggestions
         query={query}
-        results={results}
+        data={results}
+        loading={loading}
         onSelect={handleSelect}
-        visible={showDropdown}
+        visible={focused}
       />
     </form>
+  );
+}
+
+/* ════════════════════════════════════════════
+   PRODUCTS DROPDOWN (with live top-categories)
+════════════════════════════════════════════ */
+function ProductsDropdown({ isHome, isScrolled, onClose }) {
+  const [cats, setCats]       = useState([]);
+  const [loadingCats, setLoadingCats] = useState(true);
+  const router = useRouter();
+
+  useEffect(() => {
+    axiosInstance
+      .get("/e-commerce/products/top-categories")
+      .then(({ data }) => { if (data.success) setCats(data.data); })
+      .catch(() => {})
+      .finally(() => setLoadingCats(false));
+  }, []);
+
+  const textClass = "text-gray-900";
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 10 }}
+      transition={{ duration: 0.2 }}
+      className="absolute top-full left-0 mt-2 w-72 rounded-xl shadow-xl border bg-white border-gray-200 overflow-hidden"
+    >
+      {/* Header */}
+      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+        <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
+          <Icon icon="mdi:fire" className="w-3.5 h-3.5 text-orange-500" />
+          Top Categories
+        </p>
+      </div>
+
+      {loadingCats ? (
+        <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
+          <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
+        </div>
+      ) : (
+        <div className="py-1">
+          {cats.map((cat, i) => (
+            <Link
+              key={cat._id}
+              href={`/product?categoryIds=${cat._id}`}
+              onClick={onClose}
+              className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-gray-50 group ${textClass}`}
+            >
+              {/* Rank badge */}
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-black flex items-center justify-center">
+                {i + 1}
+              </span>
+              {/* Category icon / image */}
+              <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-orange-50 overflow-hidden flex items-center justify-center transition-colors">
+                {cat.icon ? (
+                  <img src={cat.icon} alt={cat.title} className="w-full h-full object-cover" />
+                ) : (
+                  <Icon icon="mdi:tag" className="w-4 h-4 text-gray-500 group-hover:text-orange-500" />
+                )}
+              </span>
+              <div className="flex-1 min-w-0">
+                <span className="text-sm font-semibold text-gray-800 block truncate">{cat.title}</span>
+                <span className="text-[10px] text-gray-400">
+                  {cat.productCount} product{cat.productCount !== 1 ? "s" : ""}
+                  {cat.avgRating > 0 && ` · ${cat.avgRating}★`}
+                </span>
+              </div>
+              <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" />
+            </Link>
+          ))}
+
+          {/* View all products */}
+          <div className="border-t border-gray-100 mt-1">
+            <Link
+              href="/product"
+              onClick={onClose}
+              className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-orange-500 hover:bg-orange-50 transition-colors"
+            >
+              <Icon icon="mdi:shopping" className="w-4 h-4" />
+              Browse all products
+            </Link>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -192,16 +389,15 @@ function SearchBar({ className = "" }) {
 ════════════════════════════════════════════ */
 function AnnouncementBar() {
   const t = useTranslations("Home.AnnouncementBar");
- 
+
   return (
     <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
       <div className="max-w-7xl mx-auto px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
-
-       <p className="text-center sm:text-left">
+        <p className="text-center sm:text-left">
           {t.rich("message", {
             hours: (chunks) => (
               <span className="text-red-500 font-bold">{chunks}</span>
-            )
+            ),
           })}
         </p>
         <div className="flex items-center gap-5">
@@ -212,7 +408,6 @@ function AnnouncementBar() {
             <Icon icon="mdi:account-circle-outline" className="w-4 h-4" />
             {t("login")}
           </Link>
-
           <a
             href="tel:+234567890"
             className="flex items-center gap-1 hover:text-orange-600 transition-colors"
@@ -220,7 +415,6 @@ function AnnouncementBar() {
             <Icon icon="mdi:phone" className="w-4 h-4" />
             +234 567 890
           </a>
-
           <CustomTranslate />
         </div>
       </div>
@@ -233,14 +427,12 @@ function AnnouncementBar() {
 ════════════════════════════════════════════ */
 function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
   const { user } = useSelector((state) => state.auth) || {};
-  const cartCount = useSelector((state) => state.cart?.items?.length) || 0;
 
   return (
     <div className="bg-white border-b border-gray-100">
       <div className="max-w-7xl mx-auto px-8">
         <div className="flex items-center justify-between gap-3 md:gap-6">
-
-          {/* ── Hamburger (mobile only) ── */}
+          {/* Hamburger (mobile) */}
           <button
             className="md:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-orange-50 transition-colors"
             onClick={() => setMobileMenuOpen((p) => !p)}
@@ -249,52 +441,23 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
             <Icon icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"} className="w-6 h-6 text-gray-700" />
           </button>
 
-          {/* ── Logo ── */}
+          {/* Logo */}
           <Link href="/" className="flex-shrink-0">
             <div className="relative w-14 h-12 md:w-26 md:h-16">
               <Image src="/assets/logo.png" alt="Click To Integrate" fill className="object-contain" />
             </div>
           </Link>
 
-          {/* ── Search (desktop: inline, mobile: hidden here → shown below) ── */}
+          {/* Search (desktop) */}
           <SearchBar className="hidden md:block flex-1 max-w-2xl" />
-
-          {/* ── Right Icons ── */}
-          {/* <div className="flex items-center gap-2 md:gap-4 ml-auto md:ml-0">
-            <button aria-label="Wishlist" className="hidden sm:flex w-9 h-9 items-center justify-center rounded-xl hover:bg-orange-50 hover:text-orange-500 transition-colors text-gray-600">
-              <Icon icon="mdi:heart-outline" className="w-5 h-5 md:w-6 md:h-6" />
-            </button>
-
-            <button aria-label="Cart" className="relative flex w-9 h-9 items-center justify-center rounded-xl hover:bg-orange-50 hover:text-orange-500 transition-colors text-gray-600">
-              <Icon icon="mdi:cart-outline" className="w-5 h-5 md:w-6 md:h-6" />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 min-w-[18px] px-1 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-
-            {user ? (
-              <button className="flex-shrink-0 w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                <Icon icon="mdi:account" className="w-5 h-5 text-orange-600" />
-              </button>
-            ) : (
-              <Link
-                href="/auth/register"
-                className="hidden sm:inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 active:scale-95 text-white px-4 py-2 rounded-xl text-[13px] font-semibold whitespace-nowrap transition-all duration-200 shadow-sm"
-              >
-                Get Started
-              </Link>
-            )}
-          </div> */}
 
           <div className="flex gap-3 md:gap-5 text-xl items-center">
             <ButtonSection />
           </div>
         </div>
 
-        {/* ── Mobile Search (below logo row) ── */}
-        <div className="md:hidden mt-3">
+        {/* Mobile Search */}
+        <div className="md:hidden mt-3 pb-3">
           <SearchBar />
         </div>
       </div>
@@ -306,37 +469,30 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
    MOBILE MENU DRAWER
 ════════════════════════════════════════════ */
 function MobileMenu({ open, onClose }) {
-  const { user } = useSelector(state => state.auth) || {};
+  const { user } = useSelector((state) => state.auth) || {};
   const navLinks = [
-    { label: "Home", href: "/", icon: "mdi:home-outline" },
-    // { label: "Mobile Repair", href: "/my-account/mobile-repair", icon: "mynaui:mobile" },
-    { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
-    { label: "Academy", href: "/academy", icon: "mdi:school-outline" },
-    { label: "Track Order", href: "/coming", icon: "mdi:map-marker-path" },
-    { label: "Contact", href: "/contact", icon: "mdi:phone-outline" },
+    { label: "Home",               href: "/",            icon: "mdi:home-outline" },
+    { label: "Buy Devices",        href: "/coming",      icon: "mdi:shopping-outline" },
+    { label: "Academy",            href: "/academy",     icon: "mdi:school-outline" },
+    { label: "Track Order",        href: "/coming",      icon: "mdi:map-marker-path" },
+    { label: "Contact",            href: "/contact",     icon: "mdi:phone-outline" },
   ];
 
   return (
     <>
-      {/* Backdrop */}
       {open && (
         <div
           className="fixed inset-0 z-[90] bg-black/30 backdrop-blur-sm md:hidden"
           onClick={onClose}
         />
       )}
-
-      {/* Drawer */}
       <div className={`fixed top-0 left-0 h-full w-72 z-[100] bg-white shadow-2xl transform transition-transform duration-300 md:hidden ${open ? "translate-x-0" : "-translate-x-full"}`}>
-        {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <span className="text-[15px] font-bold text-gray-800">Menu</span>
           <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">
             <Icon icon="mdi:close" className="w-5 h-5 text-gray-600" />
           </button>
         </div>
-
-        {/* Links */}
         <nav className="py-3 px-3">
           {navLinks.map((link, index) => (
             <Link
@@ -352,7 +508,6 @@ function MobileMenu({ open, onClose }) {
             </Link>
           ))}
         </nav>
-
         {!user && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
             <Link
@@ -365,8 +520,6 @@ function MobileMenu({ open, onClose }) {
             </Link>
           </div>
         )}
-        {/* CTA */}
-
       </div>
     </>
   );
@@ -377,13 +530,12 @@ function MobileMenu({ open, onClose }) {
 ════════════════════════════════════════════ */
 function PromoMarquee() {
   const t = useTranslations("Home.PromoMarquee");
-
   const items = [
-    { icon: "mdi:truck-fast-outline",    text: t("shipping") },
-    { icon: "mdi:shield-check-outline",  text: t("warranty") },
-    { icon: "mdi:certificate-outline",   text: t("quality") },
-    { icon: "mdi:headset",               text: t("support") },
-    { icon: "mdi:lock-outline",          text: t("payments") },
+    { icon: "mdi:truck-fast-outline",   text: t("shipping") },
+    { icon: "mdi:shield-check-outline", text: t("warranty") },
+    { icon: "mdi:certificate-outline",  text: t("quality")  },
+    { icon: "mdi:headset",              text: t("support")  },
+    { icon: "mdi:lock-outline",         text: t("payments") },
   ];
 
   return (
@@ -401,95 +553,77 @@ function PromoMarquee() {
   );
 }
 
-
-
+/* ════════════════════════════════════════════
+   NAVIGATION HEADER
+════════════════════════════════════════════ */
 export function NavigationHeader() {
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [isScrolled, setIsScrolled] = useState(false);
-
-  const router = useRouter();
+  const [isScrolled, setIsScrolled]     = useState(false);
+  const router   = useRouter();
   const pathname = usePathname();
-  const locale = useLocale();
+  const locale   = useLocale();
 
   const isHome =
-    pathname === "/" ||
-    pathname === `/${locale}` ||
-    pathname === "";
+    pathname === "/" || pathname === `/${locale}` || pathname === "";
 
-  const navigationData = {
-    mainNav: [
-      { name: "Home", href: "/", hasDropdown: false },
-      {
-        name: "Services",
-        href: "/mobile-repair",
-        hasDropdown: true,
-        dropdownItems: [
-          { name: "Mobile Repair", href: "/mobile-repair", icon: "mynaui:mobile" },
-          { name: "Battery Replacement", href: "/mobile-repair", icon: "mdi:battery" },
-          { name: "Motherboard Repair", href: "/mobile-repair", icon: "mdi:chip" },
-          { name: "Screen Repair", href: "/mobile-repair", icon: "radix-icons:mobile" },
-          { name: "Water Damage", href: "/mobile-repair", icon: "mdi:water" },
-          { name: "Software Issues", href: "/mobile-repair", icon: "mdi:code-brackets" },
-        ],
-      },
-      {
-        name: "Products",
-        href: "/product",
-        hasDropdown: true,
-        dropdownItems: [
-          { name: "New Arrivals", href: "/coming", icon: "mdi:star" },
-          { name: "Refurbished Devices", href: "/coming", icon: "mdi:refresh" },
-          { name: "Accessories", href: "/coming", icon: "mdi:headphones" },
-          { name: "Spare Parts", href: "/coming", icon: "mdi:tools" },
-          { name: "Deals & Offers", href: "/coming", icon: "mdi:tag" },
-        ],
-      },
-      { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
-      { name: "Academy", href: "/academy", hasDropdown: false },
-      { name: "About", href: "/about-us", hasDropdown: false },
-      {
-        name: "Support",
-        href: "/live-support",
-        hasDropdown: true,
-        dropdownItems: [
-          { name: "Privacy Policy", href: "/privacy-policy", icon: "mdi:shield-check-outline" },
-          { name: "Terms of Service", href: "/terms-of-service", icon: "mdi:file-document" },
-          { name: "Environmental Policy", href: "/e-waste-policy", icon: "mdi:leaf" },
-          { name: "How to return", href: "/how-to-return", icon: "mdi:file-document" },
-          { name: "FAQ", href: "/faq", icon: "mdi:help-circle" },
-          { name: "Refund Policy", href: "/refund-policy", icon: "mdi:currency-usd" },
-        ],
-      },
-      { name: "Blog", href: "/blog", hasDropdown: false },
-    ],
-  };
+  const mainNav = [
+    { name: "Home",    href: "/",           hasDropdown: false },
+    {
+      name: "Services", href: "/mobile-repair", hasDropdown: true,
+      dropdownItems: [
+        { name: "Mobile Repair",      href: "/mobile-repair", icon: "mynaui:mobile"         },
+        { name: "Battery Replacement",href: "/mobile-repair", icon: "mdi:battery"           },
+        { name: "Motherboard Repair", href: "/mobile-repair", icon: "mdi:chip"              },
+        { name: "Screen Repair",      href: "/mobile-repair", icon: "radix-icons:mobile"    },
+        { name: "Water Damage",       href: "/mobile-repair", icon: "mdi:water"             },
+        { name: "Software Issues",    href: "/mobile-repair", icon: "mdi:code-brackets"     },
+      ],
+    },
+    {
+      name: "Products", href: "/product", hasDropdown: true,
+      isProductsMenu: true,
+    },
+    { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
+    { name: "Academy", href: "/academy", hasDropdown: false },
+    { name: "About",   href: "/about-us", hasDropdown: false },
+    {
+      name: "Support", href: "/live-support", hasDropdown: true,
+      dropdownItems: [
+        { name: "Privacy Policy",       href: "/privacy-policy",      icon: "mdi:shield-check-outline" },
+        { name: "Terms of Service",     href: "/terms-of-service",    icon: "mdi:file-document"        },
+        { name: "Environmental Policy", href: "/e-waste-policy",      icon: "mdi:leaf"                 },
+        { name: "How to return",        href: "/how-to-return",       icon: "mdi:file-document"        },
+        { name: "FAQ",                  href: "/faq",                 icon: "mdi:help-circle"          },
+        { name: "Refund Policy",        href: "/refund-policy",       icon: "mdi:currency-usd"         },
+      ],
+    },
+    { name: "Blog", href: "/blog", hasDropdown: false },
+  ];
 
-  // Scroll effect
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
       if (openDropdown) setOpenDropdown(null);
     };
-
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, [openDropdown]);
 
-  // Click outside close
   useEffect(() => {
     const handleClickOutside = (e) => {
-      if (!e.target.closest(".dropdown-container")) {
-        setOpenDropdown(null);
-      }
+      if (!e.target.closest(".dropdown-container")) setOpenDropdown(null);
     };
-
     document.addEventListener("click", handleClickOutside);
     return () => document.removeEventListener("click", handleClickOutside);
   }, []);
 
-  // Hover handlers
-  const handleMouseEnter = (name) => setOpenDropdown(name);
-  const handleMouseLeave = () => setOpenDropdown(null);
+  const linkClass = `flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
+    isScrolled
+      ? "text-gray-900 hover:bg-gray-100"
+      : isHome
+      ? "text-white hover:bg-white/10"
+      : "text-gray-900 hover:bg-gray-100"
+  }`;
 
   return (
     <header
@@ -503,73 +637,70 @@ export function NavigationHeader() {
     >
       <div className="flex items-center justify-center">
         <nav className="hidden lg:flex items-center gap-1">
-          {navigationData.mainNav.map((item) => (
+          {mainNav.map((item) => (
             <div
               key={item.name}
               className="relative dropdown-container"
-              onMouseEnter={() => item.hasDropdown && handleMouseEnter(item.name)}
-              onMouseLeave={() => item.hasDropdown && handleMouseLeave()}
+              onMouseEnter={() => item.hasDropdown && setOpenDropdown(item.name)}
+              onMouseLeave={() => item.hasDropdown && setOpenDropdown(null)}
             >
-              {/* 🔥 MAIN NAV ITEM */}
               <Link
                 href={item.href}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                  isScrolled
-                    ? "text-gray-900 hover:bg-gray-100"
-                    : isHome
-                    ? "text-white hover:bg-white/10"
-                    : "text-gray-900 hover:bg-gray-100"
-                }`}
+                className={linkClass}
               >
                 {item.name}
-
                 {item.hasDropdown && (
                   <Icon
                     icon="mdi:chevron-down"
-                    className={`transition-transform duration-300 ${
-                      openDropdown === item.name ? "rotate-180" : ""
-                    }`}
+                    className={`transition-transform duration-300 ${openDropdown === item.name ? "rotate-180" : ""}`}
                     width={18}
                   />
                 )}
               </Link>
 
-              {/* 🔽 DROPDOWN */}
               <AnimatePresence>
                 {item.hasDropdown && openDropdown === item.name && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 10 }}
-                    transition={{ duration: 0.2 }}
-                    className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
-                      isScrolled
-                        ? "bg-white border-gray-200"
-                        : isHome
-                        ? "bg-white/10 backdrop-blur-md border-white/20"
-                        : "bg-white border-gray-200"
-                    }`}
-                  >
-                    {item.dropdownItems?.map((dropdownItem) => (
-                      <Link
-                        key={dropdownItem.name}
-                        href={dropdownItem.href}
-                        onClick={() => setOpenDropdown(null)}
-                        className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
-                          isScrolled
-                            ? "text-gray-800 hover:bg-gray-100"
-                            : isHome
-                            ? "text-white hover:bg-white/20"
-                            : "text-gray-900 hover:bg-gray-100"
-                        }`}
-                      >
-                        <Icon icon={dropdownItem.icon} width={18} />
-                        <span className="text-sm font-medium">
-                          {dropdownItem.name}
-                        </span>
-                      </Link>
-                    ))}
-                  </motion.div>
+                  item.isProductsMenu ? (
+                    <ProductsDropdown
+                      key="products-dd"
+                      isHome={isHome}
+                      isScrolled={isScrolled}
+                      onClose={() => setOpenDropdown(null)}
+                    />
+                  ) : (
+                    <motion.div
+                      key="generic-dd"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      transition={{ duration: 0.2 }}
+                      className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
+                        isScrolled
+                          ? "bg-white border-gray-200"
+                          : isHome
+                          ? "bg-white/10 backdrop-blur-md border-white/20"
+                          : "bg-white border-gray-200"
+                      }`}
+                    >
+                      {item.dropdownItems?.map((di) => (
+                        <Link
+                          key={di.name}
+                          href={di.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
+                            isScrolled
+                              ? "text-gray-800 hover:bg-gray-100"
+                              : isHome
+                              ? "text-white hover:bg-white/20"
+                              : "text-gray-900 hover:bg-gray-100"
+                          }`}
+                        >
+                          <Icon icon={di.icon} width={18} />
+                          <span className="text-sm font-medium">{di.name}</span>
+                        </Link>
+                      ))}
+                    </motion.div>
+                  )
                 )}
               </AnimatePresence>
             </div>
@@ -580,17 +711,15 @@ export function NavigationHeader() {
   );
 }
 
-
 /* ════════════════════════════════════════════
    MAIN HEADER EXPORT
 ════════════════════════════════════════════ */
 export default function Header() {
-  const [scrolled, setScrolled] = useState(false);
+  const [scrolled, setScrolled]         = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-   const pathname = usePathname();
-  const locale = useLocale();
-  // const isHome = usePathname() === "/";
-    const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
+  const pathname = usePathname();
+  const locale   = useLocale();
+  const isHome   = pathname === "/" || pathname === `/${locale}` || pathname === "";
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 4);
@@ -598,7 +727,6 @@ export default function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Lock body scroll when mobile menu open
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
@@ -606,20 +734,18 @@ export default function Header() {
 
   return (
     <>
-      <header className={`sticky top-0 z-30 bg-white transition-shadow duration-300 ${scrolled ? "" : ""}`}>
+      <header className="sticky top-0 z-30 bg-white transition-shadow duration-300">
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
       </header>
       <div className="relative z-0">
         {isHome && (
-          // <PromoMarquee />
-           <div className={`relative z-0 transition-opacity duration-300 ${isHome ? "opacity-100" : "opacity-0 pointer-events-none h-0 overflow-hidden"}`}>
-        <PromoMarquee />
-      </div>
+          <div className="relative z-0 transition-opacity duration-300">
+            <PromoMarquee />
+          </div>
         )}
       </div>
       <NavigationHeader />
-      {/* Mobile Drawer */}
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>
   );

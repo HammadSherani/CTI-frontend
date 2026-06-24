@@ -166,15 +166,12 @@ export function useVariantBuilder(initialVariants = []) {
   const validate = useCallback(() => {
     const errors = {};
     rows.forEach((r, idx) => {
-      if (!r.price || Number(r.price) <= 0)
-        errors[`${r.key}_price`] = `Row ${idx + 1}: price required`;
+      if (r.price !== "" && r.price !== undefined && Number(r.price) < 0)
+        errors[`${r.key}_price`] = `Row ${idx + 1}: price cannot be negative`;
       if (r.stock === "" || Number(r.stock) < 0)
         errors[`${r.key}_stock`] = `Row ${idx + 1}: stock invalid`;
       if (r.discountPercentage && (Number(r.discountPercentage) < 0 || Number(r.discountPercentage) >= 100))
         errors[`${r.key}_discount`] = `Row ${idx + 1}: discount must be 0-99`;
-      const totalImgs = (r.existingImages?.length || 0) + (r.imageFiles?.length || 0);
-      if (totalImgs === 0)
-        errors[`${r.key}_image`] = `Row ${idx + 1}: at least 1 image required`;
     });
     return errors;
   }, [rows]);

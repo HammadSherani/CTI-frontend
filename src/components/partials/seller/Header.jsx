@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
+import axiosInstance from '@/config/axiosInstance';
 
 const primaryNavLinks = [
   {
@@ -14,24 +15,24 @@ const primaryNavLinks = [
     icon: "solar:home-2-bold-duotone",
   },
   {
-    name: "Products",
-    path: "#",
+    name: "Product Management",
+    path: "/seller/product",
     icon: "solar:clipboard-list-bold-duotone",
-    hasSubmenu: true,
-    submenu: [
-      { name: "All Products",  path: "/seller/product",          icon: "solar:box-bold-duotone" },
-      { name: "Add Product",   path: "/seller/product/add",      icon: "solar:add-square-bold-duotone" },
-    ],
+    // hasSubmenu: true,
+    // submenu: [
+    //   { name: "All Products",  path: "/seller/product",          icon: "solar:box-bold-duotone" },
+    //   { name: "Add Product",   path: "/seller/product/add",      icon: "solar:add-square-bold-duotone" },
+    // ],
   },
   {
-    name: "Orders",
+    name: "Order Management",
     path: "#",
     icon: "solar:box-minimalistic-bold-duotone",
     hasSubmenu: true,
     submenu: [
-      { name: "All Orders",       path: "/seller/order",           icon: "solar:clipboard-list-bold-duotone" },
+      { name: "All Orders", path: "/seller/order", icon: "solar:clipboard-list-bold-duotone" },
       { name: "Cancelled Orders", path: "/seller/order/cancelled", icon: "solar:close-circle-bold-duotone" },
-      { name: "Returns",          path: "/seller/returns",         icon: "solar:arrow-left-bold-duotone" },
+      { name: "Returns", path: "/seller/returns", icon: "solar:arrow-left-bold-duotone" },
     ],
   },
   {
@@ -39,34 +40,60 @@ const primaryNavLinks = [
     path: "/seller/wallet",
     icon: "solar:wallet-money-bold-duotone",
   },
+  {
+    name: "Reports",
+    path: "/seller/reports",
+    icon: "solar:document-text-bold-duotone",
+  },
+  {
+    name: "Invoices",
+    path: "/seller/invoice",
+    icon: "solar:bill-list-bold-duotone",
+  },
+  {
+    name: "Enquiries",
+    path: "/seller/enquiries",
+    icon: "solar:chat-round-dots-bold-duotone",
+  },
 ];
 
 const dropdownLinks = [
-  { name: "Profile Settings", path: "/seller/profile",  icon: "solar:user-id-bold-duotone" },
-  { name: "Help & Support",   path: "/help-support",    icon: "solar:question-circle-bold-duotone" },
-  { name: "Sign Out",         path: "/auth/logout",     icon: "solar:logout-3-bold-duotone", isLogout: true },
+  { name: "Profile Settings", path: "/seller/profile", icon: "solar:user-id-bold-duotone" },
+  { name: "Help & Support", path: "/help-support", icon: "solar:question-circle-bold-duotone" },
+  { name: "Sign Out", path: "/auth/logout", icon: "solar:logout-3-bold-duotone", isLogout: true },
 ];
 
 function Header() {
   const pathname = usePathname();
   const profileDropdownRef = useRef(null);
-  const notificationRef    = useRef(null);
+  const notificationRef = useRef(null);
 
-  const [isProfileOpen,     setIsProfileOpen]     = useState(false);
-  const [openSubmenu,       setOpenSubmenu]        = useState(null); // name of open submenu
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [openSubmenu, setOpenSubmenu] = useState(null); // name of open submenu
   const submenuRefs = useRef({});
 
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
+  const [enquiryUnread, setEnquiryUnread] = useState(0);
 
   const handleLogout = useCallback(() => dispatch(clearAuth()), [dispatch]);
+
+  /* Fetch unread enquiry count for the badge */
+  useEffect(() => {
+    if (!token) return;
+    axiosInstance.get('/seller/queries/stats', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(({ data }) => {
+      if (data.success) setEnquiryUnread(data.data?.unread || 0);
+    }).catch(() => {});
+  }, [token, pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (profileDropdownRef.current && !profileDropdownRef.current.contains(e.target)) {
         setIsProfileOpen(false);
       }
-      if (notificationRef.current && !notificationRef.current.contains(e.target)) {}
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) { }
       // close any submenu if clicked outside all submenu containers
       const clickedInsideSomeSubmenu = Object.values(submenuRefs.current).some(
         (ref) => ref && ref.contains(e.target)
@@ -95,7 +122,7 @@ function Header() {
 
   const renderNavLink = (link) => {
     if (link.hasSubmenu) {
-      const isOpen   = openSubmenu === link.name;
+      const isOpen = openSubmenu === link.name;
       const isActive = isSubmenuActive(link.submenu);
       return (
         <div
@@ -142,6 +169,7 @@ function Header() {
       );
     }
 
+    const isEnquiries = link.path === '/seller/enquiries';
     return (
       <Link
         key={link.name}
@@ -154,6 +182,11 @@ function Header() {
       >
         <Icon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
         <span>{link.name}</span>
+        {isEnquiries && enquiryUnread > 0 && (
+          <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-black leading-none">
+            {enquiryUnread > 99 ? '99+' : enquiryUnread}
+          </span>
+        )}
         {isActiveLink(link.path) && (
           <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary-600 rounded-full" />
         )}

@@ -100,6 +100,112 @@ function ReviewCard({ review }) {
 }
 
 /* ──────────────────────────────────────────────────────────
+   ASK SELLER MODAL
+────────────────────────────────────────────────────────── */
+const ASK_QUICK_SUBJECTS = [
+  'Is this available?',
+  'Shipping to my city?',
+  'Stock availability',
+  'Custom order possible?',
+  'Warranty details',
+];
+
+function AskSellerModal({ onClose, onSubmit, loading, sellerName, productTitle }) {
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+
+  const handleSubmit = () => {
+    if (!subject.trim()) { toast.error('Subject is required'); return; }
+    if (!message.trim()) { toast.error('Message is required'); return; }
+    onSubmit(subject.trim(), message.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-base">Ask the Seller</h3>
+            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">
+              {sellerName} · {productTitle}
+            </p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+            <Icon icon="mdi:close" className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4">
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Common Questions</p>
+            <div className="flex flex-wrap gap-1.5">
+              {ASK_QUICK_SUBJECTS.map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setSubject(s)}
+                  className={`text-xs px-3 py-1.5 rounded-xl border font-semibold transition-all ${
+                    subject === s
+                      ? 'bg-primary-500 text-white border-primary-500'
+                      : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300 hover:bg-primary-50'
+                  }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1.5">
+              Subject <span className="text-red-500">*</span>
+            </label>
+            <input
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="What would you like to know?"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-400 transition-all"
+            />
+          </div>
+
+          <div>
+            <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1.5">
+              Message <span className="text-red-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              value={message}
+              onChange={(e) => setMessage(e.target.value.slice(0, 1000))}
+              placeholder="Describe your question in detail…"
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500 transition-all"
+            />
+            <p className="text-[11px] text-right text-gray-300 mt-0.5">{message.length}/1000</p>
+          </div>
+        </div>
+
+        <div className="px-6 pb-5 flex gap-3">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !subject.trim() || !message.trim()}
+            className="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors"
+          >
+            {loading
+              ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 mx-auto" />
+              : 'Send Message'
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────
    MAIN PAGE
 ────────────────────────────────────────────────────────── */
 export default function ProductDetailPage() {
@@ -120,6 +226,8 @@ export default function ProductDetailPage() {
   const [activeTab, setActiveTab] = useState('description');
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
+  const [showAskModal, setShowAskModal] = useState(false);
+  const [askLoading, setAskLoading] = useState(false);
 
   /* ── Per-attribute selection for multi-attribute variants ── */
   const [selectedAttributes, setSelectedAttributes] = useState({});
@@ -318,6 +426,27 @@ export default function ProductDetailPage() {
       toast.error(err.response?.data?.message || 'Error submitting review');
     } finally {
       setSubmittingReview(false);
+    }
+  };
+
+  const handleSubmitEnquiry = async (subject, message) => {
+    const sellerId = productData?.sellerId;
+    if (!sellerId) { toast.error('Seller information not available'); return; }
+    setAskLoading(true);
+    try {
+      const { data } = await axiosInstance.post(
+        '/customer/queries',
+        { sellerId, queryType: 'customer', subject, message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success('Message sent! The seller will reply shortly.');
+        setShowAskModal(false);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send message');
+    } finally {
+      setAskLoading(false);
     }
   };
 
@@ -563,6 +692,7 @@ export default function ProductDetailPage() {
           {/* Seller Card */}
           <div className="xl:col-span-2">
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+              {/* Header banner */}
               <div
                 className="relative h-14"
                 style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}
@@ -596,6 +726,7 @@ export default function ProductDetailPage() {
               </div>
 
               <div className="pt-8 px-3 pb-3 flex flex-col gap-3">
+                {/* Name + address */}
                 <div>
                   <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
                     {seller?.businessName || 'Unknown Store'}
@@ -608,24 +739,69 @@ export default function ProductDetailPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 text-center">
+                {/* Stats: Rating / Items / Orders */}
+                <div className="grid grid-cols-3 gap-1.5 text-center">
                   <div className="bg-gray-50 rounded-lg py-1.5 px-1">
                     <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.rating ? `${seller.rating}★` : '—'}
+                      {seller?.avgRating ? `${seller.avgRating}★` : '—'}
                     </p>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide">Rating</p>
                   </div>
                   <div className="bg-gray-50 rounded-lg py-1.5 px-1">
                     <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.productCount || '—'}
+                      {seller?.productCount ?? '—'}
                     </p>
                     <p className="text-[9px] text-gray-400 uppercase tracking-wide">Items</p>
                   </div>
+                  <div className="bg-gray-50 rounded-lg py-1.5 px-1">
+                    <p className="text-xs font-extrabold text-gray-800">
+                      {seller?.completedOrders ?? '—'}
+                    </p>
+                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">Orders</p>
+                  </div>
                 </div>
 
-                <button className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs">
+                {/* Top 3 products */}
+                {seller?.topProducts?.length > 0 && (
+                  <div className="border-t border-gray-100 pt-2.5">
+                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
+                      Top Products
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      {seller.topProducts.map(p => (
+                        <Link
+                          key={p._id}
+                          href={`/product/${p.slug}`}
+                          className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors group"
+                        >
+                          <p className="text-[11px] text-gray-700 font-medium truncate group-hover:text-primary-600 flex-1">
+                            {p.title}
+                          </p>
+                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-yellow-500 flex-shrink-0">
+                            ★ {p.rating > 0 ? p.rating.toFixed(1) : '—'}
+                          </span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <Link
+                  href={seller ? `/store/${seller._id}` : '#'}
+                  className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                >
                   <Icon icon="mdi:store" className="w-3.5 h-3.5" />
                   Visit Store
+                </Link>
+                <button
+                  onClick={() => {
+                    if (!token) { toast.error('Please log in to ask the seller'); return; }
+                    setShowAskModal(true);
+                  }}
+                  className="w-full bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                >
+                  <Icon icon="mdi:message-question-outline" className="w-3.5 h-3.5" />
+                  Ask Seller
                 </button>
               </div>
             </div>
@@ -847,6 +1023,16 @@ export default function ProductDetailPage() {
           ))}
         </div>
       </div>
+
+      {showAskModal && (
+        <AskSellerModal
+          onClose={() => setShowAskModal(false)}
+          onSubmit={handleSubmitEnquiry}
+          loading={askLoading}
+          sellerName={seller?.businessName || seller?.name || 'Seller'}
+          productTitle={productData?.title || ''}
+        />
+      )}
     </div>
   );
 }

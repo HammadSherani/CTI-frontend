@@ -108,8 +108,8 @@ function VariantManager({ product, initialVariants }) {
           <Icon icon="mdi:information-outline" className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-blue-800">
             <span className="font-bold">How it works: </span>
-            Set a base price & photos. If your product comes in different options (sizes, colors, etc.), 
-            toggle <em>Variations</em> and we'll auto-generate all combinations for you.
+            Price and photos are <strong>optional</strong> per variant — if left empty, the product&apos;s base price and images are shown automatically.
+            Toggle <em>Variations</em> to add options like sizes or colors and we&apos;ll auto-generate all combinations.
           </div>
         </div>
 
@@ -117,6 +117,7 @@ function VariantManager({ product, initialVariants }) {
         <VariantBuilder
           {...vb}
           errors={variantErrors}
+          product={product}
         />
 
         {/* Bottom save */}
