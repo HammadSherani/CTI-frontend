@@ -364,6 +364,14 @@ export default function MyOrdersPage() {
                           {order.orderNo && order.orderId !== order.orderNo && (
                             <p className="text-xs text-gray-400 mt-0.5">{order.orderNo}</p>
                           )}
+                          <Link
+                            href={`/orders/${order._id}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-[11px] text-primary-600 hover:text-primary-700 font-semibold mt-0.5 inline-flex items-center gap-0.5 transition-colors"
+                          >
+                            View Details
+                            <Icon icon="mdi:arrow-right" className="w-3 h-3" />
+                          </Link>
                         </td>
 
                         <td className="px-6 py-4 whitespace-nowrap">

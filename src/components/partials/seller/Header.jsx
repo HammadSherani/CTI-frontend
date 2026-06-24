@@ -6,6 +6,7 @@ import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
+import axiosInstance from '@/config/axiosInstance';
 
 const primaryNavLinks = [
   {
@@ -49,6 +50,11 @@ const primaryNavLinks = [
     path: "/seller/invoice",
     icon: "solar:bill-list-bold-duotone",
   },
+  {
+    name: "Enquiries",
+    path: "/seller/enquiries",
+    icon: "solar:chat-round-dots-bold-duotone",
+  },
 ];
 
 const dropdownLinks = [
@@ -67,9 +73,20 @@ function Header() {
   const submenuRefs = useRef({});
 
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
+  const [enquiryUnread, setEnquiryUnread] = useState(0);
 
   const handleLogout = useCallback(() => dispatch(clearAuth()), [dispatch]);
+
+  /* Fetch unread enquiry count for the badge */
+  useEffect(() => {
+    if (!token) return;
+    axiosInstance.get('/seller/queries/stats', {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(({ data }) => {
+      if (data.success) setEnquiryUnread(data.data?.unread || 0);
+    }).catch(() => {});
+  }, [token, pathname]);
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -152,6 +169,7 @@ function Header() {
       );
     }
 
+    const isEnquiries = link.path === '/seller/enquiries';
     return (
       <Link
         key={link.name}
@@ -164,6 +182,11 @@ function Header() {
       >
         <Icon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
         <span>{link.name}</span>
+        {isEnquiries && enquiryUnread > 0 && (
+          <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-black leading-none">
+            {enquiryUnread > 99 ? '99+' : enquiryUnread}
+          </span>
+        )}
         {isActiveLink(link.path) && (
           <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary-600 rounded-full" />
         )}

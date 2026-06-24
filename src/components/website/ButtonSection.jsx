@@ -87,6 +87,7 @@ function ButtonSection() {
 
   const dropdownLinks = [
     { name: "Account", path: "/my-account", icon: "mdi:account-cog-outline" },
+    { name: "My Messages", path: "/messages", icon: "mdi:message-text-outline" },
     { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
     { name: "Sign Out", path: "/", icon: "mdi:logout", isLogout: true },
   ];
@@ -119,7 +120,13 @@ function ButtonSection() {
         icon="mdi:clipboard-list-outline"
         label="My Orders"
         href="/orders"
-      />      <div className="relative" ref={dropdownRef}>
+      />
+      <IconButton
+        icon="mdi:message-text-outline"
+        label="My Messages"
+        href="/messages"
+      />
+      <div className="relative" ref={dropdownRef}>
         <button onClick={toggleDropdown} className="flex items-center gap-2 px-2 py-1.5 rounded-xl">
           <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
             <span className="text-xs text-white">{getInitials(user?.name)}</span>

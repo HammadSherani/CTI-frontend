@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 
 export default function RequestStatementModal({ onClose, transactions, summary, currentFilter, customDate }) {
     const [statementType, setStatementType] = useState('full');
@@ -11,7 +9,9 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
     const generatePDF = async () => {
         setIsGenerating(true);
         try {
-            // Using jsPDF to generate the statement
+            const { jsPDF } = await import('jspdf');
+            const { default: autoTable } = await import('jspdf-autotable');
+
             const doc = new jsPDF();
             
             // Branding - Primary color is usually defined in Tailwind, let's use a standard blue/indigo
@@ -42,7 +42,7 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
             doc.setFontSize(14);
             doc.text('Financial Summary', 14, 55);
             
-            doc.autoTable({
+            autoTable(doc, {
                 startY: 60,
                 head: [['Metric', 'Amount']],
                 body: [
@@ -57,7 +57,7 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
             });
 
             // Transactions Section
-            const startY = doc.lastAutoTable.finalY + 15;
+            const startY = (doc.lastAutoTable?.finalY ?? 100) + 15;
             doc.setFontSize(14);
             doc.text('Transaction Details', 14, startY);
 
@@ -77,7 +77,7 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
                 t.orderStatus
             ]);
 
-            doc.autoTable({
+            autoTable(doc, {
                 startY: startY + 5,
                 head: [['Date', 'Order ID', 'Product', 'Amount', 'Hold', 'Earned', 'Status']],
                 body: tableBody,
