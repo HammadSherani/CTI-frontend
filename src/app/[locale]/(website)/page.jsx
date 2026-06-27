@@ -33,6 +33,8 @@ import Stores from '@/components/website/home/stores';
 import HowItWorks from '@/components/website/home/works';
 import OurDeals from '@/components/website/home/ourDeals';
 import TermsSection from '@/components/website/home/terms';
+import SponsoredAdsBanner from '@/components/website/home/SponsoredAdsBanner';
+import SponsoredProductList from '@/components/website/home/SponsoredProductList';
 
 
 function Home() {
@@ -76,11 +78,17 @@ useEffect(() => {
   return (
     <div className="space-y-8 ">
       <Hero />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <SponsoredAdsBanner />
+      </div>
       <OurServices />
       <VideoSection/>
       {/* <SellingProducts title="Products" titleHighlight="New" /> */}
       <StaticSections/>
       <FAQ />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <SponsoredProductList />
+      </div>
       <GoodProducts  title="Products" titleHighlight="Good" />
       <Stores/>
       <HowItWorks/>

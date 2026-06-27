@@ -57,7 +57,7 @@ function InfoRow({ label, value, mono = false, icon }) {
 }
 
 /* ── Upload Invoice Modal ──────────────────────────────────────── */
-function UploadInvoiceModal({ invoice, token, onClose, onSuccess }) {
+function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
   const [file,    setFile]    = useState(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -70,11 +70,19 @@ function UploadInvoiceModal({ invoice, token, onClose, onSuccess }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      const { data } = await axiosInstance.post(
-        `/seller/invoices/${invoice._id}/upload`,
-        fd,
-        { headers: { 'Content-Type': 'multipart/form-data' } }
-      );
+      
+      let url = '/seller/invoices/upload';
+      if (invoice) {
+        url = `/seller/invoices/${invoice._id}/reupload`;
+      } else if (orderId) {
+        fd.append('orderId', orderId);
+      }
+
+      const { data } = await axiosInstance.post(url, fd, { 
+        headers: { 
+          Authorization: `Bearer ${token}` 
+        } 
+      });
       if (data.success) {
         toast.success('Invoice uploaded and submitted to platform for review.');
         onSuccess(data.data);
@@ -246,25 +254,8 @@ export default function OrderDetailsPage() {
   };
 
   /* Create invoice entry (if none) then open upload modal */
-  const handleOpenUploadModal = async () => {
-    if (invoice) { setShowUploadModal(true); return; }
-
-    setCreatingInvoice(true);
-    try {
-      const { data } = await axiosInstance.post(
-        `/seller/invoices/from-order/${id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        setInvoice(data.data);
-        setShowUploadModal(true);
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Could not prepare invoice. Please try again.');
-    } finally {
-      setCreatingInvoice(false);
-    }
+  const handleOpenUploadModal = () => {
+    setShowUploadModal(true);
   };
 
   const handleUploadSuccess = (updated) => {
@@ -291,7 +282,7 @@ export default function OrderDetailsPage() {
   const totalPlatformFee    = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
   const canChangeStatus     = !["delivered", "cancelled"].includes(order.orderStatus);
   const canUploadInvoice    = order.orderStatus !== 'cancelled';
-  const canReUpload         = invoice && ['rejected', 'pending_submission'].includes(invoice.submissionStatus);
+  const canReUpload         = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -332,7 +323,7 @@ export default function OrderDetailsPage() {
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm ${
                 canReUpload
                   ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                  : invoice?.submissionStatus === 'approved'
+                  : invoice?.status === 'approved'
                   ? 'bg-emerald-100 text-emerald-700 cursor-default'
                   : 'bg-violet-600 hover:bg-violet-700 text-white'
               }`}
@@ -342,7 +333,7 @@ export default function OrderDetailsPage() {
                 : <Icon icon={canReUpload ? "mdi:refresh" : "mdi:upload"} className="w-4 h-4" />
               }
               {invoice
-                ? (canReUpload ? 'Re-Upload Invoice' : invoice.submissionStatus === 'approved' ? 'Invoice Approved' : 'View Invoice')
+                ? (canReUpload ? 'Re-Upload Invoice' : invoice.status === 'approved' ? 'Invoice Approved' : 'View Invoice')
                 : 'Upload Invoice'
               }
             </button>
@@ -525,7 +516,7 @@ export default function OrderDetailsPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400 font-bold uppercase">Status</span>
-                  <InvoiceStatusBadge status={invoice.submissionStatus} />
+                  <InvoiceStatusBadge status={invoice.status} />
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-400 font-bold uppercase">Invoice #</span>
@@ -543,21 +534,20 @@ export default function OrderDetailsPage() {
                     <span className="text-xs text-gray-500">{moment(invoice.submissionDate).format('DD MMM YYYY')}</span>
                   </div>
                 )}
-                {invoice.submissionStatus === 'rejected' && invoice.rejectionReason && (
+                {invoice.status === 'rejected' && invoice.rejectionReason && (
                   <div className="bg-red-50 border border-red-100 rounded-xl px-3 py-2 mt-2">
                     <p className="text-[11px] font-bold text-red-700 mb-0.5">Rejection Reason</p>
                     <p className="text-xs text-red-600">{invoice.rejectionReason}</p>
                   </div>
                 )}
-                {invoice.uploadedInvoiceUrl && (
+                {invoice?.pdfUrl && (
                   <a
-                    href={invoice.uploadedInvoiceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex items-center gap-2 bg-emerald-50 border border-emerald-100 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition-colors mt-1"
+                    href={`${invoice.pdfUrl}?fl_attachment=1`}
+                    download
+                    className="w-full flex items-center justify-center gap-2 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-bold py-2.5 rounded-xl transition-colors"
                   >
-                    <Icon icon="mdi:file-pdf-box" className="w-4 h-4" />
-                    View Uploaded Invoice
+                    <Icon icon="mdi:download" className="w-4 h-4" />
+                    Download Invoice
                   </a>
                 )}
                 {canReUpload && (
@@ -682,9 +672,10 @@ export default function OrderDetailsPage() {
       </div>
 
       {/* ── Upload Invoice Modal ── */}
-      {showUploadModal && invoice && (
+      {showUploadModal && (
         <UploadInvoiceModal
           invoice={invoice}
+          orderId={id}
           token={token}
           onClose={() => setShowUploadModal(false)}
           onSuccess={handleUploadSuccess}

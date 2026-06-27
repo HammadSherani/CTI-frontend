@@ -61,7 +61,13 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
   return (
     <div
-      onClick={() => router.push(`/product/${slug}`)}
+      onClick={(e) => {
+        if (typeof product.onCardClick === 'function') {
+          product.onCardClick(e);
+        } else {
+          router.push(`/product/${slug}`);
+        }
+      }}
       className="group relative  isolate  flex flex-col cursor-pointer bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full"
     >
       {/* Badges */}

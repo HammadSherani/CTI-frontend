@@ -112,7 +112,7 @@ function SimplePricing({ value, onChange }) {
   return (
     <Card>
       <CardTitle icon="mdi:tag-outline">Price & Stock</CardTitle>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">
             Base Price <span className="text-red-500">*</span>
@@ -139,17 +139,6 @@ function SimplePricing({ value, onChange }) {
             value={stock}
             onChange={(e) => set("stock", e.target.value)}
             placeholder="0"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-semibold text-gray-600 mb-1">
-            Model Number <span className="text-red-500">*</span>
-          </label>
-          <Input
-            type="text"
-            value={value.modelNumber || ""}
-            onChange={(e) => set("modelNumber", e.target.value)}
-            placeholder="e.g. MOD-1234"
           />
         </div>
       </div>
@@ -377,14 +366,15 @@ export default function ProductForm({ mode = "create", initialData = null, admin
     const brandId = initialData?.brandId?._id || initialData?.brandId || "";
 
     // Reset form
-    reset({
-      title: initialData?.title || "",
-      shortDescription: initialData?.shortDescription || "",
-      description: initialData?.description || "",
-      categoryId: catId,
-      subCategoryId: subId,
-      brandId: brandId, // Make sure this is set
-    });
+      reset({
+        title: initialData?.title || "",
+        shortDescription: initialData?.shortDescription || "",
+        description: initialData?.description || "",
+        categoryId: catId,
+        subCategoryId: subId,
+        brandId: brandId,
+        modelNumber: initialData?.modelNumber || "",
+      });
 
     // Load subcategories and brands for edit mode
     if (catId) {
@@ -435,6 +425,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
         categoryId: catId,
         subCategoryId: subId,
         brandId: brandId,
+        modelNumber: initialData?.modelNumber || "",
       });
 
       // Explicitly load brands for pre-filled subcategory in edit mode
@@ -677,9 +668,18 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                 <FieldError err={errors.title} />
               </div>
  
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
-                <Input {...register("shortDescription")} placeholder="One-line summary..." />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">
+                    Model Number <span className="text-red-500">*</span>
+                  </label>
+                  <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. MOD-1234" />
+                  <FieldError err={errors.modelNumber} />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
+                  <Input {...register("shortDescription")} placeholder="One-line summary..." />
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1">

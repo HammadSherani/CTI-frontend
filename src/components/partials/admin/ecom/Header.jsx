@@ -13,10 +13,12 @@ function EcomHeader() {
   const dropdownRef = useRef(null);
   const catalogDropdownRef = useRef(null);
   const ordersDropdownRef = useRef(null);
+  const adsDropdownRef = useRef(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isOrdersDropdownOpen, setIsOrdersDropdownOpen] = useState(false);
+  const [isAdsDropdownOpen, setIsAdsDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -30,6 +32,11 @@ function EcomHeader() {
       name: "Dashboard",
       path: "/admin/ecom/dashbaord",
       icon: "mdi:view-dashboard-outline",
+    },
+      {
+      name: "Sellers",
+      path: "/admin/ecom/sellers",
+      icon: "mdi:store-outline",
     },
     {
       name: "Catalog",
@@ -45,11 +52,25 @@ function EcomHeader() {
             { name: "Brand", icon: "mdi:shape-plus-outline", path: "/admin/ecom/brands" },
           ],
         },
+    
+      ],
+    },
         {
-          category: "Products",
+          name: "Products",
+          path: "/admin/ecom/products",
+          icon: "mdi:package-variant-outline",
+        },
+    {
+      name: "Advertisements",
+      path: "#",
+      icon: "mdi:bullhorn-outline",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Ad Management",
           items: [
-            { name: "All Products", icon: "mdi:package-variant-outline", path: "/admin/ecom/products" },
-            { name: "Add Product", icon: "mdi:plus-box-outline", path: "/admin/ecom/products/add" },
+            { name: "Campaigns", icon: "mdi:format-list-bulleted", path: "/admin/ecom/ads" },
+            { name: "Settings", icon: "mdi:cog-outline", path: "/admin/ecom/ads/settings" },
           ],
         },
       ],
@@ -63,23 +84,15 @@ function EcomHeader() {
         {
           category: "Order Management",
           items: [
-            { name: "All Orders",        icon: "mdi:clipboard-list-outline",          path: "/admin/ecom/orders" },
-            { name: "Returns",           icon: "mdi:package-variant-closed-remove",   path: "/admin/ecom/returns" },
-            { name: "Customer Requests", icon: "mdi:message-text-outline",            path: "/admin/ecom/returns?tab=__cr__" },
+            { name: "All Orders", icon: "mdi:clipboard-list-outline", path: "/admin/ecom/orders" },
+            { name: "Returns", icon: "mdi:package-variant-closed-remove", path: "/admin/ecom/returns" },
+            { name: "Customer Requests", icon: "mdi:message-text-outline", path: "/admin/ecom/returns?tab=__cr__" },
+            { name: "Invoices", icon: "mdi:file-document-outline", path: "/admin/ecom/invoices" },
           ],
         },
       ],
     },
-    {
-      name: "Sellers",
-      path: "/admin/ecom/sellers",
-      icon: "mdi:store-outline",
-    },
-    {
-      name: "Returns",
-      path: "/admin/ecom/returns",
-      icon: "mdi:package-variant-closed-remove",
-    },
+
     {
       name: "Wallet",
       path: "/admin/ecom/wallet",
@@ -104,6 +117,9 @@ function EcomHeader() {
       if (ordersDropdownRef.current && !ordersDropdownRef.current.contains(event.target)) {
         setIsOrdersDropdownOpen(false);
       }
+      if (adsDropdownRef.current && !adsDropdownRef.current.contains(event.target)) {
+        setIsAdsDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -113,6 +129,7 @@ function EcomHeader() {
     setIsDropdownOpen(false);
     setIsCatalogDropdownOpen(false);
     setIsOrdersDropdownOpen(false);
+    setIsAdsDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -249,6 +266,8 @@ function EcomHeader() {
                   return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
                 } else if (link.name === "Orders") {
                   return renderNavLink(link, isOrdersDropdownOpen, setIsOrdersDropdownOpen, ordersDropdownRef);
+                } else if (link.name === "Advertisements") {
+                  return renderNavLink(link, isAdsDropdownOpen, setIsAdsDropdownOpen, adsDropdownRef);
                 }
                 return renderNavLink(link);
               })}

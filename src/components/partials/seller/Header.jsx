@@ -15,7 +15,7 @@ const primaryNavLinks = [
     icon: "solar:home-2-bold-duotone",
   },
   {
-    name: "Product Management",
+    name: "Product",
     path: "/seller/product",
     icon: "solar:clipboard-list-bold-duotone",
     // hasSubmenu: true,
@@ -39,6 +39,11 @@ const primaryNavLinks = [
     name: "Wallet",
     path: "/seller/wallet",
     icon: "solar:wallet-money-bold-duotone",
+  },
+  {
+    name: "Ads",
+    path: "/seller/ads",
+    icon: "solar:ads-bold-duotone",
   },
   {
     name: "Reports",
@@ -85,7 +90,7 @@ function Header() {
       headers: { Authorization: `Bearer ${token}` },
     }).then(({ data }) => {
       if (data.success) setEnquiryUnread(data.data?.unread || 0);
-    }).catch(() => {});
+    }).catch(() => { });
   }, [token, pathname]);
 
   useEffect(() => {
@@ -132,7 +137,7 @@ function Header() {
         >
           <button
             onClick={() => toggleSubmenu(link.name)}
-            className={`relative px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap
+            className={`relative px-2 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap
               ${(isActive || isOpen)
                 ? 'text-primary-600 bg-primary-50'
                 : 'text-gray-500 hover:text-primary-600 hover:bg-gray-50'

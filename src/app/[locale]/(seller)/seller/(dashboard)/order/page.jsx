@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
@@ -23,6 +23,38 @@ const TABS = [
    DELIVERY INVOICE MODAL
 ───────────────────────────────────────────────────────── */
 function DeliveryInvoiceModal({ order, onClose, onUploadNow }) {
+  const [file, setFile] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const fileRef = useRef();
+  const token = useSelector((state) => state.auth.token);
+
+  const handleUpload = async () => {
+    if (!file) { setError('Please select a PDF file.'); return; }
+    setLoading(true);
+    setError('');
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('orderId', order._id);
+
+      const { data } = await axiosInstance.post('/seller/invoices/upload', fd, {
+        headers: { 
+          Authorization: `Bearer ${token}` 
+        }
+      });
+      
+      if (data.success) {
+        toast.success('Invoice uploaded and submitted to platform for review.');
+        onUploadNow(data.data); // reuse callback for success handling
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Upload failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-lg bg-white rounded-3xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
@@ -53,65 +85,52 @@ function DeliveryInvoiceModal({ order, onClose, onUploadNow }) {
 
         {/* Body */}
         <div className="p-6 space-y-5">
-
-          {/* Invoice requirements */}
-          <div className="bg-amber-50 border border-amber-100 rounded-2xl p-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Icon icon="mdi:information-outline" className="w-4 h-4 text-amber-600 flex-shrink-0" />
-              <span className="text-xs font-black text-amber-700 uppercase tracking-wide">Invoice Must Include</span>
-            </div>
-            <div className="grid grid-cols-2 gap-1.5">
-              {[
-                "Seller Details",
-                "Customer Details",
-                "Order Details",
-                "Product Details",
-                "Pricing Breakdown",
-                "Taxes (if applicable)",
-                "Invoice Number",
-                "Date of Issue",
-              ].map(item => (
-                <div key={item} className="flex items-center gap-1.5">
-                  <Icon icon="mdi:check-circle" className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
-                  <span className="text-xs text-amber-800 font-medium">{item}</span>
-                </div>
-              ))}
-            </div>
+          {/* File Upload Area */}
+          <div
+            className="border-2 border-dashed border-emerald-200 bg-emerald-50/50 rounded-2xl p-6 text-center cursor-pointer hover:bg-emerald-50 transition-colors"
+            onClick={() => fileRef.current?.click()}
+          >
+            <Icon icon="mdi:file-pdf-box" className="w-10 h-10 text-emerald-400 mx-auto mb-2" />
+            {file ? (
+              <p className="text-sm font-bold text-emerald-700">{file.name}</p>
+            ) : (
+              <>
+                <p className="text-sm font-bold text-emerald-700">Click to select PDF</p>
+                <p className="text-xs text-emerald-600/70 mt-1">PDF only — max 10 MB</p>
+              </>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              className="hidden"
+              onChange={e => { setFile(e.target.files[0]); setError(''); }}
+            />
           </div>
 
-          {/* Note */}
-          <p className="text-xs text-gray-400 text-center">
-            PDF format only · Max 10 MB · Must match order reference{" "}
-            <span className="font-bold text-gray-600">{order?.orderNo || order?.orderId}</span>
-          </p>
+          {error && (
+            <p className="text-xs text-red-600 bg-red-50 px-3 py-2 rounded-xl text-center font-medium">{error}</p>
+          )}
 
           {/* Actions */}
-          <div className="grid grid-cols-1 gap-3">
+          <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={onUploadNow}
-              className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/20 text-sm"
+              onClick={onClose}
+              className="flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors text-sm"
             >
-              <Icon icon="solar:upload-bold-duotone" className="w-5 h-5" />
-              Upload Invoice Now
+              Skip for now
             </button>
-
-            <div className="grid grid-cols-2 gap-3">
-              <Link
-                href={`/seller/order/${order?._id}`}
-                onClick={onClose}
-                className="flex items-center justify-center gap-2 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-2xl transition-colors text-sm"
-              >
-                <Icon icon="mdi:eye-outline" className="w-4 h-4" />
-                View Order
-              </Link>
-              <button
-                onClick={onClose}
-                className="flex items-center justify-center gap-2 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-500 font-bold rounded-2xl transition-colors text-sm"
-              >
-                <Icon icon="mdi:clock-outline" className="w-4 h-4" />
-                Upload Later
-              </button>
-            </div>
+            <button
+              onClick={handleUpload}
+              disabled={loading || !file}
+              className="flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-black rounded-2xl hover:from-emerald-600 hover:to-teal-700 transition-all shadow-lg shadow-emerald-500/20 text-sm disabled:opacity-50"
+            >
+              {loading ? (
+                <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Uploading...</>
+              ) : (
+                <><Icon icon="solar:upload-bold-duotone" className="w-5 h-5" /> Upload & Submit</>
+              )}
+            </button>
           </div>
         </div>
       </div>
@@ -341,7 +360,7 @@ export default function SellerOrderPage() {
           onClose={() => setDeliveryModal(null)}
           onUploadNow={() => {
             setDeliveryModal(null);
-            router.push(`/seller/order/${deliveryModal._id}#invoice`);
+            // optionally reload orders if we want to show invoice status, but it's fine as is
           }}
         />
       )}
