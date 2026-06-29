@@ -90,7 +90,7 @@ export default function SellerAdsPage() {
           <div className="flex items-center gap-3">
             <Link
               href="/seller/ads/create"
-              className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+              className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
             >
               <Icon icon="mdi:plus" className="w-5 h-5" />
               Create Campaign
@@ -110,7 +110,7 @@ export default function SellerAdsPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Impressions</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">{summary.totalImpressions?.toLocaleString() || 0}</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">{(summary.totals?.impressions || 0).toLocaleString()}</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
@@ -119,7 +119,7 @@ export default function SellerAdsPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Clicks</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">{summary.totalClicks?.toLocaleString() || 0}</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">{(summary.totals?.clicks || 0).toLocaleString()}</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
@@ -128,7 +128,7 @@ export default function SellerAdsPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Spend</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">${summary.totalSpend?.toFixed(2) || '0.00'}</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">${(summary.totals?.spend || 0).toFixed(2)}</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
@@ -137,7 +137,7 @@ export default function SellerAdsPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Avg CTR</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">{summary.avgCtr?.toFixed(2) || '0.00'}%</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">{(summary.totals?.ctr || 0).toFixed(2)}%</p>
               </div>
             </div>
           </div>
@@ -151,8 +151,8 @@ export default function SellerAdsPage() {
               onClick={() => setFilter(s)}
               className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
                 filter === s
-                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                  ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
+                  : 'bg-white text-slate-600 border-slate-200 hover:border-primary-300 hover:text-primary-600'
               }`}
             >
               {s === '' ? 'All' : STATUS_META[s]?.label}
@@ -184,7 +184,7 @@ export default function SellerAdsPage() {
                 {loading ? (
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center">
-                      <Icon icon="svg-spinners:3-dots-fade" className="w-8 h-8 text-violet-600 mx-auto" />
+                      <Icon icon="svg-spinners:3-dots-fade" className="w-8 h-8 text-primary-600 mx-auto" />
                     </td>
                   </tr>
                 ) : campaigns.length === 0 ? (
@@ -206,12 +206,12 @@ export default function SellerAdsPage() {
                                 <Image src={camp.bannerUrl} alt="banner" fill className="object-cover" />
                               </div>
                             ) : (
-                              <div className="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center flex-shrink-0">
+                              <div className="w-10 h-10 rounded-lg bg-primary-50 text-primary-600 flex items-center justify-center flex-shrink-0">
                                 <Icon icon={camp.type === 'sponsored_store' ? 'mdi:store' : 'mdi:package-variant-closed'} className="w-5 h-5" />
                               </div>
                             )}
                             <div>
-                              <Link href={`/seller/ads/${camp._id}`} className="font-bold text-slate-900 hover:text-violet-600 transition-colors line-clamp-1">
+                              <Link href={`/seller/ads/${camp._id}`} className="font-bold text-slate-900 hover:text-primary-600 transition-colors line-clamp-1">
                                 {camp.name}
                               </Link>
                               <p className="text-[11px] text-slate-500 mt-0.5">
@@ -241,11 +241,11 @@ export default function SellerAdsPage() {
                             </div>
                             <div className="flex justify-between">
                               <span className="text-slate-500">Impr:</span>
-                              <span className="font-semibold">{camp.impressions || 0}</span>
+                              <span className="font-semibold">{camp.totalImpressions || 0}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-slate-500">Clicks:</span>
-                              <span className="font-semibold">{camp.clicks || 0}</span>
+                              <span className="font-semibold">{camp.totalClicks || 0}</span>
                             </div>
                           </div>
                         </td>

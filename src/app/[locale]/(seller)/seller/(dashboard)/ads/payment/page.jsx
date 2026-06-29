@@ -139,7 +139,7 @@ export default function AdPaymentPage() {
       {/* Saved Cards */}
       {loading ? (
         <div className="flex items-center justify-center py-16">
-          <Icon icon="solar:refresh-bold" className="text-violet-500 text-3xl animate-spin" />
+          <Icon icon="solar:refresh-bold" className="text-primary-500 text-3xl animate-spin" />
         </div>
       ) : (
         <div className="space-y-3 mb-5">
@@ -155,7 +155,7 @@ export default function AdPaymentPage() {
             <div
               key={pm._id}
               className={`flex items-center gap-4 p-4 rounded-2xl border-2 bg-white transition-all ${
-                pm.isDefault ? 'border-violet-300 bg-violet-50/30' : 'border-gray-100'
+                pm.isDefault ? 'border-primary-300 bg-primary-50/30' : 'border-gray-100'
               }`}
             >
               <CardBrand brand={pm.brand} />
@@ -165,7 +165,7 @@ export default function AdPaymentPage() {
                   <span className="font-semibold text-gray-900 capitalize">{pm.brand}</span>
                   <span className="text-gray-500 font-mono">•••• {pm.last4}</span>
                   {pm.isDefault && (
-                    <span className="text-[10px] font-bold bg-violet-100 text-violet-700 px-2 py-0.5 rounded-full">Default</span>
+                    <span className="text-[10px] font-bold bg-primary-100 text-primary-700 px-2 py-0.5 rounded-full">Default</span>
                   )}
                 </div>
                 <div className="text-xs text-gray-400 mt-0.5">
@@ -177,7 +177,7 @@ export default function AdPaymentPage() {
                 {!pm.isDefault && (
                   <button
                     onClick={() => handleSetDefault(pm._id)}
-                    className="text-xs text-violet-600 font-medium px-3 py-1.5 rounded-lg border border-violet-200 hover:bg-violet-50 transition-colors"
+                    className="text-xs text-primary-600 font-medium px-3 py-1.5 rounded-lg border border-primary-200 hover:bg-primary-50 transition-colors"
                   >
                     Set Default
                   </button>
@@ -199,7 +199,7 @@ export default function AdPaymentPage() {
       {showForm ? (
         <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Card preview */}
-          <div className="bg-gradient-to-br from-violet-600 to-violet-800 p-6 text-white">
+          <div className="bg-gradient-to-br from-primary-600 to-primary-800 p-6 text-white">
             <div className="flex justify-between items-start mb-6">
               <Icon icon="solar:card-bold" className="text-2xl opacity-70" />
               <span className="text-sm font-medium opacity-70">Ad Campaign Card</span>
@@ -225,7 +225,7 @@ export default function AdPaymentPage() {
                 placeholder="Name as on card"
                 value={form.cardHolderName}
                 onChange={(e) => setForm((f) => ({ ...f, cardHolderName: e.target.value.toUpperCase() }))}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm"
               />
             </div>
 
@@ -237,7 +237,7 @@ export default function AdPaymentPage() {
                 placeholder="1234 5678 9012 3456"
                 value={cardDisplay}
                 onChange={handleCardNumberChange}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm font-mono tracking-wider"
+                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm font-mono tracking-wider"
               />
             </div>
 
@@ -251,7 +251,7 @@ export default function AdPaymentPage() {
                   placeholder="MM"
                   value={form.expireMonth}
                   onChange={(e) => setForm((f) => ({ ...f, expireMonth: e.target.value.replace(/\D/g,'').slice(0,2) }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm text-center"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm text-center"
                 />
               </div>
               <div>
@@ -263,7 +263,7 @@ export default function AdPaymentPage() {
                   placeholder="YY"
                   value={form.expireYear}
                   onChange={(e) => setForm((f) => ({ ...f, expireYear: e.target.value.replace(/\D/g,'').slice(0,4) }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm text-center"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm text-center"
                 />
               </div>
               <div>
@@ -275,7 +275,7 @@ export default function AdPaymentPage() {
                   placeholder="•••"
                   value={form.cvc}
                   onChange={(e) => setForm((f) => ({ ...f, cvc: e.target.value.replace(/\D/g,'').slice(0,4) }))}
-                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-violet-400 text-sm text-center"
+                  className="w-full px-3 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-primary-400 text-sm text-center"
                 />
               </div>
             </div>
@@ -297,7 +297,7 @@ export default function AdPaymentPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-semibold text-sm shadow transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white font-semibold text-sm shadow transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
               >
                 {saving ? <Icon icon="solar:refresh-bold" className="animate-spin" /> : <Icon icon="solar:lock-bold" />}
                 Save Card
@@ -308,7 +308,7 @@ export default function AdPaymentPage() {
       ) : (
         <button
           onClick={() => setShowForm(true)}
-          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-violet-300 text-violet-600 font-semibold text-sm hover:bg-violet-50 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-2xl border-2 border-dashed border-primary-300 text-primary-600 font-semibold text-sm hover:bg-primary-50 transition-colors"
         >
           <Icon icon="solar:add-circle-bold" className="text-lg" />
           Add New Card
@@ -322,6 +322,20 @@ export default function AdPaymentPage() {
           <strong>How billing works:</strong> Your card is verified now but not charged immediately. You are only billed
           for actual ad spend — clicks (CPC) or impressions (CPM) — as your campaign runs.
         </div>
+      </div>
+
+      {/* Sandbox test card hint */}
+      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+        <p className="font-bold text-amber-800 flex items-center gap-1.5 mb-2">
+          <Icon icon="mdi:flask-outline" className="w-4 h-4" />
+          Sandbox Test Cards (iyzico)
+        </p>
+        <div className="font-mono text-xs space-y-1 text-amber-900">
+          <div className="flex justify-between"><span>Mastercard</span><span className="font-bold">5528790000000008</span></div>
+          <div className="flex justify-between"><span>Visa</span><span className="font-bold">4603450000000000</span></div>
+          <div className="flex justify-between"><span>Troy</span><span className="font-bold">9792030394440796</span></div>
+        </div>
+        <p className="text-[10px] text-amber-700 mt-2">Use CVV: <strong>000</strong> · Any future expiry date · Any cardholder name</p>
       </div>
     </div>
   );

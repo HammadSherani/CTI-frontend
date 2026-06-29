@@ -70,7 +70,7 @@ export default function SellerCampaignDetailsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Icon icon="svg-spinners:3-dots-fade" className="w-8 h-8 text-violet-600" />
+        <Icon icon="svg-spinners:3-dots-fade" className="w-8 h-8 text-primary-600" />
       </div>
     );
   }
@@ -163,26 +163,30 @@ export default function SellerCampaignDetailsPage() {
           <div className="md:col-span-2 space-y-6">
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               <h2 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Icon icon="mdi:chart-timeline-variant" className="w-5 h-5 text-violet-600" />
+                <Icon icon="mdi:chart-timeline-variant" className="w-5 h-5 text-primary-600" />
                 Performance Overview
               </h2>
               
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Impressions</p>
-                  <p className="text-xl font-black text-slate-900 mt-1">{campaign.impressions || 0}</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">{(campaign.totalImpressions || 0).toLocaleString()}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Clicks</p>
-                  <p className="text-xl font-black text-slate-900 mt-1">{campaign.clicks || 0}</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">{(campaign.totalClicks || 0).toLocaleString()}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Spend</p>
-                  <p className="text-xl font-black text-slate-900 mt-1">${campaign.spentBudget?.toFixed(2) || '0.00'}</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">${(campaign.spentBudget || 0).toFixed(2)}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">CTR</p>
-                  <p className="text-xl font-black text-slate-900 mt-1">{campaign.ctr?.toFixed(2) || '0.00'}%</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">
+                    {campaign.totalImpressions
+                      ? ((campaign.totalClicks / campaign.totalImpressions) * 100).toFixed(2)
+                      : '0.00'}%
+                  </p>
                 </div>
               </div>
 
@@ -194,7 +198,7 @@ export default function SellerCampaignDetailsPage() {
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-violet-500 rounded-full transition-all duration-500"
+                    className="h-full bg-primary-500 rounded-full transition-all duration-500"
                     style={{ width: `${Math.min(((campaign.spentBudget || 0) / campaign.totalBudget) * 100, 100)}%` }}
                   />
                 </div>
@@ -207,7 +211,7 @@ export default function SellerCampaignDetailsPage() {
             {/* Creative Details */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               <h2 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Icon icon="mdi:palette-outline" className="w-5 h-5 text-violet-600" />
+                <Icon icon="mdi:palette-outline" className="w-5 h-5 text-primary-600" />
                 Creative & Target
               </h2>
               
@@ -256,7 +260,7 @@ export default function SellerCampaignDetailsPage() {
             
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               <h2 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Icon icon="mdi:information-outline" className="w-5 h-5 text-violet-600" />
+                <Icon icon="mdi:information-outline" className="w-5 h-5 text-primary-600" />
                 Campaign Details
               </h2>
               
@@ -291,7 +295,7 @@ export default function SellerCampaignDetailsPage() {
             {/* Status History */}
             <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               <h2 className="text-base font-bold text-slate-900 mb-6 flex items-center gap-2">
-                <Icon icon="mdi:history" className="w-5 h-5 text-violet-600" />
+                <Icon icon="mdi:history" className="w-5 h-5 text-primary-600" />
                 Status History
               </h2>
               
@@ -299,13 +303,13 @@ export default function SellerCampaignDetailsPage() {
                 {campaign.statusHistory?.map((h, i) => (
                   <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
-                      <div className="w-2 h-2 rounded-full bg-violet-400 mt-1.5" />
+                      <div className="w-2 h-2 rounded-full bg-primary-400 mt-1.5" />
                       {i !== campaign.statusHistory.length - 1 && <div className="w-0.5 h-full bg-slate-100 my-1" />}
                     </div>
                     <div className="pb-2">
                       <p className="text-xs font-bold text-slate-900 capitalize">{h.status.replace('_', ' ')}</p>
                       {h.note && <p className="text-[10px] text-slate-500 mt-0.5">{h.note}</p>}
-                      <p className="text-[9px] text-slate-400 mt-1">{fmtDateTime(h.date)}</p>
+                      <p className="text-[9px] text-slate-400 mt-1">{fmtDateTime(h.createdAt)}</p>
                     </div>
                   </div>
                 ))}

@@ -144,18 +144,16 @@ const router = useRouter();
         >
           {products.map((p, i) => (
             <SwiperSlide key={i} style={{ height: 'auto' }}>
-              <ProductCard
-                title={p.title}
-                img={p.img}
-                price={p.price}
-                oldPrice={p.oldPrice}
-                discountAmount={p.discountAmount}
-                discountPercent={p.discountPercent}
-                reviews={p.reviews}
-                goldPrice={p.goldPrice}
-                badge={p.badge}
-                onAdd={() =>handleCardClick(p)}
-              />
+              <div className="relative group h-full">
+                {p.isSponsored && (
+                  <div className="absolute -top-2 -right-2 z-30">
+                    <span className="inline-block px-2 py-0.5 bg-black text-white text-[10px] font-bold uppercase rounded shadow-sm border border-black/20">
+                      Ad
+                    </span>
+                  </div>
+                )}
+                <ProductCard product={p} />
+              </div>
             </SwiperSlide>
           ))}
         </Swiper>

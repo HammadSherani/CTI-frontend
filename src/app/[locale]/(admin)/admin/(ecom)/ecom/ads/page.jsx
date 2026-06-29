@@ -343,15 +343,19 @@ export default function AdminAdsPage() {
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
                             <span className="text-slate-500">Impr:</span>
-                            <span className="font-medium text-slate-700">{camp.impressions || 0}</span>
+                            <span className="font-medium text-slate-700">{camp.totalImpressions || 0}</span>
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
                             <span className="text-slate-500">Clicks:</span>
-                            <span className="font-medium text-slate-700">{camp.clicks || 0}</span>
+                            <span className="font-medium text-slate-700">{camp.totalClicks || 0}</span>
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
                             <span className="text-slate-500">CTR:</span>
-                            <span className="font-medium text-slate-700">{camp.ctr || 0}%</span>
+                            <span className="font-medium text-slate-700">
+                              {camp.totalImpressions
+                                ? ((camp.totalClicks / camp.totalImpressions) * 100).toFixed(2)
+                                : '0.00'}%
+                            </span>
                           </div>
                         </div>
                       </td>

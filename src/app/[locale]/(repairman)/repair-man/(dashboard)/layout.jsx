@@ -13,6 +13,9 @@ import { useDispatch, useSelector } from 'react-redux';
 
 function RepairmanLayout({ children }) {
   const { user, userDetails, token } = useSelector(state => state.auth);
+   console.log(userDetails, "userDetails")
+   console.log(user,'uswers ')
+  console.log(userDetails?.repairmanProfile?.stats.status, "userDetails?.repairmanProfile?.stats.status")
   const [revisionFieldsData, setRevisionFieldsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();

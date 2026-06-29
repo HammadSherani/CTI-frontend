@@ -34,41 +34,40 @@ import HowItWorks from '@/components/website/home/works';
 import OurDeals from '@/components/website/home/ourDeals';
 import TermsSection from '@/components/website/home/terms';
 import SponsoredAdsBanner from '@/components/website/home/SponsoredAdsBanner';
-import SponsoredProductList from '@/components/website/home/SponsoredProductList';
 
 
 function Home() {
   const dispatch = useDispatch();
   const { homeData, loading, error } = useSelector((state) => state.home);
   const [initialLoad, setInitialLoad] = useState(true);
-useEffect(() => {
-  window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-}, []);
-useEffect(() => {
-  if (!homeData) {
-    setInitialLoad(true);
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, []);
+  useEffect(() => {
+    if (!homeData) {
+      setInitialLoad(true);
 
-    dispatch(fetchHome())
-      .unwrap()
-      .catch((error) => {
-        dispatch(clearHomeData());
-        console.error("Error fetching home data:", error);
-      })
-      .finally(() => {
-        setInitialLoad(false);
-      });
-  } else {
-    setInitialLoad(false);
-  }
-}, [dispatch, homeData]);
+      dispatch(fetchHome())
+        .unwrap()
+        .catch((error) => {
+          dispatch(clearHomeData());
+          console.error("Error fetching home data:", error);
+        })
+        .finally(() => {
+          setInitialLoad(false);
+        });
+    } else {
+      setInitialLoad(false);
+    }
+  }, [dispatch, homeData]);
 
   // Show full page skeleton on initial load
-  if (initialLoad ) {
+  if (initialLoad) {
     return (
       <div className="space-y-8">
         <HeroSkeleton />
         <ServicesSkeleton />
-       <VideoSkeleton/>
+        <VideoSkeleton />
         <CategoriesSkeleton />
         <RepairmanSkeleton count={4} />
       </div>
@@ -78,27 +77,23 @@ useEffect(() => {
   return (
     <div className="space-y-8 ">
       <Hero />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <SponsoredAdsBanner />
-      </div>
+   
       <OurServices />
-      <VideoSection/>
+      <VideoSection />
       {/* <SellingProducts title="Products" titleHighlight="New" /> */}
-      <StaticSections/>
+      <StaticSections />
       <FAQ />
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <SponsoredProductList />
-      </div>
-      <GoodProducts  title="Products" titleHighlight="Good" />
-      <Stores/>
-      <HowItWorks/>
-      <TopRepairman/>
+      <GoodProducts title="Products" titleHighlight="Sponsored" />
+      <SponsoredAdsBanner />
+      <Stores />
+      <HowItWorks />
+      <TopRepairman />
       <Testimonials />
-      <OurDeals/>
+      <OurDeals />
       <DownloadApp />
       <BlogSection />
-      <TermsSection/>
-        <ScrollToTop />
+      <TermsSection />
+      <ScrollToTop />
     </div>
   );
 }
