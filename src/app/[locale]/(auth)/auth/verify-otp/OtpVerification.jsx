@@ -200,6 +200,10 @@ function OtpVerification() {
         })
       );
 
+      if (user?.role === "customer") {
+        await updateFCMToken(resData.token);
+      }
+
       console.log(userData, 'userData')
 
       // ✅ Redirect logic

@@ -14,15 +14,25 @@ import { fetchCart } from '@/store/cart'
 import handleError from '@/helper/handleError'
 import { useLocale } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
+import useNotifications from '@/hooks/useNotifications'
 
 function Layout({ children }) {
-  const { token } = useSelector(state => state.auth);  
+  const { token } = useSelector(state => state.auth);
   const [loading, setLoading] = useState(false)
   const dispatch = useDispatch();
   const pathname = usePathname();
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    fetchNotifications,
+    markAsRead,
+    markAllAsRead,
+    deleteNotification
+  } = useNotifications();
 
-  const locale=useLocale();
-const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
+  const locale = useLocale();
+  const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
   const STORAGE_KEY = 'repair_form';
   const STEP_KEY = 'repair_step';
 
@@ -83,6 +93,11 @@ const isHome = pathname === `/${locale}` || pathname === `/${locale}/`;
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(STEP_KEY);
     }
+  }, []);
+
+
+  useEffect(() => {
+    fetchNotifications();
   }, []);
 
   if (loading) {

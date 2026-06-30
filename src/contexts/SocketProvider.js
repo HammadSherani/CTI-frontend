@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
 import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList, setCurrentUser } from '../store/chat';
+import { addNotification } from '@/store/notifications';
 
 const SocketContext = createContext();
 
@@ -47,6 +48,11 @@ export const SocketProvider = ({ children }) => {
 
       newSocket.on('connected', (data) => {
         console.log('Server confirmation:', data);
+      });
+
+       newSocket.on('push_notification', (data) => {
+        console.log('🔔 Push notification received:', data);
+        dispatch(addNotification(data));
       });
 
       newSocket.on('new_message', (messageData) => {

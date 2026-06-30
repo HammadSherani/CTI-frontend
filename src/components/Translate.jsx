@@ -24,6 +24,7 @@ export default function CustomTranslate() {
     if (langCode === locale) { setOpen(false); return; }
     setLoading(true);
     setOpen(false);
+    window.localStorage.setItem("preferredLocale", langCode);
     router.replace(pathname, { locale: langCode });
     setTimeout(() => setLoading(false), 1000);
   };

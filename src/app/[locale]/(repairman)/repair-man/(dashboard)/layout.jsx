@@ -10,6 +10,7 @@ import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
+import { useRouter} from '@/i18n/navigation';
 
 function RepairmanLayout({ children }) {
   const { user, userDetails, token } = useSelector(state => state.auth);
@@ -19,6 +20,12 @@ function RepairmanLayout({ children }) {
   const [revisionFieldsData, setRevisionFieldsData] = useState(null);
   const [loading, setLoading] = useState(true);
   const dispatch = useDispatch();
+  const router = useRouter();
+
+  const handleCompleteProfile = () => {
+    router.push('/repair-man/complete-profile');
+  }
+
   const fetchUserDetails = async () => {
     try {
       setLoading(true);
@@ -68,7 +75,7 @@ function RepairmanLayout({ children }) {
             Please complete your profile to access the dashboard and start receiving job requests.
           </p>
           <button
-            onClick={() => window.location.href = '/repair-man/complete-profile?step=1'}
+            onClick={handleCompleteProfile}
             className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors"
           >
             Complete Profile Now

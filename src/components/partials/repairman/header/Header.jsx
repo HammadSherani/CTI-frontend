@@ -26,30 +26,30 @@ function Header() {
   }, [dispatch]);
 
   const primaryNavLinks = [
-  { name: "Dashboard",   path: "/repair-man/dashboard",   icon: "solar:home-2-bold-duotone" },
+    { name: "Dashboard", path: "/repair-man/dashboard", icon: "solar:home-2-bold-duotone" },
 
-  { name: "Job Board",   path: "/repair-man/job-board",   icon: "solar:clipboard-list-bold-duotone" },
+    { name: "Job Board", path: "/repair-man/job-board", icon: "solar:clipboard-list-bold-duotone" },
 
-  { name: "My Offers",   path: "/repair-man/my-offers",   icon: "solar:hand-shake-bold-duotone" },
+    { name: "My Offers", path: "/repair-man/my-offers", icon: "solar:hand-shake-bold-duotone" },
 
-  { name: "My Jobs",     path: "/repair-man/my-jobs",     icon: "solar:case-bold-duotone" },
+    { name: "My Jobs", path: "/repair-man/my-jobs", icon: "solar:case-bold-duotone" },
 
-  { name: "Reviews",     path: "/repair-man/reviews",     icon: "solar:star-bold-duotone" },
+    { name: "Reviews", path: "/repair-man/reviews", icon: "solar:star-bold-duotone" },
 
-  { name: "Earnings",    path: "/repair-man/earning",     icon: "solar:wallet-2-bold-duotone" },
+    { name: "Earnings", path: "/repair-man/earning", icon: "solar:wallet-2-bold-duotone" },
 
-  { name: "Parts Order", path: "/repair-man/parts-order", icon: "solar:box-minimalistic-bold-duotone" },
+    { name: "Parts Order", path: "/repair-man/parts-order", icon: "solar:box-minimalistic-bold-duotone" },
 
-  { name: "Ads",         path: "/repair-man/ads",         icon: "solar:tag-price-bold-duotone" },
-];
+    { name: "Ads", path: "/repair-man/ads", icon: "solar:tag-price-bold-duotone" },
+  ];
 
   const dropdownLinks = [
-    { name: "Profile Settings", path: "/repair-man/profile",       icon: "solar:user-id-bold-duotone" },
-    { name: "Service Catalog",  path: "/repair-man/service-catalog",icon: "solar:settings-bold-duotone" },
-    { name: "Disputes",         path: "/disputes",                  icon: "solar:shield-warning-bold-duotone" },
-    { name: "Earnings",         path: "/earning",                   icon: "solar:graph-new-up-bold-duotone" },
-    { name: "Help & Support",   path: "/help-support",              icon: "solar:question-circle-bold-duotone" },
-    { name: "Sign Out",         path: "/auth/logout",               icon: "solar:logout-3-bold-duotone", isLogout: true },
+    { name: "Profile Settings", path: "/repair-man/profile", icon: "solar:user-id-bold-duotone" },
+    { name: "Service Catalog", path: "/repair-man/service-catalog", icon: "solar:settings-bold-duotone" },
+    { name: "Disputes", path: "/disputes", icon: "solar:shield-warning-bold-duotone" },
+    { name: "Earnings", path: "/earning", icon: "solar:graph-new-up-bold-duotone" },
+    { name: "Help & Support", path: "/help-support", icon: "solar:question-circle-bold-duotone" },
+    { name: "Sign Out", path: "/auth/logout", icon: "solar:logout-3-bold-duotone", isLogout: true },
   ];
 
   useEffect(() => {

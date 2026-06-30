@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import {  useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
+import { useLocale } from "next-intl";
 import { setAuth, setProfileComplete } from "@/store/auth";
 import PersonalInformation from "./PersonalInformation";
 import ContactInformation from "./ContactInformation";
@@ -380,6 +381,7 @@ export default function RepairmanMultiStepForm() {
 
   const { user, token, isProfileComplete } = useSelector(state => state.auth);
   const dispatch = useDispatch();
+  const locale = useLocale();
 
   const steps = [1, 2, 3, 4, 5];
   const stepTitles = [
@@ -400,7 +402,8 @@ export default function RepairmanMultiStepForm() {
     if (typeof window !== 'undefined') {
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('step', newStep.toString());
-      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+      const pathname = newUrl.pathname.replace(/^\/(en|tr)(?=\/|$)/, "");
+      router.replace(pathname + newUrl.search, { scroll: false, locale });
     }
   };
 
@@ -491,7 +494,8 @@ export default function RepairmanMultiStepForm() {
     if (!urlStep || parseInt(urlStep) !== step) {
       const newUrl = new URL(window.location);
       newUrl.searchParams.set('step', step.toString());
-      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+      const pathname = newUrl.pathname.replace(/^\/(en|tr)(?=\/|$)/, "");
+      router.replace(pathname + newUrl.search, { scroll: false, locale });
     }
   }, []);
 

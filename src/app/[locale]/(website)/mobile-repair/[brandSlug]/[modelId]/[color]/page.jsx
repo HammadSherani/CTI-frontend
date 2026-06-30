@@ -23,6 +23,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb';
 import { setAuth } from '@/store/auth';
 import { setCurrentUser } from '@/store/chat';
 import TermsModal from '@/components/website/home/termsModal';
+import { updateFCMToken } from '@/utils/fcm';
 
 // Updated Yup schema (removed customServices)
 const schema = yup.object().shape({
@@ -393,7 +394,7 @@ const CreateRepairJobForm = () => {
     }
   };
 
-  const handleLoginSuccess = (loginUserData) => {
+  const handleLoginSuccess = async (loginUserData) => {
     console.log('Login successful:', loginUserData);
     setUserData(loginUserData);
     setShowLoginModal(false);
@@ -405,6 +406,7 @@ const CreateRepairJobForm = () => {
     }));
     
     dispatch(setCurrentUser(loginUserData.user));
+    await updateFCMToken(loginUserData.token);
   };
 
   const handleCloseLoginModal = () => {

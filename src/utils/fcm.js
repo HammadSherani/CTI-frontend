@@ -10,7 +10,7 @@ export async function requestNotificationPermission() {
     }
 
     const permission = await Notification.requestPermission();
-    
+
     if (permission === 'granted') {
       console.log('✅ Notification permission granted');
       return true;
@@ -34,7 +34,7 @@ export async function getFCMToken() {
     const token = await getToken(messaging, {
       vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
     });
-    
+
     console.log('✅ FCM Token generated:', token?.substring(0, 20) + '...');
     return token;
   } catch (error) {
@@ -54,14 +54,14 @@ export async function updateFCMToken(authToken) {
     console.log('🔄 Starting FCM token update...');
 
     const hasPermission = await requestNotificationPermission();
-    
+
     if (!hasPermission) {
       console.log('⚠️ No notification permission');
       return false;
     }
 
     const fcmToken = await getFCMToken();
-    
+
     if (!fcmToken) {
       console.log('⚠️ Could not get FCM token');
       return false;
@@ -70,9 +70,9 @@ export async function updateFCMToken(authToken) {
     console.log('📤 Sending FCM token to backend...');
 
     const response = await axiosInstance.post(
-      '/update-fcm-token', 
+      '/update-fcm-token',
       { fcmToken },
-      { 
+      {
         headers: {
           'Authorization': `Bearer ${authToken}`
         }
@@ -80,7 +80,7 @@ export async function updateFCMToken(authToken) {
     );
 
     console.log('📥 Backend response:', response.data);
-    
+
     if (response.data.success) {
       console.log('✅ FCM token updated on server');
       return true;
@@ -88,7 +88,7 @@ export async function updateFCMToken(authToken) {
       console.error(' Failed to update FCM token:', response.data);
       return false;
     }
-    
+
   } catch (error) {
     console.error(' Error updating FCM token:', error.response?.data || error.message);
     return false;

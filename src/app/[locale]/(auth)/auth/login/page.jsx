@@ -12,7 +12,7 @@ import handleError from "@/helper/handleError";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/store/chat";
-import { updateFCMToken } from "@/utils/fcm";
+import { requestNotificationPermission, updateFCMToken } from "@/utils/fcm";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -48,16 +48,32 @@ function Login() {
   const onSubmit = async (data) => {
     try {
       console.log("Login submitteds:", data);
+      // alert('Login submitted with email: ' + data.email);
 
-      const response = await axiosInstance.post("/auth/login", {
+          const response = await axiosInstance.post("/auth/login", {
         email: data.email,
         password: data.password,
         rememberMe: data.rememberMe,
       });
       console.log("Login successful:", response);
-      
+
       const resData = response.data.data;
-console.log(resData,'resData')
+
+       try {
+        // alert('Attempting to update FCM token...');
+        await updateFCMToken(resData.token);
+        await requestNotificationPermission();
+        console.log("FCM updated successfully");
+      } catch (fcmError) {
+        console.error("FCM update failed", fcmError);
+      }
+
+
+      // return; // Stop execution here for testing
+
+  
+
+      console.log(resData, 'resData')
       // 🔐 If email is NOT verified → redirect to verification page
       if (response.data.requiresVerification) {
         console.log("Email not verified → redirecting to OTP page...");
@@ -65,7 +81,7 @@ console.log(resData,'resData')
         router.push(`/auth/verify-email?email=${resData.email}&userId=${resData.userId}`);
         return;
       }
-      if(resData.status==410){
+      if (resData.status == 410) {
         router.push(`/seller/complete-profile/${resData.userId}`)
       }
 
@@ -80,9 +96,9 @@ console.log(resData,'resData')
 
       dispatch(setCurrentUser(resData.user));
 
-      // 🔐 Update FCM token
       try {
         await updateFCMToken(resData.token);
+        await requestNotificationPermission();
         console.log("FCM updated successfully");
       } catch (fcmError) {
         console.error("FCM update failed", fcmError);
@@ -96,10 +112,10 @@ console.log(resData,'resData')
         if (resData?.user?.kycStatus === "not_submitted") {
           // router.push("/repair-man/dashboard");
           router.push("/repair-man/complete-profile");
-        }if(resData.user?.role==='seller'){
+        } if (resData.user?.role === 'seller') {
           router.push("/seller/dashbaord")
         }
-         else {
+        else {
           // router.push("/repair-man/complete-profile");
           router.push("/repair-man/dashboard");
         }
@@ -108,16 +124,16 @@ console.log(resData,'resData')
       }
 
     } catch (error) {
-      console.log(error.response,"rer");
+      console.log(error.response, "rer");
 
-      if(error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
+      if (error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
         const { email, userId } = error.response.data.data;
         router.push(`/auth/verify-email?email=${email}&userId=${userId}`);
         return;
       }
 
-      
- if(error?.response?.status === 410 && error?.response?.data?.data?.isKycCompleted===false) {
+
+      if (error?.response?.status === 410 && error?.response?.data?.data?.isKycCompleted === false) {
         router.push(`/seller/complete-profile/${error.response?.data?.data.userId}`);
         return;
       }
