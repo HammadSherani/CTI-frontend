@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSelector } from "react-redux";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import axiosInstance from "@/config/axiosInstance";
 import moment from "moment";
 import {
@@ -172,6 +173,8 @@ function SalesPerformance({ data, loading }) {
 // SECTION 2 — ACTIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 function Actions({ data, loading }) {
+  const { locale } = useParams();
+  
   const items = [
     {
       icon: "solar:box-bold-duotone",
@@ -224,6 +227,7 @@ function Actions({ data, loading }) {
   ];
 
   const total = items.reduce((s, i) => s + i.count, 0);
+  const requiredActions = items.filter(item => item.count > 0);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden h-full flex flex-col">
@@ -255,10 +259,10 @@ function Actions({ data, loading }) {
               <div className="ml-auto"><Sk h="h-6" w="w-8" r="rounded-full" /></div>
             </div>
           ))
-          : items.map((item, i) => (
-            <Link href={item.href} key={i}
+          : requiredActions.length > 0 ? requiredActions.map((item, i) => (
+            <Link href={`/${locale}${item.href}`} key={i}
               className="flex items-center gap-3 px-5 py-3 border-b border-slate-50 last:border-0 hover:bg-slate-50/70 transition-colors group">
-              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.bg} ${item.count > 0 && item.urgent ? `ring-1 ${item.ring}` : ""}`}>
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${item.bg} ${item.urgent ? `ring-1 ${item.ring}` : ""}`}>
                 <Icon icon={item.icon} className={`w-4.5 h-4.5 ${item.clr}`} />
               </div>
               <div className="flex-1 min-w-0">
@@ -269,15 +273,20 @@ function Actions({ data, loading }) {
                   <p className="text-[11px] text-slate-400 leading-tight mt-0.5">{item.sub}</p>
                 )}
               </div>
-              <span className={`text-xs font-black min-w-[28px] text-center px-2 py-1 rounded-full flex-shrink-0 ${item.count > 0
-                ? item.urgent ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                : "bg-slate-100 text-slate-400"
-                }`}>
+              <span className={`text-xs font-black min-w-[28px] text-center px-2 py-1 rounded-full flex-shrink-0 ${item.urgent ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"}`}>
                 {item.count}
               </span>
               <Icon icon="mdi:chevron-right" className="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors flex-shrink-0" />
             </Link>
-          ))
+          )) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center px-5">
+              <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center mb-3">
+                <Icon icon="solar:check-circle-bold-duotone" className="w-6 h-6 text-slate-300" />
+              </div>
+              <p className="text-sm font-bold text-slate-900">You're all caught up!</p>
+              <p className="text-xs text-slate-400 mt-1">No pending actions required.</p>
+            </div>
+          )
         }
       </div>
     </div>
@@ -592,6 +601,7 @@ function CalEmpty({ icon, msg }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 export default function SellerDashboardPage() {
   const { token, user } = useSelector(s => s.auth);
+  const { locale } = useParams();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -620,32 +630,51 @@ export default function SellerDashboardPage() {
     <div className="min-h-screen bg-[#f8f9fc]">
 
       {/* ── Welcome Banner ── */}
-      <div className="bg-gradient-to-br from-primary-600 via-primary-700 to-violet-700 px-6 py-8 relative overflow-hidden">
-        {/* decorative blobs */}
-        <div className="absolute -top-10 -right-10 w-48 h-48 bg-white/5 rounded-full blur-2xl" />
-        <div className="absolute bottom-0 left-1/3 w-32 h-32 bg-white/5 rounded-full blur-xl" />
+      <div className="relative mx-4 mt-6 sm:mx-6 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-primary-900/20">
+        {/* Dynamic Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-slate-900"></div>
+        
+        {/* Decorative elements */}
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary-400/30 to-transparent rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 mix-blend-screen pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-primary-500/20 to-transparent rounded-full blur-3xl opacity-50 translate-y-1/3 -translate-x-1/4 mix-blend-screen pointer-events-none"></div>
+        
+        {/* Grid pattern overlay for texture */}
+        <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white,transparent)] pointer-events-none"></div>
 
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4 ml-12 relative z-10">
-          <div>
-            <p className="text-primary-200 text-sm font-semibold mb-1">{greeting} 👋</p>
-            <h1 className="text-2xl font-black text-white">
-              {user?.name ? user.name.split(" ")[0] : "Seller"}'s Dashboard
+        <div className="relative z-10 max-w-6xl mx-auto px-8 py-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="bg-white/10 text-white backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold border border-white/10 uppercase tracking-widest flex items-center gap-1.5">
+                <Icon icon="solar:sun-fog-bold-duotone" className="w-3.5 h-3.5 text-amber-300" />
+                {greeting}
+              </span>
+              <p className="text-primary-200 text-sm font-medium">
+                {moment().format("dddd, DD MMMM YYYY")}
+              </p>
+            </div>
+            
+            <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-3">
+              Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">{user?.name ? user.name.split(" ")[0] : "Seller"}</span>!
             </h1>
-            <p className="text-primary-200 text-sm mt-1">
-              {moment().format("dddd, DD MMMM YYYY")}
+            <p className="text-primary-200/80 text-sm font-medium max-w-lg">
+              Here is what's happening with your store today. Keep up the great work!
             </p>
           </div>
-          <div className="flex items-center gap-3">
+
+          <div className="flex items-center gap-3 mt-2 sm:mt-0">
             {totalActions > 0 && (
-              <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl px-4 py-2.5">
-                <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-                <span className="text-white text-sm font-bold">{totalActions} action{totalActions !== 1 ? "s" : ""} needed</span>
+              <div className="group flex items-center gap-2.5 bg-rose-500/20 hover:bg-rose-500/30 backdrop-blur-md border border-rose-500/30 hover:border-rose-500/50 transition-all rounded-2xl px-5 py-3 cursor-pointer shadow-[0_0_15px_rgba(244,63,94,0.15)]">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+                </span>
+                <span className="text-rose-100 text-sm font-bold group-hover:text-white transition-colors">{totalActions} action{totalActions !== 1 ? "s" : ""} needed</span>
               </div>
             )}
             <button onClick={fetchOverview}
-              className="flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 hover:bg-white/20 transition-colors rounded-xl px-4 py-2.5 text-white text-sm font-bold">
-              <Icon icon={loading ? "svg-spinners:180-ring" : "mdi:refresh"} className="w-4 h-4" />
-              Refresh
+              className="flex items-center gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 hover:border-white/30 transition-all rounded-2xl px-5 py-3 text-white text-sm font-bold shadow-xl hover:shadow-2xl hover:-translate-y-0.5 active:translate-y-0">
+              <Icon icon={loading ? "svg-spinners:180-ring" : "solar:refresh-circle-bold-duotone"} className={`w-5 h-5 ${loading ? '' : 'text-primary-200'}`} />
+              <span className="hidden sm:inline">Refresh Data</span>
             </button>
           </div>
         </div>
@@ -659,10 +688,10 @@ export default function SellerDashboardPage() {
 
         {/* 2+3 — Actions + Advertising stacked on mobile, side-by-side on lg */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* <div className="lg:col-span-2">
+          <div className="lg:col-span-2">
             <Actions data={data?.actions} loading={loading} />
-          </div> */}
-          <div className="lg:col-span-5 ">
+          </div>
+          <div className="lg:col-span-3">
             <AdvertisingPerformance data={data?.advertising} loading={loading} />
           </div>
         </div>
@@ -673,10 +702,10 @@ export default function SellerDashboardPage() {
         {/* quick nav footer */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           {[
-            { label: "My Orders", icon: "solar:bag-heart-bold-duotone", href: "/seller/order", bg: "bg-primary-50", clr: "text-primary-600" },
-            { label: "My Products", icon: "solar:box-bold-duotone", href: "/seller/products", bg: "bg-emerald-50", clr: "text-emerald-600" },
-            { label: "My Wallet", icon: "solar:wallet-money-bold-duotone", href: "/seller/wallet", bg: "bg-violet-50", clr: "text-violet-600" },
-            { label: "My Ads", icon: "solar:megaphone-bold-duotone", href: "/seller/ads", bg: "bg-amber-50", clr: "text-amber-600" },
+            { label: "My Orders", icon: "solar:bag-heart-bold-duotone", href: `/${locale}/seller/order`, bg: "bg-primary-50", clr: "text-primary-600" },
+            { label: "My Products", icon: "solar:box-bold-duotone", href: `/${locale}/seller/products`, bg: "bg-emerald-50", clr: "text-emerald-600" },
+            { label: "My Wallet", icon: "solar:wallet-money-bold-duotone", href: `/${locale}/seller/wallet`, bg: "bg-violet-50", clr: "text-violet-600" },
+            { label: "My Ads", icon: "solar:megaphone-bold-duotone", href: `/${locale}/seller/ads`, bg: "bg-amber-50", clr: "text-amber-600" },
           ].map((q, i) => (
             <Link key={i} href={q.href}
               className="flex items-center gap-3 bg-white border border-slate-100 rounded-2xl px-4 py-3.5 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 group">

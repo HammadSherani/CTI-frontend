@@ -214,13 +214,13 @@ export default function InvoicePage() {
             <p className="text-slate-500 mt-1">Upload your invoice PDFs for admin review</p>
           </div>
 
-          <button
+          {/* <button
             onClick={() => { setReuploadFor(null); setShowUpload(true); }}
             className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold px-6 py-3 rounded-2xl transition-all shadow-sm"
           >
             <Icon icon="mdi:upload" className="w-5 h-5" />
             Upload Invoice PDF
-          </button>
+          </button> */}
         </div>
       </div>
 
