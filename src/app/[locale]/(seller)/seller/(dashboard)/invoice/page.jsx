@@ -7,7 +7,13 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+  d ? new Date(d).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric', 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    }) : '—';
 
 const STATUS_META = {
   submitted: { label: 'Under Review', bg: 'bg-blue-50',     text: 'text-blue-700',    border: 'border-blue-200',    dot: '#2563eb' },
@@ -27,15 +33,19 @@ function StatusBadge({ status }) {
 
 /* ── Upload Modal ───────────────────────────────────────────────── */
 function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
-  const [file, setFile]       = useState(null);
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [error, setError] = useState('');
   const fileRef = useRef();
 
   const handleUpload = async () => {
-    if (!file) { setError('Please select a PDF file.'); return; }
+    if (!file) {
+      setError('Please select a PDF file.');
+      return;
+    }
     setLoading(true);
     setError('');
+
     try {
       const fd = new FormData();
       fd.append('file', file);
@@ -46,12 +56,13 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
 
       const { data } = await axiosInstance.post(url, fd, {
         headers: { 
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
         },
       });
 
       if (data.success) {
-        toast.success(reuploadFor ? 'Invoice re-uploaded.' : 'Invoice uploaded and submitted for review.');
+        toast.success(reuploadFor ? 'Invoice re-uploaded successfully!' : 'Invoice uploaded successfully!');
         onSuccess(data.data);
         onClose();
       }
@@ -63,68 +74,72 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h3 className="font-black text-slate-900 text-lg">
-              {reuploadFor ? 'Re-Upload Invoice' : 'Upload Invoice'}
+            <h3 className="font-black text-slate-900 text-xl">
+              {reuploadFor ? 'Re-Upload Invoice' : 'Upload New Invoice'}
             </h3>
             {reuploadFor && (
-              <p className="text-xs text-slate-400 mt-0.5">{reuploadFor.invoiceNumber}</p>
+              <p className="text-xs text-slate-400 mt-1">{reuploadFor.invoiceNumber}</p>
             )}
           </div>
-          <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-slate-200">
-            <Icon icon="mdi:close" className="w-4 h-4 text-slate-500" />
+          <button onClick={onClose} className="w-9 h-9 bg-slate-100 rounded-2xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+            <Icon icon="mdi:close" className="w-5 h-5 text-slate-500" />
           </button>
         </div>
 
         {reuploadFor?.rejectionReason && (
-          <div className="bg-red-50 border border-red-100 rounded-2xl px-4 py-3 mb-4 flex items-start gap-2 text-xs text-red-700">
-            <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0 mt-0.5" />
-            <span><strong>Rejection reason:</strong> {reuploadFor.rejectionReason}</span>
+          <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-5 text-sm text-red-700">
+            <strong>Rejection Reason:</strong> {reuploadFor.rejectionReason}
           </div>
         )}
 
         <div
-          className="border-2 border-dashed border-violet-200 bg-violet-50 rounded-2xl p-8 text-center cursor-pointer hover:bg-violet-100 transition-colors mb-4"
+          className="border-2 border-dashed border-violet-200 bg-violet-50 rounded-3xl p-10 text-center cursor-pointer hover:bg-violet-100 transition-all"
           onClick={() => fileRef.current?.click()}
         >
-          <Icon icon="mdi:file-pdf-box" className="w-10 h-10 text-violet-400 mx-auto mb-2" />
+          <Icon icon="mdi:file-pdf-box" className="w-16 h-16 text-violet-400 mx-auto mb-4" />
           {file ? (
-            <p className="text-sm font-bold text-violet-700">{file.name}</p>
+            <p className="font-semibold text-violet-700 text-lg">{file.name}</p>
           ) : (
             <>
-              <p className="text-sm font-bold text-violet-700">Click to select PDF</p>
-              <p className="text-xs text-slate-400 mt-1">PDF only — max 10 MB</p>
+              <p className="font-bold text-violet-700">Click to select PDF file</p>
+              <p className="text-xs text-slate-400 mt-2">Only PDF • Max 10 MB</p>
             </>
           )}
           <input
             ref={fileRef}
             type="file"
-            accept=".pdf,application/pdf"
+            accept="application/pdf"
             className="hidden"
-            onChange={e => { setFile(e.target.files[0]); setError(''); }}
+            onChange={(e) => {
+              setFile(e.target.files[0]);
+              setError('');
+            }}
           />
         </div>
 
-        {error && (
-          <p className="text-xs text-red-600 mb-3 bg-red-50 px-3 py-2 rounded-xl">{error}</p>
-        )}
+        {error && <p className="text-red-600 text-sm mt-3 bg-red-50 p-3 rounded-2xl">{error}</p>}
 
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3 rounded-2xl text-sm transition-colors">
+        <div className="flex gap-3 mt-6">
+          <button
+            onClick={onClose}
+            className="flex-1 py-3.5 bg-slate-100 hover:bg-slate-200 font-semibold rounded-2xl transition-colors"
+          >
             Cancel
           </button>
           <button
             onClick={handleUpload}
             disabled={loading || !file}
-            className="flex-1 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold py-3 rounded-2xl text-sm transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
-            {loading
-              ? <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Uploading…</>
-              : <><Icon icon="mdi:upload" className="w-4 h-4" /> {reuploadFor ? 'Re-Upload & Submit' : 'Upload & Submit'}</>
-            }
+            {loading ? (
+              <>Uploading...</>
+            ) : (
+              <>{reuploadFor ? 'Re-upload & Submit' : 'Upload & Submit'}</>
+            )}
           </button>
         </div>
       </div>
@@ -134,13 +149,13 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
 
 /* ── Main Page ──────────────────────────────────────────────────── */
 export default function InvoicePage() {
-  const { token } = useSelector(s => s.auth);
+  const { token } = useSelector((s) => s.auth);
 
-  const [invoices,   setInvoices]   = useState([]);
-  const [loading,    setLoading]    = useState(true);
+  const [invoices, setInvoices] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
   const [filterStatus, setFilterStatus] = useState('');
-  const [showUpload,  setShowUpload]  = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
   const [reuploadFor, setReuploadFor] = useState(null);
 
   const loadInvoices = useCallback(async (page = 1) => {
@@ -153,88 +168,94 @@ export default function InvoicePage() {
       const { data } = await axiosInstance.get(`/seller/invoices?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
       if (data.success) {
-        setInvoices(data.data);
-        setPagination(p => ({ ...p, ...data.pagination, page }));
+        setInvoices(data.data || []);
+        setPagination((prev) => ({ ...prev, ...data.pagination, page }));
       }
-    } catch {
+    } catch (err) {
       toast.error('Failed to load invoices.');
     } finally {
       setLoading(false);
     }
   }, [token, filterStatus, pagination.limit]);
 
-  useEffect(() => { loadInvoices(1); }, [filterStatus]);
+  useEffect(() => {
+    loadInvoices(1);
+  }, [filterStatus, loadInvoices]);
 
-  const handleUploadSuccess = (newOrUpdated) => {
-    setInvoices(prev => {
-      const exists = prev.find(i => i._id === newOrUpdated._id);
-      return exists
-        ? prev.map(i => i._id === newOrUpdated._id ? newOrUpdated : i)
-        : [newOrUpdated, ...prev];
+  const handleUploadSuccess = (newInvoice) => {
+    setInvoices((prev) => {
+      const exists = prev.find((i) => i._id === newInvoice._id);
+      if (exists) {
+        return prev.map((i) => (i._id === newInvoice._id ? newInvoice : i));
+      }
+      return [newInvoice, ...prev];
     });
   };
 
-  const openReupload = (inv) => { setReuploadFor(inv); setShowUpload(true); };
-  const closeUpload  = () => { setShowUpload(false); setReuploadFor(null); };
+  const openReupload = (inv) => {
+    setReuploadFor(inv);
+    setShowUpload(true);
+  };
 
-  const counts = invoices.reduce((acc, inv) => { acc[inv.status] = (acc[inv.status] || 0) + 1; return acc; }, {});
+  const closeUpload = () => {
+    setShowUpload(false);
+    setReuploadFor(null);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50">
-
+    <div className="min-h-screen bg-slate-50 pb-10">
       {/* Header */}
-      <div className="bg-white border-b border-slate-100 px-6 py-5">
-        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white border-b border-slate-100 px-6 py-6 sticky top-0 z-40">
+        <div className="max-w-5xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-slate-900">Invoices</h1>
-            <p className="text-sm text-slate-400 mt-0.5">Upload your invoice PDFs — admin will review and approve</p>
+            <h1 className="text-3xl font-black text-slate-900">Invoices</h1>
+            <p className="text-slate-500 mt-1">Upload your invoice PDFs for admin review</p>
           </div>
+
           <button
             onClick={() => { setReuploadFor(null); setShowUpload(true); }}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition-colors shadow-sm"
+            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold px-6 py-3 rounded-2xl transition-all shadow-sm"
           >
-            <Icon icon="mdi:upload" className="w-4 h-4" />
+            <Icon icon="mdi:upload" className="w-5 h-5" />
             Upload Invoice PDF
           </button>
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8 space-y-6">
 
-        {/* Stats + Filter pills */}
-        <div className="flex flex-wrap items-center gap-2">
+        {/* Status Filters */}
+        <div className="flex flex-wrap gap-2">
           {[
-            { key: '',          label: 'All',         count: pagination.total },
-            { key: 'submitted', label: 'Under Review', count: counts.submitted  || 0 },
-            { key: 'approved',  label: 'Approved',     count: counts.approved   || 0 },
-            { key: 'rejected',  label: 'Rejected',     count: counts.rejected   || 0 },
+            { key: '', label: 'All', count: pagination.total },
+            { key: 'submitted', label: 'Under Review', count: invoices.filter(i => i.status === 'submitted').length },
+            { key: 'approved', label: 'Approved', count: invoices.filter(i => i.status === 'approved').length },
+            { key: 'rejected', label: 'Rejected', count: invoices.filter(i => i.status === 'rejected').length },
           ].map(({ key, label, count }) => (
             <button
               key={key}
               onClick={() => setFilterStatus(key)}
-              className={`px-4 py-2 rounded-xl text-sm font-semibold border transition-colors ${
+              className={`px-5 py-2.5 rounded-2xl text-sm font-semibold border transition-all ${
                 filterStatus === key
-                  ? 'bg-violet-600 text-white border-violet-600 shadow-sm'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-violet-300 hover:text-violet-600'
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'bg-white border-slate-200 hover:border-violet-200 text-slate-600'
               }`}
             >
-              {label}
-              <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-md ${filterStatus === key ? 'bg-violet-700' : 'bg-slate-100 text-slate-500'}`}>
-                {count}
-              </span>
+              {label} <span className="ml-1.5 text-xs opacity-75">({count})</span>
             </button>
           ))}
         </div>
 
         {/* Table */}
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
-                  {['Invoice #', 'Submitted', 'Status', 'Rejection Reason', 'Actions'].map(h => (
-                    <th key={h} className="px-4 py-3 text-left text-[11px] font-black uppercase tracking-wider text-slate-400 whitespace-nowrap">
+                <tr className="bg-slate-50 border-b">
+                  {['Invoice #', 'Submitted', 'Status', 'Rejection Reason', 'Actions'].map((h) => (
+                    <th key={h} className="px-6 py-4 text-left text-xs font-black uppercase tracking-widest text-slate-400">
                       {h}
                     </th>
                   ))}
@@ -244,57 +265,50 @@ export default function InvoicePage() {
                 {loading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-slate-50">
-                      {[1,2,3,4,5].map(j => (
-                        <td key={j} className="px-4 py-3">
-                          <div className="h-4 bg-slate-100 animate-pulse rounded-lg" />
+                      {[1, 2, 3, 4, 5].map((j) => (
+                        <td key={j} className="px-6 py-4">
+                          <div className="h-5 bg-slate-100 animate-pulse rounded-lg" />
                         </td>
                       ))}
                     </tr>
                   ))
                 ) : invoices.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-20 text-center">
-                      <Icon icon="mdi:file-pdf-box" className="w-14 h-14 text-slate-200 mx-auto mb-3" />
-                      <p className="text-slate-400 font-semibold">No invoices yet</p>
-                      <p className="text-xs text-slate-300 mt-1">Click "Upload Invoice PDF" to submit your first invoice</p>
+                    <td colSpan={5} className="py-24 text-center">
+                      <Icon icon="mdi:file-pdf-box" className="w-20 h-20 text-slate-200 mx-auto mb-4" />
+                      <p className="text-slate-400 font-semibold text-lg">No invoices found</p>
+                      <p className="text-slate-400 mt-2">Upload your first invoice to get started</p>
                     </td>
                   </tr>
                 ) : (
-                  invoices.map((inv, i) => (
-                    <tr key={inv._id} className={`border-b border-slate-50 hover:bg-slate-50/50 transition-colors ${i % 2 !== 0 ? 'bg-slate-50/30' : ''}`}>
-                      <td className="px-4 py-3">
-                        <span className="font-bold text-violet-700 text-xs">{inv.invoiceNumber}</span>
+                  invoices.map((inv) => (
+                    <tr key={inv._id} className="border-b hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-violet-700">{inv.invoiceNumber}</td>
+                      <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{fmtDate(inv.createdAt)}</td>
+                      <td className="px-6 py-4"><StatusBadge status={inv.status} /></td>
+                      <td className="px-6 py-4 text-sm text-slate-500 max-w-xs">
+                        {inv.status === 'rejected' && inv.rejectionReason ? (
+                          <span className="text-red-600">{inv.rejectionReason}</span>
+                        ) : '—'}
                       </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 whitespace-nowrap">
-                        {fmtDate(inv.createdAt)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge status={inv.status} />
-                      </td>
-                      <td className="px-4 py-3 text-xs text-slate-500 max-w-[200px]">
-                        {inv.status === 'rejected' && inv.rejectionReason
-                          ? <span className="text-red-600">{inv.rejectionReason}</span>
-                          : '—'}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-1.5">
-                          {/* Download PDF */}
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
                           <a
-                            href={`${inv.pdfUrl}?fl_attachment=1`}
-                            download
+                            href={inv.pdfUrl}
+                            target="_blank"
+                            className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center transition-colors"
                             title="Download PDF"
-                            className="w-7 h-7 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
                           >
-                            <Icon icon="mdi:download" className="w-3.5 h-3.5" />
+                            <Icon icon="mdi:download" className="w-4 h-4" />
                           </a>
-                          {/* Re-upload if rejected */}
+
                           {inv.status === 'rejected' && (
                             <button
-                              title="Re-Upload"
                               onClick={() => openReupload(inv)}
-                              className="w-7 h-7 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-lg flex items-center justify-center transition-colors"
+                              className="w-9 h-9 bg-orange-50 hover:bg-orange-100 text-orange-600 rounded-2xl flex items-center justify-center transition-colors"
+                              title="Re-upload"
                             >
-                              <Icon icon="mdi:upload-outline" className="w-3.5 h-3.5" />
+                              <Icon icon="mdi:upload-outline" className="w-4 h-4" />
                             </button>
                           )}
                         </div>
@@ -308,40 +322,12 @@ export default function InvoicePage() {
 
           {/* Pagination */}
           {!loading && pagination.pages > 1 && (
-            <div className="flex items-center justify-between px-6 py-4 border-t border-slate-100">
-              <p className="text-xs text-slate-400">
-                {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
+            <div className="px-6 py-5 border-t flex items-center justify-between text-sm">
+              <p className="text-slate-400">
+                Showing {(pagination.page - 1) * pagination.limit + 1} to{' '}
+                {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}
               </p>
-              <div className="flex items-center gap-1.5">
-                <button
-                  disabled={pagination.page <= 1}
-                  onClick={() => loadInvoices(pagination.page - 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                >
-                  <Icon icon="mdi:chevron-left" className="w-4 h-4 text-slate-500" />
-                </button>
-                {Array.from({ length: Math.min(pagination.pages, 7) }, (_, i) => {
-                  const pg = i + 1;
-                  return (
-                    <button
-                      key={pg}
-                      onClick={() => loadInvoices(pg)}
-                      className={`w-8 h-8 rounded-xl text-xs font-bold transition-colors ${
-                        pagination.page === pg ? 'bg-violet-600 text-white' : 'border border-slate-200 text-slate-500 hover:bg-slate-50'
-                      }`}
-                    >
-                      {pg}
-                    </button>
-                  );
-                })}
-                <button
-                  disabled={pagination.page >= pagination.pages}
-                  onClick={() => loadInvoices(pagination.page + 1)}
-                  className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 disabled:opacity-40 hover:bg-slate-50 transition-colors"
-                >
-                  <Icon icon="mdi:chevron-right" className="w-4 h-4 text-slate-500" />
-                </button>
-              </div>
+              {/* Add better pagination if needed */}
             </div>
           )}
         </div>

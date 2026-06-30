@@ -25,7 +25,7 @@ function formatCardDisplay(val) {
   return val.replace(/\D/g, '').slice(0, 16).replace(/(.{4})/g, '$1 ').trim();
 }
 
-const INITIAL_FORM = { cardHolderName: '', cardNumber: '', expireMonth: '', expireYear: '', cvc: '' };
+const INITIAL_FORM = { cardHolderName: 'John Doe', cardNumber: '5528790000000008', expireMonth: '12', expireYear: '30', cvc: '123' };
 
 export default function AdPaymentPage() {
   const router    = useRouter();
@@ -197,7 +197,7 @@ export default function AdPaymentPage() {
 
       {/* Add Card Form */}
       {showForm ? (
-        <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="bg-white p-10 rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
           {/* Card preview */}
           <div className="bg-gradient-to-br from-primary-600 to-primary-800 p-6 text-white">
             <div className="flex justify-between items-start mb-6">
@@ -324,8 +324,7 @@ export default function AdPaymentPage() {
         </div>
       </div>
 
-      {/* Sandbox test card hint */}
-      <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
+      {/* <div className="mt-4 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
         <p className="font-bold text-amber-800 flex items-center gap-1.5 mb-2">
           <Icon icon="mdi:flask-outline" className="w-4 h-4" />
           Sandbox Test Cards (iyzico)
@@ -336,7 +335,7 @@ export default function AdPaymentPage() {
           <div className="flex justify-between"><span>Troy</span><span className="font-bold">9792030394440796</span></div>
         </div>
         <p className="text-[10px] text-amber-700 mt-2">Use CVV: <strong>000</strong> · Any future expiry date · Any cardholder name</p>
-      </div>
+      </div> */}
     </div>
   );
 }

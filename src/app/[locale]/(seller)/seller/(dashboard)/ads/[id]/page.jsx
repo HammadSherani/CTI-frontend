@@ -111,6 +111,15 @@ export default function SellerCampaignDetailsPage() {
           
           {/* Actions */}
           <div className="flex items-center gap-2">
+            {['draft', 'rejected'].includes(campaign.status) && (
+              <button
+                onClick={() => router.push(`/seller/ads/${campaign._id}/edit`)}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-sm transition-colors"
+              >
+                <Icon icon="mdi:pencil-outline" className="w-4 h-4" />
+                Edit Campaign
+              </button>
+            )}
             {campaign.status === 'active' && (
               <button
                 onClick={() => handleAction('pause')}
@@ -238,14 +247,14 @@ export default function SellerCampaignDetailsPage() {
                       <div key={prod._id} className="flex items-center gap-3 p-3 rounded-xl border border-slate-100 bg-slate-50">
                         <div className="w-10 h-10 relative rounded bg-white overflow-hidden flex-shrink-0 border border-slate-100">
                           {prod.images?.[0] ? (
-                            <Image src={prod.images[0].url} alt={prod.name} fill className="object-cover" />
+                            <Image src={prod.images[0].url} alt={prod.title} fill className="object-cover" />
                           ) : (
                             <Icon icon="mdi:image-outline" className="w-5 h-5 absolute inset-0 m-auto text-slate-400" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-bold text-slate-900 truncate">{prod.name}</p>
-                          <p className="text-[10px] text-slate-500">${prod.price}</p>
+                          <p className="text-xs font-bold text-slate-900 truncate">{prod.title}</p>
+                          <p className="text-[10px] text-slate-400 truncate">{prod.slug}</p>
                         </div>
                       </div>
                     ))}
@@ -270,19 +279,19 @@ export default function SellerCampaignDetailsPage() {
                   <span className={`text-xs font-bold ${status.text}`}>{status.label}</span>
                 </li>
                 <li className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">Bidding Type</span>
-                  <span className="text-xs font-bold text-slate-900">{campaign.biddingType}</span>
-                </li>
-                <li className="flex justify-between items-center">
                   <span className="text-xs text-slate-500">Daily Budget</span>
                   <span className="text-xs font-bold text-slate-900">${campaign.dailyBudget?.toFixed(2)}</span>
+                </li>
+                <li className="flex justify-between items-center">
+                  <span className="text-xs text-slate-500">Total Budget</span>
+                  <span className="text-xs font-bold text-slate-900">${campaign.totalBudget?.toFixed(2)}</span>
                 </li>
                 <li className="flex justify-between items-center">
                   <span className="text-xs text-slate-500">Start Date</span>
                   <span className="text-xs font-bold text-slate-900">{fmtDate(campaign.startDate)}</span>
                 </li>
                 <li className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500">End Date</span>
+                  <span className="text-xs text-slate-500">Est. End Date</span>
                   <span className="text-xs font-bold text-slate-900">{fmtDate(campaign.endDate)}</span>
                 </li>
                 <li className="flex justify-between items-center">

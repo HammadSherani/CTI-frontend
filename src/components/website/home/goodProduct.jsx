@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import ProductsCarousel from './product/ProductsCarousel';
+import { filterFreshImpressions } from '@/utils/adImpressionTracker';
 
 export default function GoodProducts({ title = 'Products', titleHighlight = 'Sponsored' }) {
   const [products, setProducts] = useState([]);
@@ -19,7 +20,7 @@ export default function GoodProducts({ title = 'Products', titleHighlight = 'Spo
 
           data.data.forEach(ad => {
             if (ad.type === 'sponsored_product' && ad.products?.length > 0) {
-              impressionEntries.push({ campaignId: ad.campaignId });
+              impressionEntries.push(ad.campaignId);
               ad.products.forEach(prod => {
                 expandedAds.push({
                   ...prod,
@@ -37,8 +38,12 @@ export default function GoodProducts({ title = 'Products', titleHighlight = 'Spo
 
           setProducts(expandedAds);
 
-          if (impressionEntries.length > 0) {
-            axiosInstance.post('/public/ads/impression', { campaigns: impressionEntries }).catch(() => {});
+          // Only send impression if not already counted in the last 30 minutes
+          const freshIds = filterFreshImpressions(impressionEntries);
+          if (freshIds.length > 0) {
+            axiosInstance.post('/public/ads/impression', {
+              campaigns: freshIds.map(id => ({ campaignId: id }))
+            }).catch(() => {});
           }
         }
       } catch (err) {

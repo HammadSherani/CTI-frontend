@@ -48,8 +48,29 @@ function SellerLayout({ children }) {
   const kycCompleted = seller?.isKycCompleted;   // true | false
   const sellerId    = seller?.id // for redirect URL
 console.log(kycCompleted,'kycCompleted')
+ if (!seller || !kycCompleted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
+          <div className="w-20 h-20 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="heroicons:exclamation-triangle" className="w-10 h-10 text-yellow-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Something Wrong</h2>
+          <p className="text-gray-600 mb-6">
+            We couldn't find your profile information. Please complete your profile to access the dashboard and start receiving orders.
+          </p>
+          <button
+            onClick={() => router.push(`/auth/login`)}
+            className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+          >
+          Login to Complete Profile
+          </button>
+        </div>
+      </div>
+    );
+  }
   // ── 1. KYC not submitted yet → redirect to complete profile ───
-  if (!kycCompleted) {
+  if (!kycCompleted  && kycStatus === 'pending') {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">

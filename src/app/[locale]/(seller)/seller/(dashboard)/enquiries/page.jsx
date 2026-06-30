@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { useRouter } from '@/i18n/navigation';
@@ -143,16 +144,24 @@ function Skeleton() {
 ══════════════════════════════════════════════════════════ */
 export default function EnquiriesPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token } = useSelector(s => s.auth);
 
-  const [activeTab,    setActiveTab]    = useState('customer');
+  // Read ?type= and ?filterStatus= from URL so dashboard action links land on the right tab/filter
+  const [activeTab,    setActiveTab]    = useState(() => {
+    const t = searchParams?.get('type') || 'customer';
+    return ['customer', 'order'].includes(t) ? t : 'customer';
+  });
+  const [filterStatus, setFilterStatus] = useState(() => {
+    const s = searchParams?.get('filterStatus') || '';
+    return ['', 'open', 'replied', 'closed'].includes(s) ? s : '';
+  });
   const [queries,      setQueries]      = useState([]);
   const [loading,      setLoading]      = useState(true);
   const [stats,        setStats]        = useState({ open: 0, replied: 0, closed: 0, unread: 0 });
   const [page,         setPage]         = useState(1);
   const [totalPages,   setTotalPages]   = useState(1);
   const [total,        setTotal]        = useState(0);
-  const [filterStatus, setFilterStatus] = useState('');
   const [search,       setSearch]       = useState('');
   const searchRef = useRef(null);
 

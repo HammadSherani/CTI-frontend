@@ -23,7 +23,7 @@ function toFullYear(y) {
 
 /* ── inline card modal ───────────────────────────────────────────── */
 function AddCardModal({ onClose, onSaved, token }) {
-  const [card, setCard]     = useState({ cardHolderName: '', cardNumber: '', expireMonth: '', expireYear: '', cvc: '' });
+  const [card, setCard]     = useState({ cardHolderName: 'John Doe', cardNumber: '5528790000000008', expireMonth: '12', expireYear: '30', cvc: '123' });
   const [display, setDisplay] = useState('');
   const [saving, setSaving]   = useState(false);
   const [errors, setErrors]   = useState({});
@@ -55,7 +55,7 @@ function AddCardModal({ onClose, onSaved, token }) {
     try {
       const { data } = await axiosInstance.post('/seller/ads/payment/add-card', {
         cardHolderName: card.cardHolderName.trim(),
-        cardNumber:     card.cardNumber,                    // digits only
+        cardNumber:     card.cardNumber,
         expireMonth:    String(parseInt(card.expireMonth)).padStart(2, '0'),
         expireYear:     toFullYear(card.expireYear),
         cvc:            card.cvc,
@@ -104,7 +104,6 @@ function AddCardModal({ onClose, onSaved, token }) {
 
         {/* Form */}
         <div className="p-6 space-y-4">
-          {/* Holder name */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">
               Cardholder Name <span className="text-red-500">*</span>
@@ -119,7 +118,6 @@ function AddCardModal({ onClose, onSaved, token }) {
             <Err field="cardHolderName" />
           </div>
 
-          {/* Card number */}
           <div>
             <label className="block text-xs font-bold text-gray-700 mb-1">
               Card Number <span className="text-red-500">*</span>
@@ -135,7 +133,6 @@ function AddCardModal({ onClose, onSaved, token }) {
             <Err field="cardNumber" />
           </div>
 
-          {/* Expiry + CVV */}
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="block text-xs font-bold text-gray-700 mb-1">Month <span className="text-red-500">*</span></label>
@@ -183,21 +180,19 @@ function AddCardModal({ onClose, onSaved, token }) {
             Tokenized securely via iyzico. We never store raw card data.
           </div>
 
-          {/* Sandbox test card hint */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-[11px]">
             <p className="font-bold text-amber-800 flex items-center gap-1 mb-1.5">
               <Icon icon="mdi:flask-outline" className="w-3.5 h-3.5" /> Sandbox Test Cards
             </p>
             <div className="font-mono space-y-0.5 text-amber-900">
               <div className="flex justify-between"><span>Mastercard</span><span className="font-bold select-all">5528790000000008</span></div>
-              <div className="flex justify-between"><span>Visa</span><span className="font-bold select-all">4603450000000000</span></div>
-              <div className="flex justify-between"><span>Troy</span><span className="font-bold select-all">9792030394440796</span></div>
+              {/* <div className="flex justify-between"><span>Visa</span><span className="font-bold select-all">4603450000000000</span></div> */}
+              {/* <div className="flex justify-between"><span>Troy</span><span className="font-bold select-all">9792030394440796</span></div> */}
             </div>
-            <p className="text-amber-700 mt-1.5">CVV: <strong>000</strong> · Any future date</p>
+            {/* <p className="text-amber-700 mt-1.5">CVV: <strong>000</strong> · Any future date</p> */}
           </div>
         </div>
 
-        {/* Actions */}
         <div className="flex gap-3 px-6 pb-6">
           <button
             type="button"
@@ -227,30 +222,25 @@ export default function CreateAdCampaignPage() {
   const router    = useRouter();
   const { token } = useSelector((s) => s.auth);
 
-  // Form state
   const [type,               setType]               = useState('sponsored_product');
   const [name,               setName]               = useState('');
   const [storeTagline,       setStoreTagline]       = useState('');
   const [startDate,          setStartDate]          = useState('');
-  const [endDate,            setEndDate]            = useState('');
   const [dailyBudget,        setDailyBudget]        = useState('');
   const [totalBudget,        setTotalBudget]        = useState('');
-  const [biddingType,        setBiddingType]        = useState('CPC');
   const [selectedProductIds, setSelectedProductIds] = useState([]);
   const [bannerFile,         setBannerFile]         = useState(null);
   const [bannerPreview,      setBannerPreview]      = useState('');
   const [paymentMethodId,    setPaymentMethodId]    = useState('');
 
-  // Data
   const [products,       setProducts]       = useState([]);
   const [settings,       setSettings]       = useState({ minDailyBudget: 1, minTotalBudget: 5, costPerClick: 0.10, costPerThousandImpressions: 1.00 });
   const [paymentMethods, setPaymentMethods] = useState([]);
 
-  // UI
-  const [loadingData, setLoadingData] = useState(true);
-  const [submitting,  setSubmitting]  = useState(false);
+  const [loadingData,   setLoadingData]   = useState(true);
+  const [submitting,    setSubmitting]    = useState(false);
   const [showCardModal, setShowCardModal] = useState(false);
-  const [formErrors,  setFormErrors]  = useState({});
+  const [formErrors,    setFormErrors]   = useState({});
   const [productSearch, setProductSearch] = useState('');
   const fileInputRef = useRef(null);
 
@@ -300,32 +290,29 @@ export default function CreateAdCampaignPage() {
     (p.title || p.name || '')?.toLowerCase().includes(productSearch.toLowerCase())
   );
 
-  /* Validate entire form and return true if clean */
   const validate = () => {
     const errs = {};
-    if (!name.trim())                                        errs.name         = 'Campaign name is required';
-    else if (name.trim().length < 3)                         errs.name         = 'Name must be at least 3 characters';
-    if (!startDate)                                          errs.startDate    = 'Start date is required';
-    if (!endDate)                                            errs.endDate      = 'End date is required';
-    if (startDate && endDate && endDate <= startDate)        errs.endDate      = 'End date must be after start date';
-    if (startDate && startDate < today())                    errs.startDate    = 'Start date cannot be in the past';
+    if (!name.trim())                                            errs.name        = 'Campaign name is required';
+    else if (name.trim().length < 3)                             errs.name        = 'Name must be at least 3 characters';
+    if (!startDate)                                              errs.startDate   = 'Start date is required';
+    if (startDate && startDate < today())                        errs.startDate   = 'Start date cannot be in the past';
 
     const daily = parseFloat(dailyBudget);
     const total = parseFloat(totalBudget);
-    if (!dailyBudget)                                        errs.dailyBudget  = 'Daily budget is required';
-    else if (isNaN(daily) || daily < settings.minDailyBudget) errs.dailyBudget = `Minimum daily budget is ${fmtMoney(settings.minDailyBudget)}`;
+    if (!dailyBudget)                                            errs.dailyBudget = 'Daily budget is required';
+    else if (isNaN(daily) || daily < settings.minDailyBudget)   errs.dailyBudget = `Minimum daily budget is ${fmtMoney(settings.minDailyBudget)}`;
 
-    if (!totalBudget)                                        errs.totalBudget  = 'Total budget is required';
-    else if (isNaN(total) || total < settings.minTotalBudget) errs.totalBudget = `Minimum total budget is ${fmtMoney(settings.minTotalBudget)}`;
+    if (!totalBudget)                                            errs.totalBudget = 'Total budget is required';
+    else if (isNaN(total) || total < settings.minTotalBudget)   errs.totalBudget = `Minimum total budget is ${fmtMoney(settings.minTotalBudget)}`;
 
-    if (!isNaN(daily) && !isNaN(total) && daily > total)    errs.dailyBudget  = 'Daily budget cannot exceed total budget';
+    if (!isNaN(daily) && !isNaN(total) && daily > total)        errs.dailyBudget = 'Daily budget cannot exceed total budget';
 
     if (type === 'sponsored_product' && selectedProductIds.length === 0)
       errs.products = 'Select at least one product';
     if (type === 'sponsored_store' && !bannerFile)
       errs.banner   = 'Store banner is required';
-
-    if (!paymentMethodId)                                    errs.payment      = 'Select or add a payment method';
+    if (!paymentMethodId)
+      errs.payment  = 'Select or add a payment method';
 
     setFormErrors(errs);
     return Object.keys(errs).length === 0;
@@ -341,10 +328,8 @@ export default function CreateAdCampaignPage() {
       fd.append('type',            type);
       fd.append('name',            name.trim());
       fd.append('startDate',       startDate);
-      fd.append('endDate',         endDate);
       fd.append('dailyBudget',     dailyBudget);
       fd.append('totalBudget',     totalBudget);
-      fd.append('biddingType',     biddingType);
       fd.append('paymentMethodId', paymentMethodId);
 
       if (type === 'sponsored_product') {
@@ -357,7 +342,6 @@ export default function CreateAdCampaignPage() {
       const { data } = await axiosInstance.post('/seller/ads/campaigns', fd, { headers });
       if (!data.success) throw new Error(data.message);
 
-      // Auto-submit for review
       await axiosInstance.post(`/seller/ads/campaigns/${data.data._id}/submit`, {}, { headers });
       toast.success('Campaign submitted for admin approval!');
       router.push('/seller/ads');
@@ -376,12 +360,11 @@ export default function CreateAdCampaignPage() {
     );
   }
 
-  const daily  = parseFloat(dailyBudget) || 0;
-  const total  = parseFloat(totalBudget) || 0;
-  const cpc    = settings.costPerClick            || 0.10;
-  const cpm    = settings.costPerThousandImpressions || 1.00;
-  const estClicks = daily > 0 && biddingType === 'CPC' ? Math.floor(daily / cpc) : 0;
-  const estImpr   = daily > 0 && biddingType === 'CPM' ? Math.floor((daily / cpm) * 1000) : 0;
+  const daily = parseFloat(dailyBudget) || 0;
+  const total = parseFloat(totalBudget) || 0;
+  const cpc   = settings.costPerClick || 0.10;
+  const estDays = daily > 0 && total > 0 ? Math.ceil(total / daily) : 0;
+  const estClicksPerDay = daily > 0 && cpc > 0 ? Math.floor(daily / cpc) : 0;
 
   const ErrMsg = ({ field }) => formErrors[field] ? (
     <p className="text-red-500 text-[11px] mt-1.5 flex items-center gap-1">
@@ -482,33 +465,19 @@ export default function CreateAdCampaignPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Start Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={startDate}
-                  min={today()}
-                  onChange={(e) => { setStartDate(e.target.value); setFormErrors((er) => ({ ...er, startDate: '', endDate: '' })); }}
-                  className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.startDate ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
-                />
-                <ErrMsg field="startDate" />
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  End Date <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="date"
-                  value={endDate}
-                  min={startDate || today()}
-                  onChange={(e) => { setEndDate(e.target.value); setFormErrors((er) => ({ ...er, endDate: '' })); }}
-                  className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.endDate ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
-                />
-                <ErrMsg field="endDate" />
-              </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                Start Date <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                min={today()}
+                onChange={(e) => { setStartDate(e.target.value); setFormErrors((er) => ({ ...er, startDate: '' })); }}
+                className={`w-full px-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.startDate ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+              />
+              <ErrMsg field="startDate" />
+              <p className="text-[10px] text-slate-400 mt-1">Campaign runs until budget is fully spent — no end date needed.</p>
             </div>
           </section>
 
@@ -547,7 +516,7 @@ export default function CreateAdCampaignPage() {
                   ) : filteredProducts.map((prod) => {
                     const selected = selectedProductIds.includes(prod._id);
                     const defaultVariant = prod.variants?.find(v => v.isDefault) || prod.variants?.[0];
-                    const displayPrice = defaultVariant?.sellingPrice || defaultVariant?.price || prod.price || 0;
+                    const displayPrice = defaultVariant?.sellingPrice || defaultVariant?.price || 0;
                     const mainImage = defaultVariant?.images?.[0]?.url || prod.images?.[0]?.url;
                     const prodTitle = prod.title || prod.name || 'Untitled Product';
                     return (
@@ -623,36 +592,35 @@ export default function CreateAdCampaignPage() {
             )}
           </section>
 
-          {/* ── 4. Budget & Bidding ── */}
+          {/* ── 4. Budget ── */}
           <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 space-y-4">
             <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
               <Icon icon="mdi:bank-outline" className="text-primary-600 w-5 h-5" />
-              Budget & Bidding
+              Budget
             </h2>
 
-            {/* Bidding type */}
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                { value: 'CPC', icon: 'mdi:cursor-default-click-outline', label: 'Cost Per Click',        sublabel: `${fmtMoney(cpc)} / click` },
-                { value: 'CPM', icon: 'mdi:eye-outline',                  label: 'Cost Per 1K Impressions', sublabel: `${fmtMoney(cpm)} / 1000 views` },
-              ].map((opt) => (
-                <label
-                  key={opt.value}
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl border-2 cursor-pointer transition-all ${
-                    biddingType === opt.value ? 'border-primary-600 bg-primary-50' : 'border-slate-100 hover:border-primary-200'
-                  }`}
-                >
-                  <input type="radio" name="biddingType" value={opt.value} checked={biddingType === opt.value} onChange={() => setBiddingType(opt.value)} className="sr-only" />
-                  <Icon icon={opt.icon} className={`w-5 h-5 ${biddingType === opt.value ? 'text-primary-600' : 'text-slate-400'}`} />
-                  <div>
-                    <p className="text-sm font-bold text-slate-900">{opt.label}</p>
-                    <p className="text-[11px] text-slate-400 font-mono">{opt.sublabel}</p>
-                  </div>
-                </label>
-              ))}
+            {/* Pricing rates info */}
+            <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+              <div className="flex items-center gap-2 flex-1">
+                <div className="w-7 h-7 bg-violet-100 text-violet-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon icon="mdi:cursor-default-click-outline" className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500">Cost per click (CPC)</p>
+                  <p className="text-sm font-black text-slate-900">${(settings.costPerClick || 0).toFixed(2)}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 flex-1">
+                <div className="w-7 h-7 bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center flex-shrink-0">
+                  <Icon icon="mdi:eye-outline" className="w-3.5 h-3.5" />
+                </div>
+                <div>
+                  <p className="text-[10px] text-slate-500">Impressions</p>
+                  <p className="text-sm font-black text-emerald-600">Free</p>
+                </div>
+              </div>
             </div>
 
-            {/* Budget inputs */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
@@ -693,24 +661,23 @@ export default function CreateAdCampaignPage() {
             </div>
 
             {/* Live estimates */}
-            {daily > 0 && (
+            {daily > 0 && total > 0 && (
               <div className="grid grid-cols-2 gap-3 text-center">
                 <div className="bg-primary-50 rounded-xl p-3 border border-primary-100">
-                  <p className="text-[11px] text-primary-600 font-medium">Est. daily {biddingType === 'CPC' ? 'clicks' : 'impressions'}</p>
-                  <p className="text-base font-black text-violet-900 mt-0.5">
-                    {biddingType === 'CPC' ? `~${estClicks.toLocaleString()} clicks` : `~${estImpr.toLocaleString()} views`}
-                  </p>
+                  <p className="text-[11px] text-primary-600 font-medium">Est. daily clicks</p>
+                  <p className="text-base font-black text-violet-900 mt-0.5">~{estClicksPerDay.toLocaleString()}</p>
                 </div>
                 <div className="bg-slate-50 rounded-xl p-3 border border-slate-100">
-                  <p className="text-[11px] text-slate-500 font-medium">Campaign duration</p>
-                  <p className="text-base font-black text-slate-800 mt-0.5">
-                    {startDate && endDate
-                      ? `${Math.max(1, Math.ceil((new Date(endDate) - new Date(startDate)) / 86400000))} days`
-                      : '—'}
-                  </p>
+                  <p className="text-[11px] text-slate-500 font-medium">Est. campaign duration</p>
+                  <p className="text-base font-black text-slate-800 mt-0.5">~{estDays} day{estDays !== 1 ? 's' : ''}</p>
                 </div>
               </div>
             )}
+
+            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-2 text-[11px] text-blue-700">
+              <Icon icon="mdi:information-outline" className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              Campaign runs until total budget is used up. You will be charged only when the campaign completes.
+            </div>
           </section>
 
           {/* ── 5. Payment Method ── */}
@@ -758,9 +725,9 @@ export default function CreateAdCampaignPage() {
             )}
             <ErrMsg field="payment" />
 
-            <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 flex gap-2 text-[11px] text-blue-700">
-              <Icon icon="mdi:information-outline" className="w-4 h-4 flex-shrink-0 mt-0.5" />
-              Your card will not be charged now. Billing starts only after admin approval, based on actual clicks/impressions.
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 flex gap-2 text-[11px] text-amber-700">
+              <Icon icon="mdi:shield-check-outline" className="w-4 h-4 flex-shrink-0 mt-0.5" />
+              Your card will be charged only when the campaign ends or budget is exhausted — not before.
             </div>
           </section>
 

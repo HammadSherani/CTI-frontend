@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
@@ -144,6 +145,7 @@ function DeliveryInvoiceModal({ order, onClose, onUploadNow }) {
 export default function SellerOrderPage() {
   const { token } = useSelector((s) => s.auth);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState([]);
@@ -151,7 +153,12 @@ export default function SellerOrderPage() {
   const [pagination, setPagination] = useState(null);
   const limit = 10;
 
-  const [statusTab, setStatusTab] = useState("");
+  // Read ?status= from URL so dashboard "Pending Orders" link lands on the right tab
+  const [statusTab, setStatusTab] = useState(() => {
+    const s = searchParams?.get("status") || "";
+    const valid = ["", "pending", "processing", "shipped", "delivered", "on_hold", "cancelled"];
+    return valid.includes(s) ? s : "";
+  });
   const [search, setSearch] = useState("");
   const [orderDateFrom, setOrderDateFrom] = useState("");
   const [orderDateTo, setOrderDateTo] = useState("");

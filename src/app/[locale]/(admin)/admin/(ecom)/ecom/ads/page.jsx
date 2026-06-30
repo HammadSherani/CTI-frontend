@@ -8,6 +8,226 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import Image from 'next/image';
 
+/* ── Campaign Detail / Edit Slide-over ───────────────────────────── */
+function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
+  const [editing,   setEditing]   = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [form, setForm] = useState({
+    name:        camp.name,
+    dailyBudget: camp.dailyBudget,
+    totalBudget: camp.totalBudget,
+    startDate:   camp.startDate ? moment(camp.startDate).format('YYYY-MM-DD') : '',
+  });
+
+  const fmtDate   = d => d ? moment(d).format('DD MMM YYYY') : '—';
+  const S = STATUS_META[camp.status] || STATUS_META.draft;
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const { data } = await axiosInstance.put(
+        `/admin/e-commerce/ads/campaigns/${camp._id}`,
+        form,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success('Campaign updated');
+        onUpdated(data.data);
+        setEditing(false);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Update failed');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex" onClick={onClose}>
+      {/* Backdrop */}
+      <div className="flex-1 bg-black/50 backdrop-blur-sm" />
+      {/* Panel */}
+      <div
+        className="w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl flex flex-col"
+        onClick={e => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+          <div>
+            <h2 className="font-black text-slate-900 text-base leading-tight line-clamp-1">{camp.name}</h2>
+            <p className="text-[11px] text-slate-400 font-mono mt-0.5">{camp._id}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            {!editing && !['completed','active'].includes(camp.status) && (
+              <button
+                onClick={() => setEditing(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-xs rounded-xl transition-colors"
+              >
+                <Icon icon="mdi:pencil-outline" className="w-3.5 h-3.5" /> Edit
+              </button>
+            )}
+            <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
+              <Icon icon="mdi:close" className="w-4 h-4 text-slate-500" />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6 flex flex-col gap-5 flex-1">
+          {/* Status */}
+          <div className="flex items-center justify-between">
+            <StatusBadge status={camp.status} />
+            <span className="text-xs text-slate-400">{camp.type === 'sponsored_store' ? 'Sponsored Store' : 'Sponsored Products'}</span>
+          </div>
+
+          {/* Banner */}
+          {camp.bannerUrl && (
+            <div className="relative w-full h-36 rounded-2xl overflow-hidden border border-slate-100">
+              <Image src={camp.bannerUrl} alt="Campaign banner" fill className="object-cover" />
+              <div className="absolute top-2 left-2 bg-black/60 text-white text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wide">
+                Campaign Banner
+              </div>
+            </div>
+          )}
+
+          {/* Tagline */}
+          {camp.storeTagline && (
+            <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-2.5 text-sm font-medium text-violet-800 italic">
+              "{camp.storeTagline}"
+            </div>
+          )}
+
+          {/* Seller */}
+          <div className="bg-slate-50 rounded-2xl p-4 space-y-1">
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Seller</p>
+            <p className="text-sm font-bold text-slate-900">{camp.sellerId?.name || 'Unknown'}</p>
+            <p className="text-xs text-slate-500">{camp.sellerId?.email}</p>
+          </div>
+
+          {/* Edit / View form fields */}
+          {editing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Campaign Name</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Daily Budget ($)</label>
+                  <input
+                    type="number" step="0.5"
+                    value={form.dailyBudget}
+                    onChange={e => setForm(f => ({ ...f, dailyBudget: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Total Budget ($)</label>
+                  <input
+                    type="number" step="1"
+                    value={form.totalBudget}
+                    onChange={e => setForm(f => ({ ...f, totalBudget: e.target.value }))}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Start Date</label>
+                <input
+                  type="date"
+                  value={form.startDate}
+                  onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setEditing(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Cancel</button>
+                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
+                  {saving ? <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> : <Icon icon="mdi:content-save-outline" className="w-4 h-4" />}
+                  Save Changes
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campaign Details</p>
+              {[
+                ['Daily Budget',  `$${camp.dailyBudget?.toFixed(2)}`],
+                ['Total Budget',  `$${camp.totalBudget?.toFixed(2)}`],
+                ['Spent',         `$${camp.spentBudget?.toFixed(2) || '0.00'}`],
+                ['Remaining',     `$${camp.remainingBudget?.toFixed(2) || '0.00'}`],
+                ['Impressions',   (camp.totalImpressions || 0).toLocaleString()],
+                ['Clicks',        (camp.totalClicks || 0).toLocaleString()],
+                ['Start Date',    fmtDate(camp.startDate)],
+                ['End Date',      fmtDate(camp.endDate)],
+                ['Created',       fmtDate(camp.createdAt)],
+              ].map(([label, value]) => (
+                <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-50 last:border-0">
+                  <span className="text-xs text-slate-500">{label}</span>
+                  <span className="text-xs font-bold text-slate-900">{value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Products */}
+          {camp.type === 'sponsored_product' && camp.productIds?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Promoted Products ({camp.productIds.length})</p>
+              <div className="space-y-2">
+                {camp.productIds.map(prod => (
+                  <div key={prod._id || prod} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
+                    {prod.images?.[0]?.url && (
+                      <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
+                        <Image src={prod.images[0].url} alt={prod.title || ''} fill className="object-cover" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-slate-900 truncate">{prod.title || prod}</p>
+                      <p className="text-[10px] text-slate-400 truncate">{prod.slug}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Rejection reason */}
+          {camp.status === 'rejected' && camp.rejectionReason && (
+            <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-xs text-red-700">
+              <p className="font-bold mb-1">Rejection Reason</p>
+              <p>{camp.rejectionReason}</p>
+            </div>
+          )}
+
+          {/* Status history */}
+          {camp.statusHistory?.length > 0 && (
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Status History</p>
+              <div className="space-y-3">
+                {[...camp.statusHistory].reverse().slice(0, 5).map((h, i) => (
+                  <div key={i} className="flex gap-3 items-start">
+                    <div className="w-1.5 h-1.5 rounded-full bg-violet-400 mt-1.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 capitalize">{h.status.replace('_', ' ')}</p>
+                      {h.note && <p className="text-[10px] text-slate-500 mt-0.5">{h.note}</p>}
+                      <p className="text-[9px] text-slate-400 mt-0.5">{h.createdAt ? moment(h.createdAt).format('DD MMM YY, HH:mm') : ''}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const fmtDate = (d) => d ? moment(d).format('DD MMM YYYY') : '—';
 const fmtDateTime = (d) => d ? moment(d).format('DD MMM YYYY, hh:mm A') : '—';
 
@@ -99,6 +319,7 @@ export default function AdminAdsPage() {
   const [stats, setStats] = useState({ byStatus: {}, platform: {} });
 
   const [rejectTarget,  setRejectTarget]  = useState(null);
+  const [detailTarget,  setDetailTarget]  = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const loadData = useCallback(async (page = 1) => {
@@ -309,7 +530,7 @@ export default function AdminAdsPage() {
                       <td className="px-4 py-3 align-top">
                         {camp.sellerId ? (
                           <>
-                            <p className="font-semibold text-slate-700 text-xs">{camp.sellerId.firstName} {camp.sellerId.lastName}</p>
+                            <p className="font-semibold text-slate-700 text-xs">{camp.sellerId.name}</p>
                             <p className="text-[11px] text-slate-500">{camp.sellerId.email}</p>
                           </>
                         ) : (
@@ -409,7 +630,14 @@ export default function AdminAdsPage() {
                               <Icon icon="mdi:close-thick" className="w-3.5 h-3.5" />
                             </button>
                           )}
-                          
+                          {/* View / Edit */}
+                          <button
+                            title="View & Edit"
+                            onClick={() => setDetailTarget(camp)}
+                            className="w-7 h-7 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg flex items-center justify-center transition-colors"
+                          >
+                            <Icon icon="mdi:pencil-box-outline" className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -452,6 +680,18 @@ export default function AdminAdsPage() {
           loading={actionLoading}
           onClose={() => setRejectTarget(null)}
           onConfirm={handleReject}
+        />
+      )}
+
+      {detailTarget && (
+        <CampaignDetailModal
+          camp={detailTarget}
+          token={token}
+          onClose={() => setDetailTarget(null)}
+          onUpdated={(updated) => {
+            setCampaigns(prev => prev.map(c => c._id === updated._id ? { ...c, ...updated } : c));
+            setDetailTarget(prev => ({ ...prev, ...updated }));
+          }}
         />
       )}
     </div>

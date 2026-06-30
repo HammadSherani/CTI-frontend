@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
@@ -235,13 +236,19 @@ export default function SellerReturnsPage() {
   const { token } = useSelector((s) => s.auth);
   const headers = { Authorization: `Bearer ${token}` };
   const debounceRef = useRef(null);
+  const searchParams = useSearchParams();
 
   const [returns,    setReturns]   = useState([]);
   const [loading,    setLoading]   = useState(true);
   const [page,       setPage]      = useState(1);
   const [pagination, setPagination] = useState(null);
   const [summary,    setSummary]   = useState({ total: 0, requested: 0, shipped: 0, approved: 0, rejected: 0 });
-  const [activeTab,  setActiveTab] = useState("");
+  // Read ?tab= from URL so dashboard "Pending Refunds" link lands on the "New Requests" tab
+  const [activeTab,  setActiveTab] = useState(() => {
+    const t = searchParams?.get("tab") || "";
+    const valid = ["", "requested", "shipped", "approved", "rejected"];
+    return valid.includes(t) ? t : "";
+  });
 
   const [viewReturn,    setViewReturn]    = useState(null);
   const [approveReturn, setApproveReturn] = useState(null);

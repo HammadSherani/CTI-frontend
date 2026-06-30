@@ -33,7 +33,6 @@ import Stores from '@/components/website/home/stores';
 import HowItWorks from '@/components/website/home/works';
 import OurDeals from '@/components/website/home/ourDeals';
 import TermsSection from '@/components/website/home/terms';
-import SponsoredAdsBanner from '@/components/website/home/SponsoredAdsBanner';
 
 
 function Home() {
@@ -84,7 +83,6 @@ function Home() {
       <StaticSections />
       <FAQ />
       <GoodProducts title="Products" titleHighlight="Sponsored" />
-      <SponsoredAdsBanner />
       <Stores />
       <HowItWorks />
       <TopRepairman />
