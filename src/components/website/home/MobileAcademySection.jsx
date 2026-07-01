@@ -18,7 +18,7 @@ function FreelancerSupportAcademySection() {
                 </div>
 
                 {/* Heading */}
-                <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-6 text-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent leading-tight">
+                <h2 className="text-xl md:text-2xl font-bold mb-6 text-center bg-gradient-to-r from-gray-900 via-gray-800 to-gray-700 bg-clip-text text-transparent leading-tight">
                     Click to Integrate Support Academy<br />Premium Training & Guidance
                 </h2>
 

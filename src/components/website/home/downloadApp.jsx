@@ -12,7 +12,7 @@ export default function AppDownloadBanner() {
         <div className="flex flex-col lg:flex-row items-center justify-between px-18 ">
           {/* Left Content */}
           <div className="flex-1 text-white mb-8 lg:mb-0 lg:pr-8  flex flex-col">
-            <h1 className="text-3xl lg:text-4xl  xl:text-4xl font-bold mb-3">
+            <h1 className="text-2xl md:text-3xl font-bold mb-3">
               Download  <span className='text-black block'>The App
                 </span>
             </h1>

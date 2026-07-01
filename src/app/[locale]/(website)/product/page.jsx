@@ -16,40 +16,40 @@ import { Icon } from '@iconify/react';
 const PAGE_SIZE = 30;
 
 const SORT_OPTIONS = [
-  { label: "Default",             value: "default"    },
-  { label: "Price: Low → High",   value: "price-asc"  },
-  { label: "Price: High → Low",   value: "price-desc" },
-  { label: "Top Rated",           value: "rating"     },
+  { label: "Default", value: "default" },
+  { label: "Price: Low → High", value: "price-asc" },
+  { label: "Price: High → Low", value: "price-desc" },
+  { label: "Top Rated", value: "rating" },
 ];
 
 /* Reads URL params and returns initial filter object */
 function parseUrlFilters(searchParams) {
   return {
-    categoryIds:    searchParams.get('categoryIds')?.split(',').filter(Boolean)  || [],
+    categoryIds: searchParams.get('categoryIds')?.split(',').filter(Boolean) || [],
     subCategoryIds: searchParams.get('subCategoryIds')?.split(',').filter(Boolean) || [],
-    brandIds:       searchParams.get('brandIds')?.split(',').filter(Boolean)     || [],
-    colors:         [],
+    brandIds: searchParams.get('brandIds')?.split(',').filter(Boolean) || [],
+    colors: [],
     dynamicFilters: {},
-    rating:         0,
-    priceMin:       0,
-    priceMax:       2000,
-    q:              searchParams.get('q') || '',
+    rating: 0,
+    priceMin: 0,
+    priceMax: 2000,
+    q: searchParams.get('q') || '',
   };
 }
 
 export default function ProductListingPage() {
   const searchParams = useSearchParams();
-  const router       = useRouter();
-  const dispatch     = useDispatch();
+  const router = useRouter();
+  const dispatch = useDispatch();
 
   /* Initialise filters directly from URL so first fetch uses them */
-  const [filters,     setFilters]     = useState(() => parseUrlFilters(searchParams));
-  const [sort,        setSort]        = useState('default');
-  const [page,        setPage]        = useState(1);
-  const [products,    setProducts]    = useState([]);
-  const [loading,     setLoading]     = useState(true);
-  const [totalPages,  setTotalPages]  = useState(1);
-  const [totalCount,  setTotalCount]  = useState(0);
+  const [filters, setFilters] = useState(() => parseUrlFilters(searchParams));
+  const [sort, setSort] = useState('default');
+  const [page, setPage] = useState(1);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
 
   const { items: wishlistItems } = useSelector(s => s.wishlist || { items: [] });
   const auth = useSelector(s => s.auth);
@@ -67,20 +67,20 @@ export default function ProductListingPage() {
       setLoading(true);
       try {
         const p = new URLSearchParams();
-        p.append('page',  page);
+        p.append('page', page);
         p.append('limit', PAGE_SIZE);
-        p.append('sort',  sort);
+        p.append('sort', sort);
 
-        if (filters.categoryIds?.length)    p.append('categoryIds',    filters.categoryIds.join(','));
+        if (filters.categoryIds?.length) p.append('categoryIds', filters.categoryIds.join(','));
         if (filters.subCategoryIds?.length) p.append('subCategoryIds', filters.subCategoryIds.join(','));
-        if (filters.brandIds?.length)       p.append('brandIds',       filters.brandIds.join(','));
-        if (filters.colors?.length)         p.append('colors',         filters.colors.join(','));
+        if (filters.brandIds?.length) p.append('brandIds', filters.brandIds.join(','));
+        if (filters.colors?.length) p.append('colors', filters.colors.join(','));
         if (filters.dynamicFilters && Object.keys(filters.dynamicFilters).length)
           p.append('dynamicFilters', JSON.stringify(filters.dynamicFilters));
-        if (filters.rating > 0)             p.append('rating',   filters.rating);
-        if (filters.priceMin > 0)           p.append('minPrice', filters.priceMin);
-        if (filters.priceMax < 2000)        p.append('maxPrice', filters.priceMax);
-        if (filters.q)                      p.append('q',        filters.q);
+        if (filters.rating > 0) p.append('rating', filters.rating);
+        if (filters.priceMin > 0) p.append('minPrice', filters.priceMin);
+        if (filters.priceMax < 2000) p.append('maxPrice', filters.priceMax);
+        if (filters.q) p.append('q', filters.q);
 
         const res = await axiosInstance.get(`/e-commerce/products?${p.toString()}`);
         if (res.data.success) {
@@ -140,12 +140,13 @@ export default function ProductListingPage() {
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 
         {/* Sidebar */}
-        <div className="w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-6">
+        <div className="w-full lg:w-72 flex-shrink-0 lg:sticky lg:top-[150px]">
           <FilterSidebar
             onFiltersChange={handleFiltersChange}
             initialCategoryIds={filters.categoryIds}
             initialBrandIds={filters.brandIds}
             initialSubCategoryIds={filters.subCategoryIds}
+            initialQ={filters.q}
           />
         </div>
 
@@ -218,9 +219,8 @@ export default function ProductListingPage() {
                   <button
                     key={p}
                     onClick={() => handlePageChange(p)}
-                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${
-                      p === page ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 hover:bg-gray-50'
-                    }`}
+                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${p === page ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 hover:bg-gray-50'
+                      }`}
                   >
                     {p}
                   </button>

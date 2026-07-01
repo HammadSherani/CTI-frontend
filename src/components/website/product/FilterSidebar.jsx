@@ -20,23 +20,27 @@ const FALLBACK_COLORS = {
 function Section({ title, badge, children, collapsible = true }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="pb-4 border-b border-gray-100 last:border-0 last:pb-0">
+    <div className="pb-3 border-b border-gray-100 last:border-0 last:pb-0">
       <button
         type="button"
         onClick={() => collapsible && setOpen(o => !o)}
         className="w-full flex items-center justify-between mb-3 group"
       >
-        <span className="text-xs font-black uppercase tracking-widest text-gray-500 group-hover:text-gray-700 transition-colors flex items-center gap-2">
+        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 group-hover:text-gray-700 transition-colors flex items-center gap-2">
           {title}
           {badge != null && (
-            <span className="bg-primary-100 text-primary-600 text-[10px] font-black px-1.5 py-0.5 rounded-full">{badge}</span>
+            <span className="bg-primary-100 text-primary-600 text-[9px] font-black px-1.5 py-0.5 rounded-full">{badge}</span>
           )}
         </span>
         {collapsible && (
-          <Icon icon={open ? 'mdi:chevron-up' : 'mdi:chevron-down'} className="w-4 h-4 text-gray-400" />
+          <Icon icon={open ? 'mdi:chevron-up' : 'mdi:chevron-down'} className="w-3.5 h-3.5 text-gray-400" />
         )}
       </button>
-      {open && children}
+      {open && (
+        <div className="max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-1">
+          {children}
+        </div>
+      )}
     </div>
   );
 }
@@ -44,17 +48,17 @@ function Section({ title, badge, children, collapsible = true }) {
 function CheckItem({ label, count, checked, onChange }) {
   return (
     <label className="flex items-center justify-between gap-2 cursor-pointer group mb-1.5 last:mb-0">
-      <div className="flex items-center gap-2.5">
-        <div className={`w-4 h-4 rounded border-2 flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'bg-primary-500 border-primary-500' : 'border-gray-300 group-hover:border-primary-400'}`}>
-          {checked && <Icon icon="mdi:check" className="w-3 h-3 text-white" />}
+      <div className="flex items-center gap-2">
+        <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'bg-primary-500 border-primary-500' : 'border-gray-300 group-hover:border-primary-400'}`}>
+          {checked && <Icon icon="mdi:check" className="w-2.5 h-2.5 text-white" />}
         </div>
         <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
-        <span className={`text-sm font-medium transition-colors ${checked ? 'text-primary-700 font-semibold' : 'text-gray-700 group-hover:text-primary-600'}`}>
+        <span className={`text-[13px] transition-colors ${checked ? 'text-primary-700 font-semibold' : 'text-gray-700 group-hover:text-primary-600'}`}>
           {label}
         </span>
       </div>
       {count != null && (
-        <span className="text-xs text-gray-400 font-medium tabular-nums">{count}</span>
+        <span className="text-[10px] text-gray-400 font-medium tabular-nums">{count}</span>
       )}
     </label>
   );
@@ -78,9 +82,10 @@ function LoadingSkeleton({ lines = 4 }) {
 ══════════════════════════════════════════════════════════ */
 export default function FilterSidebar({
   onFiltersChange,
-  initialCategoryIds    = [],
-  initialBrandIds       = [],
+  initialCategoryIds = [],
+  initialBrandIds = [],
   initialSubCategoryIds = [],
+  initialQ = '',
 }) {
   /* ── Raw Data ── */
   const [categories, setCategories] = useState([]);
@@ -96,11 +101,11 @@ export default function FilterSidebar({
 
   /* ── Selections (store IDs) — seeded from URL params ── */
   const [selectedCategoryIds, setSelectedCategoryIds] = useState(initialCategoryIds);
-  const [selectedSubIds,      setSelectedSubIds]      = useState(initialSubCategoryIds);
-  const [selectedBrandIds,    setSelectedBrandIds]    = useState(initialBrandIds);
-  const [selectedColors,      setSelectedColors]      = useState([]);
+  const [selectedSubIds, setSelectedSubIds] = useState(initialSubCategoryIds);
+  const [selectedBrandIds, setSelectedBrandIds] = useState(initialBrandIds);
+  const [selectedColors, setSelectedColors] = useState([]);
   const [selectedDynamicFilters, setSelectedDynamicFilters] = useState({});
-  const [rating,   setRating]   = useState(0);
+  const [rating, setRating] = useState(0);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
   const [priceMax, setPriceMax] = useState(MAX_PRICE);
 
@@ -115,7 +120,7 @@ export default function FilterSidebar({
     setSelectedBrandIds(initialBrandIds);
     /* Allow cascade effects to settle before clearing the guard */
     setTimeout(() => { isSeeding.current = false; }, 100);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initKey]);
 
   /* ── Price slider ── */
@@ -128,7 +133,10 @@ export default function FilterSidebar({
     const load = async () => {
       setLoadingCats(true);
       try {
-        const { data } = await axiosInstance.get('/e-commerce/products/filters');
+        const p = new URLSearchParams();
+        if (initialQ) p.append('q', initialQ);
+        if (initialCategoryIds.length) p.append('categoryIds', initialCategoryIds.join(','));
+        const { data } = await axiosInstance.get(`/e-commerce/products/filters?${p.toString()}`);
         if (data.success) {
           setCategories(data.data.categories || []);
           setAvailableColors(
@@ -220,7 +228,7 @@ export default function FilterSidebar({
       }
     };
     load();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSubIds, selectedCategoryIds, initKey]);
 
   /* ── Notify parent on filter change ── */
@@ -246,7 +254,7 @@ export default function FilterSidebar({
       const updated = current.includes(attrValue)
         ? current.filter(v => v !== attrValue)
         : [...current, attrValue];
-      
+
       const newFilters = { ...prev };
       if (updated.length > 0) newFilters[attrName] = updated;
       else delete newFilters[attrName];
@@ -271,12 +279,12 @@ export default function FilterSidebar({
     (priceMin > MIN_PRICE || priceMax < MAX_PRICE ? 1 : 0);
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col max-h-[calc(100vh-120px)] overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
-          <Icon icon="mdi:filter-variant" className="w-4.5 h-4.5 text-primary-500" />
-          <h2 className="text-base font-black text-gray-900">Filters</h2>
+          <Icon icon="mdi:filter-variant" className="w-4 h-4 text-primary-500" />
+          <h2 className="text-sm font-black text-gray-900">Filters</h2>
           {activeCount > 0 && (
             <span className="bg-primary-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
               {activeCount}
@@ -284,14 +292,14 @@ export default function FilterSidebar({
           )}
         </div>
         {activeCount > 0 && (
-          <button onClick={clearAll} className="text-xs text-primary-600 font-bold hover:underline flex items-center gap-1">
+          <button onClick={clearAll} className="text-[10px] text-primary-600 font-bold hover:underline flex items-center gap-1">
             <Icon icon="mdi:close" className="w-3 h-3" />
             Clear All
           </button>
         )}
       </div>
 
-      <div className="p-5 space-y-4">
+      <div className="p-4 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent flex-1">
 
         {/* ── Category ── */}
         <Section title="Category" badge={selectedCategoryIds.length || null}>
@@ -363,9 +371,8 @@ export default function FilterSidebar({
                 return (
                   <button key={c.name} title={c.name}
                     onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
-                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${
-                      active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
-                    }`}
+                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                      }`}
                     style={{ backgroundColor: c.hex }}
                   >
                     {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}

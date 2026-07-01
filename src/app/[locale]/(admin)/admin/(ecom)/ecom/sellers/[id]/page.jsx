@@ -65,7 +65,7 @@ function DocumentCard({ label, url }) {
     );
   }
 
-  const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  const isImage = /\.(jpg|jpeg|jfif|png|gif|webp)$/i.test(url);
 
   return (
     <div className="rounded-xl border border-gray-200 overflow-hidden">
@@ -78,30 +78,41 @@ function DocumentCard({ label, url }) {
           href={url}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1.5 text-xs text-primary-600 font-medium hover:text-primary-700">
-        
+          className="flex items-center gap-1.5 text-xs text-primary-600 font-medium hover:text-primary-700"
+        >
           <Icon icon="mdi:open-in-new" className="w-3.5 h-3.5" />
           Open
         </a>
       </div>
-      {isImage && (
+      {isImage ? (
         <div className="relative bg-gray-100">
           <img
             src={url}
             alt={label}
             className="w-full h-48 object-contain"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              if (e.currentTarget.nextSibling) e.currentTarget.nextSibling.style.display = "flex";
+            }}
           />
+          <div
+            style={{ display: "none" }}
+            className="h-48 flex-col items-center justify-center gap-2 text-gray-400"
+          >
+            <Icon icon="mdi:image-broken-variant" className="w-8 h-8" />
+            <span className="text-xs">Unable to preview — </span>
+            <a href={url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary-600 hover:underline">open file</a>
+          </div>
         </div>
-      )}
-      {!isImage && (
+      ) : (
         <div className="p-4 flex items-center justify-center gap-3">
           <Icon icon="mdi:file-document-outline" className="w-8 h-8 text-gray-400" />
-          
+          <a
             href={url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-primary-600 hover:underline font-medium"
-          <a>
+          >
             View Document
           </a>
         </div>

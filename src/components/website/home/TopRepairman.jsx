@@ -101,7 +101,7 @@ export default function MeetOurProfessionals() {
       <section className="py-20 bg-white text-gray-900 overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 text-center">
           <SectionTag title="Our Specialists" />
-          <h2 className="text-3xl lg:text-4xl font-bold mt-4 mb-6">
+          <h2 className="text-xl md:text-2xl font-bold mt-4 mb-6">
             Coming Soon
           </h2>
           <p className="text-gray-500 max-w-md mx-auto">
@@ -124,7 +124,7 @@ export default function MeetOurProfessionals() {
             <div className="">
               <SectionTag title="Our Specialists" />
             </div>
-            <h2 className="text-3xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
+            <h2 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">
               Meet Our Verified{' '}
               <p className="text-primary-500 relative ">
                 Professional

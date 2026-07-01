@@ -177,21 +177,21 @@ export default function StaticSections() {
           </p>
 <div className="flex flex-wrap items-center gap-6 mt-4">
   <div>
-    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+    <h1 className="text-2xl md:text-3xl font-bold text-primary-600">
       <AnimatedNumber value={150000} duration={1} suffix="+" />
     </h1>
     <p className="text-gray-500 text-sm">Happy Customers</p>
   </div>
 
   <div>
-    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+    <h1 className="text-2xl md:text-3xl font-bold text-primary-600">
       <AnimatedNumber value={120000} duration={3} suffix="+" />
     </h1>
     <p className="text-gray-500 text-sm">Devices Repaired</p>
   </div>
 
   <div>
-    <h1 className="text-3xl md:text-4xl font-bold text-primary-600">
+    <h1 className="text-2xl md:text-3xl font-bold text-primary-600">
       <AnimatedNumber value={98} duration={3} suffix="%" />
     </h1>
     <p className="text-gray-500 text-sm">Customer Satisfaction</p>

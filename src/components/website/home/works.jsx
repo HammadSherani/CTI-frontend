@@ -22,7 +22,7 @@ export default function HowItWorks() {
             <div className="mt-">
                 <SectionTag title="How It Works" />
             </div>
-            <h2 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+            <h2 className="text-xl md:text-2xl font-extrabold tracking-tight">
               Who We Are & How <p className="text-primary-500"> We Work</p>
             </h2>
             <p className="text-gray-600 w-96">

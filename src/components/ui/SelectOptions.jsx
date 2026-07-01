@@ -144,11 +144,11 @@ export function SelectOptions({
                                 setSearch("");
                                 activeDropdownInstance = null;
                             }}
-                            className={`px-4 py-3 cursor-pointer text-sm flex items-center justify-between
+                            className={`px-4 py-3  font-medium cursor-pointer text-sm flex items-center justify-between
               hover:bg-primary-50 transition-all
               ${value === opt._id ? "bg-primary-100" : ""}`}
                         >
-                            <span className="text-gray-400">{opt.name}</span>
+                            <span className="text-gray-700">{opt.name}</span>
 
                             {value === opt._id && (
                                 <Icon icon="heroicons:check" className="w-4 h-4 text-primary-600" />

@@ -101,7 +101,9 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-black text-gray-900 text-lg">Upload Invoice PDF</h3>
-            <p className="text-xs text-gray-400 mt-0.5">Invoice {invoice.invoiceNumber}</p>
+            {invoice && invoice.invoiceNumber && (
+              <p className="text-xs text-gray-400 mt-0.5">Invoice {invoice.invoiceNumber}</p>
+            )}
           </div>
           <button onClick={onClose} className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors">
             <Icon icon="mdi:close" className="w-4 h-4 text-gray-500" />

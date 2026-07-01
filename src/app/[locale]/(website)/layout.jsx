@@ -112,7 +112,7 @@ function Layout({ children }) {
     <div className="relative">
       <WebsiteHeader />
 
-      <div className={isHome ? 'mt-0' : 'mt-12'}>
+      <div className={isHome ? 'mt-0' : 'mt-0'}>
         {children}
       </div>
 

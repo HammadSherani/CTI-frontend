@@ -110,14 +110,14 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
           >
             <Icon
               icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
-              className="text-xl"
+              className="text-lg"
             />
           </button>
         </div>
       )}
 
       {/* Image */}
-      <div className="relative w-full h-52 flex items-center justify-center overflow-hidden bg-gray-50">
+      <div className="relative w-full h-40 flex items-center justify-center overflow-hidden bg-gray-50">
         <Image
           src={mainImage}
           alt={title || 'product'}
@@ -134,19 +134,19 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
       </div>
 
       {/* Body */}
-      <div className="flex flex-col flex-1 px-4 pb-4 pt-3">
+      <div className="flex flex-col flex-1 px-3 pb-3 pt-2.5">
         {brand?.title && (
-          <p className="text-[11px] font-medium text-gray-500 uppercase mb-1">
+          <p className="text-[10px] font-medium text-gray-500 uppercase mb-0.5">
             {brand.title}
           </p>
         )}
 
-        <h3 className="text-[15px] font-semibold text-gray-900 line-clamp-2 min-h-[42px]">
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 min-h-[38px]">
           {title}
         </h3>
 
         {shortDescription && (
-          <p className="text-[13px] text-gray-500 line-clamp-2 mb-3">
+          <p className="text-[11px] text-gray-500 line-clamp-2 mb-2 leading-relaxed">
             {shortDescription}
           </p>
         )}
@@ -171,7 +171,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
                 ))}
               </div>
 
-              <span className="text-xs text-gray-500">
+              <span className="text-[10px] text-gray-500">
                 {averageRating.toFixed(1)}
                 {ratingCount > 0 && (
                   <span className="text-gray-400"> ({ratingCount})</span>
@@ -179,7 +179,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
               </span>
             </>
           ) : (
-            <span className="text-xs text-gray-400">No reviews yet</span>
+            <span className="text-[10px] text-gray-400">No reviews yet</span>
           )}
         </div>
 
@@ -191,13 +191,13 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
             </div>
           )}
 
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-bold text-orange-600">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-xl font-bold text-orange-600">
               ${displayPrice.toFixed(2)}
             </span>
 
             {hasDiscount && originalPrice > displayPrice && (
-              <span className="text-sm text-gray-400 line-through">
+              <span className="text-xs text-gray-400 line-through">
                 ${originalPrice.toFixed(2)}
               </span>
             )}
@@ -205,15 +205,15 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
           <div className="text-right">
             {isOutOfStock ? (
-              <span className="text-xs text-red-500 font-semibold">
+              <span className="text-[10px] text-red-500 font-semibold">
                 Out of Stock
               </span>
             ) : isLowStock ? (
-              <span className="text-xs text-orange-600 font-semibold">
+              <span className="text-[10px] text-orange-600 font-semibold">
                 Only {stock} left
               </span>
             ) : (
-              <span className="text-xs text-emerald-600 font-medium">
+              <span className="text-[10px] text-emerald-600 font-medium">
                 In Stock
               </span>
             )}

@@ -154,7 +154,7 @@ const handleSearchRepairman = () => {
           <div className="flex justify-center items-center mb-4">
             <SectionTag title="Service Finder" />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 text-center">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 text-center">
             Quick <span className="text-primary-600">Service</span> Finder
           </h2>
           <p className="text-gray-600 mt-3 max-w-md mx-auto text-center">
@@ -225,7 +225,7 @@ const handleSearchRepairman = () => {
         {/* Our Services */}
         <div className="text-left mb-12">
           <SectionTag title="Our Services" />
-          <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
             <span className="text-primary-600">Our</span> Services
           </h2>
         </div>

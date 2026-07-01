@@ -30,6 +30,13 @@ const PAYMENT_STATUS = {
 
 const TIMELINE_STEPS = ['pending', 'processing', 'shipping', 'shipped', 'delivered'];
 
+const RETURN_STATUS_CFG = {
+  requested: { label: 'Return Pending Review', bg: 'bg-blue-50 text-blue-700 border-blue-200',    icon: 'solar:refresh-circle-bold-duotone' },
+  shipped:   { label: 'Return Shipped Back',   bg: 'bg-amber-50 text-amber-700 border-amber-200', icon: 'solar:delivery-bold-duotone' },
+  approved:  { label: 'Return Approved',       bg: 'bg-emerald-50 text-emerald-700 border-emerald-200', icon: 'solar:check-circle-bold-duotone' },
+  rejected:  { label: 'Return Rejected',       bg: 'bg-red-50 text-red-700 border-red-200',       icon: 'solar:close-circle-bold-duotone' },
+};
+
 function OrderStatusBadge({ status }) {
   const cfg = ORDER_STATUS[status?.toLowerCase()] || { color: 'bg-gray-100 text-gray-600', label: status, icon: 'solar:help-bold' };
   return (
@@ -212,6 +219,7 @@ export default function OrderDetailPage() {
   const [enquiryLoading, setEnquiryLoading] = useState(false);
   const [returnModal, setReturnModal]   = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
+  const [existingReturn, setExistingReturn] = useState(null);
   const [cancelling, setCancelling]     = useState(false);
 
   const fetchOrder = useCallback(async () => {
@@ -232,6 +240,19 @@ export default function OrderDetailPage() {
   }, [id, token, router]);
 
   useEffect(() => { fetchOrder(); }, [fetchOrder]);
+
+  const fetchReturnStatus = useCallback(async () => {
+    if (!token || !id) return;
+    try {
+      const { data } = await axiosInstance.get(`/e-commerce/orders/my-returns?orderId=${id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success && data.data?.length > 0) setExistingReturn(data.data[0]);
+      else setExistingReturn(null);
+    } catch {}
+  }, [id, token]);
+
+  useEffect(() => { fetchReturnStatus(); }, [fetchReturnStatus]);
 
   /* ── Cancel ── */
   const handleCancel = async () => {
@@ -260,6 +281,7 @@ export default function OrderDetailPage() {
       if (data.success) {
         toast.success('Return request submitted');
         setReturnModal(false);
+        setExistingReturn(data.data);
         fetchOrder();
       } else toast.error(data.message);
     } catch (err) {
@@ -532,16 +554,44 @@ export default function OrderDetailPage() {
               </button>
             )}
 
-            {/* Request Return (delivered only) */}
-            {order.orderStatus === 'delivered' && (
-              <button
-                onClick={() => setReturnModal(true)}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-semibold rounded-xl text-sm transition-colors"
-              >
-                <Icon icon="solar:inbox-in-bold-duotone" className="w-4 h-4" />
-                Request Return
-              </button>
-            )}
+            {/* Request Return / Return Status (delivered only) */}
+            {order.orderStatus === 'delivered' && (() => {
+              if (existingReturn) {
+                const cfg = RETURN_STATUS_CFG[existingReturn.returnStatus] || {
+                  label: existingReturn.returnStatus,
+                  bg: 'bg-gray-50 text-gray-600 border-gray-200',
+                  icon: 'solar:refresh-bold-duotone',
+                };
+                return (
+                  <div className={`w-full flex flex-col gap-1 px-4 py-3 rounded-xl border text-sm ${cfg.bg}`}>
+                    <div className="flex items-center gap-2 font-semibold">
+                      <Icon icon={cfg.icon} className="w-4 h-4" />
+                      {cfg.label}
+                    </div>
+                    <p className="text-xs opacity-75">
+                      Return #{existingReturn.returnNo || '—'} · {existingReturn.createdAt ? new Date(existingReturn.createdAt).toLocaleDateString() : ''}
+                    </p>
+                    {existingReturn.returnStatus === 'rejected' && (
+                      <button
+                        onClick={() => setReturnModal(true)}
+                        className="mt-1 text-xs underline underline-offset-2 opacity-80 hover:opacity-100 text-left"
+                      >
+                        Submit new return request
+                      </button>
+                    )}
+                  </div>
+                );
+              }
+              return (
+                <button
+                  onClick={() => setReturnModal(true)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-semibold rounded-xl text-sm transition-colors"
+                >
+                  <Icon icon="solar:inbox-in-bold-duotone" className="w-4 h-4" />
+                  Request Return
+                </button>
+              );
+            })()}
           </div>
         </div>
       </div>

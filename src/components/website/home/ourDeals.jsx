@@ -38,7 +38,7 @@ export default function OurDeals() {
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between gap-6 mb-12 px-4">
         <div className="lg:max-w-xl">
           <SectionTag title="Our Deals" />
-          <h2 className="text-3xl sm:text-3xl lg:text-4xl font-bold tracking-tight leading-tight">
+          <h2 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">
             Hot <span className="text-primary-500">Deals</span>
           </h2>
           <p className="text-gray-600 mt-2">

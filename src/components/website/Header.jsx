@@ -362,7 +362,7 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
                   {cat.avgRating > 0 && ` · ${cat.avgRating}★`}
                 </span>
               </div>
-              <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" />
+              {/* <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" /> */}
             </Link>
           ))}
 
@@ -559,27 +559,27 @@ function NavigationBar({ isHome, isScrolled }) {
     {
       name: "Services", href: "/mobile-repair", hasDropdown: true,
       dropdownItems: [
-        { name: "Mobile Repair",      href: "/mobile-repair" },
-        { name: "Battery Replacement",href: "/mobile-repair" },
+        { name: "Mobile Repair", href: "/mobile-repair" },
+        { name: "Battery Replacement", href: "/mobile-repair" },
         { name: "Motherboard Repair", href: "/mobile-repair" },
-        { name: "Screen Repair",      href: "/mobile-repair" },
-        { name: "Water Damage",       href: "/mobile-repair" },
-        { name: "Software Issues",    href: "/mobile-repair" },
+        { name: "Screen Repair", href: "/mobile-repair" },
+        { name: "Water Damage", href: "/mobile-repair" },
+        { name: "Software Issues", href: "/mobile-repair" },
       ],
     },
     { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
     { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
-    { name: "Academy",  href: "/academy",   hasDropdown: false },
-    { name: "About",    href: "/about-us",  hasDropdown: false },
+    { name: "Academy", href: "/academy", hasDropdown: false },
+    { name: "About", href: "/about-us", hasDropdown: false },
     {
       name: "Support", href: "/live-support", hasDropdown: true,
       dropdownItems: [
-        { name: "Privacy Policy",        href: "/privacy-policy" },
-        { name: "Terms of Service",      href: "/terms-of-service" },
-        { name: "Environmental Policy",  href: "/e-waste-policy" },
-        { name: "How to return",         href: "/how-to-return" },
-        { name: "FAQ",                   href: "/faq" },
-        { name: "Refund Policy",         href: "/refund-policy" },
+        { name: "Privacy Policy", href: "/privacy-policy" },
+        { name: "Terms of Service", href: "/terms-of-service" },
+        { name: "Environmental Policy", href: "/e-waste-policy" },
+        { name: "How to return", href: "/how-to-return" },
+        { name: "FAQ", href: "/faq" },
+        { name: "Refund Policy", href: "/refund-policy" },
       ],
     },
     { name: "Blog", href: "/blog", hasDropdown: false },
@@ -595,16 +595,14 @@ function NavigationBar({ isHome, isScrolled }) {
 
   const onNav = isHome && !isScrolled;
 
-  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${
-    onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-  }`;
+  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+    }`;
 
   return (
-    <div className={`w-full transition-colors duration-300 ${
-      onNav
-        ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]"
-        : "bg-white"
-    }`}>
+    <div className={`w-full transition-colors duration-300 ${onNav
+      ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]"
+      : "bg-white"
+      }`}>
       <div className="max-w-7xl mx-auto px-6">
         <nav className="hidden lg:flex items-center justify-center gap-0.5 py-1">
           {mainNav.map((item) => (
@@ -673,15 +671,21 @@ export function NavigationHeader() { return null; }
 ════════════════════════════════════════════ */
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isAnyScrolled, setIsAnyScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const locale = useLocale();
   const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
 
   useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    const checkScroll = () => {
+      const y = window.scrollY;
+      setIsAnyScrolled(y > 50);
+      setIsScrolled(y > window.innerHeight * 0.65);
+    };
+    checkScroll();
+    window.addEventListener("scroll", checkScroll, { passive: true });
+    return () => window.removeEventListener("scroll", checkScroll);
   }, []);
 
   useEffect(() => {
@@ -689,13 +693,20 @@ export default function Header() {
     return () => { document.body.style.overflow = ""; };
   }, [mobileMenuOpen]);
 
+  const showMarquee = isHome && !isAnyScrolled;
+
   return (
     <>
       {/* One sticky block — all rows stick together */}
       <header className="sticky top-0 z-30 shadow-sm">
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
-        {isHome && <PromoMarquee />}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${showMarquee ? "max-h-12 opacity-100" : "max-h-0 opacity-0"
+            }`}
+        >
+          <PromoMarquee />
+        </div>
         <NavigationBar isHome={isHome} isScrolled={isScrolled} />
       </header>
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />

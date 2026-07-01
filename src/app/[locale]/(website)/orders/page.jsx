@@ -80,6 +80,8 @@ export default function MyOrdersPage() {
   const [returnModal, setReturnModal]       = useState(null);
   const [returnLoading, setReturnLoading]   = useState(false);
   const [existingReturns, setExistingReturns] = useState({});
+  const [returnsList, setReturnsList]       = useState([]);
+  const [activeTab, setActiveTab]           = useState('orders');
 
   const fetchExistingReturns = useCallback(async () => {
     if (!token) return;
@@ -88,11 +90,13 @@ export default function MyOrdersPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
+        const list = res.data.data || [];
         const map = {};
-        (res.data.data || []).forEach((r) => {
+        list.forEach((r) => {
           if (r.orderId) map[r.orderId.toString()] = r;
         });
         setExistingReturns(map);
+        setReturnsList(list);
       }
     } catch {}
   }, [token]);
@@ -223,19 +227,111 @@ export default function MyOrdersPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Page Header */}
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-          <p className="text-gray-500 mt-1">Track and manage all your purchases</p>
+          <h1 className="text-2xl font-bold text-gray-900">My Orders</h1>
+          <p className="text-gray-500 mt-1 text-sm">Track and manage all your purchases</p>
         </div>
         <Link
           href="/product"
-          className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium transition-colors"
+          className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-medium transition-colors text-sm"
         >
           <Icon icon="mdi:shopping" />
           Continue Shopping
         </Link>
       </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 bg-gray-100 rounded-xl p-1 mb-6 w-fit">
+        <button
+          onClick={() => setActiveTab('orders')}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'orders'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Icon icon="mdi:package-variant-closed" className="w-4 h-4" />
+            My Orders
+          </span>
+        </button>
+        <button
+          onClick={() => setActiveTab('returns')}
+          className={`px-5 py-2 rounded-lg text-sm font-semibold transition-all ${
+            activeTab === 'returns'
+              ? 'bg-white text-gray-900 shadow-sm'
+              : 'text-gray-500 hover:text-gray-700'
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Icon icon="mdi:package-variant-closed-remove" className="w-4 h-4" />
+            My Returns
+            {returnsList.length > 0 && (
+              <span className="bg-primary-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                {returnsList.length}
+              </span>
+            )}
+          </span>
+        </button>
+      </div>
+
+      {/* ── MY RETURNS TAB ── */}
+      {activeTab === 'returns' && (
+        <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+          {returnsList.length === 0 ? (
+            <div className="py-20 text-center">
+              <Icon icon="mdi:package-variant-closed-remove" className="mx-auto text-6xl text-gray-200 mb-4" />
+              <h3 className="text-lg font-semibold text-gray-700 mb-1">No Return Requests</h3>
+              <p className="text-gray-400 text-sm">You haven&apos;t submitted any return requests yet.</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {returnsList.map((ret) => {
+                const cfg = RETURN_STATUS_CFG[ret.returnStatus] || { label: ret.returnStatus, bg: 'bg-gray-100 text-gray-600' };
+                return (
+                  <div key={ret._id} className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-mono text-sm font-bold text-gray-900">{ret.returnNo || '—'}</span>
+                        <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold ${cfg.bg}`}>
+                          <span className="w-1.5 h-1.5 rounded-full bg-current opacity-70" />
+                          {cfg.label}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 font-medium truncate">{ret.productName || 'Order Product'}</p>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                        <span>Order: <span className="font-mono">{ret.orderNo || '—'}</span></span>
+                        <span>·</span>
+                        <span>Amount: <span className="font-semibold text-gray-600">${(ret.price || 0).toFixed(2)}</span></span>
+                        <span>·</span>
+                        <span>{ret.createdAt ? new Date(ret.createdAt).toLocaleDateString() : '—'}</span>
+                      </div>
+                      {ret.reason && (
+                        <p className="text-xs text-gray-400 mt-1 italic line-clamp-1">&quot;{ret.reason}&quot;</p>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0">
+                      {ret.orderId && (
+                        <Link
+                          href={`/orders/${ret.orderId}`}
+                          className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-semibold transition-colors"
+                        >
+                          View Order
+                          <Icon icon="mdi:arrow-right" className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── ORDERS TAB ── */}
+      {activeTab === 'orders' && <>
          {/* Filters */}
           <div className="flex flex-col lg:flex-row gap-4 p-6 border-b border-gray-100">
             <div className="flex-1">
@@ -648,6 +744,7 @@ export default function MyOrdersPage() {
           </div>
         </div>
       )}
+      </> }
 
       <ReturnRequestModal
         order={returnModal}

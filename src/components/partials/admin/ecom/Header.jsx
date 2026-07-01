@@ -271,7 +271,7 @@ function EcomHeader() {
                   return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
                 } else if (link.name === "Orders") {
                   return renderNavLink(link, isOrdersDropdownOpen, setIsOrdersDropdownOpen, ordersDropdownRef);
-                } else if (link.name === "Advertisements") {
+                } else if (link.name === "Ads") {
                   return renderNavLink(link, isAdsDropdownOpen, setIsAdsDropdownOpen, adsDropdownRef);
                 }
                 return renderNavLink(link);
