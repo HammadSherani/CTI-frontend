@@ -312,7 +312,7 @@ export default function SellerWalletPage() {
         </div>
 
         {/* ── Earnings breakdown ── */}
-        <div className="grid grid-cols-3 gap-4">
+        {/* <div className="grid grid-cols-3 gap-4">
           {Object.entries(overview?.earningsSummary || {}).map(([key, val]) => {
             const cfg = STATUS_CONFIG[key] || {};
             return (
@@ -323,7 +323,7 @@ export default function SellerWalletPage() {
               </div>
             );
           })}
-        </div>
+        </div> */}
 
         {/* ── 20-day hold info banner ── */}
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">

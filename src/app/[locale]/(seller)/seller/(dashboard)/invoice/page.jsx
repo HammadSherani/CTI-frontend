@@ -57,7 +57,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
       const { data } = await axiosInstance.post(url, fd, {
         headers: { 
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': undefined
         },
       });
 

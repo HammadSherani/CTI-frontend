@@ -143,11 +143,10 @@ function AskSellerModal({ onClose, onSubmit, loading, sellerName, productTitle }
                 <button
                   key={s}
                   onClick={() => setSubject(s)}
-                  className={`text-xs px-3 py-1.5 rounded-xl border font-semibold transition-all ${
-                    subject === s
+                  className={`text-xs px-3 py-1.5 rounded-xl border font-semibold transition-all ${subject === s
                       ? 'bg-primary-500 text-white border-primary-500'
                       : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-primary-300 hover:bg-primary-50'
-                  }`}
+                    }`}
                 >
                   {s}
                 </button>
@@ -355,8 +354,24 @@ export default function ProductDetailPage() {
   });
 
   const handleAttrSelect = (attrName, value) => {
-    const next = { ...selectedAttributes, [attrName]: value };
+    const isAlreadySelected = selectedAttributes[attrName] === value;
+    const next = { ...selectedAttributes };
+
+    if (isAlreadySelected) {
+      delete next[attrName];
+    } else {
+      next[attrName] = value;
+    }
+    
     setSelectedAttributes(next);
+
+    if (Object.keys(next).length === 0) {
+      const def = variants.find(v => v.isDefault) || variants[0];
+      setSelectedVariantId(def?._id || null);
+      setSelectedImage(0);
+      setThumbStart(0);
+      return;
+    }
 
     const match = variants.find(v => {
       return Object.entries(next).every(([k, val]) =>
@@ -368,6 +383,8 @@ export default function ProductDetailPage() {
       setSelectedVariantId(match._id);
       setSelectedImage(0);
       setThumbStart(0);
+    } else {
+      setSelectedVariantId(null);
     }
   };
 
@@ -483,11 +500,10 @@ export default function ProductDetailPage() {
                   <button
                     key={realIndex}
                     onClick={() => setSelectedImage(realIndex)}
-                    className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${
-                      selectedImage === realIndex
+                    className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex
                         ? 'border-primary-500 shadow-md shadow-primary-100'
                         : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                      }`}
                   >
                     <img
                       src={img}
@@ -527,11 +543,10 @@ export default function ProductDetailPage() {
               <button
                 onClick={handleAddToCart}
                 disabled={!inStock}
-                className={`flex-1 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${
-                  isCartAdded
+                className={`flex-1 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${isCartAdded
                     ? 'bg-gray-800 hover:bg-gray-900 text-white'
                     : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-200'
-                }`}
+                  }`}
               >
                 <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
                 {isCartAdded ? 'Remove' : 'Add to Cart'}
@@ -604,9 +619,8 @@ export default function ProductDetailPage() {
               {oldPrice > price && (
                 <span className="text-base text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
               )}
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-              }`}>
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                }`}>
                 {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
               </span>
             </div>
@@ -638,11 +652,10 @@ export default function ProductDetailPage() {
                                 key={opt.value}
                                 title={opt.value}
                                 onClick={() => handleAttrSelect(type, opt.value)}
-                                className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${
-                                  isSelected
+                                className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
                                     ? 'border-primary-500 scale-110 shadow-lg shadow-primary-500/25'
                                     : `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:border-gray-400`
-                                }`}
+                                  }`}
                                 style={{ backgroundColor: hex }}
                               >
                                 {isSelected && (
@@ -658,11 +671,10 @@ export default function ProductDetailPage() {
                             <button
                               key={opt.value}
                               onClick={() => handleAttrSelect(type, opt.value)}
-                              className={`px-3.5 py-1.5 rounded-lg border-2 text-sm font-bold transition-all ${
-                                isSelected
+                              className={`px-3.5 py-1.5 rounded-lg border-2 text-sm font-bold transition-all ${isSelected
                                   ? 'border-primary-500 bg-primary-500 text-white shadow-md shadow-primary-500/20'
                                   : 'border-gray-200 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
-                              }`}
+                                }`}
                             >
                               {opt.value}
                             </button>
@@ -821,11 +833,10 @@ export default function ProductDetailPage() {
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${
-                activeTab === tab.id
+              className={`px-6 py-3 text-sm font-semibold whitespace-nowrap border-b-2 transition-all ${activeTab === tab.id
                   ? 'border-primary-500 text-primary-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
+                }`}
             >
               {tab.label}
             </button>

@@ -85,12 +85,19 @@ function Header() {
 
   /* Fetch unread enquiry count for the badge */
   useEffect(() => {
-    if (!token) return;
-    axiosInstance.get('/seller/queries/stats', {
-      headers: { Authorization: `Bearer ${token}` },
-    }).then(({ data }) => {
-      if (data.success) setEnquiryUnread(data.data?.unread || 0);
-    }).catch(() => { });
+    const fetchUnread = () => {
+      if (!token) return;
+      axiosInstance.get('/seller/queries/stats', {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(({ data }) => {
+        if (data.success) setEnquiryUnread(data.data?.unread || 0);
+      }).catch(() => { });
+    };
+
+    fetchUnread();
+
+    window.addEventListener('enquiry_read', fetchUnread);
+    return () => window.removeEventListener('enquiry_read', fetchUnread);
   }, [token, pathname]);
 
   useEffect(() => {

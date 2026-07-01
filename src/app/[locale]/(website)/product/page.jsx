@@ -13,7 +13,7 @@ import { toggleCart } from '@/store/cart';
 import { toast } from 'react-toastify';
 import { Icon } from '@iconify/react';
 
-const PAGE_SIZE = 8;
+const PAGE_SIZE = 30;
 
 const SORT_OPTIONS = [
   { label: "Default",             value: "default"    },

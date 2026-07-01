@@ -217,12 +217,12 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
 const EMPTY_RESULTS = { products: [], categories: [], brands: [], sellers: [] };
 
 function SearchBar({ className = "" }) {
-  const [query, setQuery]     = useState("");
+  const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [results, setResults] = useState(EMPTY_RESULTS);
   const [loading, setLoading] = useState(false);
-  const router    = useRouter();
-  const inputRef  = useRef(null);
+  const router = useRouter();
+  const inputRef = useRef(null);
   const debouncedQuery = useDebounce(query, 350);
 
   useEffect(() => {
@@ -237,7 +237,7 @@ function SearchBar({ className = "" }) {
       .then(({ data }) => {
         if (!cancelled && data.success) setResults(data.data);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [debouncedQuery]);
@@ -247,11 +247,11 @@ function SearchBar({ className = "" }) {
     setFocused(false);
     inputRef.current?.blur();
 
-    if (type === "product" && slug)       router.push(`/product/${slug}`);
-    else if (type === "category" && id)   router.push(`/product?categoryIds=${id}`);
-    else if (type === "brand" && id)      router.push(`/product?brandIds=${id}`);
-    else if (type === "seller" && id)     router.push(`/store/${id}`);
-    else                                  router.push(`/product?q=${encodeURIComponent(value)}`);
+    if (type === "product" && slug) router.push(`/product/${slug}`);
+    else if (type === "category" && id) router.push(`/product?categoryIds=${id}`);
+    else if (type === "brand" && id) router.push(`/product?brandIds=${id}`);
+    else if (type === "seller" && id) router.push(`/store/${id}`);
+    else router.push(`/product?q=${encodeURIComponent(value)}`);
   }, [router]);
 
   const handleSubmit = (e) => {
@@ -261,17 +261,16 @@ function SearchBar({ className = "" }) {
 
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`}>
-      <div className={`flex items-center bg-white border-2 rounded-xl px-4 py-2.5 transition-all duration-200 ${
-        focused ? "border-orange-500 shadow-lg shadow-orange-100" : "border-gray-200 hover:border-gray-300"
-      }`}>
-        <Icon icon="mdi:magnify" className="w-5 h-5 text-gray-400 flex-shrink-0" />
+      <div className={`flex items-center bg-white border rounded-lg px-3 py-1.5 transition-all duration-200 ${focused ? "border-orange-400 shadow-sm shadow-orange-100" : "border-gray-200 hover:border-gray-300"
+        }`}>
+        <Icon icon="mdi:magnify" className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <input
           ref={inputRef}
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search products, brands, stores…"
-          className="flex-1 bg-transparent outline-none text-[14px] placeholder-gray-400 text-gray-800 mx-3"
+          className="flex-1 bg-transparent outline-none text-[13px] placeholder-gray-400 text-gray-800 mx-2"
           onFocus={() => setFocused(true)}
           onBlur={() => setTimeout(() => setFocused(false), 150)}
         />
@@ -281,7 +280,7 @@ function SearchBar({ className = "" }) {
             onClick={() => { setQuery(""); setResults(EMPTY_RESULTS); }}
             className="text-gray-300 hover:text-gray-500 transition-colors"
           >
-            <Icon icon="mdi:close-circle" className="w-4 h-4" />
+            <Icon icon="mdi:close-circle" className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
@@ -301,7 +300,7 @@ function SearchBar({ className = "" }) {
    PRODUCTS DROPDOWN (with live top-categories)
 ════════════════════════════════════════════ */
 function ProductsDropdown({ isHome, isScrolled, onClose }) {
-  const [cats, setCats]       = useState([]);
+  const [cats, setCats] = useState([]);
   const [loadingCats, setLoadingCats] = useState(true);
   const router = useRouter();
 
@@ -309,7 +308,7 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
     axiosInstance
       .get("/e-commerce/products/top-categories")
       .then(({ data }) => { if (data.success) setCats(data.data); })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoadingCats(false));
   }, []);
 
@@ -391,28 +390,26 @@ function AnnouncementBar() {
   const t = useTranslations("Home.AnnouncementBar");
 
   return (
-    <div className="bg-gray-50 border-b border-gray-100 py-2 text-[12px] font-medium text-gray-600">
-      <div className="max-w-7xl mx-auto px-8 flex flex-col sm:flex-row justify-between items-center gap-2">
-        <p className="text-center sm:text-left">
+    <div className="bg-gray-50 border-b border-gray-100 py-1 text-[11px] font-medium text-gray-500">
+      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center gap-2">
+        <p className="hidden sm:block">
           {t.rich("message", {
             hours: (chunks) => (
-              <span className="text-red-500 font-bold">{chunks}</span>
+              <span className="text-red-500 font-semibold">{chunks}</span>
             ),
           })}
         </p>
-        <div className="flex items-center gap-5">
+        <div className="flex items-center gap-4 ml-auto">
           <Link
             href="/auth/login"
-            className="flex items-center gap-1 hover:text-orange-600 transition-colors"
+            className="hover:text-orange-600 transition-colors"
           >
-            <Icon icon="mdi:account-circle-outline" className="w-4 h-4" />
             {t("login")}
           </Link>
           <a
             href="tel:+234567890"
-            className="flex items-center gap-1 hover:text-orange-600 transition-colors"
+            className="hover:text-orange-600 transition-colors"
           >
-            <Icon icon="mdi:phone" className="w-4 h-4" />
             +234 567 890
           </a>
           <CustomTranslate />
@@ -426,38 +423,36 @@ function AnnouncementBar() {
    MID HEADER
 ════════════════════════════════════════════ */
 function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
-  const { user } = useSelector((state) => state.auth) || {};
-
   return (
     <div className="bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-8">
-        <div className="flex items-center justify-between gap-3 md:gap-6">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex items-center justify-between gap-3 md:gap-5 py-2">
           {/* Hamburger (mobile) */}
           <button
-            className="md:hidden flex-shrink-0 w-9 h-9 flex items-center justify-center rounded-xl hover:bg-orange-50 transition-colors"
+            className="md:hidden flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg hover:bg-orange-50 transition-colors"
             onClick={() => setMobileMenuOpen((p) => !p)}
             aria-label="Menu"
           >
-            <Icon icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"} className="w-6 h-6 text-gray-700" />
+            <Icon icon={mobileMenuOpen ? "mdi:close" : "mdi:menu"} className="w-5 h-5 text-gray-700" />
           </button>
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="relative w-14 h-12 md:w-26 md:h-16">
+            <div className="relative w-12 h-10 md:w-[90px] md:h-[38px]">
               <Image src="/assets/logo.png" alt="Click To Integrate" fill className="object-contain" />
             </div>
           </Link>
 
           {/* Search (desktop) */}
-          <SearchBar className="hidden md:block flex-1 max-w-2xl" />
+          <SearchBar className="hidden md:block flex-1 max-w-xl" />
 
-          <div className="flex gap-3 md:gap-5 text-xl items-center">
+          <div className="flex gap-2 md:gap-4 items-center">
             <ButtonSection />
           </div>
         </div>
 
         {/* Mobile Search */}
-        <div className="md:hidden mt-3 pb-3">
+        <div className="md:hidden pb-2">
           <SearchBar />
         </div>
       </div>
@@ -471,11 +466,11 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 function MobileMenu({ open, onClose }) {
   const { user } = useSelector((state) => state.auth) || {};
   const navLinks = [
-    { label: "Home",               href: "/",            icon: "mdi:home-outline" },
-    { label: "Buy Devices",        href: "/coming",      icon: "mdi:shopping-outline" },
-    { label: "Academy",            href: "/academy",     icon: "mdi:school-outline" },
-    { label: "Track Order",        href: "/coming",      icon: "mdi:map-marker-path" },
-    { label: "Contact",            href: "/contact",     icon: "mdi:phone-outline" },
+    { label: "Home", href: "/", icon: "mdi:home-outline" },
+    { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
+    { label: "Academy", href: "/academy", icon: "mdi:school-outline" },
+    { label: "Track Order", href: "/coming", icon: "mdi:map-marker-path" },
+    { label: "Contact", href: "/contact", icon: "mdi:phone-outline" },
   ];
 
   return (
@@ -531,21 +526,21 @@ function MobileMenu({ open, onClose }) {
 function PromoMarquee() {
   const t = useTranslations("Home.PromoMarquee");
   const items = [
-    { icon: "mdi:truck-fast-outline",   text: t("shipping") },
+    { icon: "mdi:truck-fast-outline", text: t("shipping") },
     { icon: "mdi:shield-check-outline", text: t("warranty") },
-    { icon: "mdi:certificate-outline",  text: t("quality")  },
-    { icon: "mdi:headset",              text: t("support")  },
-    { icon: "mdi:lock-outline",         text: t("payments") },
+    { icon: "mdi:certificate-outline", text: t("quality") },
+    { icon: "mdi:headset", text: t("support") },
+    { icon: "mdi:lock-outline", text: t("payments") },
   ];
 
   return (
-    <div className="bg-orange-500 text-white py-2.5 overflow-hidden">
-      <Marquee speed={55} pauseOnHover gradient={false}>
+    <div className="bg-orange-500 text-white py-1.5 overflow-hidden">
+      <Marquee speed={50} pauseOnHover gradient={false}>
         {[...items, ...items].map((item, i) => (
-          <div key={i} className="flex items-center gap-2 mx-8 text-[13px] font-semibold">
-            <Icon icon={item.icon} className="w-4.5 h-4.5 opacity-90" />
+          <div key={i} className="flex items-center gap-1.5 mx-6 text-[11px] font-semibold">
+            <Icon icon={item.icon} className="w-3.5 h-3.5 opacity-90" />
             <span>{item.text}</span>
-            <span className="ml-6 text-orange-200">✦</span>
+            <span className="ml-5 text-orange-200">✦</span>
           </div>
         ))}
       </Marquee>
@@ -554,106 +549,78 @@ function PromoMarquee() {
 }
 
 /* ════════════════════════════════════════════
-   NAVIGATION HEADER
+   NAVIGATION BAR (not fixed — lives inside sticky header)
 ════════════════════════════════════════════ */
-export function NavigationHeader() {
+function NavigationBar({ isHome, isScrolled }) {
   const [openDropdown, setOpenDropdown] = useState(null);
-  const [isScrolled, setIsScrolled]     = useState(false);
-  const router   = useRouter();
-  const pathname = usePathname();
-  const locale   = useLocale();
-
-  const isHome =
-    pathname === "/" || pathname === `/${locale}` || pathname === "";
 
   const mainNav = [
-    { name: "Home",    href: "/",           hasDropdown: false },
+    { name: "Home", href: "/", hasDropdown: false },
     {
       name: "Services", href: "/mobile-repair", hasDropdown: true,
       dropdownItems: [
-        { name: "Mobile Repair",      href: "/mobile-repair", icon: "mynaui:mobile"         },
-        { name: "Battery Replacement",href: "/mobile-repair", icon: "mdi:battery"           },
-        { name: "Motherboard Repair", href: "/mobile-repair", icon: "mdi:chip"              },
-        { name: "Screen Repair",      href: "/mobile-repair", icon: "radix-icons:mobile"    },
-        { name: "Water Damage",       href: "/mobile-repair", icon: "mdi:water"             },
-        { name: "Software Issues",    href: "/mobile-repair", icon: "mdi:code-brackets"     },
+        { name: "Mobile Repair",      href: "/mobile-repair" },
+        { name: "Battery Replacement",href: "/mobile-repair" },
+        { name: "Motherboard Repair", href: "/mobile-repair" },
+        { name: "Screen Repair",      href: "/mobile-repair" },
+        { name: "Water Damage",       href: "/mobile-repair" },
+        { name: "Software Issues",    href: "/mobile-repair" },
       ],
     },
-    {
-      name: "Products", href: "/product", hasDropdown: true,
-      isProductsMenu: true,
-    },
+    { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
     { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
-    { name: "Academy", href: "/academy", hasDropdown: false },
-    { name: "About",   href: "/about-us", hasDropdown: false },
+    { name: "Academy",  href: "/academy",   hasDropdown: false },
+    { name: "About",    href: "/about-us",  hasDropdown: false },
     {
       name: "Support", href: "/live-support", hasDropdown: true,
       dropdownItems: [
-        { name: "Privacy Policy",       href: "/privacy-policy",      icon: "mdi:shield-check-outline" },
-        { name: "Terms of Service",     href: "/terms-of-service",    icon: "mdi:file-document"        },
-        { name: "Environmental Policy", href: "/e-waste-policy",      icon: "mdi:leaf"                 },
-        { name: "How to return",        href: "/how-to-return",       icon: "mdi:file-document"        },
-        { name: "FAQ",                  href: "/faq",                 icon: "mdi:help-circle"          },
-        { name: "Refund Policy",        href: "/refund-policy",       icon: "mdi:currency-usd"         },
+        { name: "Privacy Policy",        href: "/privacy-policy" },
+        { name: "Terms of Service",      href: "/terms-of-service" },
+        { name: "Environmental Policy",  href: "/e-waste-policy" },
+        { name: "How to return",         href: "/how-to-return" },
+        { name: "FAQ",                   href: "/faq" },
+        { name: "Refund Policy",         href: "/refund-policy" },
       ],
     },
     { name: "Blog", href: "/blog", hasDropdown: false },
   ];
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
-      if (openDropdown) setOpenDropdown(null);
+    const close = (e) => {
+      if (!e.target.closest(".nav-dropdown")) setOpenDropdown(null);
     };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [openDropdown]);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (!e.target.closest(".dropdown-container")) setOpenDropdown(null);
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
+    document.addEventListener("click", close);
+    return () => document.removeEventListener("click", close);
   }, []);
 
-  const linkClass = `flex items-center gap-1.5 px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-    isScrolled
-      ? "text-gray-900 hover:bg-gray-100"
-      : isHome
-      ? "text-white hover:bg-white/10"
-      : "text-gray-900 hover:bg-gray-100"
+  const onNav = isHome && !isScrolled;
+
+  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${
+    onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
   }`;
 
   return (
-    <header
-      className={`fixed left-0 w-full p-2 z-[19] transition-all duration-300 ${
-        isScrolled
-          ? "bg-white shadow-md top-[117px]"
-          : isHome
-          ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)] top-[157px]"
-          : "bg-white top-[117px] text-gray-900 shadow-md"
-      }`}
-    >
-      <div className="flex items-center justify-center">
-        <nav className="hidden lg:flex items-center gap-1">
+    <div className={`w-full transition-colors duration-300 ${
+      onNav
+        ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]"
+        : "bg-white"
+    }`}>
+      <div className="max-w-7xl mx-auto px-6">
+        <nav className="hidden lg:flex items-center justify-center gap-0.5 py-1">
           {mainNav.map((item) => (
             <div
               key={item.name}
-              className="relative dropdown-container"
+              className="relative nav-dropdown"
               onMouseEnter={() => item.hasDropdown && setOpenDropdown(item.name)}
               onMouseLeave={() => item.hasDropdown && setOpenDropdown(null)}
             >
-              <Link
-                href={item.href}
-                className={linkClass}
-              >
+              <Link href={item.href} className={linkCls}>
                 {item.name}
                 {item.hasDropdown && (
                   <Icon
                     icon="mdi:chevron-down"
-                    className={`transition-transform duration-300 ${openDropdown === item.name ? "rotate-180" : ""}`}
-                    width={18}
+                    width={14}
+                    className={`transition-transform duration-200 ${openDropdown === item.name ? "rotate-180" : ""}`}
                   />
                 )}
               </Link>
@@ -670,33 +637,20 @@ export function NavigationHeader() {
                   ) : (
                     <motion.div
                       key="generic-dd"
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 10 }}
-                      transition={{ duration: 0.2 }}
-                      className={`absolute top-full left-0 mt-2 w-64 rounded-xl shadow-xl py-2 border ${
-                        isScrolled
-                          ? "bg-white border-gray-200"
-                          : isHome
-                          ? "bg-white/10 backdrop-blur-md border-white/20"
-                          : "bg-white border-gray-200"
-                      }`}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
                     >
                       {item.dropdownItems?.map((di) => (
                         <Link
                           key={di.name}
                           href={di.href}
                           onClick={() => setOpenDropdown(null)}
-                          className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 ${
-                            isScrolled
-                              ? "text-gray-800 hover:bg-gray-100"
-                              : isHome
-                              ? "text-white hover:bg-white/20"
-                              : "text-gray-900 hover:bg-gray-100"
-                          }`}
+                          className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                         >
-                          <Icon icon={di.icon} width={18} />
-                          <span className="text-sm font-medium">{di.name}</span>
+                          {di.name}
                         </Link>
                       ))}
                     </motion.div>
@@ -707,22 +661,25 @@ export function NavigationHeader() {
           ))}
         </nav>
       </div>
-    </header>
+    </div>
   );
 }
+
+/* re-export so any existing import of NavigationHeader still works */
+export function NavigationHeader() { return null; }
 
 /* ════════════════════════════════════════════
    MAIN HEADER EXPORT
 ════════════════════════════════════════════ */
 export default function Header() {
-  const [scrolled, setScrolled]         = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
-  const locale   = useLocale();
-  const isHome   = pathname === "/" || pathname === `/${locale}` || pathname === "";
+  const locale = useLocale();
+  const isHome = pathname === "/" || pathname === `/${locale}` || pathname === "";
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 4);
+    const onScroll = () => setIsScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
@@ -734,18 +691,13 @@ export default function Header() {
 
   return (
     <>
-      <header className="sticky top-0 z-30 bg-white transition-shadow duration-300">
+      {/* One sticky block — all rows stick together */}
+      <header className="sticky top-0 z-30 shadow-sm">
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+        {isHome && <PromoMarquee />}
+        <NavigationBar isHome={isHome} isScrolled={isScrolled} />
       </header>
-      <div className="relative z-0">
-        {isHome && (
-          <div className="relative z-0 transition-opacity duration-300">
-            <PromoMarquee />
-          </div>
-        )}
-      </div>
-      <NavigationHeader />
       <MobileMenu open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} />
     </>
   );

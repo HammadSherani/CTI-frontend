@@ -195,7 +195,10 @@ export default function EnquiryDetailPage() {
       const { data } = await axiosInstance.get(`/seller/queries/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) setQuery(data.data);
+      if (data.success) {
+        setQuery(data.data);
+        window.dispatchEvent(new Event('enquiry_read'));
+      }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load enquiry');
       router.push('/seller/enquiries');

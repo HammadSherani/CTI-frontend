@@ -51,7 +51,7 @@ export default function CheckoutPage() {
   const [saveCard, setSaveCard] = useState(false);
   const [form, setForm] = useState({
     firstName: auth?.user?.name || '',
-    lastName:  '',
+    lastName: '',
     email: auth?.user?.email || '',
     phone: auth?.user?.phone || '',
     address: '',
@@ -110,15 +110,16 @@ export default function CheckoutPage() {
             return;
           }
 
+          const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
           setItems([{
             productId: product._id,
             productDetails: product,
             variantId: variant._id,
             variantDetails: variant,
             quantity: queryQuantity,
-            price: variant.sellingPrice
+            price: price
           }]);
-          setSubTotal(variant.sellingPrice * queryQuantity);
+          setSubTotal(price * queryQuantity);
           setLoading(false);
         })
         .catch(err => {
@@ -132,7 +133,7 @@ export default function CheckoutPage() {
         // Handle both populated and unpopulated cart item structures depending on backend logic
         const pDetails = item.productId || item;
         const vDetails = item.variantId || item;
-        const price = vDetails.price || 0;
+        const price = vDetails.discountPrice || vDetails.sellingPrice || vDetails.price || pDetails.summary?.minSalePrice || pDetails.summary?.minPrice || 0;
         currentSubTotal += price * item.quantity;
         return {
           productId: pDetails._id || pDetails,
@@ -150,7 +151,8 @@ export default function CheckoutPage() {
     }
   }, [isBuyNow, slug, queryVariantId, queryQuantity, cartItems, auth, router]);
 
-  const TOTAL = subTotal ;
+  const SHIPPING = 10.00;
+  const TOTAL = subTotal + SHIPPING;
 
   const handleForm = (e) => {
     const { name, value } = e.target;
@@ -552,7 +554,7 @@ export default function CheckoutPage() {
               {[
                 { label: 'Items', value: items.reduce((a, b) => a + b.quantity, 0), isCount: true },
                 { label: 'Sub total', value: subTotal },
-                // { label: 'Shipping', value: SHIPPING },
+                { label: 'Shipping', value: SHIPPING },
               ].map(r => (
                 <div key={r.label} className="flex justify-between items-center text-sm">
                   <span className="text-gray-500">{r.label}</span>

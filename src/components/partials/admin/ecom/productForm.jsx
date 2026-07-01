@@ -153,34 +153,34 @@ function SimplePricing({ value, onChange }) {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-gray-500">Your Base Price</span>
-              <span className="font-semibold text-gray-800">${baseNum.toFixed(2)}</span>
+              <span className="font-semibold text-gray-800">${Math.round(baseNum)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-500 flex items-center gap-1">
                 Platform Fee ({PLATFORM_FEE_PCT}%)
                 <Icon icon="mdi:information-outline" className="w-3.5 h-3.5 text-gray-400" />
               </span>
-              <span className="font-semibold text-blue-600">+${platformFee.toFixed(2)}</span>
+              <span className="font-semibold text-blue-600">+${Math.round(platformFee)}</span>
             </div>
             <div className="border-t border-blue-200/60 pt-2 flex justify-between items-center">
               <span className="font-bold text-gray-700">Selling Price</span>
-              <span className="font-extrabold text-gray-900 text-sm">${sellingPrice.toFixed(2)}</span>
+              <span className="font-extrabold text-gray-900 text-sm">${Math.round(sellingPrice)}</span>
             </div>
             {hasDiscount && (
               <>
                 <div className="flex justify-between items-center pt-1">
                   <span className="text-gray-500">Discount ({discNum}%)</span>
-                  <span className="font-semibold text-red-500">-${discountSavings.toFixed(2)}</span>
+                  <span className="font-semibold text-red-500">-${Math.round(discountSavings)}</span>
                 </div>
                 <div className="border-t border-blue-200/60 pt-2 flex justify-between items-center">
                   <span className="font-bold text-emerald-700">Customer Pays</span>
-                  <span className="font-extrabold text-emerald-600 text-sm">${finalPrice.toFixed(2)}</span>
+                  <span className="font-extrabold text-emerald-600 text-sm">${Math.round(finalPrice)}</span>
                 </div>
               </>
             )}
           </div>
           <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
-            The platform fee is automatically added to your base price. Customers will see ${hasDiscount ? finalPrice.toFixed(2) : sellingPrice.toFixed(2)} as the product price.
+            The platform fee is automatically added to your base price. Customers will see ${hasDiscount ? Math.round(finalPrice) : Math.round(sellingPrice)} as the product price.
           </p>
         </div>
       )}

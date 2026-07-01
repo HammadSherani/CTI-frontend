@@ -18,21 +18,18 @@ const IconButton = ({
   onClick
 }) => {
   const button = (
-    <div className="relative group cursor-pointer" aria-label={label}>
+    <div className="relative group cursor-pointer p-1.5 rounded-lg hover:bg-gray-100 transition-colors" aria-label={label}>
       <Icon
         icon={icon}
-        className="text-gray-600 hover:text-orange-500 transition-colors duration-200"
-        width={24}
-        height={24}
+        className="text-gray-600 group-hover:text-orange-500 transition-colors duration-200"
+        width={20}
+        height={20}
       />
       {showCount && count > 0 && (
-        <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-medium">
-          {count}
+        <span className="absolute -top-0.5 -right-0.5 bg-orange-500 text-white text-[9px] min-w-[16px] h-[16px] px-0.5 rounded-full flex items-center justify-center font-bold leading-none">
+          {count > 9 ? "9+" : count}
         </span>
       )}
-      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
-        {label} {showCount && `(${count})`}
-      </div>
     </div>
   );
 
@@ -42,11 +39,8 @@ const IconButton = ({
 
 const DashboardLink = ({ link }) => (
   <Link href={link}>
-    <button className="relative ml-1 text-sm group px-6 cursor-pointer py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md transition-colors duration-200 font-medium shadow-sm">
+    <button className="text-[12px] font-semibold px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
       Dashboard
-      <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap pointer-events-none z-10">
-        Go to Dashboard
-      </div>
     </button>
   </Link>
 );
@@ -115,23 +109,21 @@ function ButtonSection() {
   const handleNotificationClick = () => router.push("/coming");
 
   const dropdownLinks = [
-    { name: "Account", path: "/my-account", icon: "mdi:account-cog-outline" },
-    { name: "My Messages", path: "/messages", icon: "mdi:message-text-outline" },
-    { name: "Help & Support", path: "/help-support", icon: "mdi:help-circle-outline" },
-    { name: "Sign Out", path: "/", icon: "mdi:logout", isLogout: true },
+    { name: "My Account",     path: "/my-account"    },
+    { name: "My Orders",      path: "/orders"        },
+    { name: "My Messages",    path: "/messages"      },
+    { name: "Help & Support", path: "/help-support"  },
+    { name: "Sign Out",       path: "/", isLogout: true },
   ];
 
   if (!user) {
     return (
       <div className="flex items-center gap-2">
         <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
-        <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
-
         <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
-
         <Link
           href="/auth/register"
-          className="hidden sm:inline-flex items-center gap-1.5 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-[13px] font-semibold ml-2"
+          className="hidden sm:inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[12px] font-semibold"
         >
           Get Started
         </Link>
@@ -143,72 +135,68 @@ function ButtonSection() {
   const renderCustomerButtons = () => (
     <>
       <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
-      {/* <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} /> */}
 
-
-      {user?.role === 'customer' && (
-        <div className="relative" ref={notificationRef}>
-          <button
-            onClick={toggleNotifications}
-            className={`relative p-2 rounded-lg transition-all duration-200
-                          ${showNotifications
-                ? 'text-primary-600 bg-primary-50'
-                : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-              }`}
-            aria-label="Notifications"
-          >
-            <Icon
-              icon={showNotifications ? "solar:bell-bold-duotone" : "solar:bell-linear"}
-              className="w-5 h-5"
-            />
-            {unreadCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
-                {unreadCount > 9 ? '9+' : unreadCount}
-              </span>
-            )}
-          </button>
-
-          {showNotifications && (
-            <NotificationPanel
-              isOpen={showNotifications}
-              onClose={() => setShowNotifications(false)}
-              userToken={token}
-            />
+      {/* Notifications */}
+      <div className="relative" ref={notificationRef}>
+        <button
+          onClick={toggleNotifications}
+          className={`relative p-1.5 rounded-lg transition-all duration-200 ${
+            showNotifications ? 'text-orange-500 bg-orange-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+          }`}
+          aria-label="Notifications"
+        >
+          <Icon icon={showNotifications ? "solar:bell-bold-duotone" : "solar:bell-linear"} className="w-5 h-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-[16px] px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+              {unreadCount > 9 ? '9+' : unreadCount}
+            </span>
           )}
-        </div>
-      )}
+        </button>
+        {showNotifications && (
+          <NotificationPanel isOpen={showNotifications} onClose={() => setShowNotifications(false)} userToken={token} />
+        )}
+      </div>
+
       <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
-      <IconButton
-        icon="mdi:clipboard-list-outline"
-        label="My Orders"
-        href="/orders"
-      />
-      <IconButton
-        icon="mdi:message-text-outline"
-        label="My Messages"
-        href="/messages"
-      />
+
+      {/* Profile dropdown — My Orders + My Messages live here */}
       <div className="relative" ref={dropdownRef}>
-        <button onClick={toggleDropdown} className="flex items-center gap-2 px-2 py-1.5 rounded-xl">
-          <div className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center">
-            <span className="text-xs text-white">{getInitials(user?.name)}</span>
+        <button
+          onClick={toggleDropdown}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
           </div>
-          <Icon icon="mdi:chevron-down" className={`${isDropdownOpen ? 'rotate-180' : ''}`} />
+          <span className="hidden sm:block text-[12px] font-semibold text-gray-700 max-w-[80px] truncate">
+            {user?.name?.split(" ")[0]}
+          </span>
+          <Icon icon="mdi:chevron-down" className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
         </button>
 
         {isDropdownOpen && (
-          <div className="absolute right-0 mt-2 w-64 z-40 bg-white rounded-xl shadow-xl py-2">
-            {dropdownLinks.map((link) => (
-              <Link
-                key={link.name}
-                href={link.path}
-                onClick={link.isLogout ? handleLogout : undefined}
-                className="flex items-center gap-3 text-gray-600 px-4 py-2 text-sm hover:bg-gray-100"
-              >
-                <Icon icon={link.icon} className="w-4 h-4" />
-                {link.name}
-              </Link>
-            ))}
+          <div className="absolute right-0 mt-1.5 w-52 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 overflow-hidden">
+            {/* user info row */}
+            <div className="px-4 py-2.5 border-b border-gray-50">
+              <p className="text-[12px] font-bold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+            </div>
+            <div className="py-1">
+              {dropdownLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.path}
+                  onClick={link.isLogout ? handleLogout : () => setIsDropdownOpen(false)}
+                  className={`block px-4 py-2 text-[13px] font-medium transition-colors ${
+                    link.isLogout
+                      ? 'text-red-500 hover:bg-red-50'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </div>
           </div>
         )}
       </div>

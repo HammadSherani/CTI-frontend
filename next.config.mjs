@@ -6,6 +6,7 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.js");
 
 const nextConfig = {
   serverExternalPackages: ["isomorphic-dompurify", "jspdf", "jspdf-autotable", "firebase", "cloudinary", "resend"],
+  allowedDevOrigins: ["192.168.176.1:3001"],
   images: {
     remotePatterns: [
       {

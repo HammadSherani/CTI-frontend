@@ -7,18 +7,14 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
 
 const SHIPPING = 10.00;
-const TAX = 0.00;
-const COUPON_DISCOUNT = -10.00;
 
 // ── Order Summary Sidebar ──
 function OrderSummary({ subtotal, onCheckout }) {
-  const total = subtotal + SHIPPING + TAX + COUPON_DISCOUNT;
+  const total = subtotal + SHIPPING;
   const rows = [
-    { label: 'Items',           value: subtotal,         color: 'text-gray-700' },
-    { label: 'Sub total',       value: subtotal,         color: 'text-gray-700' },
-    { label: 'Shipping',        value: SHIPPING,         color: 'text-gray-700' },
-    { label: 'Taxes',           value: TAX,              color: 'text-gray-700' },
-    { label: 'Coupon Discount', value: COUPON_DISCOUNT,  color: 'text-red-500'  },
+    { label: 'Items', value: subtotal, color: 'text-gray-700' },
+    { label: 'Sub total', value: subtotal, color: 'text-gray-700' },
+    { label: 'Shipping', value: SHIPPING, color: 'text-gray-700' },
   ];
 
   return (
@@ -75,7 +71,7 @@ export default function CartPage() {
   const subtotal = cart.reduce((sum, item) => {
     const product = item.productId || {};
     const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
-    const price = variant.discountPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+    const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
     return sum + (price * item.quantity);
   }, 0);
 
@@ -122,7 +118,7 @@ export default function CartPage() {
                 const product = item.productId || {};
                 const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
 
-                const price = variant.discountPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+                const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
                 const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
                 const title = product.title;
                 const variantText = variant.title ? variant.title : null;
@@ -190,26 +186,7 @@ export default function CartPage() {
                 );
               })}
 
-              {/* Coupon Row */}
-              <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-wrap gap-3 items-center">
-                <div className="flex flex-1 min-w-0 gap-2">
-                  <div className="relative flex-1 max-w-xs">
-                    <Icon icon="mdi:tag-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Enter coupon code"
-                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 transition-colors"
-                    />
-                  </div>
-                  <button className="bg-gray-800 hover:bg-gray-900 text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-                    Apply
-                  </button>
-                </div>
-                <button className="flex items-center gap-2 text-sm text-gray-500 hover:text-primary-500 font-semibold transition-colors ml-auto">
-                  <Icon icon="mdi:refresh" />
-                  Update Cart
-                </button>
-              </div>
+
             </div>
           )}
         </div>

@@ -41,7 +41,8 @@ function DeliveryInvoiceModal({ order, onClose, onUploadNow }) {
 
       const { data } = await axiosInstance.post('/seller/invoices/upload', fd, {
         headers: { 
-          Authorization: `Bearer ${token}` 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': undefined
         }
       });
       
