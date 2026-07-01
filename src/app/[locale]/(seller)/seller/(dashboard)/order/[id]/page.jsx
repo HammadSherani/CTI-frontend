@@ -10,26 +10,26 @@ import Image from "next/image";
 import moment from "moment";
 
 const STATUS_CONFIG = {
-  pending:    { label: "Pending",    bg: "bg-blue-100",   text: "text-blue-700",   icon: "mdi:clock-outline" },
+  pending: { label: "Pending", bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:clock-outline" },
   processing: { label: "Processing", bg: "bg-indigo-100", text: "text-indigo-700", icon: "mdi:cogs" },
-  shipped:    { label: "Shipped",    bg: "bg-amber-100",  text: "text-amber-700",  icon: "mdi:truck-delivery-outline" },
-  delivered:  { label: "Delivered",  bg: "bg-emerald-100",text: "text-emerald-700",icon: "mdi:package-check" },
-  on_hold:    { label: "On Hold",    bg: "bg-orange-100", text: "text-orange-700", icon: "mdi:pause-circle-outline" },
-  cancelled:  { label: "Cancelled",  bg: "bg-red-100",    text: "text-red-700",    icon: "mdi:cancel" },
+  shipped: { label: "Shipped", bg: "bg-amber-100", text: "text-amber-700", icon: "mdi:truck-delivery-outline" },
+  delivered: { label: "Delivered", bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:package-check" },
+  on_hold: { label: "On Hold", bg: "bg-orange-100", text: "text-orange-700", icon: "mdi:pause-circle-outline" },
+  cancelled: { label: "Cancelled", bg: "bg-red-100", text: "text-red-700", icon: "mdi:cancel" },
 };
 
 const PAYMENT_CONFIG = {
-  PAID:    { label: "Paid",    bg: "bg-emerald-100", text: "text-emerald-700" },
-  PENDING: { label: "Pending", bg: "bg-yellow-100",  text: "text-yellow-700" },
-  FAILED:  { label: "Failed",  bg: "bg-red-100",     text: "text-red-700" },
+  PAID: { label: "Paid", bg: "bg-emerald-100", text: "text-emerald-700" },
+  PENDING: { label: "Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
+  FAILED: { label: "Failed", bg: "bg-red-100", text: "text-red-700" },
 };
 
 const INVOICE_STATUS_META = {
-  pending_submission:   { label: "Pending Submission",  bg: "bg-slate-100",   text: "text-slate-600",   dot: "#64748b" },
-  submitted:            { label: "Submitted",           bg: "bg-blue-100",    text: "text-blue-700",    dot: "#2563eb" },
-  waiting_for_approval: { label: "Waiting Approval",   bg: "bg-amber-100",   text: "text-amber-700",   dot: "#d97706" },
-  approved:             { label: "Approved",            bg: "bg-emerald-100", text: "text-emerald-700", dot: "#059669" },
-  rejected:             { label: "Rejected",            bg: "bg-red-100",     text: "text-red-700",     dot: "#dc2626" },
+  pending_submission: { label: "Pending Submission", bg: "bg-slate-100", text: "text-slate-600", dot: "#64748b" },
+  submitted: { label: "Submitted", bg: "bg-blue-100", text: "text-blue-700", dot: "#2563eb" },
+  waiting_for_approval: { label: "Waiting Approval", bg: "bg-amber-100", text: "text-amber-700", dot: "#d97706" },
+  approved: { label: "Approved", bg: "bg-emerald-100", text: "text-emerald-700", dot: "#059669" },
+  rejected: { label: "Rejected", bg: "bg-red-100", text: "text-red-700", dot: "#dc2626" },
 };
 
 function InvoiceStatusBadge({ status }) {
@@ -58,9 +58,9 @@ function InfoRow({ label, value, mono = false, icon }) {
 
 /* ── Upload Invoice Modal ──────────────────────────────────────── */
 function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
-  const [file,    setFile]    = useState(null);
+  const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
+  const [error, setError] = useState('');
   const fileRef = useRef();
 
   const handleUpload = async () => {
@@ -70,7 +70,7 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
-      
+
       let url = '/seller/invoices/upload';
       if (invoice) {
         url = `/seller/invoices/${invoice._id}/reupload`;
@@ -78,14 +78,16 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
         fd.append('orderId', orderId);
       }
 
-      const { data } = await axiosInstance.post(url, fd, { 
-        headers: { 
-          Authorization: `Bearer ${token}` 
-        } 
+      const { data } = await axiosInstance.post(url, fd, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
       });
       if (data.success) {
         toast.success('Invoice uploaded and submitted to platform for review.');
         onSuccess(data.data);
+        // We let the parent decide if it should close, or we can just call onClose
         onClose();
       }
     } catch (err) {
@@ -96,7 +98,10 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+      onClick={invoice ? onClose : undefined}
+    >
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -104,10 +109,15 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
             {invoice && invoice.invoiceNumber && (
               <p className="text-xs text-gray-400 mt-0.5">Invoice {invoice.invoiceNumber}</p>
             )}
+            {!invoice && (
+              <p className="text-xs text-red-500 mt-0.5 font-bold">You must upload an invoice to proceed.</p>
+            )}
           </div>
-          <button onClick={onClose} className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors">
-            <Icon icon="mdi:close" className="w-4 h-4 text-gray-500" />
-          </button>
+          {invoice && (
+            <button onClick={onClose} className="w-8 h-8 bg-gray-100 rounded-xl flex items-center justify-center hover:bg-gray-200 transition-colors">
+              <Icon icon="mdi:close" className="w-4 h-4 text-gray-500" />
+            </button>
+          )}
         </div>
 
         {/* Upload requirements */}
@@ -128,9 +138,8 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
 
         {/* Drop zone */}
         <div
-          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors mb-4 ${
-            file ? 'border-emerald-300 bg-emerald-50' : 'border-violet-200 bg-violet-50 hover:bg-violet-100'
-          }`}
+          className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors mb-4 ${file ? 'border-emerald-300 bg-emerald-50' : 'border-violet-200 bg-violet-50 hover:bg-violet-100'
+            }`}
           onClick={() => fileRef.current?.click()}
         >
           <Icon
@@ -165,12 +174,14 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
         )}
 
         <div className="flex gap-3">
-          <button
-            onClick={onClose}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl text-sm transition-colors"
-          >
-            Cancel
-          </button>
+          {invoice && (
+            <button
+              onClick={onClose}
+              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 rounded-2xl text-sm transition-colors"
+            >
+              Cancel
+            </button>
+          )}
           <button
             onClick={handleUpload}
             disabled={loading || !file}
@@ -193,13 +204,13 @@ export default function OrderDetailsPage() {
   const router = useRouter();
   const { token } = useSelector((s) => s.auth);
 
-  const [loading,             setLoading]             = useState(true);
-  const [order,               setOrder]               = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [order, setOrder] = useState(null);
   const [statusUpdateLoading, setStatusUpdateLoading] = useState(false);
 
   /* Invoice state */
-  const [invoice,         setInvoice]         = useState(null);
-  const [invoiceLoading,  setInvoiceLoading]  = useState(false);
+  const [invoice, setInvoice] = useState(null);
+  const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
 
@@ -237,6 +248,13 @@ export default function OrderDetailsPage() {
     fetchOrderDetails();
     fetchInvoice();
   }, [fetchOrderDetails, fetchInvoice]);
+
+  // Force show upload modal if no invoice
+  useEffect(() => {
+    if (!loading && !invoiceLoading && order && order.orderStatus !== 'cancelled' && !invoice) {
+      setShowUploadModal(true);
+    }
+  }, [loading, invoiceLoading, order, invoice]);
 
   const updateStatus = async (newStatus) => {
     setStatusUpdateLoading(true);
@@ -278,13 +296,13 @@ export default function OrderDetailsPage() {
   if (!order) return null;
 
   const statusConf = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
-  const payConf    = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
+  const payConf = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
 
   const totalSellerEarnings = order.items?.reduce((a, i) => a + (i.sellerEarnings || 0), 0) || 0;
-  const totalPlatformFee    = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
-  const canChangeStatus     = !["delivered", "cancelled"].includes(order.orderStatus);
-  const canUploadInvoice    = order.orderStatus !== 'cancelled';
-  const canReUpload         = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
+  const totalPlatformFee = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
+  const canChangeStatus = !["delivered", "cancelled"].includes(order.orderStatus);
+  const canUploadInvoice = order.orderStatus !== 'cancelled';
+  const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -322,13 +340,12 @@ export default function OrderDetailsPage() {
             <button
               onClick={handleOpenUploadModal}
               disabled={creatingInvoice}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm ${
-                canReUpload
-                  ? 'bg-amber-500 hover:bg-amber-600 text-white'
-                  : invoice?.status === 'approved'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm ${canReUpload
+                ? 'bg-amber-500 hover:bg-amber-600 text-white'
+                : invoice?.status === 'approved'
                   ? 'bg-emerald-100 text-emerald-700 cursor-default'
                   : 'bg-violet-600 hover:bg-violet-700 text-white'
-              }`}
+                }`}
             >
               {creatingInvoice
                 ? <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" />
@@ -387,8 +404,8 @@ export default function OrderDetailsPage() {
 
             <div className="divide-y divide-gray-50">
               {order.items?.map((item, idx) => {
-                const product    = item.productId || {};
-                const imageUrl   = product.images?.[0]?.url;
+                const product = item.productId || {};
+                const imageUrl = product.images?.[0]?.url;
                 const variantLabel = item.variant?.color || "Default Variant";
 
                 return (
@@ -591,10 +608,10 @@ export default function OrderDetailsPage() {
               <h2 className="font-bold text-gray-900">Order Info</h2>
             </div>
             <div className="space-y-3">
-              <InfoRow label="Order ID"    value={order.orderId}  mono icon="mdi:tag-outline" />
-              <InfoRow label="Order No"    value={order.orderNo}  mono icon="mdi:pound" />
-              <InfoRow label="Internal ID" value={order._id}      mono icon="mdi:database-outline" />
-              <InfoRow label="Placed On"   value={moment(order.createdAt).format("DD MMM YYYY, hh:mm A")} icon="mdi:calendar-outline" />
+              <InfoRow label="Order ID" value={order.orderId} mono icon="mdi:tag-outline" />
+              <InfoRow label="Order No" value={order.orderNo} mono icon="mdi:pound" />
+              <InfoRow label="Internal ID" value={order._id} mono icon="mdi:database-outline" />
+              <InfoRow label="Placed On" value={moment(order.createdAt).format("DD MMM YYYY, hh:mm A")} icon="mdi:calendar-outline" />
               {order.completionDate && (
                 <InfoRow label="Completed On" value={moment(order.completionDate).format("DD MMM YYYY")} icon="mdi:calendar-check-outline" />
               )}
@@ -636,7 +653,7 @@ export default function OrderDetailsPage() {
                 value={order.shippingAddress?.fullName || `${order.userId?.firstName || ""} ${order.userId?.lastName || ""}`.trim() || "Guest"}
                 icon="mdi:account-circle-outline"
               />
-              <InfoRow label="Email" value={order.userId?.email}                              icon="mdi:email-outline" />
+              <InfoRow label="Email" value={order.userId?.email} icon="mdi:email-outline" />
               <InfoRow label="Phone" value={order.shippingAddress?.phone || order.userId?.phone} icon="mdi:phone-outline" />
             </div>
           </div>
