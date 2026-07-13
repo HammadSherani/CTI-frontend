@@ -19,6 +19,7 @@ const useNotifications = () => {
 
   // ✅ Stable function using useCallback
   const fetchNotifications = useCallback(async (page = 1, limit = 20, type = null) => {
+    if(!token) return;
     try {
       dispatch(setLoading(true));
       const params = { page, limit };

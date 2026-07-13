@@ -52,7 +52,19 @@ const DEFAULT_ROW = {
 /**
  * @param {Array} initialVariants — from API (edit mode)
  */
-export function useVariantBuilder(initialVariants = []) {
+export function useVariantBuilder(initialVariants = [], product = null) {
+  const fallbackRow = useMemo(() => {
+    const basePrice = String(product?.summary?.minSalePrice || product?.summary?.minPrice || product?.price || "");
+    const baseStock = String(product?.stock || "");
+    const baseDiscount = String(product?.discountPercentage || "");
+    return {
+      ...DEFAULT_ROW,
+      price: basePrice,
+      stock: baseStock,
+      discountPercentage: baseDiscount,
+    };
+  }, [product]);
+
 
   /* ── Does the seller want attribute-based variants? ── */
   const [wantsVariants, setWantsVariants] = useState(() => {
@@ -93,11 +105,14 @@ export function useVariantBuilder(initialVariants = []) {
         sku:                v.sku || "",
         existingImages:     v.images || [],
         imageFiles:         [],
-        specs:              v.specs || [],  // seed existing specs
+        specs:              v.specs || [],
       };
     });
     return seed;
   });
+
+  /* ── Explicitly removed combo keys (user clicked ✕ on a row) ── */
+  const [excludedKeys, setExcludedKeys] = useState(() => new Set());
 
   /* ──────────────────────────────────────────────────
      COMPUTED ROWS
@@ -110,7 +125,7 @@ export function useVariantBuilder(initialVariants = []) {
           key:   "default",
           label: "Default Variant",
           combo: [],
-          ...(rowData["default"] || DEFAULT_ROW),
+          ...(rowData["default"] || fallbackRow),
         },
       ];
     }
@@ -127,24 +142,27 @@ export function useVariantBuilder(initialVariants = []) {
           key:   "default",
           label: "Default Variant",
           combo: [],
-          ...(rowData["default"] || DEFAULT_ROW),
+          ...(rowData["default"] || fallbackRow),
         },
       ];
     }
 
     // Generate all combinations
-    return cartesian(valueGroups).map((combo) => {
-      const attrs = combo.map((v) => ({ name: v.type, label: v.label, hex: v.hex || null }));
-      const key   = makeComboKey(attrs);
-      const label = attrs.map((a) => a.label).join(" / ");
-      return {
-        key,
-        label,
-        combo: attrs.map((a) => ({ name: a.name, value: a.label, colorHex: a.hex || null })),
-        ...(rowData[key] || DEFAULT_ROW),
-      };
-    });
-  }, [wantsVariants, selectedAttrs, rowData]);
+    return cartesian(valueGroups)
+      .map((combo) => {
+        const attrs = combo.map((v) => ({ name: v.type, label: v.label, hex: v.hex || null }));
+        const key   = makeComboKey(attrs);
+        const label = attrs.map((a) => a.label).join(" / ");
+        return {
+          key,
+          label,
+          combo: attrs.map((a) => ({ name: a.name, value: a.label, colorHex: a.hex || null })),
+          ...(rowData[key] || fallbackRow),
+        };
+      })
+      // Filter out rows the user explicitly removed
+      .filter((r) => !excludedKeys.has(r.key));
+  }, [wantsVariants, selectedAttrs, rowData, excludedKeys, fallbackRow]);
 
   /* ──────────────────────────────────────────────────
      SUMMARY
@@ -244,9 +262,9 @@ export function useVariantBuilder(initialVariants = []) {
   const updateRow = useCallback((key, field, value) => {
     setRowData((prev) => ({
       ...prev,
-      [key]: { ...(prev[key] || DEFAULT_ROW), [field]: value },
+      [key]: { ...(prev[key] || fallbackRow), [field]: value },
     }));
-  }, []);
+  }, [fallbackRow]);
 
   /** Bulk-fill price/stock/discount across all current rows */
   const bulkFill = useCallback(
@@ -255,7 +273,7 @@ export function useVariantBuilder(initialVariants = []) {
         const next = { ...prev };
         rows.forEach(({ key }) => {
           next[key] = {
-            ...(next[key] || DEFAULT_ROW),
+            ...(next[key] || fallbackRow),
             ...(price              !== undefined && { price }),
             ...(stock              !== undefined && { stock }),
             ...(discountPercentage !== undefined && { discountPercentage }),
@@ -264,8 +282,17 @@ export function useVariantBuilder(initialVariants = []) {
         return next;
       });
     },
-    [rows]
+    [rows, fallbackRow]
   );
+
+  /** Remove a specific combo row — adds its key to excludedKeys */
+  const removeRow = useCallback((key) => {
+    setExcludedKeys((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+  }, []);
 
   return {
     // State
@@ -281,6 +308,7 @@ export function useVariantBuilder(initialVariants = []) {
     removeAttrValue,
     updateRow,
     bulkFill,
+    removeRow,
     validate,
     serialise,
   };

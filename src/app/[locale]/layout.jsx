@@ -6,7 +6,8 @@ import { CurrencyProvider } from "@/contexts/CurrencyContext";
 
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
-
+// app/layout.js
+import './globals.css';   // yeh line honi chahiye
 const locales = ["en", "tr"];
 
 export default async function LocaleLayout({ children, params }) {

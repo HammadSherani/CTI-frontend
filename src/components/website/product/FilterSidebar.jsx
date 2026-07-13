@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from "@/config/axiosInstance";
 import { Icon } from '@iconify/react';
+import SimpleBar from 'simplebar-react';
+import 'simplebar-react/dist/simplebar.min.css';
 
 const MIN_PRICE = 0;
 const MAX_PRICE = 2000;
@@ -20,7 +22,7 @@ const FALLBACK_COLORS = {
 function Section({ title, badge, children, collapsible = true }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="pb-3 border-b border-gray-100 last:border-0 last:pb-0">
+    <div className="pb-3 border-b  border-gray-100 last:border-0 last:pb-0">
       <button
         type="button"
         onClick={() => collapsible && setOpen(o => !o)}
@@ -37,7 +39,7 @@ function Section({ title, badge, children, collapsible = true }) {
         )}
       </button>
       {open && (
-        <div className="max-h-52 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent pr-1">
+        <div className="max-h-52 overflow-y-auto pr-1 fs-inner-scroll">
           {children}
         </div>
       )}
@@ -47,12 +49,18 @@ function Section({ title, badge, children, collapsible = true }) {
 
 function CheckItem({ label, count, checked, onChange }) {
   return (
-    <label className="flex items-center justify-between gap-2 cursor-pointer group mb-1.5 last:mb-0">
+    <div
+      role="checkbox"
+      aria-checked={checked}
+      tabIndex={0}
+      onClick={onChange}
+      onKeyDown={(e) => (e.key === ' ' || e.key === 'Enter') && onChange()}
+      className="flex items-center justify-between gap-2 cursor-pointer group mb-1.5 last:mb-0 select-none"
+    >
       <div className="flex items-center gap-2">
         <div className={`w-3.5 h-3.5 rounded border flex items-center justify-center flex-shrink-0 transition-all ${checked ? 'bg-primary-500 border-primary-500' : 'border-gray-300 group-hover:border-primary-400'}`}>
           {checked && <Icon icon="mdi:check" className="w-2.5 h-2.5 text-white" />}
         </div>
-        <input type="checkbox" checked={checked} onChange={onChange} className="sr-only" />
         <span className={`text-[13px] transition-colors ${checked ? 'text-primary-700 font-semibold' : 'text-gray-700 group-hover:text-primary-600'}`}>
           {label}
         </span>
@@ -60,7 +68,7 @@ function CheckItem({ label, count, checked, onChange }) {
       {count != null && (
         <span className="text-[10px] text-gray-400 font-medium tabular-nums">{count}</span>
       )}
-    </label>
+    </div>
   );
 }
 
@@ -93,6 +101,9 @@ export default function FilterSidebar({
   const [brands, setBrands] = useState([]);
   const [availableColors, setAvailableColors] = useState([]);
   const [dynamicAttributes, setDynamicAttributes] = useState([]);
+  const [stockStatusData, setStockStatusData] = useState({ inStock: 0, outOfStock: 0 });
+  const [warrantyOptions, setWarrantyOptions] = useState([]);
+  const [productTypeAttr, setProductTypeAttr] = useState(null);
 
   /* ── Loading ── */
   const [loadingCats, setLoadingCats] = useState(true);
@@ -105,6 +116,9 @@ export default function FilterSidebar({
   const [selectedBrandIds, setSelectedBrandIds] = useState(initialBrandIds);
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedDynamicFilters, setSelectedDynamicFilters] = useState({});
+  const [selectedProductType, setSelectedProductType] = useState(null);
+  const [selectedStockStatuses, setSelectedStockStatuses] = useState([]);
+  const [selectedWarrantyTypes, setSelectedWarrantyTypes] = useState([]);
   const [rating, setRating] = useState(0);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
   const [priceMax, setPriceMax] = useState(MAX_PRICE);
@@ -146,7 +160,12 @@ export default function FilterSidebar({
               isLight: c.name === 'White' || c.name === 'Beige',
             }))
           );
-          setDynamicAttributes(data.data.dynamicAttributes || []);
+          const allDynamic = data.data.dynamicAttributes || [];
+          const typeAttr = allDynamic.find(a => /^(type|product\s*type)$/i.test(a.name));
+          setProductTypeAttr(typeAttr || null);
+          setDynamicAttributes(typeAttr ? allDynamic.filter(a => a !== typeAttr) : allDynamic);
+          setStockStatusData(data.data.stockStatus || { inStock: 0, outOfStock: 0 });
+          setWarrantyOptions(data.data.warrantyOptions || []);
         }
       } catch (e) {
         console.error('Failed to load filters', e);
@@ -233,17 +252,23 @@ export default function FilterSidebar({
 
   /* ── Notify parent on filter change ── */
   useEffect(() => {
+    const dynFilters = {
+      ...selectedDynamicFilters,
+      ...(selectedProductType ? { [productTypeAttr?.name || 'Type']: [selectedProductType] } : {}),
+    };
     onFiltersChange?.({
       categoryIds: selectedCategoryIds,
       subCategoryIds: selectedSubIds,
       brandIds: selectedBrandIds,
       colors: selectedColors,
-      dynamicFilters: selectedDynamicFilters,
+      dynamicFilters: dynFilters,
       rating,
       priceMin,
       priceMax,
+      stockStatus: selectedStockStatuses,
+      warrantyTypes: selectedWarrantyTypes,
     });
-  }, [selectedCategoryIds, selectedSubIds, selectedBrandIds, selectedColors, selectedDynamicFilters, rating, priceMin, priceMax]);
+  }, [selectedCategoryIds, selectedSubIds, selectedBrandIds, selectedColors, selectedDynamicFilters, selectedProductType, selectedStockStatuses, selectedWarrantyTypes, rating, priceMin, priceMax]);
 
   const toggleId = (list, setList, id) =>
     setList(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
@@ -268,6 +293,9 @@ export default function FilterSidebar({
     setSelectedBrandIds([]);
     setSelectedColors([]);
     setSelectedDynamicFilters({});
+    setSelectedProductType(null);
+    setSelectedStockStatuses([]);
+    setSelectedWarrantyTypes([]);
     setRating(0);
     setPriceMin(MIN_PRICE);
     setPriceMax(MAX_PRICE);
@@ -276,12 +304,40 @@ export default function FilterSidebar({
   const dynamicCount = Object.values(selectedDynamicFilters).reduce((sum, arr) => sum + arr.length, 0);
   const activeCount = selectedCategoryIds.length + selectedSubIds.length +
     selectedBrandIds.length + selectedColors.length + dynamicCount + (rating > 0 ? 1 : 0) +
-    (priceMin > MIN_PRICE || priceMax < MAX_PRICE ? 1 : 0);
+    (priceMin > MIN_PRICE || priceMax < MAX_PRICE ? 1 : 0) +
+    (selectedProductType ? 1 : 0) + selectedStockStatuses.length + selectedWarrantyTypes.length;
 
   return (
-    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col max-h-[calc(100vh-120px)] overflow-hidden">
+    <>
+    <style>{`
+      /* ── Inner section scrollbars — hidden ── */
+      .fs-inner-scroll::-webkit-scrollbar { display: none; }
+      .fs-inner-scroll { scrollbar-width: none; -ms-overflow-style: none; }
+
+      /* ── SimpleBar main sidebar scrollbar — 5px thin ── */
+      .fs-main-scroll .simplebar-track.simplebar-vertical {
+        width: 5px;
+        right: 0;
+      }
+      .fs-main-scroll .simplebar-track.simplebar-vertical .simplebar-scrollbar::before {
+        background: #d1d5db;
+        border-radius: 10px;
+        left: 0;
+        right: 0;
+        top: 2px;
+        bottom: 2px;
+      }
+      .fs-main-scroll .simplebar-scrollbar.simplebar-visible::before {
+        opacity: 1;
+      }
+      .fs-main-scroll .simplebar-scrollbar:hover::before {
+        background: #f97316 !important;
+        opacity: 1 !important;
+      }
+    `}</style>
+    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col ">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 flex-shrink-0">
+      <div className="flex items-center justify-between  px-4 py-3 border-b border-gray-100 flex-shrink-0">
         <div className="flex items-center gap-2">
           <Icon icon="mdi:filter-variant" className="w-4 h-4 text-primary-500" />
           <h2 className="text-sm font-black text-gray-900">Filters</h2>
@@ -298,160 +354,217 @@ export default function FilterSidebar({
           </button>
         )}
       </div>
-
-      <div className="p-4 space-y-3 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 scrollbar-track-transparent flex-1">
-
-        {/* ── Category ── */}
-        <Section title="Category" badge={selectedCategoryIds.length || null}>
-          {loadingCats ? (
-            <LoadingSkeleton />
-          ) : categories.length === 0 ? (
-            <p className="text-xs text-gray-400">No categories available</p>
-          ) : (
-            categories.map(c => (
-              <CheckItem
-                key={c._id}
-                label={c.title}
-                count={c.count}
-                checked={selectedCategoryIds.includes(String(c._id))}
-                onChange={() => toggleId(selectedCategoryIds, setSelectedCategoryIds, String(c._id))}
-              />
-            ))
-          )}
-        </Section>
-
-        {/* ── Subcategory (cascading) ── */}
-        {(selectedCategoryIds.length > 0 || subcategories.length > 0) && (
-          <Section title="Sub-Category" badge={selectedSubIds.length || null}>
-            {loadingSubs ? (
-              <LoadingSkeleton lines={3} />
-            ) : subcategories.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No subcategories for selected categories</p>
-            ) : (
-              subcategories.map(s => (
-                <CheckItem
-                  key={s._id}
-                  label={s.title}
-                  count={s.count}
-                  checked={selectedSubIds.includes(String(s._id))}
-                  onChange={() => toggleId(selectedSubIds, setSelectedSubIds, String(s._id))}
-                />
-              ))
-            )}
-          </Section>
-        )}
-
-        {/* ── Brand (cascading) ── */}
-        {(selectedCategoryIds.length > 0 || brands.length > 0) && (
-          <Section title="Brand" badge={selectedBrandIds.length || null}>
-            {loadingBrands ? (
-              <LoadingSkeleton lines={3} />
-            ) : brands.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No brands available</p>
-            ) : (
-              brands.map(b => (
-                <CheckItem
-                  key={b._id}
-                  label={b.title}
-                  count={b.count}
-                  checked={selectedBrandIds.includes(String(b._id))}
-                  onChange={() => toggleId(selectedBrandIds, setSelectedBrandIds, String(b._id))}
-                />
-              ))
-            )}
-          </Section>
-        )}
-
-        {/* ── Colors ── */}
-        {availableColors.length > 0 && (
-          <Section title="Colors" badge={selectedColors.length || null}>
-            <div className="flex flex-wrap gap-2">
-              {availableColors.map(c => {
-                const active = selectedColors.includes(c.name);
-                return (
-                  <button key={c.name} title={c.name}
-                    onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
-                    className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
-                      }`}
-                    style={{ backgroundColor: c.hex }}
+      <SimpleBar className="flex-1 fs-main-scroll" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+        <div className="p-4 space-y-3  flex-1 ">
+          {/* ── Product Type ── */}
+          {productTypeAttr && (
+            <Section title="Product Type" badge={selectedProductType ? 1 : null}>
+              <div className="flex flex-wrap gap-1.5">
+                {productTypeAttr.values.map(val => (
+                  <button
+                    key={val}
+                    type="button"
+                    onClick={() => setSelectedProductType(prev => prev === val ? null : val)}
+                    className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-all ${
+                      selectedProductType === val
+                        ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-primary-400 hover:text-primary-600'
+                    }`}
                   >
-                    {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
+                    {val}
                   </button>
-                );
-              })}
-            </div>
-          </Section>
-        )}
+                ))}
+              </div>
+            </Section>
+          )}
 
-        {/* ── Dynamic Attributes (Specs) ── */}
-        {dynamicAttributes.map(attr => (
-          <Section key={attr.name} title={attr.name} badge={selectedDynamicFilters[attr.name]?.length || null}>
-            <div className="space-y-1">
-              {attr.values.map(val => (
+          {/* ── Category ── */}
+          <Section title="Category" badge={selectedCategoryIds.length || null}>
+            {loadingCats ? (
+              <LoadingSkeleton />
+            ) : categories.length === 0 ? (
+              <p className="text-xs text-gray-400">No categories available</p>
+            ) : (
+              categories.map(c => (
                 <CheckItem
-                  key={val}
-                  label={val}
-                  checked={(selectedDynamicFilters[attr.name] || []).includes(val)}
-                  onChange={() => toggleDynamicFilter(attr.name, val)}
+                  key={c._id}
+                  label={c.title}
+                  count={c.count}
+                  checked={selectedCategoryIds.includes(String(c._id))}
+                  onChange={() => toggleId(selectedCategoryIds, setSelectedCategoryIds, String(c._id))}
+                />
+              ))
+            )}
+          </Section>
+
+          {/* ── Subcategory (cascading) ── */}
+          {(selectedCategoryIds.length > 0 || subcategories.length > 0) && (
+            <Section title="Sub-Category" badge={selectedSubIds.length || null}>
+              {loadingSubs ? (
+                <LoadingSkeleton lines={3} />
+              ) : subcategories.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">No subcategories for selected categories</p>
+              ) : (
+                subcategories.map(s => (
+                  <CheckItem
+                    key={s._id}
+                    label={s.title}
+                    count={s.count}
+                    checked={selectedSubIds.includes(String(s._id))}
+                    onChange={() => toggleId(selectedSubIds, setSelectedSubIds, String(s._id))}
+                  />
+                ))
+              )}
+            </Section>
+          )}
+
+          {/* ── Brand (cascading) ── */}
+          {(selectedCategoryIds.length > 0 || brands.length > 0) && (
+            <Section title="Brand" badge={selectedBrandIds.length || null}>
+              {loadingBrands ? (
+                <LoadingSkeleton lines={3} />
+              ) : brands.length === 0 ? (
+                <p className="text-xs text-gray-400 italic">No brands available</p>
+              ) : (
+                brands.map(b => (
+                  <CheckItem
+                    key={b._id}
+                    label={b.title}
+                    count={b.count}
+                    checked={selectedBrandIds.includes(String(b._id))}
+                    onChange={() => toggleId(selectedBrandIds, setSelectedBrandIds, String(b._id))}
+                  />
+                ))
+              )}
+            </Section>
+          )}
+
+          {/* ── Colors ── */}
+          {availableColors.length > 0 && (
+            <Section title="Colors" badge={selectedColors.length || null}>
+              <div className="flex flex-wrap gap-2">
+                {availableColors.map(c => {
+                  const active = selectedColors.includes(c.name);
+                  return (
+                    <button key={c.name} title={c.name}
+                      onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
+                        }`}
+                      style={{ backgroundColor: c.hex }}
+                    >
+                      {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
+                    </button>
+                  );
+                })}
+              </div>
+            </Section>
+          )}
+
+          {/* ── Stock Status ── */}
+          <Section title="Stock Status" badge={selectedStockStatuses.length || null}>
+            <CheckItem
+              label="In Stock"
+              count={stockStatusData.inStock}
+              checked={selectedStockStatuses.includes('in_stock')}
+              onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'in_stock')}
+            />
+            <CheckItem
+              label="Out of Stock"
+              count={stockStatusData.outOfStock}
+              checked={selectedStockStatuses.includes('out_of_stock')}
+              onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'out_of_stock')}
+            />
+          </Section>
+
+          {/* ── Warranty ── */}
+          {/* Backend warranty.type is "yes" | "no" — use w.type as the unique filter key
+              w.label is display only ("With Warranty" / "No Warranty") */}
+          {warrantyOptions.length > 0 && (
+            <Section title="Warranty" badge={selectedWarrantyTypes.length || null}>
+              {warrantyOptions.map(w => (
+                <CheckItem
+                  key={w.type}
+                  label={w.label}
+                  count={w.count}
+                  checked={selectedWarrantyTypes.includes(w.type)}
+                  onChange={() => toggleId(selectedWarrantyTypes, setSelectedWarrantyTypes, w.type)}
                 />
               ))}
+            </Section>
+          )}
+
+          {/* ── Dynamic Attributes (Storage, Screen Size, Battery, etc.) ── */}
+          {dynamicAttributes.map(attr => (
+            <Section key={attr.name} title={attr.name} badge={selectedDynamicFilters[attr.name]?.length || null}>
+              <div className="space-y-1">
+                {attr.values.map(val => (
+                  <CheckItem
+                    key={val}
+                    label={val}
+                    checked={(selectedDynamicFilters[attr.name] || []).includes(val)}
+                    onChange={() => toggleDynamicFilter(attr.name, val)}
+                  />
+                ))}
+              </div>
+            </Section>
+          ))}
+
+          {/* ── Price Range ── */}
+          <Section title="Price Range" collapsible>
+            <div className="relative mt-3 mb-1" ref={trackRef}>
+              <div className="relative h-1.5 rounded-full bg-gray-200">
+                <div
+                  className="absolute h-full rounded-full bg-primary-500"
+                  style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+                />
+              </div>
+              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMin}
+                onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
+                className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+                style={{ zIndex: priceMin > MAX_PRICE - 100 ? 5 : 3 }}
+              />
+              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMax}
+                onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
+                className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+                style={{ zIndex: 4 }}
+              />
+            </div>
+            <div className="flex items-center gap-2 mt-4">
+              <div className="flex-1 relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <input type="number" min={MIN_PRICE} max={priceMax - 10} value={priceMin}
+                  onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
+                  className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                />
+              </div>
+              <span className="text-gray-400 text-sm font-medium">–</span>
+              <div className="flex-1 relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                <input type="number" min={priceMin + 10} max={MAX_PRICE} value={priceMax}
+                  onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
+                  className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                />
+              </div>
             </div>
           </Section>
-        ))}
 
-        {/* ── Price Range ── */}
-        <Section title="Price Range" collapsible>
-          <div className="relative mt-3 mb-1" ref={trackRef}>
-            <div className="relative h-1.5 rounded-full bg-gray-200">
-              <div
-                className="absolute h-full rounded-full bg-primary-500"
-                style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
-              />
+          {/* ── Rating ── */}
+          <Section title="Min Rating" collapsible>
+            <div className="flex gap-1 mt-1">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button key={s} onClick={() => setRating(rating === s ? 0 : s)}
+                  className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
+                  ★
+                </button>
+              ))}
             </div>
-            <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMin}
-              onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
-              className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-              style={{ zIndex: priceMin > MAX_PRICE - 100 ? 5 : 3 }}
-            />
-            <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMax}
-              onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
-              className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-              style={{ zIndex: 4 }}
-            />
-          </div>
-          <div className="flex items-center gap-2 mt-4">
-            <div className="flex-1 relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-              <input type="number" min={MIN_PRICE} max={priceMax - 10} value={priceMin}
-                onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
-                className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
-              />
-            </div>
-            <span className="text-gray-400 text-sm font-medium">–</span>
-            <div className="flex-1 relative">
-              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-              <input type="number" min={priceMin + 10} max={MAX_PRICE} value={priceMax}
-                onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
-                className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
-              />
-            </div>
-          </div>
-        </Section>
+            {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
+          </Section>
 
-        {/* ── Rating ── */}
-        <Section title="Min Rating" collapsible>
-          <div className="flex gap-1 mt-1">
-            {[1, 2, 3, 4, 5].map(s => (
-              <button key={s} onClick={() => setRating(rating === s ? 0 : s)}
-                className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
-                ★
-              </button>
-            ))}
-          </div>
-          {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
-        </Section>
+        </div>
+      </SimpleBar>
 
-      </div>
     </div>
+    </>
   );
 }

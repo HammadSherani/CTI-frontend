@@ -104,8 +104,8 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
               onWishlist(e);
             }}
             className={`w-9 h-9 rounded-full border shadow flex items-center justify-center transition-all active:scale-95 ${isWishlisted
-                ? 'bg-red-50 border-red-300 text-red-500'
-                : 'bg-white/90 border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300'
+              ? 'bg-red-50 border-red-300 text-red-500'
+              : 'bg-white/90 border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300'
               }`}
           >
             <Icon
@@ -126,11 +126,24 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
           className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
         />
 
-        {(defaultVariant.images?.length > 1 || images?.length > 1) && (
-          <div className="absolute bottom-3 right-3 bg-gradient-to-r from-orange-400 to-red-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow">
-            Multiple Images
+        {/* Stock status banner overlay on image */}
+        {isOutOfStock && (
+          <div className="absolute bottom-0 left-0 right-0 bg-red-600/90 backdrop-blur-sm text-white text-[11px] font-bold py-1.5 text-center tracking-widest uppercase z-10">
+            ✕ Out of Stock
           </div>
         )}
+
+        {/* {isLowStock && (
+          <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold py-1.5 text-center tracking-widest uppercase z-10">
+            ⚡ Only {stock} Left!
+          </div>
+        )} */}
+{/* 
+        {(defaultVariant.images?.length > 1 || images?.length > 1) && (
+          <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-400 to-red-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow z-20">
+            Multiple Images
+          </div>
+        )} */}
       </div>
 
       {/* Body */}
@@ -204,17 +217,9 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
           </div>
 
           <div className="text-right">
-            {isOutOfStock ? (
+            {isOutOfStock && (
               <span className="text-[10px] text-red-500 font-semibold">
                 Out of Stock
-              </span>
-            ) : isLowStock ? (
-              <span className="text-[10px] text-orange-600 font-semibold">
-                Only {stock} left
-              </span>
-            ) : (
-              <span className="text-[10px] text-emerald-600 font-medium">
-                In Stock
               </span>
             )}
           </div>

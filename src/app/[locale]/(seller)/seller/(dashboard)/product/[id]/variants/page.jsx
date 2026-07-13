@@ -18,7 +18,7 @@ function VariantManager({ product, initialVariants }) {
   const [submitting, setSubmitting] = useState(false);
   const [variantErrors, setVariantErrors] = useState({});
 
-  const vb = useVariantBuilder(initialVariants);
+  const vb = useVariantBuilder(initialVariants, product);
 
   const handleSave = async () => {
     const errs = vb.validate();

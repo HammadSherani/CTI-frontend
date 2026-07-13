@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import FilterSidebar from '@/components/website/product/FilterSidebar';
 import ProductCard from '@/components/website/product/productCard';
@@ -51,13 +51,29 @@ export default function ProductListingPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  /* Track whether we've already done the first URL-sync so subsequent
+     searchParams changes only update URL-owned fields and do NOT wipe
+     sidebar-managed fields (warrantyTypes, stockStatus, colors, etc.) */
+  const initializedRef = useRef(false);
+
   const { items: wishlistItems } = useSelector(s => s.wishlist || { items: [] });
   const auth = useSelector(s => s.auth);
 
-  /* Re-sync filters if URL changes (e.g. user clicks header search again) */
+  /* Re-sync ONLY URL-owned filters if URL changes — preserve sidebar state */
   useEffect(() => {
-    const next = parseUrlFilters(searchParams);
-    setFilters(next);
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      return; // first mount already handled by useState initializer
+    }
+    // Only update the fields that come from URL params; leave sidebar fields intact
+    const urlFields = parseUrlFilters(searchParams);
+    setFilters(prev => ({
+      ...prev,
+      categoryIds: urlFields.categoryIds,
+      subCategoryIds: urlFields.subCategoryIds,
+      brandIds: urlFields.brandIds,
+      q: urlFields.q,
+    }));
     setPage(1);
   }, [searchParams.toString()]);
 
@@ -81,6 +97,8 @@ export default function ProductListingPage() {
         if (filters.priceMin > 0) p.append('minPrice', filters.priceMin);
         if (filters.priceMax < 2000) p.append('maxPrice', filters.priceMax);
         if (filters.q) p.append('q', filters.q);
+        if (filters.stockStatus?.length === 1) p.append('stockStatus', filters.stockStatus[0]);
+        if (filters.warrantyTypes?.length === 1) p.append('warrantyType', filters.warrantyTypes[0]);
 
         const res = await axiosInstance.get(`/e-commerce/products?${p.toString()}`);
         if (res.data.success) {

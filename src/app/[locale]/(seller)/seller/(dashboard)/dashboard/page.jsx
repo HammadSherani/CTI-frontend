@@ -174,7 +174,7 @@ function SalesPerformance({ data, loading }) {
 // ═══════════════════════════════════════════════════════════════════════════════
 function Actions({ data, loading }) {
   const { locale } = useParams();
-  
+
   const items = [
     {
       icon: "solar:box-bold-duotone",
@@ -633,11 +633,11 @@ export default function SellerDashboardPage() {
       <div className="relative mx-4 mt-6 sm:mx-6 bg-slate-900 rounded-3xl overflow-hidden shadow-2xl shadow-primary-900/20">
         {/* Dynamic Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-700 to-slate-900"></div>
-        
+
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-primary-400/30 to-transparent rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/3 mix-blend-screen pointer-events-none"></div>
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-primary-500/20 to-transparent rounded-full blur-3xl opacity-50 translate-y-1/3 -translate-x-1/4 mix-blend-screen pointer-events-none"></div>
-        
+
         {/* Grid pattern overlay for texture */}
         <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGNpcmNsZSBjeD0iMSIgY3k9IjEiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4wNSkiLz48L3N2Zz4=')] [mask-image:linear-gradient(to_bottom,white,transparent)] pointer-events-none"></div>
 
@@ -652,7 +652,7 @@ export default function SellerDashboardPage() {
                 {moment().format("dddd, DD MMMM YYYY")}
               </p>
             </div>
-            
+
             <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight mt-3">
               Welcome back, <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-primary-200">{user?.name ? user.name.split(" ")[0] : "Seller"}</span>!
             </h1>
@@ -680,25 +680,10 @@ export default function SellerDashboardPage() {
         </div>
       </div>
 
+
+
       {/* ── Content ── */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-
-        {/* 1 — Sales */}
-        <SalesPerformance data={data?.sales} loading={loading} />
-
-        {/* 2+3 — Actions + Advertising stacked on mobile, side-by-side on lg */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          <div className="lg:col-span-2">
-            <Actions data={data?.actions} loading={loading} />
-          </div>
-          <div className="lg:col-span-3">
-            <AdvertisingPerformance data={data?.advertising} loading={loading} />
-          </div>
-        </div>
-
-        {/* 4 — Calendar */}
-        <IntegrationCalendar data={data?.calendar} loading={loading} />
-
         {/* quick nav footer */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           {[
@@ -717,6 +702,23 @@ export default function SellerDashboardPage() {
             </Link>
           ))}
         </div>
+        {/* 1 — Sales */}
+        <SalesPerformance data={data?.sales} loading={loading} />
+
+        {/* 2+3 — Actions + Advertising stacked on mobile, side-by-side on lg */}
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="lg:col-span-2">
+            <Actions data={data?.actions} loading={loading} />
+          </div>
+          <div className="lg:col-span-3">
+            <AdvertisingPerformance data={data?.advertising} loading={loading} />
+          </div>
+        </div>
+
+        {/* 4 — Calendar */}
+        <IntegrationCalendar data={data?.calendar} loading={loading} />
+
+
       </div>
     </div>
   );

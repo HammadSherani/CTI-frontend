@@ -68,7 +68,7 @@ if(loading){
     </div> */}
 <section className="relative -mt-[5%] min-h-[300px]  text-white overflow-hidden z-10 bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
     
-      <div className="relative max-w-7xl mx-auto px-2 py- z-10 l4">
+      <div className="relative max-w-7xl mx-auto pt-14 px-2 py- z-10 l4">
         {slides.length === 0 ? (
           <div className="h-96 flex items-center justify-center">
             <div className="animate-pulse flex flex-col items-center gap-6">

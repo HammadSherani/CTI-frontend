@@ -183,3 +183,25 @@ body {
   font-size: 14px;
   cursor: pointer;
 }
+
+
+.simplebar-scrollbar::before {
+  background: red;
+  border-radius: 999px;
+  opacity: 1 !important;
+}
+
+.simplebar-scrollbar:hover::before {
+  background: yellow !important;
+}
+
+.simplebar-track.simplebar-vertical {
+  width: 6px;
+}
+.simplebar-scrollbar::before {
+  background: blue;
+  border-radius: 999px;
+  opacity: 1 !important;
+  top: 6px;      /* thumb visually upar-neeche se 6px chhota dikhega */
+  bottom: 6px;
+}

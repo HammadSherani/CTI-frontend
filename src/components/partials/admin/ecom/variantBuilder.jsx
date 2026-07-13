@@ -680,7 +680,7 @@ function RowImagePreview({ imageFiles, existingImages, productImages }) {
   return <Icon icon="mdi:camera-plus-outline" className="w-5 h-5 text-gray-300" />;
 }
 
-function VariantTable({ rows, updateRow, errors, bulkFill, productImages }) {
+function VariantTable({ rows, updateRow, removeRow, errors, bulkFill, productImages, productBasePrice }) {
   return (
     <div className="space-y-4">
       {rows.length > 1 && <BulkFillBar onBulkFill={bulkFill} />}
@@ -695,13 +695,16 @@ function VariantTable({ rows, updateRow, errors, bulkFill, productImages }) {
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Stock</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Disc %</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Sale Price</th>
+              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap w-10"></th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50 bg-white">
             {rows.map((row, idx) => {
-              const salePrice = calcFinalPrice(row.price, row.discountPercentage);
+              const effectivePrice = row.price || productBasePrice || "";
+              const salePrice = calcFinalPrice(effectivePrice, row.discountPercentage);
               const hasErr = errors[`${row.key}_price`] || errors[`${row.key}_stock`];
               const totalImgs = (row.existingImages?.length || 0) + (row.imageFiles?.length || 0);
+              const canRemove = rows.length > 1;
 
               return (
                 <tr key={row.key} className={`group hover:bg-gray-50/40 transition-colors ${hasErr ? "bg-red-50/30" : ""}`}>
@@ -748,10 +751,16 @@ function VariantTable({ rows, updateRow, errors, bulkFill, productImages }) {
 
                   {/* Price */}
                   <td className="px-4 py-3">
-                    <input type="number" step="0.01" min="0" value={row.price}
-                      onChange={(e) => updateRow(row.key, "price", e.target.value)}
-                      className={`w-24 h-8 px-2.5 rounded-lg border text-xs font-bold focus:outline-none focus:ring-1 transition-all ${errors[`${row.key}_price`] ? "border-red-400 bg-red-50 focus:ring-red-400/20" : "border-gray-200 focus:border-primary-400 focus:ring-primary-400/10"}`}
-                    />
+                    <div className="relative">
+                      <input type="number" step="0.01" min="0" value={row.price}
+                        onChange={(e) => updateRow(row.key, "price", e.target.value)}
+                        placeholder={productBasePrice ? String(productBasePrice) : "0.00"}
+                        className={`w-24 h-8 px-2.5 rounded-lg border text-xs font-bold focus:outline-none focus:ring-1 transition-all ${errors[`${row.key}_price`] ? "border-red-400 bg-red-50 focus:ring-red-400/20" : "border-gray-200 focus:border-primary-400 focus:ring-primary-400/10"}`}
+                      />
+                      {!row.price && productBasePrice && (
+                        <span className="absolute -bottom-4 left-0 text-[9px] text-blue-400 whitespace-nowrap font-medium">↑ from product</span>
+                      )}
+                    </div>
                   </td>
 
                   {/* Stock */}
@@ -776,6 +785,22 @@ function VariantTable({ rows, updateRow, errors, bulkFill, productImages }) {
                       <span className="font-black text-emerald-600 text-sm">${salePrice}</span>
                     ) : (
                       <span className="text-gray-300">—</span>
+                    )}
+                  </td>
+
+                  {/* Remove button */}
+                  <td className="px-2 py-3">
+                    {canRemove ? (
+                      <button
+                        type="button"
+                        onClick={() => removeRow(row.key)}
+                        title="Remove this variant"
+                        className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                      >
+                        <Icon icon="mdi:close" className="w-4 h-4" />
+                      </button>
+                    ) : (
+                      <div className="w-7 h-7" />
                     )}
                   </td>
                 </tr>
@@ -830,6 +855,7 @@ export default function VariantBuilder({
   removeAttrValue,
   updateRow,
   bulkFill,
+  removeRow,
   errors = {},
   product,
 }) {
@@ -907,7 +933,15 @@ export default function VariantBuilder({
           </div>
 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-5">
-            <VariantTable rows={rows} updateRow={updateRow} errors={errors} bulkFill={bulkFill} productImages={product?.images} />
+            <VariantTable
+              rows={rows}
+              updateRow={updateRow}
+              removeRow={removeRow}
+              errors={errors}
+              bulkFill={bulkFill}
+              productImages={product?.images}
+              productBasePrice={product?.summary?.minSalePrice || product?.summary?.minPrice || null}
+            />
             <div className="pt-4 border-t border-gray-100">
               <SummaryStrip summary={summary} />
             </div>

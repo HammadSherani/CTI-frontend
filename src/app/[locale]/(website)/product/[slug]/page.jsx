@@ -551,9 +551,14 @@ export default function ProductDetailPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       {/* ── Top Section ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-8 gap-8 mb-16">
-        {/* LEFT — Image Gallery */}
-        <div className="flex lg:col-span-3 gap-3">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+        {/* LEFT COLUMN */}
+        <div className="lg:col-span-8 xl:col-span-9 space-y-12">
+          
+          {/* Image & Core Info Row */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+            {/* LEFT — Image Gallery */}
+            <div className="flex gap-3">
           {/* Vertical Thumbnails */}
           <div className="flex flex-col items-center gap-2 flex-shrink-0">
             <button
@@ -609,6 +614,65 @@ export default function ProductDetailPage() {
               />
             </div>
 
+
+          </div>
+            </div>
+
+            {/* Product Details */}
+            <div className="flex flex-col gap-5">
+            <div>
+              <div className="flex items-start justify-between gap-3">
+                <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
+                  {productData?.title}
+                </h1>
+
+                <button
+                  onClick={handleToggleWishlist}
+                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                  className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${isWishlisted
+                    ? 'border-red-400 bg-red-50 text-red-500'
+                    : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'
+                    }`}
+                >
+                  <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
+                </button>
+              </div>
+              {productData?.shortDescription && (
+                <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
+                  {productData.shortDescription}
+                </p>
+              )}
+            </div>
+
+            {/* Price */}
+            <div className="flex items-baseline gap-3 flex-wrap">
+              {discountPercent && (
+                <span className="text-lg font-bold text-primary-500">-{discountPercent}%</span>
+              )}
+              <span className="text-2xl font-extrabold text-gray-900">${price.toFixed(2)}</span>
+              {oldPrice > price && (
+                <span className="text-base text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
+              )}
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                }`}>
+                {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
+              </span>
+            </div>
+
+
+            {/* Warranty */}
+            {productData?.warranty?.type === 'yes' && (
+              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 w-fit">
+                <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                <span className="text-xs font-bold text-emerald-800">
+                  {productData.warranty.months >= 12
+                    ? `${Math.floor(productData.warranty.months / 12)} Year${productData.warranty.months >= 24 ? 's' : ''}`
+                    : `${productData.warranty.months} Month${productData.warranty.months > 1 ? 's' : ''}`
+                  } Warranty Included
+                </span>
+              </div>
+            )}
+
             {/* Add to Cart + Buy Now */}
             <div className="flex gap-2">
               <button
@@ -650,228 +714,114 @@ export default function ProductDetailPage() {
                 </button>
               ))}
             </div>
+            </div>
+          </div>
+
+          {/* Sequential Content (Description & Specs) */}
+          <div className="space-y-12">
+            {/* Description Section */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Product Information</h2>
+              <div
+                className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px]"
+                dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(productData?.description || '') }}
+              />
+            </div>
+
+            {/* Specifications Section */}
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Specifications</h2>
+              <div className="rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+                {[
+                  brandName && { label: 'Brand', value: brandName },
+                  { label: 'SKU', value: selectedVariant?.sku || productData.sku },
+                  { label: 'Category', value: categoryName },
+                  { label: 'Total Variants', value: variants.length },
+                  { label: 'Total Stock', value: productData.summary?.totalStock ?? variants.reduce((s, v) => s + (v.stock || 0), 0) },
+                  {
+                    label: 'Price Range',
+                    value: productData.summary?.minPrice === productData.summary?.maxPrice
+                      ? `$${productData.summary?.minPrice?.toFixed(2)}`
+                      : `$${productData.summary?.minPrice?.toFixed(2)} – $${productData.summary?.maxPrice?.toFixed(2)}`
+                  },
+                  productData.warranty?.type === 'yes' && {
+                    label: 'Warranty',
+                    value: productData.warranty.months >= 12
+                      ? `${Math.floor(productData.warranty.months / 12)} year${productData.warranty.months >= 24 ? 's' : ''}`
+                      : `${productData.warranty.months} months`,
+                  },
+                  ...(selectedVariant?.attributes || []).map(a => ({ label: a.name, value: a.value })),
+                  ...(selectedVariant?.specs || []).map(s => ({ label: s.name, value: s.value })),
+                ].filter(Boolean).map((row, i) => (
+                  <div key={i} className={`flex ${i % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
+                    <div className="w-1/3 max-w-[200px] px-5 py-2.5 text-xs font-semibold text-gray-500 border-r border-gray-100 flex-shrink-0">{row.label}</div>
+                    <div className="px-5 py-2.5 text-xs text-gray-800 font-medium">{row.value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* RIGHT — Product Info + Seller */}
-        <div className="lg:col-span-5 grid grid-cols-1 xl:grid-cols-5 gap-6">
-          {/* Product Details */}
-          <div className="xl:col-span-3 flex flex-col gap-5">
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
-                  {productData?.title}
-                </h1>
-                {/* <button
-                  onClick={handleToggleWishlist}
-                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${
-                    isWishlisted
-                      ? 'border-red-400 bg-red-50 text-red-500'
-                      : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'
-                  }`}
-                >
-                  <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
-                </button> */}
-              </div>
-              {productData?.shortDescription && (
-                <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
-                  {productData.shortDescription}
-                </p>
-              )}
-            </div>
-
-            {/* Price */}
-            <div className="flex items-baseline gap-3 flex-wrap">
-              {discountPercent && (
-                <span className="text-lg font-bold text-primary-500">-{discountPercent}%</span>
-              )}
-              <span className="text-2xl font-extrabold text-gray-900">${price.toFixed(2)}</span>
-              {oldPrice > price && (
-                <span className="text-base text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
-              )}
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-                }`}>
-                {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
-              </span>
-            </div>
-
-            {/* Attribute Selectors */}
-            {attrTypes.length > 0 && (
-              <div className="space-y-4">
-                {attrTypes.map(type => {
-                  const opts = attrOptions[type] || [];
-                  const isColor = type.toLowerCase() === 'color';
-                  const currentVal = selectedAttributes[type];
-
-                  return (
-                    <div key={type}>
-                      <p className="text-xs font-black uppercase tracking-wider text-gray-500 mb-2.5">
-                        {type}
-                        {currentVal && (
-                          <span className="text-primary-600 normal-case font-bold ml-2">· {currentVal}</span>
-                        )}
-                      </p>
-                      <div className="flex gap-2 flex-wrap">
-                        {opts.map(opt => {
-                          const isSelected = currentVal === opt.value;
-                          if (isColor) {
-                            const hex = opt.hex || '#ccc';
-                            const isLight = ['#FFFFFF', '#f5f5f5', '#f0f0f0', '#ffffff'].includes(hex.toLowerCase());
-                            return (
-                              <button
-                                key={opt.value}
-                                title={opt.value}
-                                onClick={() => handleAttrSelect(type, opt.value)}
-                                className={`w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                                  ? 'border-primary-500 scale-110 shadow-lg shadow-primary-500/25'
-                                  : `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:border-gray-400`
-                                  }`}
-                                style={{ backgroundColor: hex }}
-                              >
-                                {isSelected && (
-                                  <Icon
-                                    icon="mdi:check"
-                                    className={`w-4 h-4 ${isLight ? 'text-gray-700' : 'text-white'}`}
-                                  />
-                                )}
-                              </button>
-                            );
-                          }
-                          return (
-                            <button
-                              key={opt.value}
-                              onClick={() => handleAttrSelect(type, opt.value)}
-                              className={`px-3.5 py-1.5 rounded-lg border-2 text-sm font-bold transition-all ${isSelected
-                                ? 'border-primary-500 bg-primary-500 text-white shadow-md shadow-primary-500/20'
-                                : 'border-gray-200 text-gray-700 hover:border-primary-400 hover:bg-primary-50'
-                                }`}
-                            >
-                              {opt.value}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {/* Warranty */}
-            {productData?.warranty?.type === 'yes' && (
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 w-fit">
-                <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs font-bold text-emerald-800">
-                  {productData.warranty.months >= 12
-                    ? `${Math.floor(productData.warranty.months / 12)} Year${productData.warranty.months >= 24 ? 's' : ''}`
-                    : `${productData.warranty.months} Month${productData.warranty.months > 1 ? 's' : ''}`
-                  } Warranty Included
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Seller Card */}
-          <div className="xl:col-span-2">
-            <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
-              {/* Header banner */}
-              <div
-                className="relative h-14"
-                style={{ background: 'linear-gradient(135deg, #1e293b, #334155)' }}
-              >
-                {seller?.isApproved && (
-                  <span className="absolute top-2 right-2 flex items-center gap-1 bg-emerald-500 text-white text-[9px] font-bold px-2 py-0.5 rounded-full">
-                    <Icon icon="mdi:check-decagram" className="w-2.5 h-2.5" />
-                    VERIFIED
-                  </span>
+        {/* RIGHT COLUMN (Seller & Variants) */}
+        <div className="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-6">
+            {/* Seller Card */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col gap-4">
+              {/* Profile Pic & Name Area */}
+              <div className="flex gap-3 items-center">
+                {seller?.profilePictureOrLogo ? (
+                  <img
+                    src={seller.profilePictureOrLogo}
+                    alt={seller.businessName}
+                    className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
+                    {(seller?.businessName || 'S').charAt(0).toUpperCase()}
+                  </div>
                 )}
-                <div className="absolute -bottom-5 left-3">
-                  {seller?.profilePictureOrLogo ? (
-                    <img
-                      src={seller.profilePictureOrLogo}
-                      alt={seller.businessName}
-                      className="w-11 h-11 rounded-xl object-cover"
-                      style={{ border: '2.5px solid white' }}
-                    />
-                  ) : (
-                    <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center text-white font-black text-base"
-                      style={{
-                        background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
-                        border: '2.5px solid white',
-                      }}
-                    >
-                      {(seller?.businessName || 'S').charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="pt-8 px-3 pb-3 flex flex-col gap-3">
-                {/* Name + address */}
-                <div>
-                  <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
-                    {seller?.businessName || 'Unknown Store'}
-                  </h3>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
+                      {seller?.businessName || 'Unknown Store'}
+                    </h3>
+                    {seller?.isApproved && (
+                      <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+                    )}
+                  </div>
                   {seller?.storeAddress && (
-                    <p className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
+                    <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
                       <Icon icon="mdi:map-marker-outline" className="w-3 h-3 flex-shrink-0" />
                       {seller.storeAddress}
                     </p>
                   )}
                 </div>
+              </div>
 
-                {/* Stats: Rating / Items / Orders */}
-                <div className="grid grid-cols-3 gap-1.5 text-center">
-                  <div className="bg-gray-50 rounded-lg py-1.5 px-1">
-                    <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.avgRating ? `${seller.avgRating}★` : '—'}
-                    </p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">Rating</p>
+              {/* Stats: Rating / Items / Orders */}
+              <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-xl p-2 border border-gray-100">
+                <div className="flex flex-col items-center justify-center">
+                  <div className="flex items-center gap-0.5 text-xs font-black text-gray-800">
+                    {seller?.avgRating ? seller.avgRating.toFixed(1) : '—'}
+                    {seller?.avgRating > 0 && <Icon icon="mdi:star" className="w-3 h-3 text-yellow-500" />}
                   </div>
-                  <div className="bg-gray-50 rounded-lg py-1.5 px-1">
-                    <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.productCount ?? '—'}
-                    </p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">Items</p>
-                  </div>
-                  <div className="bg-gray-50 rounded-lg py-1.5 px-1">
-                    <p className="text-xs font-extrabold text-gray-800">
-                      {seller?.completedOrders ?? '—'}
-                    </p>
-                    <p className="text-[9px] text-gray-400 uppercase tracking-wide">Orders</p>
-                  </div>
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Rating</p>
                 </div>
+                <div className="flex flex-col items-center justify-center border-l border-r border-gray-200">
+                  <p className="text-xs font-black text-gray-800">{seller?.productCount ?? '—'}</p>
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Items</p>
+                </div>
+                <div className="flex flex-col items-center justify-center">
+                  <p className="text-xs font-black text-gray-800">{seller?.completedOrders ?? '—'}</p>
+                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Orders</p>
+                </div>
+              </div>
 
-                {/* Top 3 products */}
-                {seller?.topProducts?.length > 0 && (
-                  <div className="border-t border-gray-100 pt-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
-                      Top Products
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                      {seller.topProducts.map(p => (
-                        <Link
-                          key={p._id}
-                          href={`/product/${p.slug}`}
-                          className="flex items-center justify-between gap-2 p-1.5 rounded-lg hover:bg-gray-50 transition-colors group"
-                        >
-                          <p className="text-[11px] text-gray-700 font-medium truncate group-hover:text-primary-600 flex-1">
-                            {p.title}
-                          </p>
-                          <span className="flex items-center gap-0.5 text-[10px] font-bold text-yellow-500 flex-shrink-0">
-                            ★ {p.rating > 0 ? p.rating.toFixed(1) : '—'}
-                          </span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
+              {/* Buttons side-by-side */}
+              <div className="flex gap-2">
                 <Link
                   href={seller ? `/store/${seller._id}` : '#'}
-                  className="w-full bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                  className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
                 >
                   <Icon icon="mdi:store" className="w-3.5 h-3.5" />
                   Visit Store
@@ -881,64 +831,90 @@ export default function ProductDetailPage() {
                     if (!token) { toast.error('Please log in to ask the seller'); return; }
                     setShowAskModal(true);
                   }}
-                  className="w-full bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-xs"
+                  className="flex-1 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
                 >
                   <Icon icon="mdi:message-question-outline" className="w-3.5 h-3.5" />
                   Ask Seller
                 </button>
               </div>
             </div>
-          </div>
+
+            {/* Attribute Selectors (moved below seller card) */}
+            {attrTypes.length > 0 && (
+              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+                <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
+                  <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
+                  Available Options
+                </h3>
+                <div className="space-y-5">
+                  {attrTypes.map(type => {
+                    const opts = attrOptions[type] || [];
+                    const isColor = type.toLowerCase() === 'color';
+                    const currentVal = selectedAttributes[type];
+
+                    return (
+                      <div key={type}>
+                        <div className="flex justify-between items-center mb-2.5">
+                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{type}</span>
+                          {currentVal && (
+                            <span className="text-[10px] font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100">
+                              {currentVal}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2.5 flex-wrap">
+                          {opts.map(opt => {
+                            const isSelected = currentVal === opt.value;
+                            if (isColor) {
+                              const hex = opt.hex || '#ccc';
+                              const isLight = ['#FFFFFF', '#f5f5f5', '#f0f0f0', '#ffffff'].includes(hex.toLowerCase());
+                              return (
+                                <button
+                                  key={opt.value}
+                                  title={opt.value}
+                                  onClick={() => handleAttrSelect(type, opt.value)}
+                                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                                    ? 'border-primary-500 scale-110 shadow-md shadow-primary-500/20'
+                                    : `${isLight ? 'border-gray-200' : 'border-transparent'} hover:scale-105 hover:shadow-sm`
+                                    }`}
+                                  style={{ backgroundColor: hex }}
+                                >
+                                  {isSelected && (
+                                    <Icon
+                                      icon="mdi:check"
+                                      className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-white'}`}
+                                    />
+                                  )}
+                                </button>
+                              );
+                            }
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => handleAttrSelect(type, opt.value)}
+                                className={`px-4 py-2 rounded-xl border-2 text-xs font-bold transition-all ${isSelected
+                                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                                  : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-primary-300 hover:bg-white'
+                                  }`}
+                              >
+                                {opt.value}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
         </div>
       </div>
 
-      {/* ── Sequential Content ── */}
-      <div className="mb-16 space-y-16 px-8 mt-10">
-
-        {/* Description Section */}
-        <div className="max-w-4xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Product Information</h2>
-          <div
-            className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px]"
-            dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(productData?.description || '') }}
-          />
-        </div>
-
-        {/* Specifications Section */}
-        <div className="max-w-4xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Specifications</h2>
-          <div className="rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-            {[
-              brandName && { label: 'Brand', value: brandName },
-              { label: 'SKU', value: selectedVariant?.sku || productData.sku },
-              { label: 'Category', value: categoryName },
-              { label: 'Total Variants', value: variants.length },
-              { label: 'Total Stock', value: productData.summary?.totalStock ?? variants.reduce((s, v) => s + (v.stock || 0), 0) },
-              {
-                label: 'Price Range',
-                value: productData.summary?.minPrice === productData.summary?.maxPrice
-                  ? `$${productData.summary?.minPrice?.toFixed(2)}`
-                  : `$${productData.summary?.minPrice?.toFixed(2)} – $${productData.summary?.maxPrice?.toFixed(2)}`
-              },
-              productData.warranty?.type === 'yes' && {
-                label: 'Warranty',
-                value: productData.warranty.months >= 12
-                  ? `${Math.floor(productData.warranty.months / 12)} year${productData.warranty.months >= 24 ? 's' : ''}`
-                  : `${productData.warranty.months} months`,
-              },
-              ...(selectedVariant?.attributes || []).map(a => ({ label: a.name, value: a.value })),
-              ...(selectedVariant?.specs || []).map(s => ({ label: s.name, value: s.value })),
-            ].filter(Boolean).map((row, i) => (
-              <div key={i} className={`flex ${i % 2 === 0 ? 'bg-gray-50/50' : 'bg-white'}`}>
-                <div className="w-1/3 max-w-[200px] px-5 py-2.5 text-xs font-semibold text-gray-500 border-r border-gray-100 flex-shrink-0">{row.label}</div>
-                <div className="px-5 py-2.5 text-xs text-gray-800 font-medium">{row.value}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
+      {/* ── Full Screen Content ── */}
+      <div className="mb-16 space-y-16 mt-10">
         {/* Variants Section */}
-        <div className="max-w-6xl">
+        {/* <div className="max-w-6xl">
           <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Available Variants</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {variants.map(v => {
@@ -1004,7 +980,7 @@ export default function ProductDetailPage() {
               );
             })}
           </div>
-        </div>
+        </div> */}
 
         {/* Static Platform Sections */}
         <div className="max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1118,7 +1094,7 @@ export default function ProductDetailPage() {
                 )}
                 <button
                   onClick={handleAddReview}
-                  disabled={submittingReview || !reviewText.trim()}
+                  disabled={submittingReview || reviewRating === 0}
                   className="mt-2.5 w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 rounded-xl text-xs transition-colors disabled:opacity-50"
                 >
                   {submittingReview ? 'Submitting…' : 'Submit Review'}
