@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import axiosInstance from '@/config/axiosInstance';
 import ProductCard from '@/components/website/product/productCard';
 import { toggleWishlistItem } from '@/store/wishlist';
+import { useSocket } from '@/contexts/SocketProvider';
 
 const SORT_OPTIONS = [
   { label: 'Newest',       value: 'default'     },
@@ -30,6 +31,31 @@ export default function SellerStorePage() {
   const [sort,     setSort]     = useState('default');
   const [search,   setSearch]   = useState('');
   const [query,    setQuery]    = useState('');
+
+  const { socket } = useSocket() || {};
+  const [isSellerOnline, setIsSellerOnline] = useState(false);
+
+  // Sync initial online status
+  useEffect(() => {
+    if (seller?.isOnline !== undefined) {
+      setIsSellerOnline(seller.isOnline);
+    }
+  }, [seller]);
+
+  // Listen for real-time status changes
+  useEffect(() => {
+    const sId = seller?.ownerId || seller?.owner?._id;
+    if (!socket || !sId) return;
+
+    const handleStatusChanged = (data) => {
+      if (data.userId === sId.toString()) {
+        setIsSellerOnline(data.status === 'online');
+      }
+    };
+
+    socket.on('user_status_changed', handleStatusChanged);
+    return () => socket.off('user_status_changed', handleStatusChanged);
+  }, [socket, seller]);
 
   const wishlistItems     = useSelector(s => s.wishlist?.items     || []);
   const wishlistLoadingIds = useSelector(s => s.wishlist?.loadingIds || []);
@@ -105,7 +131,7 @@ export default function SellerStorePage() {
         {/* Banner */}
         <div
           className="relative h-44 flex items-end"
-          style={{ background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)' }}
+          style={seller.coverPhoto ? { background: `url(${seller.coverPhoto}) center/cover no-repeat` } : { background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)' }}
         >
           <div className="absolute inset-0 opacity-10"
             style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #6366f1 0%, transparent 60%), radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 50%)' }}
@@ -140,7 +166,17 @@ export default function SellerStorePage() {
         <div className="bg-white pt-12 pb-6 px-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-extrabold text-gray-900">{seller.businessName}</h1>
+              <div className="flex items-center gap-3 mb-1">
+                <h1 className="text-2xl font-extrabold text-gray-900 leading-none">{seller.businessName}</h1>
+                <span className={`px-2 py-1 text-[10px] font-bold rounded-lg flex items-center gap-1.5 border ${
+                  isSellerOnline 
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                    : 'bg-gray-50 text-gray-500 border-gray-100'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full ${isSellerOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                  {isSellerOnline ? 'Online' : 'Offline'}
+                </span>
+              </div>
               {seller.storeAddress && (
                 <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5">
                   <Icon icon="mdi:map-marker-outline" className="w-4 h-4" />

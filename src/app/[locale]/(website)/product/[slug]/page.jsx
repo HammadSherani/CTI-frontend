@@ -12,6 +12,7 @@ import { useParams } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import DOMPurify from 'isomorphic-dompurify';
 import ProductCard from '@/components/website/product/productCard';
+import { useSocket } from '@/contexts/SocketProvider';
 
 /* ──────────────────────────────────────────────────────────
    STAR RATING
@@ -249,6 +250,30 @@ export default function ProductDetailPage() {
   const [askLoading, setAskLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
 
+  const { socket } = useSocket() || {};
+  const [isSellerOnline, setIsSellerOnline] = useState(false);
+
+  // Sync initial online status
+  useEffect(() => {
+    if (seller?.isOnline !== undefined) {
+      setIsSellerOnline(seller.isOnline);
+    }
+  }, [seller]);
+
+  // Listen for real-time status changes
+  useEffect(() => {
+    if (!socket || !seller?.ownerId) return;
+
+    const handleStatusChanged = (data) => {
+      if (data.userId === seller.ownerId.toString()) {
+        setIsSellerOnline(data.status === 'online');
+      }
+    };
+
+    socket.on('user_status_changed', handleStatusChanged);
+    return () => socket.off('user_status_changed', handleStatusChanged);
+  }, [socket, seller]);
+
   /* ── Per-attribute selection for multi-attribute variants ── */
   const [selectedAttributes, setSelectedAttributes] = useState({});
 
@@ -458,7 +483,6 @@ export default function ProductDetailPage() {
   const handleAddReview = async () => {
     if (!token) { toast.error('Please log in to submit a review'); return; }
     if (!reviewRating) { toast.error('Please select a rating'); return; }
-    if (!reviewText.trim()) { toast.error('Please write a comment'); return; }
 
     try {
       setSubmittingReview(true);
@@ -554,166 +578,166 @@ export default function ProductDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-8 xl:col-span-9 space-y-12">
-          
+
           {/* Image & Core Info Row */}
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* LEFT — Image Gallery */}
             <div className="flex gap-3">
-          {/* Vertical Thumbnails */}
-          <div className="flex flex-col items-center gap-2 flex-shrink-0">
-            <button
-              onClick={() => setThumbStart(p => Math.max(0, p - 1))}
-              disabled={!canScrollUp}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
-            >
-              <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
-            </button>
+              {/* Vertical Thumbnails */}
+              <div className="flex flex-col items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => setThumbStart(p => Math.max(0, p - 1))}
+                  disabled={!canScrollUp}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
+                >
+                  <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
+                </button>
 
-            <div className="flex flex-col gap-2">
-              {visibleThumbs.map((img, i) => {
-                const realIndex = thumbStart + i;
-                return (
-                  <button
-                    key={realIndex}
-                    onClick={() => setSelectedImage(realIndex)}
-                    className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex
-                      ? 'border-primary-500 shadow-md shadow-primary-100'
-                      : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                  >
-                    <img
-                      src={img}
-                      alt={`thumb-${realIndex}`}
-                      className="w-full h-full object-contain p-1"
-                    />
-                  </button>
-                );
-              })}
-            </div>
+                <div className="flex flex-col gap-2">
+                  {visibleThumbs.map((img, i) => {
+                    const realIndex = thumbStart + i;
+                    return (
+                      <button
+                        key={realIndex}
+                        onClick={() => setSelectedImage(realIndex)}
+                        className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex
+                          ? 'border-primary-500 shadow-md shadow-primary-100'
+                          : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                      >
+                        <img
+                          src={img}
+                          alt={`thumb-${realIndex}`}
+                          className="w-full h-full object-contain p-1"
+                        />
+                      </button>
+                    );
+                  })}
+                </div>
 
-            <button
-              onClick={() => setThumbStart(p => Math.min(allImages.length - THUMBS_PER_VIEW, p + 1))}
-              disabled={!canScrollDown}
-              className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
-            >
-              <Icon icon="mdi:chevron-down" className="text-lg text-gray-600" />
-            </button>
-          </div>
+                <button
+                  onClick={() => setThumbStart(p => Math.min(allImages.length - THUMBS_PER_VIEW, p + 1))}
+                  disabled={!canScrollDown}
+                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
+                >
+                  <Icon icon="mdi:chevron-down" className="text-lg text-gray-600" />
+                </button>
+              </div>
 
-          {/* Main Image + Actions */}
-          <div className="flex-1 flex flex-col gap-3">
-            <div className="relative rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square">
-              {discountPercent && (
-                <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
-                  -{discountPercent}%
-                </span>
-              )}
-              <ImageZoom
-                src={allImages[selectedImage] || '/assets/placeholder.jpg'}
-                alt={productData?.title || 'Product'}
-              />
-            </div>
+              {/* Main Image + Actions */}
+              <div className="flex-1 flex flex-col gap-3">
+                <div className="relative rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square">
+                  {discountPercent && (
+                    <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
+                      -{discountPercent}%
+                    </span>
+                  )}
+                  <ImageZoom
+                    src={allImages[selectedImage] || '/assets/placeholder.jpg'}
+                    alt={productData?.title || 'Product'}
+                  />
+                </div>
 
 
-          </div>
+              </div>
             </div>
 
             {/* Product Details */}
             <div className="flex flex-col gap-5">
-            <div>
-              <div className="flex items-start justify-between gap-3">
-                <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
-                  {productData?.title}
-                </h1>
+              <div>
+                <div className="flex items-start justify-between gap-3">
+                  <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
+                    {productData?.title}
+                  </h1>
 
-                <button
-                  onClick={handleToggleWishlist}
-                  aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${isWishlisted
-                    ? 'border-red-400 bg-red-50 text-red-500'
-                    : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'
-                    }`}
-                >
-                  <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
-                </button>
+                  <button
+                    onClick={handleToggleWishlist}
+                    aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                    className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${isWishlisted
+                      ? 'border-red-400 bg-red-50 text-red-500'
+                      : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'
+                      }`}
+                  >
+                    <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
+                  </button>
+                </div>
+                {productData?.shortDescription && (
+                  <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
+                    {productData.shortDescription}
+                  </p>
+                )}
               </div>
-              {productData?.shortDescription && (
-                <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
-                  {productData.shortDescription}
-                </p>
-              )}
-            </div>
 
-            {/* Price */}
-            <div className="flex items-baseline gap-3 flex-wrap">
-              {discountPercent && (
-                <span className="text-lg font-bold text-primary-500">-{discountPercent}%</span>
-              )}
-              <span className="text-2xl font-extrabold text-gray-900">${price.toFixed(2)}</span>
-              {oldPrice > price && (
-                <span className="text-base text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
-              )}
-              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
-                }`}>
-                {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
-              </span>
-            </div>
-
-
-            {/* Warranty */}
-            {productData?.warranty?.type === 'yes' && (
-              <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 w-fit">
-                <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-600 flex-shrink-0" />
-                <span className="text-xs font-bold text-emerald-800">
-                  {productData.warranty.months >= 12
-                    ? `${Math.floor(productData.warranty.months / 12)} Year${productData.warranty.months >= 24 ? 's' : ''}`
-                    : `${productData.warranty.months} Month${productData.warranty.months > 1 ? 's' : ''}`
-                  } Warranty Included
+              {/* Price */}
+              <div className="flex items-baseline gap-3 flex-wrap">
+                {discountPercent && (
+                  <span className="text-lg font-bold text-primary-500">-{discountPercent}%</span>
+                )}
+                <span className="text-2xl font-extrabold text-gray-900">${price.toFixed(2)}</span>
+                {oldPrice > price && (
+                  <span className="text-base text-gray-400 line-through">${oldPrice.toFixed(2)}</span>
+                )}
+                <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'
+                  }`}>
+                  {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
                 </span>
               </div>
-            )}
 
-            {/* Add to Cart + Buy Now */}
-            <div className="flex gap-2">
-              <button
-                onClick={handleAddToCart}
-                disabled={!inStock}
-                className={`flex-1 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${isCartAdded
-                  ? 'bg-gray-800 hover:bg-gray-900 text-white'
-                  : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-200'
-                  }`}
-              >
-                <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
-                {isCartAdded ? 'Remove' : 'Add to Cart'}
-              </button>
 
-              <button
-                onClick={handleBuyNow}
-                disabled={!inStock}
-                className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
-              >
-                <Icon icon="mdi:flash" className="w-5 h-5" />
-                Buy Now
-              </button>
-            </div>
+              {/* Warranty */}
+              {productData?.warranty?.type === 'yes' && (
+                <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 w-fit">
+                  <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-600 flex-shrink-0" />
+                  <span className="text-xs font-bold text-emerald-800">
+                    {productData.warranty.months >= 12
+                      ? `${Math.floor(productData.warranty.months / 12)} Year${productData.warranty.months >= 24 ? 's' : ''}`
+                      : `${productData.warranty.months} Month${productData.warranty.months > 1 ? 's' : ''}`
+                    } Warranty Included
+                  </span>
+                </div>
+              )}
 
-            {/* Share */}
-            <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Share:</span>
-              {[
-                { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600' },
-                { name: 'Instagram', icon: 'mdi:instagram', hover: 'hover:bg-pink-500' },
-                { name: 'Twitter', icon: 'mdi:twitter', hover: 'hover:bg-sky-500' },
-              ].map(s => (
+              {/* Add to Cart + Buy Now */}
+              <div className="flex gap-2">
                 <button
-                  key={s.name}
-                  aria-label={`Share on ${s.name}`}
-                  className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}
+                  onClick={handleAddToCart}
+                  disabled={!inStock}
+                  className={`flex-1 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${isCartAdded
+                    ? 'bg-gray-800 hover:bg-gray-900 text-white'
+                    : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-200'
+                    }`}
                 >
-                  <Icon icon={s.icon} className="text-base" />
+                  <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
+                  {isCartAdded ? 'Remove' : 'Add to Cart'}
                 </button>
-              ))}
-            </div>
+
+                <button
+                  onClick={handleBuyNow}
+                  disabled={!inStock}
+                  className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                >
+                  <Icon icon="mdi:flash" className="w-5 h-5" />
+                  Buy Now
+                </button>
+              </div>
+
+              {/* Share */}
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Share:</span>
+                {[
+                  { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600' },
+                  { name: 'Instagram', icon: 'mdi:instagram', hover: 'hover:bg-pink-500' },
+                  { name: 'Twitter', icon: 'mdi:twitter', hover: 'hover:bg-sky-500' },
+                ].map(s => (
+                  <button
+                    key={s.name}
+                    aria-label={`Share on ${s.name}`}
+                    className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}
+                  >
+                    <Icon icon={s.icon} className="text-base" />
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -765,149 +789,156 @@ export default function ProductDetailPage() {
 
         {/* RIGHT COLUMN (Seller & Variants) */}
         <div className="lg:col-span-4 xl:col-span-3 space-y-4 sticky top-6">
-            {/* Seller Card */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col gap-4">
-              {/* Profile Pic & Name Area */}
-              <div className="flex gap-3 items-center">
-                {seller?.profilePictureOrLogo ? (
-                  <img
-                    src={seller.profilePictureOrLogo}
-                    alt={seller.businessName}
-                    className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0"
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
-                    {(seller?.businessName || 'S').charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
-                      {seller?.businessName || 'Unknown Store'}
-                    </h3>
-                    {seller?.isApproved && (
-                      <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                    )}
-                  </div>
-                  {seller?.storeAddress && (
-                    <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
-                      <Icon icon="mdi:map-marker-outline" className="w-3 h-3 flex-shrink-0" />
-                      {seller.storeAddress}
-                    </p>
+          {/* Seller Card */}
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col gap-4">
+            {/* Profile Pic & Name Area */}
+            <div className="flex gap-3 items-center">
+              {seller?.profilePictureOrLogo ? (
+                <img
+                  src={seller.profilePictureOrLogo}
+                  alt={seller.businessName}
+                  className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
+                  {(seller?.businessName || 'S').charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center flex-wrap gap-1.5">
+                  <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
+                    {seller?.businessName || 'Unknown Store'}
+                  </h3>
+                  {seller?.isApproved && (
+                    <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   )}
+                  <span className={`px-1.5 py-0.5 text-[9px] font-bold rounded-md flex items-center gap-1 border ${isSellerOnline
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                    : 'bg-gray-50 text-gray-500 border-gray-100'
+                    }`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${isSellerOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
+                    {isSellerOnline ? 'Online' : 'Offline'}
+                  </span>
                 </div>
               </div>
-
-              {/* Stats: Rating / Items / Orders */}
-              <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-xl p-2 border border-gray-100">
-                <div className="flex flex-col items-center justify-center">
-                  <div className="flex items-center gap-0.5 text-xs font-black text-gray-800">
-                    {seller?.avgRating ? seller.avgRating.toFixed(1) : '—'}
-                    {seller?.avgRating > 0 && <Icon icon="mdi:star" className="w-3 h-3 text-yellow-500" />}
-                  </div>
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Rating</p>
-                </div>
-                <div className="flex flex-col items-center justify-center border-l border-r border-gray-200">
-                  <p className="text-xs font-black text-gray-800">{seller?.productCount ?? '—'}</p>
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Items</p>
-                </div>
-                <div className="flex flex-col items-center justify-center">
-                  <p className="text-xs font-black text-gray-800">{seller?.completedOrders ?? '—'}</p>
-                  <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Orders</p>
-                </div>
-              </div>
-
-              {/* Buttons side-by-side */}
-              <div className="flex gap-2">
-                <Link
-                  href={seller ? `/store/${seller._id}` : '#'}
-                  className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
-                >
-                  <Icon icon="mdi:store" className="w-3.5 h-3.5" />
-                  Visit Store
-                </Link>
-                <button
-                  onClick={() => {
-                    if (!token) { toast.error('Please log in to ask the seller'); return; }
-                    setShowAskModal(true);
-                  }}
-                  className="flex-1 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
-                >
-                  <Icon icon="mdi:message-question-outline" className="w-3.5 h-3.5" />
-                  Ask Seller
-                </button>
-              </div>
+              {seller?.storeAddress && (
+                <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1 truncate">
+                  <Icon icon="mdi:map-marker-outline" className="w-3 h-3 flex-shrink-0" />
+                  {seller.storeAddress}
+                </p>
+              )}
             </div>
+          </div>
 
-            {/* Attribute Selectors (moved below seller card) */}
-            {attrTypes.length > 0 && (
-              <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-                <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                  <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
-                  Available Options
-                </h3>
-                <div className="space-y-5">
-                  {attrTypes.map(type => {
-                    const opts = attrOptions[type] || [];
-                    const isColor = type.toLowerCase() === 'color';
-                    const currentVal = selectedAttributes[type];
+          {/* Stats: Rating / Items / Orders */}
+          <div className="grid grid-cols-3 gap-2 text-center bg-gray-50 rounded-xl p-2 border border-gray-100">
+            <div className="flex flex-col items-center justify-center">
+              <div className="flex items-center gap-0.5 text-xs font-black text-gray-800">
+                {seller?.avgRating ? seller.avgRating.toFixed(1) : '—'}
+                {seller?.avgRating > 0 && <Icon icon="mdi:star" className="w-3 h-3 text-yellow-500" />}
+              </div>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Rating</p>
+            </div>
+            <div className="flex flex-col items-center justify-center border-l border-r border-gray-200">
+              <p className="text-xs font-black text-gray-800">{seller?.productCount ?? '—'}</p>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Items</p>
+            </div>
+            <div className="flex flex-col items-center justify-center">
+              <p className="text-xs font-black text-gray-800">{seller?.completedOrders ?? '—'}</p>
+              <p className="text-[9px] text-gray-400 font-bold uppercase tracking-wider mt-0.5">Orders</p>
+            </div>
+          </div>
 
-                    return (
-                      <div key={type}>
-                        <div className="flex justify-between items-center mb-2.5">
-                          <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{type}</span>
-                          {currentVal && (
-                            <span className="text-[10px] font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100">
-                              {currentVal}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-2.5 flex-wrap">
-                          {opts.map(opt => {
-                            const isSelected = currentVal === opt.value;
-                            if (isColor) {
-                              const hex = opt.hex || '#ccc';
-                              const isLight = ['#FFFFFF', '#f5f5f5', '#f0f0f0', '#ffffff'].includes(hex.toLowerCase());
-                              return (
-                                <button
-                                  key={opt.value}
-                                  title={opt.value}
-                                  onClick={() => handleAttrSelect(type, opt.value)}
-                                  className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                                    ? 'border-primary-500 scale-110 shadow-md shadow-primary-500/20'
-                                    : `${isLight ? 'border-gray-200' : 'border-transparent'} hover:scale-105 hover:shadow-sm`
-                                    }`}
-                                  style={{ backgroundColor: hex }}
-                                >
-                                  {isSelected && (
-                                    <Icon
-                                      icon="mdi:check"
-                                      className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-white'}`}
-                                    />
-                                  )}
-                                </button>
-                              );
-                            }
+          {/* Buttons side-by-side */}
+          <div className="flex gap-2">
+            <Link
+              href={seller ? `/store/${seller._id}` : '#'}
+              className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
+            >
+              <Icon icon="mdi:store" className="w-3.5 h-3.5" />
+              Visit Store
+            </Link>
+            <button
+              onClick={() => {
+                if (!token) { toast.error('Please log in to ask the seller'); return; }
+                setShowAskModal(true);
+              }}
+              className="flex-1 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 text-[11px]"
+            >
+              <Icon icon="mdi:message-question-outline" className="w-3.5 h-3.5" />
+              Ask Seller
+            </button>
+          </div>
+
+          {/* Attribute Selectors (moved below seller card) */}
+          {attrTypes.length > 0 && (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
+                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
+                Available Options
+              </h3>
+              <div className="space-y-5">
+                {attrTypes.map(type => {
+                  const opts = attrOptions[type] || [];
+                  const isColor = type.toLowerCase() === 'color';
+                  const currentVal = selectedAttributes[type];
+
+                  return (
+                    <div key={type}>
+                      <div className="flex justify-between items-center mb-2.5">
+                        <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{type}</span>
+                        {currentVal && (
+                          <span className="text-[10px] font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100">
+                            {currentVal}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2.5 flex-wrap">
+                        {opts.map(opt => {
+                          const isSelected = currentVal === opt.value;
+                          if (isColor) {
+                            const hex = opt.hex || '#ccc';
+                            const isLight = ['#FFFFFF', '#f5f5f5', '#f0f0f0', '#ffffff'].includes(hex.toLowerCase());
                             return (
                               <button
                                 key={opt.value}
+                                title={opt.value}
                                 onClick={() => handleAttrSelect(type, opt.value)}
-                                className={`px-4 py-2 rounded-xl border-2 text-xs font-bold transition-all ${isSelected
-                                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
-                                  : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-primary-300 hover:bg-white'
+                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
+                                  ? 'border-primary-500 scale-110 shadow-md shadow-primary-500/20'
+                                  : `${isLight ? 'border-gray-200' : 'border-transparent'} hover:scale-105 hover:shadow-sm`
                                   }`}
+                                style={{ backgroundColor: hex }}
                               >
-                                {opt.value}
+                                {isSelected && (
+                                  <Icon
+                                    icon="mdi:check"
+                                    className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-white'}`}
+                                  />
+                                )}
                               </button>
                             );
-                          })}
-                        </div>
+                          }
+                          return (
+                            <button
+                              key={opt.value}
+                              onClick={() => handleAttrSelect(type, opt.value)}
+                              className={`px-4 py-2 rounded-xl border-2 text-xs font-bold transition-all ${isSelected
+                                ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                                : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-primary-300 hover:bg-white'
+                                }`}
+                            >
+                              {opt.value}
+                            </button>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1148,15 +1179,17 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {showAskModal && (
-        <AskSellerModal
-          onClose={() => setShowAskModal(false)}
-          onSubmit={handleSubmitEnquiry}
-          loading={askLoading}
-          sellerName={seller?.businessName || seller?.name || 'Seller'}
-          productTitle={productData?.title || ''}
-        />
-      )}
-    </div>
-  );
+      {
+        showAskModal && (
+          <AskSellerModal
+            onClose={() => setShowAskModal(false)}
+            onSubmit={handleSubmitEnquiry}
+            loading={askLoading}
+            sellerName={seller?.businessName || seller?.name || 'Seller'}
+            productTitle={productData?.title || ''}
+          />
+        )
+      }
+    </div >
+  )
 }
