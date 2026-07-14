@@ -194,7 +194,7 @@ export default function ExclusiveStores() {
                         <span
                           key={day}
                           className={`text-[9px] px-1.5 py-0.5 rounded font-bold ${
-                            seller.workingDays.includes(day)
+                            seller.workingDays.some(wd => wd.toLowerCase().startsWith(day.toLowerCase()))
                               ? 'bg-primary-100 text-primary-700'
                               : 'bg-gray-100 text-gray-300'
                           }`}

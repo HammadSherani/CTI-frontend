@@ -65,7 +65,7 @@ export default function SellersPage() {
   );
 
   useEffect(() => {
-    fetchSellers(page, search, kycFilter, activeFilter);
+    fetchSellers(page, search, kycFilter);
   }, [page, kycFilter, activeFilter]);
 
   const handleSearchChange = (val) => {
@@ -73,7 +73,7 @@ export default function SellersPage() {
     clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setPage(1);
-      fetchSellers(1, val, kycFilter, activeFilter);
+      fetchSellers(1, val, kycFilter);
     }, 400);
   };
 const handleToggleActive = async (seller) => {
@@ -126,6 +126,15 @@ const handleToggleActive = async (seller) => {
   ];
 
   const columns = [
+    {
+      key: "sellerId",
+      header: "Seller ID",
+      cell: (row) => (
+        <span className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 text-gray-700 text-xs font-mono font-semibold rounded-md">
+          {row.sellerId || "—"}
+        </span>
+      ),
+    },
     {
       key: "seller",
       header: "Seller",
@@ -222,7 +231,7 @@ const handleToggleActive = async (seller) => {
             <SearchInput
               value={search}
               onChange={handleSearchChange}
-              placeholder="Search by name, business, email…"
+              placeholder="Search by name, email, Seller ID…"
             />
           </div>
           <div className="w-full sm:w-44">
@@ -234,17 +243,8 @@ const handleToggleActive = async (seller) => {
               onChange={(val) => { setKycFilter(val); setPage(1); }}
             />
           </div>
-          {/* <div className="w-full sm:w-36">
-            <CustomDropdown
-              icon="mdi:toggle-switch-outline"
-              placeholder="Activity"
-              options={activeOptions}
-              value={activeFilter}
-              onChange={(val) => { setActiveFilter(val); setPage(1); }}
-            />
-          </div> */}
           <div>
-              <Button icon="mdi:filter-remove-outline" onClick={() => { setKycFilter(""); setSearch(""); setActiveFilter(""); setPage(1); }} />
+            <Button icon="mdi:filter-remove-outline" onClick={() => { setKycFilter(""); setSearch(""); setActiveFilter(""); setPage(1); fetchSellers(1, "", ""); }} />
           </div>
         </div>
       </div>

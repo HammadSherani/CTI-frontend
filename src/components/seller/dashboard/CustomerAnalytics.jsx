@@ -75,8 +75,8 @@ export default function CustomerAnalytics() {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5">
           <h4 className="text-sm font-semibold text-gray-700 mb-4">New vs Returning Customers</h4>
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={customerTypeData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
+              <BarChart data={customerTypeData} margin={{ top: 5, right: 5, left: -15, bottom: 5 }} className="focus:outline-none" style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                 <XAxis
                   dataKey="month"

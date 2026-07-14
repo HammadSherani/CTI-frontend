@@ -216,9 +216,52 @@ function ButtonSection() {
   const renderSellerButtons = () => (
     <>
       <IconButton icon="mdi:heart-outline" label="Wishlist" count={wishlistItems} showCount onClick={handleWishlistClick} />
-      <IconButton icon="mdi:bell-outline" label="Notifications" count={notificationCount} showCount onClick={handleNotificationClick} />
       <IconButton icon="mdi:cart-outline" label="My Cart" count={cartItems} showCount onClick={handleCartClick} />
-      <DashboardLink link="/seller/dashboard" />
+
+      {/* Seller profile dropdown */}
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={toggleDropdown}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
+          </div>
+          <span className="hidden sm:block text-[12px] font-semibold text-gray-700 max-w-[80px] truncate">
+            {user?.name?.split(" ")[0]}
+          </span>
+          <Icon icon="mdi:chevron-down" className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+        </button>
+
+        {isDropdownOpen && (
+          <div className="absolute right-0 mt-1.5 w-56 z-50 bg-white rounded-xl shadow-xl border border-gray-100 py-1 overflow-hidden">
+            <div className="px-4 py-2.5 border-b border-gray-50">
+              <p className="text-[12px] font-bold text-gray-900 truncate">{user?.name}</p>
+              <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
+              {user?.sellerId && (
+                <p className="text-[11px] font-mono font-semibold text-primary-600 mt-0.5">
+                  Seller ID: #{user.sellerId}
+                </p>
+              )}
+            </div>
+            <div className="py-1">
+              <Link
+                href="/seller/dashboard"
+                onClick={() => setIsDropdownOpen(false)}
+                className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={() => { handleLogout(); setIsDropdownOpen(false); }}
+                className="block w-full text-left px-4 py-2 text-[13px] font-medium text-red-500 hover:bg-red-50 transition-colors"
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 

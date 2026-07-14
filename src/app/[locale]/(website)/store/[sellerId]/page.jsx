@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -9,6 +9,75 @@ import axiosInstance from '@/config/axiosInstance';
 import ProductCard from '@/components/website/product/productCard';
 import { toggleWishlistItem } from '@/store/wishlist';
 import { useSocket } from '@/contexts/SocketProvider';
+
+/* ── Banner carousel ──────────────────────────────────────── */
+function BannerCarousel({ images }) {
+  const [active, setActive] = useState(0);
+  const timerRef = useRef(null);
+
+  const start = useCallback(() => {
+    timerRef.current = setInterval(() => {
+      setActive(prev => (prev + 1) % images.length);
+    }, 4000);
+  }, [images.length]);
+
+  useEffect(() => {
+    if (images.length > 1) start();
+    return () => clearInterval(timerRef.current);
+  }, [start, images.length]);
+
+  const go = (idx) => {
+    setActive(idx);
+    clearInterval(timerRef.current);
+    start();
+  };
+
+  if (!images.length) return null;
+
+  return (
+    <div className="relative w-full rounded-2xl overflow-hidden mb-8 shadow-sm border border-gray-200 group">
+      {/* Slides */}
+      <div className="relative w-full" style={{ paddingBottom: '28%', minHeight: 160 }}>
+        {images.map((img, i) => (
+          <img
+            key={i}
+            src={img.url}
+            alt={`Store banner ${i + 1}`}
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${i === active ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          />
+        ))}
+      </div>
+
+      {/* Prev / Next */}
+      {images.length > 1 && (
+        <>
+          <button
+            onClick={() => go((active - 1 + images.length) % images.length)}
+            className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white transition-all opacity-0 group-hover:opacity-100"
+          >
+            <Icon icon="mdi:chevron-left" className="w-5 h-5" />
+          </button>
+          <button
+            onClick={() => go((active + 1) % images.length)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 hover:bg-black/60 flex items-center justify-center text-white transition-all opacity-0 group-hover:opacity-100"
+          >
+            <Icon icon="mdi:chevron-right" className="w-5 h-5" />
+          </button>
+          {/* Dots */}
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => go(i)}
+                className={`rounded-full transition-all duration-300 ${i === active ? 'w-5 h-2 bg-white' : 'w-2 h-2 bg-white/50 hover:bg-white/80'}`}
+              />
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 const SORT_OPTIONS = [
   { label: 'Newest',       value: 'default'     },
@@ -166,16 +235,22 @@ export default function SellerStorePage() {
         <div className="bg-white pt-12 pb-6 px-6">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-1">
+              <div className="flex flex-wrap items-center gap-3 mb-1">
                 <h1 className="text-2xl font-extrabold text-gray-900 leading-none">{seller.businessName}</h1>
                 <span className={`px-2 py-1 text-[10px] font-bold rounded-lg flex items-center gap-1.5 border ${
-                  isSellerOnline 
-                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                  isSellerOnline
+                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                     : 'bg-gray-50 text-gray-500 border-gray-100'
                 }`}>
                   <span className={`w-2 h-2 rounded-full ${isSellerOnline ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}></span>
                   {isSellerOnline ? 'Online' : 'Offline'}
                 </span>
+                {seller.sellerId && (
+                  <span className="px-2 py-1 text-[10px] font-bold rounded-lg flex items-center gap-1 bg-gray-900 text-white border border-gray-800">
+                    <Icon icon="mdi:identifier" className="w-3.5 h-3.5 opacity-70" />
+                    ID: {seller.sellerId}
+                  </span>
+                )}
               </div>
               {seller.storeAddress && (
                 <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5">
@@ -236,8 +311,57 @@ export default function SellerStorePage() {
               )}
             </div>
           )}
+
+          {/* Social Links */}
+          {seller?.socialLinks && Object.values(seller.socialLinks).some(link => link) && (
+            <div className="mt-4 flex items-center gap-3 flex-wrap">
+              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Follow:</span>
+              {Object.entries(seller.socialLinks).map(([platform, link]) => {
+                if (!link) return null;
+                const iconMap = {
+                  facebook: 'mdi:facebook',
+                  instagram: 'mdi:instagram',
+                  twitter: 'mdi:twitter',
+                  linkedin: 'mdi:linkedin',
+                  whatsapp: 'mdi:whatsapp',
+                  youtube: 'mdi:youtube',
+                  tiktok: 'ic:baseline-tiktok',
+                  website: 'mdi:web'
+                };
+                const colorMap = {
+                  facebook: 'text-blue-600 hover:text-white hover:bg-blue-600',
+                  instagram: 'text-pink-600 hover:text-white hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600',
+                  twitter: 'text-sky-500 hover:text-white hover:bg-sky-500',
+                  linkedin: 'text-blue-700 hover:text-white hover:bg-blue-700',
+                  whatsapp: 'text-green-500 hover:text-white hover:bg-green-500',
+                  youtube: 'text-red-600 hover:text-white hover:bg-red-600',
+                  tiktok: 'text-black hover:text-white hover:bg-black',
+                  website: 'text-gray-600 hover:text-white hover:bg-gray-700'
+                };
+                const absoluteLink = link.startsWith('http') || platform === 'whatsapp' ? link : `https://${link}`;
+
+                return (
+                  <a
+                    key={platform}
+                    href={platform === 'whatsapp' ? `https://wa.me/${link.replace(/\D/g, '')}` : absoluteLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center transition-all duration-200 ${colorMap[platform] || 'text-gray-500 hover:bg-gray-100'}`}
+                    title={platform.charAt(0).toUpperCase() + platform.slice(1)}
+                  >
+                    <Icon icon={iconMap[platform] || 'mdi:link'} className="w-5 h-5" />
+                  </a>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
+
+      {/* ── Sponsor / Promotional Banners ── */}
+      {seller.bannerImages?.length > 0 && (
+        <BannerCarousel images={seller.bannerImages} />
+      )}
 
       {/* ── Products ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">

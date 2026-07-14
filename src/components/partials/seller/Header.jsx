@@ -60,6 +60,11 @@ const primaryNavLinks = [
     path: "/seller/enquiries",
     icon: "solar:chat-round-dots-bold-duotone",
   },
+  {
+    name: "Reviews",
+    path: "/seller/reviews",
+    icon: "solar:star-bold-duotone",
+  },
 ];
 
 const dropdownLinks = [
@@ -282,6 +287,11 @@ function Header() {
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-gray-900 truncate text-sm capitalize">{user?.name}</p>
                         <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                        {user?.sellerId && (
+                          <p className="text-[11px] font-mono font-semibold text-primary-600 mt-0.5">
+                            ID: #{user.sellerId}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>

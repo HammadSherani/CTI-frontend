@@ -117,8 +117,8 @@ export default function SalesAnalytics() {
 
       {/* Chart */}
       <div className="h-72 px-2 pb-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={filteredData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
+        <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
+          <AreaChart data={filteredData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }} className="focus:outline-none" style={{ outline: 'none' }}>
             <defs>
               <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.3} />

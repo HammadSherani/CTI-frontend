@@ -78,9 +78,12 @@ function ImageZoom({ src, alt }) {
 /* ──────────────────────────────────────────────────────────
    REVIEW CARD
 ────────────────────────────────────────────────────────── */
-function ReviewCard({ review }) {
+function ReviewCard({ review, currentUserId, onEdit, onDelete }) {
   const name = review.userId ? review.userId.name : 'Anonymous';
   const email = review.userId ? review.userId.email : '';
+  const isOwner = currentUserId && review.userId?._id &&
+    review.userId._id.toString() === currentUserId.toString();
+
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
@@ -94,9 +97,29 @@ function ReviewCard({ review }) {
             <p className="text-gray-400 text-xs">{new Date(review.createdAt).toLocaleDateString()}</p>
           </div>
         </div>
-        <StarRating rating={review.rating} />
+        <div className="flex items-center gap-2">
+          {review.rating != null && <StarRating rating={review.rating} />}
+          {isOwner && (
+            <div className="flex items-center gap-1 ml-2">
+              <button
+                onClick={() => onEdit(review)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
+                title="Edit review"
+              >
+                <Icon icon="solar:pen-bold-duotone" className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => onDelete(review._id)}
+                className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
+                title="Delete review"
+              >
+                <Icon icon="solar:trash-bin-trash-bold-duotone" className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+        </div>
       </div>
-      <p className="text-gray-600 text-sm leading-relaxed mb-3">{review.comment}</p>
+      {review.comment && <p className="text-gray-600 text-sm leading-relaxed mb-3">{review.comment}</p>}
 
       {/* Media Rendering */}
       {(review.images?.length > 0 || review.video) && (
@@ -224,6 +247,152 @@ function AskSellerModal({ onClose, onSubmit, loading, sellerName, productTitle }
 }
 
 /* ──────────────────────────────────────────────────────────
+   EDIT REVIEW MODAL
+────────────────────────────────────────────────────────── */
+function EditReviewModal({ review, onClose, onSubmit, loading }) {
+  const [rating, setRating] = useState(review.rating || 0);
+  const [comment, setComment] = useState(review.comment || '');
+  const [newImages, setNewImages] = useState([]);
+  const [removeImages, setRemoveImages] = useState([]);
+  const [removeVideo, setRemoveVideo] = useState(false);
+  const [newVideo, setNewVideo] = useState(null);
+
+  const existingImages = (review.images || []).filter(img => !removeImages.includes(img.url));
+
+  const handleSubmit = () => {
+    onSubmit({ rating: rating || undefined, comment, removeImages, removeVideo, newImages, newVideo });
+  };
+
+  const toggleRemoveImage = (url) => {
+    setRemoveImages(prev => prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+          <h3 className="font-extrabold text-gray-900 text-base">Edit Review</h3>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+            <Icon icon="mdi:close" className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+
+        <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+          <div>
+            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Rating</p>
+            <StarRating rating={rating} size="md" interactive onChange={setRating} />
+          </div>
+
+          <div>
+            <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Comment</p>
+            <textarea
+              value={comment}
+              onChange={e => setComment(e.target.value.slice(0, 1000))}
+              rows={3}
+              placeholder="Write your review…"
+              className="w-full border border-gray-200 rounded-xl p-2.5 text-xs text-gray-700 resize-none focus:outline-none focus:border-primary-400 transition-colors"
+            />
+            <p className="text-[11px] text-right text-gray-300">{comment.length}/1000</p>
+          </div>
+
+          {existingImages.length > 0 && (
+            <div>
+              <p className="text-[11px] font-semibold text-gray-600 mb-1.5">Current Images <span className="text-gray-400 font-normal">(click to remove)</span></p>
+              <div className="flex flex-wrap gap-2">
+                {(review.images || []).map((img, idx) => {
+                  const marked = removeImages.includes(img.url);
+                  return (
+                    <button
+                      key={idx}
+                      onClick={() => toggleRemoveImage(img.url)}
+                      className={`relative w-14 h-14 rounded-lg border-2 overflow-hidden transition-all ${marked ? 'border-red-400 opacity-50' : 'border-gray-200'}`}
+                    >
+                      <img src={img.url} alt="" className="w-full h-full object-cover" />
+                      {marked && (
+                        <div className="absolute inset-0 bg-red-500/30 flex items-center justify-center">
+                          <Icon icon="mdi:close" className="w-4 h-4 text-red-600" />
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-3">
+            <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200 transition-colors">
+              <Icon icon="mdi:camera-outline" className="w-4 h-4" />
+              Add Photos
+              <input type="file" multiple accept="image/*" className="hidden"
+                onChange={e => setNewImages(prev => [...prev, ...Array.from(e.target.files)].slice(0, 5))} />
+            </label>
+            {!review.video?.url || removeVideo ? (
+              <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200 transition-colors">
+                <Icon icon="mdi:video-outline" className="w-4 h-4" />
+                Add Video
+                <input type="file" accept="video/*" className="hidden"
+                  onChange={e => { if (e.target.files[0]) { setNewVideo(e.target.files[0]); setRemoveVideo(false); } }} />
+              </label>
+            ) : (
+              <button
+                onClick={() => setRemoveVideo(true)}
+                className="flex items-center gap-1.5 text-[10px] font-semibold text-red-500 hover:text-red-600 bg-red-50 px-2.5 py-1.5 rounded-lg border border-red-200 transition-colors"
+              >
+                <Icon icon="mdi:video-off-outline" className="w-4 h-4" />
+                Remove Video
+              </button>
+            )}
+          </div>
+
+          {newImages.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {newImages.map((file, idx) => (
+                <div key={idx} className="relative w-14 h-14 rounded-lg border border-gray-200 overflow-hidden">
+                  <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                  <button
+                    onClick={() => setNewImages(prev => prev.filter((_, i) => i !== idx))}
+                    className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
+                  >
+                    <Icon icon="mdi:close" className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {newVideo && (
+            <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+              <Icon icon="mdi:video" className="w-4 h-4 text-gray-500" />
+              <span className="text-[10px] text-gray-600 truncate flex-1">{newVideo.name}</span>
+              <button onClick={() => setNewVideo(null)}>
+                <Icon icon="mdi:close" className="w-3.5 h-3.5 text-red-500" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="px-6 pb-5 pt-3 border-t border-gray-100 flex gap-3 flex-shrink-0">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl text-sm transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            className="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-colors"
+          >
+            {loading ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 mx-auto" /> : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ──────────────────────────────────────────────────────────
    MAIN PAGE
 ────────────────────────────────────────────────────────── */
 export default function ProductDetailPage() {
@@ -246,6 +415,8 @@ export default function ProductDetailPage() {
   const [reviewText, setReviewText] = useState('');
   const [reviewImages, setReviewImages] = useState([]);
   const [reviewVideo, setReviewVideo] = useState(null);
+  const [editingReview, setEditingReview] = useState(null);
+  const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [askLoading, setAskLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -482,25 +653,23 @@ export default function ProductDetailPage() {
 
   const handleAddReview = async () => {
     if (!token) { toast.error('Please log in to submit a review'); return; }
-    if (!reviewRating) { toast.error('Please select a rating'); return; }
+    if (!reviewRating && !reviewText.trim() && reviewImages.length === 0 && !reviewVideo) {
+      toast.error('Please add a rating, comment, image, or video');
+      return;
+    }
 
     try {
       setSubmittingReview(true);
       const formData = new FormData();
-      formData.append('rating', reviewRating);
-      formData.append('comment', reviewText);
+      if (reviewRating) formData.append('rating', reviewRating);
+      if (reviewText.trim()) formData.append('comment', reviewText);
       reviewImages.forEach(file => formData.append('images', file));
       if (reviewVideo) formData.append('video', reviewVideo);
 
       const { data } = await axiosInstance.post(
         `/e-commerce/products/${params.slug}/reviews`,
         formData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data'
-          }
-        }
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
       );
       if (data.success) {
         toast.success('Review submitted successfully!');
@@ -539,6 +708,54 @@ export default function ProductDetailPage() {
 
   const removeImage = (index) => {
     setReviewImages(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!token) return;
+    setDeletingReviewId(reviewId);
+    try {
+      const { data } = await axiosInstance.delete(
+        `/e-commerce/products/${params.slug}/reviews/${reviewId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        setReviews(prev => prev.filter(r => r._id !== reviewId));
+        toast.success('Review deleted');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to delete review');
+    } finally {
+      setDeletingReviewId(null);
+    }
+  };
+
+  const handleUpdateReview = async ({ rating, comment, removeImages, removeVideo, newImages, newVideo }) => {
+    if (!token || !editingReview) return;
+    try {
+      setSubmittingReview(true);
+      const formData = new FormData();
+      if (rating) formData.append('rating', rating);
+      if (comment !== undefined) formData.append('comment', comment);
+      if (removeVideo) formData.append('removeVideo', 'true');
+      if (removeImages?.length) removeImages.forEach(url => formData.append('removeImages', url));
+      if (newImages?.length) newImages.forEach(f => formData.append('images', f));
+      if (newVideo) formData.append('video', newVideo);
+
+      const { data } = await axiosInstance.patch(
+        `/e-commerce/products/${params.slug}/reviews/${editingReview._id}`,
+        formData,
+        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
+      );
+      if (data.success) {
+        setReviews(prev => prev.map(r => r._id === editingReview._id ? data.data : r));
+        setEditingReview(null);
+        toast.success('Review updated');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update review');
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const handleSubmitEnquiry = async (subject, message) => {
@@ -721,22 +938,45 @@ export default function ProductDetailPage() {
                 </button>
               </div>
 
-              {/* Share */}
+              {/* Share Product */}
               <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
                 <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Share:</span>
-                {[
-                  { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600' },
-                  { name: 'Instagram', icon: 'mdi:instagram', hover: 'hover:bg-pink-500' },
-                  { name: 'Twitter', icon: 'mdi:twitter', hover: 'hover:bg-sky-500' },
-                ].map(s => (
-                  <button
-                    key={s.name}
-                    aria-label={`Share on ${s.name}`}
-                    className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}
-                  >
-                    <Icon icon={s.icon} className="text-base" />
-                  </button>
-                ))}
+                {(() => {
+                  const productUrl = typeof window !== 'undefined' ? window.location.href : '';
+                  const shareText = encodeURIComponent(productData?.title || 'Check out this product!');
+                  const shareUrl = encodeURIComponent(productUrl);
+                  const shareItems = [
+                    { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600', url: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}` },
+                    { name: 'X', icon: 'ri:twitter-x-fill', hover: 'hover:bg-black', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}` },
+                    { name: 'WhatsApp', icon: 'mdi:whatsapp', hover: 'hover:bg-green-500', url: `https://wa.me/?text=${shareText}%20${shareUrl}` },
+                  ];
+                  return (
+                    <>
+                      {shareItems.map(s => (
+                        <a
+                          key={s.name}
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`Share on ${s.name}`}
+                          className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}
+                        >
+                          <Icon icon={s.icon} className="text-base" />
+                        </a>
+                      ))}
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(productUrl);
+                          toast.success('Product link copied to clipboard!');
+                        }}
+                        aria-label="Copy product link"
+                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-700 hover:text-white flex items-center justify-center text-gray-400 transition-all"
+                      >
+                        <Icon icon="mdi:link-variant" className="text-base" />
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -765,8 +1005,8 @@ export default function ProductDetailPage() {
                   {
                     label: 'Price Range',
                     value: productData.summary?.minPrice === productData.summary?.maxPrice
-                      ? `$${productData.summary?.minPrice?.toFixed(2)}`
-                      : `$${productData.summary?.minPrice?.toFixed(2)} – $${productData.summary?.maxPrice?.toFixed(2)}`
+                      ? `${productData.summary?.minPrice?.toFixed(2)}`
+                      : `${productData.summary?.minPrice?.toFixed(2)} – ${productData.summary?.maxPrice?.toFixed(2)}`
                   },
                   productData.warranty?.type === 'yes' && {
                     label: 'Warranty',
@@ -806,9 +1046,8 @@ export default function ProductDetailPage() {
               )}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center flex-wrap gap-1.5">
-                  <h3 className="font-extrabold text-sm text-gray-900 leading-tight truncate">
-                    {seller?.businessName || 'Unknown Store'}
-                  </h3>
+                  <h1 className='font-extrabold text-sm text-gray-900 leading-tight flex-nowrap text-nowrap'>  {seller?.businessName || 'Unknown Store'}
+                  </h1>
                   {seller?.isApproved && (
                     <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                   )}
@@ -869,6 +1108,8 @@ export default function ProductDetailPage() {
               Ask Seller
             </button>
           </div>
+
+
 
           {/* Attribute Selectors (moved below seller card) */}
           {attrTypes.length > 0 && (
@@ -1125,7 +1366,7 @@ export default function ProductDetailPage() {
                 )}
                 <button
                   onClick={handleAddReview}
-                  disabled={submittingReview || reviewRating === 0}
+                  disabled={submittingReview}
                   className="mt-2.5 w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 rounded-xl text-xs transition-colors disabled:opacity-50"
                 >
                   {submittingReview ? 'Submitting…' : 'Submit Review'}
@@ -1139,7 +1380,15 @@ export default function ProductDetailPage() {
                   <p className="text-gray-500 text-xs">No reviews yet. Be the first to review!</p>
                 </div>
               ) : (
-                reviews.map(r => <ReviewCard key={r._id} review={r} />)
+                reviews.map(r => (
+                  <ReviewCard
+                    key={r._id}
+                    review={r}
+                    currentUserId={auth?.user?._id}
+                    onEdit={setEditingReview}
+                    onDelete={handleDeleteReview}
+                  />
+                ))
               )}
             </div>
           </div>
@@ -1179,17 +1428,24 @@ export default function ProductDetailPage() {
         </div>
       </div>
 
-      {
-        showAskModal && (
-          <AskSellerModal
-            onClose={() => setShowAskModal(false)}
-            onSubmit={handleSubmitEnquiry}
-            loading={askLoading}
-            sellerName={seller?.businessName || seller?.name || 'Seller'}
-            productTitle={productData?.title || ''}
-          />
-        )
-      }
-    </div >
-  )
+      {showAskModal && (
+        <AskSellerModal
+          onClose={() => setShowAskModal(false)}
+          onSubmit={handleSubmitEnquiry}
+          loading={askLoading}
+          sellerName={seller?.businessName || seller?.name || 'Seller'}
+          productTitle={productData?.title || ''}
+        />
+      )}
+
+      {editingReview && (
+        <EditReviewModal
+          review={editingReview}
+          onClose={() => setEditingReview(null)}
+          onSubmit={handleUpdateReview}
+          loading={submittingReview}
+        />
+      )}
+    </div>
+  );
 }

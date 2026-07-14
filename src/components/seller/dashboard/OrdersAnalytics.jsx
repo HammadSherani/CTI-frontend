@@ -146,9 +146,9 @@ export default function OrdersAnalytics() {
               ))}
             </div>
           </div>
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredTrend} margin={{ top: 5, right: 5, left: -15, bottom: 5 }}>
+          <div className="h-48 mt-4">
+            <ResponsiveContainer width="100%" height="100%" className="focus:outline-none" style={{ outline: 'none' }}>
+              <BarChart data={filteredTrend} margin={{ top: 5, right: 0, left: 0, bottom: 0 }} className="focus:outline-none" style={{ outline: 'none' }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
                 <XAxis
                   dataKey="date"

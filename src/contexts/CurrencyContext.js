@@ -5,7 +5,7 @@ const CurrencyContext = createContext();
 
 export const CurrencyProvider = ({ children }) => {
   const defaultCurrency = {
-    symbol: "₺",
+    symbol: "$",
     code: "TRY",
     name: "Turkish Lira",
   };
