@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import useNotifications from '@/hooks/useNotifications';
 import NotificationPanel from '../partials/repairman/NotificationPanel';
+import axiosInstance from '@/config/axiosInstance';
 
 const IconButton = ({
   icon,
@@ -77,6 +78,17 @@ function ButtonSection() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const { unreadCount, notifications } = useNotifications();
   const { user, token } = useSelector((state) => state.auth);
+  const [sellerIdDisplay, setSellerIdDisplay] = useState(null);
+
+  useEffect(() => {
+    if (user?.role === 'seller' && token && !sellerIdDisplay) {
+      axiosInstance.get('/seller/profile', { headers: { Authorization: `Bearer ${token}` } })
+        .then(({ data }) => {
+          if (data.success && data.data?.sellerId) setSellerIdDisplay(data.data.sellerId);
+        })
+        .catch(() => {});
+    }
+  }, [user?.role, token]);
 
 
   console.log("unreadCount", unreadCount);
@@ -238,10 +250,14 @@ function ButtonSection() {
             <div className="px-4 py-2.5 border-b border-gray-50">
               <p className="text-[12px] font-bold text-gray-900 truncate">{user?.name}</p>
               <p className="text-[11px] text-gray-400 truncate">{user?.email}</p>
-              {user?.sellerId && (
-                <p className="text-[11px] font-mono font-semibold text-primary-600 mt-0.5">
-                  Seller ID: #{user.sellerId}
-                </p>
+              {sellerIdDisplay ? (
+                <div className="mt-1.5 flex items-center gap-1.5 bg-primary-50 border border-primary-100 rounded-lg px-2 py-1">
+                  <Icon icon="mdi:identifier" className="w-3 h-3 text-primary-500 flex-shrink-0" />
+                  <span className="text-[10px] text-primary-500 font-semibold">Seller ID</span>
+                  <span className="text-[11px] font-mono font-black text-primary-700 ml-auto">#{sellerIdDisplay}</span>
+                </div>
+              ) : (
+                <div className="mt-1.5 h-5 w-24 bg-gray-100 rounded animate-pulse" />
               )}
             </div>
             <div className="py-1">

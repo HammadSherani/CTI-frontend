@@ -244,7 +244,7 @@ function Header() {
         <div className="bg-white rounded-xl w-full flex items-center px-4 py-2 gap-3 shadow-sm min-w-0">
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-0.5 flex-1 justify-start">
+          <nav className="hidden lg:flex items-center gap-0.5 flex-1 min-w-0 justify-start custom-thin-scroll pb-1">
             {primaryNavLinks.map(renderNavLink)}
           </nav>
 
@@ -323,7 +323,7 @@ function Header() {
 
       {/* Mobile Navigation */}
       <div className="lg:hidden border-t border-gray-200 bg-white">
-        <div className="px-3 py-2 overflow-x-auto scrollbar-hide">
+        <div className="px-3 py-2 custom-thin-scroll">
           <div className="flex gap-1 min-w-max">
             {primaryNavLinks.map((link) => {
               if (link.hasSubmenu) {
@@ -354,6 +354,39 @@ function Header() {
           </div>
         </div>
       </div>
+
+      <style>{`
+        /* Very thin scrollbar for navigation */
+        .custom-thin-scroll {
+          overflow-x: auto !important;
+          scrollbar-width: thin !important;
+          scrollbar-color: #cbd5e1 transparent !important;
+        }
+        .custom-thin-scroll::-webkit-scrollbar {
+          height: 3px !important;
+          width: 3px !important;
+        }
+        .custom-thin-scroll::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        .custom-thin-scroll::-webkit-scrollbar-thumb {
+          background-color: #cbd5e1 !important;
+          border-radius: 9999px !important;
+        }
+        .custom-thin-scroll::-webkit-scrollbar-thumb:hover {
+          background-color: #94a3b8 !important;
+        }
+
+        /* Remove recharts click border/outline globally */
+        .recharts-wrapper:focus,
+        .recharts-wrapper *:focus,
+        .recharts-surface:focus,
+        .recharts-surface *:focus {
+          outline: none !important;
+          border: none !important;
+          box-shadow: none !important;
+        }
+      `}</style>
     </header>
   );
 }

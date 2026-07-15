@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Link, useRouter } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
-import { toggleCart } from '@/store/cart';
+import { toggleCart, addToCart } from '@/store/cart';
 import { toggleWishlistItem } from '@/store/wishlist';
 import { useParams } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
@@ -78,11 +78,18 @@ function ImageZoom({ src, alt }) {
 /* ──────────────────────────────────────────────────────────
    REVIEW CARD
 ────────────────────────────────────────────────────────── */
-function ReviewCard({ review, currentUserId, onEdit, onDelete }) {
+function ReviewCard({ review, currentUserId, onEdit, onDelete, isDeletingThis }) {
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const name = review.userId ? review.userId.name : 'Anonymous';
   const email = review.userId ? review.userId.email : '';
   const isOwner = currentUserId && review.userId?._id &&
     review.userId._id.toString() === currentUserId.toString();
+
+  const handleDeleteClick = () => {
+    if (!confirmingDelete) { setConfirmingDelete(true); return; }
+    onDelete(review._id);
+    setConfirmingDelete(false);
+  };
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -100,21 +107,46 @@ function ReviewCard({ review, currentUserId, onEdit, onDelete }) {
         <div className="flex items-center gap-2">
           {review.rating != null && <StarRating rating={review.rating} />}
           {isOwner && (
-            <div className="flex items-center gap-1 ml-2">
+            <div className="flex items-center gap-1.5 ml-2">
               <button
                 onClick={() => onEdit(review)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-primary-600 transition-colors"
+                className="p-1.5 rounded-lg hover:bg-primary-50 text-gray-400 hover:text-primary-600 transition-colors"
                 title="Edit review"
               >
                 <Icon icon="solar:pen-bold-duotone" className="w-4 h-4" />
               </button>
-              <button
-                onClick={() => onDelete(review._id)}
-                className="p-1 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                title="Delete review"
-              >
-                <Icon icon="solar:trash-bin-trash-bold-duotone" className="w-4 h-4" />
-              </button>
+              {confirmingDelete ? (
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={handleDeleteClick}
+                    disabled={isDeletingThis}
+                    className="px-2 py-1 rounded-lg bg-red-500 text-white text-[10px] font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
+                  >
+                    {isDeletingThis
+                      ? <Icon icon="mdi:loading" className="animate-spin w-3 h-3" />
+                      : 'Confirm'
+                    }
+                  </button>
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleDeleteClick}
+                  disabled={isDeletingThis}
+                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                  title="Delete review"
+                >
+                  {isDeletingThis
+                    ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 text-red-400" />
+                    : <Icon icon="solar:trash-bin-trash-bold-duotone" className="w-4 h-4" />
+                  }
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -458,6 +490,7 @@ export default function ProductDetailPage() {
   const cartLoadingIds = useSelector(s => s.cart?.loadingIds || []);
   const auth = useSelector(s => s.auth);
   const token = auth?.token;
+  const currentUserId = auth?.user?._id || auth?.user?.id || null;
 
   useEffect(() => {
     async function loadData() {
@@ -642,12 +675,15 @@ export default function ProductDetailPage() {
 
   const handleBuyNow = () => {
     if (!inStock) return;
+    if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
     if (auth?.user && (auth.user._id === productData.sellerId || auth.user.id === productData.sellerId)) {
       toast.error('You cannot buy your own product');
       return;
     }
-    // Add to cart then go to checkout
-    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity }));
+    // Always add to cart (addToCart, never toggles/removes) then go to checkout
+    if (!isCartAdded) {
+      dispatch(addToCart({ product: productData, variantId: selectedVariant?._id, quantity }));
+    }
     router.push('/checkout');
   };
 
@@ -788,6 +824,11 @@ export default function ProductDetailPage() {
   for (let i = 1; i <= 5; i++) {
     ratingBreakdown[i] = totalReviews > 0 ? Math.round((ratingBreakdown[i] / totalReviews) * 100) : 0;
   }
+
+  // Detect if logged-in user already has a review
+  const userReview = currentUserId
+    ? reviews.find(r => r.userId?._id?.toString() === currentUserId.toString())
+    : null;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
@@ -1111,13 +1152,25 @@ export default function ProductDetailPage() {
 
 
 
-          {/* Attribute Selectors (moved below seller card) */}
+          {/* Attribute Selectors */}
           {attrTypes.length > 0 && (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
-                Available Options
-              </h3>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
+                  <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
+                  Select Options
+                </h3>
+                {Object.keys(selectedAttributes).length > 0 && (
+                  <button
+                    onClick={() => { setSelectedAttributes({}); setSelectedVariantId(variants.find(v => v.isDefault)?._id || variants[0]?._id || null); }}
+                    className="text-[10px] text-gray-400 hover:text-red-500 font-semibold flex items-center gap-0.5 transition-colors"
+                  >
+                    <Icon icon="mdi:close-circle-outline" className="w-3.5 h-3.5" />
+                    Clear
+                  </button>
+                )}
+              </div>
+
               <div className="space-y-5">
                 {attrTypes.map(type => {
                   const opts = attrOptions[type] || [];
@@ -1126,48 +1179,68 @@ export default function ProductDetailPage() {
 
                   return (
                     <div key={type}>
-                      <div className="flex justify-between items-center mb-2.5">
+                      <div className="flex items-center gap-2 mb-2.5">
                         <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider">{type}</span>
                         {currentVal && (
-                          <span className="text-[10px] font-extrabold text-primary-600 bg-primary-50 px-2 py-0.5 rounded border border-primary-100">
+                          <span className="text-[10px] font-extrabold text-primary-700 bg-primary-50 px-2 py-0.5 rounded-md border border-primary-100 flex items-center gap-1">
+                            <Icon icon="mdi:check" className="w-3 h-3" />
                             {currentVal}
                           </span>
                         )}
                       </div>
-                      <div className="flex gap-2.5 flex-wrap">
+                      <div className="flex gap-2 flex-wrap">
                         {opts.map(opt => {
                           const isSelected = currentVal === opt.value;
+                          // Check if this option is compatible with current other selections
+                          const testAttrs = { ...selectedAttributes, [type]: opt.value };
+                          const compatible = variants.some(v =>
+                            Object.entries(testAttrs).every(([k, val]) =>
+                              v.attributes?.some(a => a.name === k && a.value === val)
+                            )
+                          );
+
                           if (isColor) {
                             const hex = opt.hex || '#ccc';
-                            const isLight = ['#FFFFFF', '#f5f5f5', '#f0f0f0', '#ffffff'].includes(hex.toLowerCase());
+                            const isLight = ['#ffffff', '#f5f5f5', '#f0f0f0', '#fff'].includes(hex.toLowerCase());
                             return (
                               <button
                                 key={opt.value}
-                                title={opt.value}
-                                onClick={() => handleAttrSelect(type, opt.value)}
-                                className={`w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all ${isSelected
-                                  ? 'border-primary-500 scale-110 shadow-md shadow-primary-500/20'
-                                  : `${isLight ? 'border-gray-200' : 'border-transparent'} hover:scale-105 hover:shadow-sm`
-                                  }`}
+                                title={compatible ? opt.value : `${opt.value} — not available`}
+                                onClick={() => compatible && handleAttrSelect(type, opt.value)}
+                                disabled={!compatible}
+                                className={`relative w-9 h-9 rounded-full border-2 flex items-center justify-center transition-all duration-200 ${
+                                  isSelected
+                                    ? 'border-primary-500 scale-110 shadow-md shadow-primary-500/30 ring-2 ring-primary-200'
+                                    : compatible
+                                    ? `${isLight ? 'border-gray-300' : 'border-transparent'} hover:scale-105 hover:shadow-md cursor-pointer`
+                                    : 'border-gray-200 opacity-35 cursor-not-allowed'
+                                }`}
                                 style={{ backgroundColor: hex }}
                               >
                                 {isSelected && (
-                                  <Icon
-                                    icon="mdi:check"
-                                    className={`w-5 h-5 ${isLight ? 'text-gray-700' : 'text-white'}`}
-                                  />
+                                  <Icon icon="mdi:check" className={`w-4 h-4 ${isLight ? 'text-gray-700' : 'text-white'}`} />
+                                )}
+                                {!compatible && (
+                                  <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                                    <div className="w-full h-0.5 bg-gray-400 rotate-45 absolute" />
+                                  </div>
                                 )}
                               </button>
                             );
                           }
+
                           return (
                             <button
                               key={opt.value}
-                              onClick={() => handleAttrSelect(type, opt.value)}
-                              className={`px-4 py-2 rounded-xl border-2 text-xs font-bold transition-all ${isSelected
-                                ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
-                                : 'border-gray-100 bg-gray-50 text-gray-600 hover:border-primary-300 hover:bg-white'
-                                }`}
+                              onClick={() => compatible && handleAttrSelect(type, opt.value)}
+                              disabled={!compatible}
+                              className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all duration-200 ${
+                                isSelected
+                                  ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm scale-105'
+                                  : compatible
+                                  ? 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 cursor-pointer'
+                                  : 'border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through'
+                              }`}
                             >
                               {opt.value}
                             </button>
@@ -1177,6 +1250,38 @@ export default function ProductDetailPage() {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Selected variant summary */}
+              <div className="mt-4 pt-4 border-t border-gray-100">
+                {selectedVariantId ? (
+                  (() => {
+                    const v = variants.find(vv => vv._id === selectedVariantId);
+                    const vPrice = v?.discountPrice || v?.sellingPrice || v?.price || 0;
+                    const vOld = v?.sellingPrice || v?.price || 0;
+                    const vStock = v?.stock ?? 0;
+                    return (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <span className="text-base font-black text-gray-900">${vPrice.toFixed(2)}</span>
+                          {vOld > vPrice && (
+                            <span className="text-xs text-gray-400 line-through ml-1.5">${vOld.toFixed(2)}</span>
+                          )}
+                        </div>
+                        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${vStock > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
+                          {vStock > 0 ? `${vStock} in stock` : 'Out of stock'}
+                        </span>
+                      </div>
+                    );
+                  })()
+                ) : Object.keys(selectedAttributes).length > 0 ? (
+                  <div className="flex items-center gap-2 text-amber-600 bg-amber-50 rounded-xl px-3 py-2">
+                    <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />
+                    <span className="text-[11px] font-semibold">This combination is not available</span>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-gray-400 text-center">Select options to see price & stock</p>
+                )}
               </div>
             </div>
           )}
@@ -1312,66 +1417,112 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                <h4 className="text-xs font-bold text-gray-800 mb-1">Write a Review</h4>
-                <p className="text-gray-400 text-[10px] mb-3">Share your experience with other customers</p>
-                <div className="mb-2.5">
-                  <p className="text-[11px] text-gray-600 mb-1">Your Rating</p>
-                  <StarRating rating={reviewRating} size="md" interactive onChange={setReviewRating} />
-                </div>
-                <textarea
-                  value={reviewText}
-                  onChange={e => setReviewText(e.target.value)}
-                  placeholder="Write your review…"
-                  rows={3}
-                  className="w-full border border-gray-200 rounded-xl p-2.5 text-xs text-gray-700 resize-none focus:outline-none focus:border-primary-400 transition-colors mb-2"
-                />
-
-                <div className="flex items-center gap-3 mb-3">
-                  <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 transition-colors bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200">
-                    <Icon icon="mdi:camera-outline" className="w-4 h-4" />
-                    Add Photos
-                    <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
-                  </label>
-                  <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 transition-colors bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200">
-                    <Icon icon="mdi:video-outline" className="w-4 h-4" />
-                    Add Video
-                    <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
-                  </label>
-                </div>
-
-                {reviewImages.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {reviewImages.map((file, idx) => (
-                      <div key={idx} className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden">
-                        <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                        <button
-                          onClick={() => removeImage(idx)}
-                          className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
-                        >
-                          <Icon icon="mdi:close" className="w-3 h-3" />
-                        </button>
-                      </div>
-                    ))}
+              {userReview ? (
+                /* User already has a review — show edit/delete panel */
+                <div className="bg-white rounded-2xl border border-primary-200 p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Icon icon="mdi:check-circle" className="w-4 h-4 text-primary-500" />
+                    <h4 className="text-xs font-bold text-gray-800">Your Review</h4>
                   </div>
-                )}
-                {reviewVideo && (
-                  <div className="flex items-center gap-2 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                    <Icon icon="mdi:video" className="w-4 h-4 text-gray-500" />
-                    <span className="text-[10px] text-gray-600 truncate flex-1">{reviewVideo.name}</span>
-                    <button onClick={() => setReviewVideo(null)}>
-                      <Icon icon="mdi:close" className="w-3.5 h-3.5 text-red-500" />
+                  {userReview.rating != null && (
+                    <div className="mb-2"><StarRating rating={userReview.rating} size="md" /></div>
+                  )}
+                  {userReview.comment && (
+                    <p className="text-gray-600 text-xs leading-relaxed mb-3 line-clamp-3">{userReview.comment}</p>
+                  )}
+                  {userReview.images?.length > 0 && (
+                    <div className="flex gap-1.5 flex-wrap mb-3">
+                      {userReview.images.map((img, idx) => (
+                        <div key={idx} className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200">
+                          <img src={img.url} alt="" className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2 pt-3 border-t border-gray-100">
+                    <button
+                      onClick={() => setEditingReview(userReview)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 font-semibold text-xs rounded-xl transition-colors border border-primary-200"
+                    >
+                      <Icon icon="solar:pen-bold-duotone" className="w-3.5 h-3.5" />
+                      Edit Review
+                    </button>
+                    <button
+                      onClick={() => handleDeleteReview(userReview._id)}
+                      disabled={deletingReviewId === userReview._id}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2 bg-red-50 hover:bg-red-100 text-red-600 font-semibold text-xs rounded-xl transition-colors border border-red-200 disabled:opacity-50"
+                    >
+                      {deletingReviewId === userReview._id
+                        ? <Icon icon="mdi:loading" className="animate-spin w-3.5 h-3.5" />
+                        : <Icon icon="solar:trash-bin-trash-bold-duotone" className="w-3.5 h-3.5" />
+                      }
+                      Delete Review
                     </button>
                   </div>
-                )}
-                <button
-                  onClick={handleAddReview}
-                  disabled={submittingReview}
-                  className="mt-2.5 w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 rounded-xl text-xs transition-colors disabled:opacity-50"
-                >
-                  {submittingReview ? 'Submitting…' : 'Submit Review'}
-                </button>
-              </div>
+                </div>
+              ) : (
+                /* No review yet — show write review form */
+                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+                  <h4 className="text-xs font-bold text-gray-800 mb-1">Write a Review</h4>
+                  <p className="text-gray-400 text-[10px] mb-3">Share your experience with other customers</p>
+                  <div className="mb-2.5">
+                    <p className="text-[11px] text-gray-600 mb-1">Your Rating</p>
+                    <StarRating rating={reviewRating} size="md" interactive onChange={setReviewRating} />
+                  </div>
+                  <textarea
+                    value={reviewText}
+                    onChange={e => setReviewText(e.target.value)}
+                    placeholder="Write your review…"
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs text-gray-700 resize-none focus:outline-none focus:border-primary-400 transition-colors mb-2"
+                  />
+
+                  <div className="flex items-center gap-3 mb-3">
+                    <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 transition-colors bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200">
+                      <Icon icon="mdi:camera-outline" className="w-4 h-4" />
+                      Add Photos
+                      <input type="file" multiple accept="image/*" onChange={handleImageUpload} className="hidden" />
+                    </label>
+                    <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 transition-colors bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200">
+                      <Icon icon="mdi:video-outline" className="w-4 h-4" />
+                      Add Video
+                      <input type="file" accept="video/*" onChange={handleVideoUpload} className="hidden" />
+                    </label>
+                  </div>
+
+                  {reviewImages.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {reviewImages.map((file, idx) => (
+                        <div key={idx} className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden">
+                          <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
+                          <button
+                            onClick={() => removeImage(idx)}
+                            className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5"
+                          >
+                            <Icon icon="mdi:close" className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {reviewVideo && (
+                    <div className="flex items-center gap-2 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                      <Icon icon="mdi:video" className="w-4 h-4 text-gray-500" />
+                      <span className="text-[10px] text-gray-600 truncate flex-1">{reviewVideo.name}</span>
+                      <button onClick={() => setReviewVideo(null)}>
+                        <Icon icon="mdi:close" className="w-3.5 h-3.5 text-red-500" />
+                      </button>
+                    </div>
+                  )}
+                  <button
+                    onClick={handleAddReview}
+                    disabled={submittingReview}
+                    className="mt-2.5 w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2 rounded-xl text-xs transition-colors disabled:opacity-50"
+                  >
+                    {submittingReview ? 'Submitting…' : 'Submit Review'}
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="lg:col-span-3 space-y-3">
@@ -1384,9 +1535,10 @@ export default function ProductDetailPage() {
                   <ReviewCard
                     key={r._id}
                     review={r}
-                    currentUserId={auth?.user?._id}
+                    currentUserId={currentUserId}
                     onEdit={setEditingReview}
                     onDelete={handleDeleteReview}
+                    isDeletingThis={deletingReviewId === r._id}
                   />
                 ))
               )}
