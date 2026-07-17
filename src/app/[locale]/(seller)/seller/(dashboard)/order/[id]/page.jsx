@@ -59,11 +59,9 @@ function InfoRow({ label, value, mono = false, icon }) {
 }
 
 /* ── Create Shipment Section ─────────────────────────────────────── */
-function CreateShipmentSection({ order, user, token, onCancel, onSuccess }) {
+function CreateShipmentSection({ order, user, token, onCancel, onSuccess, onRateCalculated }) {
   const [step, setStep] = useState('form');   // 'form' | 'confirming' | 'creating'
-  const [pkg, setPkg] = useState({ weight: '', width: '', height: '', length: '', packageCount: 1, notes: '' });
-  const [paymentMethod, setPaymentMethod] = useState('wallet'); // 'wallet' | 'card'
-  const [card, setCard] = useState({ cardHolder: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', cardNumber: '', expiry: '', cvv: '' });
+  const [pkg, setPkg] = useState({ weight: '', width: '', height: '', length: '', packageCount: 1, notes: '', unit: 'CM' });
   const [rateResult, setRateResult] = useState(null);
   const [error, setError] = useState('');
 
@@ -76,83 +74,29 @@ function CreateShipmentSection({ order, user, token, onCancel, onSuccess }) {
     setError('');
   };
 
-  const handleCardChange = (e) => {
-    const { name, value } = e.target;
-    if (name === 'cardNumber') {
-      const digits = value.replace(/\D/g, '').slice(0, 16);
-      setCard(c => ({ ...c, cardNumber: digits.replace(/(.{4})/g, '$1 ').trim() }));
-      return;
-    }
-    if (name === 'expiry') {
-      const digits = value.replace(/\D/g, '').slice(0, 4);
-      setCard(c => ({ ...c, expiry: digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits }));
-      return;
-    }
-    if (name === 'cvv') {
-      setCard(c => ({ ...c, cvv: value.replace(/\D/g, '').slice(0, 3) }));
-      return;
-    }
-    setCard(c => ({ ...c, [name]: value }));
-  };
-
   const handleCalculate = async () => {
     if (!pkg.weight || parseFloat(pkg.weight) <= 0) { setError('Weight is required and must be greater than 0'); return; }
-    if (paymentMethod === 'card') {
-      if (!card.cardHolder || !card.cardNumber || !card.expiry || !card.cvv) {
-        setError('Card details are required for card payment'); return;
-      }
-    }
     setError('');
-    setStep('confirming');
     try {
       const { data } = await axiosInstance.post(
         `/seller/orders/${order._id}/shipping/calculate`,
-        { weight: parseFloat(pkg.weight), width: parseFloat(pkg.width || 0), height: parseFloat(pkg.height || 0), length: parseFloat(pkg.length || 0) },
+        { 
+          weight: parseFloat(pkg.weight), 
+          width: parseFloat(pkg.width || 0), 
+          height: parseFloat(pkg.height || 0), 
+          length: parseFloat(pkg.length || 0),
+          unit: pkg.unit 
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
         setRateResult(data.data);
+        if (onRateCalculated) onRateCalculated(data.data.cost);
       } else {
         setError(data.message || 'Failed to calculate rate');
-        setStep('form');
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'Failed to calculate shipping rate');
-      setStep('form');
-    }
-  };
-
-  const handleCreate = async () => {
-    setStep('creating');
-    setError('');
-    try {
-      const payload = {
-        weight: parseFloat(pkg.weight),
-        width: parseFloat(pkg.width || 0),
-        height: parseFloat(pkg.height || 0),
-        length: parseFloat(pkg.length || 0),
-        packageCount: parseInt(pkg.packageCount || 1, 10),
-        notes: pkg.notes,
-        paymentMethod
-      };
-      if (paymentMethod === 'card') {
-        payload.cardHolder = card.cardHolder;
-        payload.cardNumber = card.cardNumber.replace(/\s/g, '');
-        const [month, year] = card.expiry.split('/');
-        payload.expireMonth = month;
-        payload.expireYear = `20${year}`;
-        payload.cvc = card.cvv;
-      }
-      const { data } = await axiosInstance.post(`/seller/orders/${order._id}/shipping/create`, payload, { headers: { Authorization: `Bearer ${token}` } });
-      if (data.success) {
-        onSuccess(data.data);
-      } else {
-        setError(data.message || 'Shipment creation failed');
-        setStep('confirming');
-      }
-    } catch (err) {
-      setError(err?.response?.data?.message || 'Shipment creation failed');
-      setStep('confirming');
     }
   };
 
@@ -163,7 +107,7 @@ function CreateShipmentSection({ order, user, token, onCancel, onSuccess }) {
       <div className="flex items-center justify-between mb-6">
         <h2 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
           <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-violet-600" />
-          Create Shipment
+          Calculate Shipment
         </h2>
         {step !== 'creating' && (
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
@@ -193,112 +137,60 @@ function CreateShipmentSection({ order, user, token, onCancel, onSuccess }) {
         </div>
       </div>
 
-      {(step === 'form' || step === 'confirming') && (
-        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
-          {/* Left Col: Package Details */}
+      {step === 'form' && (
+        <div className="grid grid-cols-1 gap-6">
+          {/* Package Details */}
           <div>
             <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center gap-1.5"><Icon icon="mdi:package-variant-closed" className="text-gray-400" /> Package Details</h3>
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <div className="col-span-1">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+              <div className="col-span-1 md:col-span-1">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Weight (kg) *</label>
-                <input type="number" name="weight" value={pkg.weight} onChange={handlePkgChange} min="0.1" step="0.1" placeholder="e.g. 1.5" className={inputCls} disabled={step === 'confirming'} />
+                <input type="number" name="weight" value={pkg.weight} onChange={handlePkgChange} min="0.1" step="0.1" placeholder="e.g. 1.5" className={inputCls} />
               </div>
-              <div className="col-span-1">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Package Count *</label>
-                <input type="number" name="packageCount" value={pkg.packageCount} onChange={handlePkgChange} min="1" step="1" className={inputCls} disabled={step === 'confirming'} />
+              <div className="col-span-1 md:col-span-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
+                <select name="unit" value={pkg.unit} onChange={handlePkgChange} className={inputCls}>
+                  <option value="CM">CM</option>
+                  <option value="IN">IN</option>
+                </select>
               </div>
-              {[{ name: 'length', label: 'Length (cm)' }, { name: 'width', label: 'Width (cm)' }, { name: 'height', label: 'Height (cm)' }].map(f => (
-                <div key={f.name} className="col-span-1">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
-                  <input type="number" name={f.name} value={pkg[f.name]} onChange={handlePkgChange} min="0" step="1" placeholder="0" className={inputCls} disabled={step === 'confirming'} />
+              {[{ name: 'length', label: 'Length' }, { name: 'width', label: 'Width' }, { name: 'height', label: 'Height' }].map(f => (
+                <div key={f.name} className="col-span-1 md:col-span-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label} ({pkg.unit})</label>
+                  <input type="number" name={f.name} value={pkg[f.name]} onChange={handlePkgChange} min="0" step="1" placeholder="0" className={inputCls} />
                 </div>
               ))}
-              <div className="col-span-1"></div> {/* empty slot for grid alignment */}
-              <div className="col-span-2">
+              <div className="col-span-1 md:col-span-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Package Count *</label>
+                <input type="number" name="packageCount" value={pkg.packageCount} onChange={handlePkgChange} min="1" step="1" className={inputCls} />
+              </div>
+              <div className="col-span-2 md:col-span-4">
                 <label className="block text-xs font-semibold text-gray-600 mb-1">Special Instructions (Optional)</label>
-                <input type="text" name="notes" value={pkg.notes} onChange={handlePkgChange} placeholder="Fragile, handle with care…" className={inputCls} disabled={step === 'confirming'} />
+                <input type="text" name="notes" value={pkg.notes} onChange={handlePkgChange} placeholder="Fragile, handle with care…" className={inputCls} />
               </div>
             </div>
           </div>
 
-          {/* Right Col: Payment & Actions */}
           <div>
-            <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center gap-1.5"><Icon icon="mdi:credit-card-outline" className="text-gray-400" /> Payment Method</h3>
-            <div className="flex gap-3 mb-4">
-              <label className={`flex-1 border rounded-xl p-3 cursor-pointer transition-colors ${paymentMethod === 'wallet' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                <input type="radio" name="paymentMethod" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} className="hidden" disabled={step === 'confirming'} />
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'wallet' ? 'border-violet-600' : 'border-gray-300'}`}>
-                    {paymentMethod === 'wallet' && <div className="w-2 h-2 rounded-full bg-violet-600" />}
-                  </div>
-                  <span className={`text-sm font-bold ${paymentMethod === 'wallet' ? 'text-violet-800' : 'text-gray-600'}`}>Wallet Balance</span>
-                </div>
-              </label>
-              <label className={`flex-1 border rounded-xl p-3 cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
-                <input type="radio" name="paymentMethod" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} className="hidden" disabled={step === 'confirming'} />
-                <div className="flex items-center gap-2">
-                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'card' ? 'border-violet-600' : 'border-gray-300'}`}>
-                    {paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-violet-600" />}
-                  </div>
-                  <span className={`text-sm font-bold ${paymentMethod === 'card' ? 'text-violet-800' : 'text-gray-600'}`}>Card Payment</span>
-                </div>
-              </label>
-            </div>
-
-            {paymentMethod === 'card' && (
-              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4 space-y-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Card Holder</label>
-                  <input type="text" name="cardHolder" value={card.cardHolder} onChange={handleCardChange} placeholder="John Doe" className={inputCls} disabled={step === 'confirming'} />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Card Number</label>
-                  <input type="text" name="cardNumber" value={card.cardNumber} onChange={handleCardChange} placeholder="0000 0000 0000 0000" className={`${inputCls} tracking-widest`} disabled={step === 'confirming'} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Expiry</label>
-                    <input type="text" name="expiry" value={card.expiry} onChange={handleCardChange} placeholder="MM/YY" className={inputCls} disabled={step === 'confirming'} />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">CVV</label>
-                    <input type="password" name="cvv" value={card.cvv} onChange={handleCardChange} placeholder="•••" className={inputCls} maxLength={3} disabled={step === 'confirming'} />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {rateResult && step === 'confirming' && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
-                <p className="text-xs font-bold text-green-700 mb-1">Estimated Cost</p>
-                <p className="text-2xl font-extrabold text-green-800">{rateResult.cost?.toFixed(2)} {rateResult.currency}</p>
-                <p className="text-xs text-green-600 mt-2">
-                  {paymentMethod === 'wallet' ? 'Will be deducted from your wallet.' : 'Your card will be charged immediately.'}
-                </p>
-              </div>
-            )}
-
             {error && (
               <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-4 text-xs text-red-700">
                 <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />{error}
               </div>
             )}
 
-            {step === 'form' && (
-              <button onClick={handleCalculate} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
-                <Icon icon="mdi:calculator-variant-outline" className="w-5 h-5" /> Calculate Rate
-              </button>
-            )}
-            {step === 'confirming' && (
-              <div className="flex gap-2">
-                <button onClick={() => { setStep('form'); setRateResult(null); }} className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition-colors">
-                  Edit
-                </button>
-                <button onClick={handleCreate} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
-                  <Icon icon="mdi:truck-check-outline" className="w-5 h-5" /> Confirm & Pay
-                </button>
+            {rateResult && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                <p className="text-xs font-bold text-green-700 mb-1">Calculated Cost</p>
+                <p className="text-2xl font-extrabold text-green-800">{rateResult.cost?.toFixed(2)} {rateResult.currency}</p>
+                <p className="text-xs text-green-600 mt-2">
+                  This is just a calculated estimate for now.
+                </p>
               </div>
             )}
+
+            <button onClick={handleCalculate} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+              <Icon icon="mdi:calculator-variant-outline" className="w-5 h-5" /> Calculate Rate
+            </button>
           </div>
         </div>
       )}
@@ -538,6 +430,7 @@ export default function OrderDetailsPage() {
 
   /* Shipment state */
   const [showShipmentForm, setShowShipmentForm] = useState(false);
+  const [calculatedShippingCost, setCalculatedShippingCost] = useState(0);
 
   const fetchOrderDetails = useCallback(async () => {
     if (!token || !id) return;
@@ -852,6 +745,7 @@ export default function OrderDetailsPage() {
               token={token}
               onCancel={() => setShowShipmentForm(false)}
               onSuccess={(data) => { setShowShipmentForm(false); handleShipmentSuccess(data); }}
+              onRateCalculated={(cost) => setCalculatedShippingCost(cost)}
             />
           )}
 
@@ -868,13 +762,15 @@ export default function OrderDetailsPage() {
                 </span>
                 <span className="font-semibold text-gray-800">${(order.subTotal || 0).toFixed(2)}</span>
               </div>
-              {/* Shipping cost row — populated after shipment creation */}
+              {/* Shipping cost row */}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 flex items-center gap-1.5">
                   <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping (from your wallet)
                 </span>
                 {shipmentCreated ? (
                   <span className="font-semibold text-red-600">-{(order.shippingFee || 0).toFixed(2)} TRY</span>
+                ) : calculatedShippingCost > 0 ? (
+                  <span className="font-semibold text-red-600">-{calculatedShippingCost.toFixed(2)} TRY (Est)</span>
                 ) : (
                   <span className="text-xs text-gray-400 italic">Pending shipment</span>
                 )}
@@ -895,7 +791,9 @@ export default function OrderDetailsPage() {
                 <span className="text-emerald-800 font-bold flex items-center gap-1.5">
                   <Icon icon="mdi:wallet-outline" className="w-4 h-4" />Your Earnings
                 </span>
-                <span className="text-xl font-extrabold text-emerald-700">${totalSellerEarnings.toFixed(2)}</span>
+                <span className="text-xl font-extrabold text-emerald-700">
+                  ${(totalSellerEarnings - (shipmentCreated ? (order.shippingFee || 0) : calculatedShippingCost)).toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
