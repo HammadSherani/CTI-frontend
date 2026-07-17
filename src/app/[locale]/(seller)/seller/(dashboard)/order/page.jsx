@@ -480,6 +480,7 @@ export default function SellerOrderPage() {
           loading={loading}
           pagination={pagination}
           onPageChange={setPage}
+          onRowClick={(row) => router.push(`/seller/order/${row._id}`)}
         />
       </div>
     </div>

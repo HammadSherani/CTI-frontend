@@ -82,7 +82,7 @@ function ButtonSection() {
 
   useEffect(() => {
     if (user?.role === 'seller' && token && !sellerIdDisplay) {
-      axiosInstance.get('/seller/profile', { headers: { Authorization: `Bearer ${token}` } })
+      axiosInstance.get('/seller/profile/me-seller', { headers: { Authorization: `Bearer ${token}` } })
         .then(({ data }) => {
           if (data.success && data.data?.sellerId) setSellerIdDisplay(data.data.sellerId);
         })

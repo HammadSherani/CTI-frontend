@@ -9,6 +9,7 @@ export function DataTable({
   loading = false,
   pagination,
   onPageChange,
+  onRowClick,
   emptyIcon = "mdi:folder-open-outline",
   emptyTitle = "No records found",
   emptyDescription = "There are no records matching your criteria.",
@@ -61,7 +62,7 @@ export function DataTable({
             <tr className="bg-gray-50/80 border-b border-gray-100">
               {columns.map((col) => (
                 <th
-                  key={col.key}
+                  key={col.key || col.header}
                   className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider"
                 >
                   {col.header}
@@ -71,9 +72,22 @@ export function DataTable({
           </thead>
           <tbody className="divide-y divide-gray-100">
             {data.map((row) => (
-              <tr key={row._id} className="hover:bg-gray-50/80 transition-colors group">
+              <tr 
+                key={row._id} 
+                className={`hover:bg-gray-50/80 transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
+                onClick={(e) => {
+                  if (!onRowClick) return;
+                  const target = e.target;
+                  // Don't trigger row click if clicking on buttons, links, or selects
+                  if (target.tagName === 'BUTTON' || target.closest('button') || 
+                      target.tagName === 'SELECT' || target.tagName === 'A' || target.closest('a')) {
+                    return;
+                  }
+                  onRowClick(row, e);
+                }}
+              >
                 {columns.map((col) => (
-                  <td key={col.key} className="px-6 py-4 whitespace-nowrap">
+                  <td key={col.key || col.header} className="px-6 py-4 whitespace-nowrap">
                     {col.cell ? col.cell(row) : row[col.key]}
                   </td>
                 ))}

@@ -1,6 +1,7 @@
 "use client"
 import Image from 'next/image';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { usePathname, Link } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
@@ -18,11 +19,6 @@ const primaryNavLinks = [
     name: "Product",
     path: "/seller/product",
     icon: "solar:clipboard-list-bold-duotone",
-    // hasSubmenu: true,
-    // submenu: [
-    //   { name: "All Products",  path: "/seller/product",          icon: "solar:box-bold-duotone" },
-    //   { name: "Add Product",   path: "/seller/product/add",      icon: "solar:add-square-bold-duotone" },
-    // ],
   },
   {
     name: "Order Management",
@@ -79,12 +75,25 @@ function Header() {
   const notificationRef = useRef(null);
 
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [openSubmenu, setOpenSubmenu] = useState(null); // name of open submenu
-  const submenuRefs = useRef({});
+  const [openSubmenu, setOpenSubmenu] = useState(null);
+  const [submenuPos, setSubmenuPos] = useState({ top: 0, left: 0 });
+  const submenuRefs = useRef({}); // toggle button/wrapper refs
+  const submenuPanelRef = useRef(null); // the portaled dropdown panel itself
+  const [mounted, setMounted] = useState(false);
 
   const dispatch = useDispatch();
   const { user, token } = useSelector((state) => state.auth);
   const [enquiryUnread, setEnquiryUnread] = useState(0);
+  const [sellerIdDisplay, setSellerIdDisplay] = useState(null);
+
+  useEffect(() => setMounted(true), []);
+
+  useEffect(() => {
+    if (!token) return;
+    axiosInstance.get('/seller/profile/me-seller', { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => { if (data.success && data.data?.sellerId) setSellerIdDisplay(data.data.sellerId); })
+      .catch(() => { });
+  }, [token]);
 
   const handleLogout = useCallback(() => dispatch(clearAuth()), [dispatch]);
 
@@ -111,15 +120,35 @@ function Header() {
         setIsProfileOpen(false);
       }
       if (notificationRef.current && !notificationRef.current.contains(e.target)) { }
-      // close any submenu if clicked outside all submenu containers
-      const clickedInsideSomeSubmenu = Object.values(submenuRefs.current).some(
+
+      // close submenu if click is outside BOTH the toggle button and the portaled panel
+      const clickedInsideToggle = Object.values(submenuRefs.current).some(
         (ref) => ref && ref.contains(e.target)
       );
-      if (!clickedInsideSomeSubmenu) setOpenSubmenu(null);
+      const clickedInsidePanel = submenuPanelRef.current && submenuPanelRef.current.contains(e.target);
+      if (!clickedInsideToggle && !clickedInsidePanel) setOpenSubmenu(null);
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // reposition on scroll/resize while open, since it's now fixed-position via portal
+  useEffect(() => {
+    if (!openSubmenu) return;
+    const updatePos = () => {
+      const btn = submenuRefs.current[openSubmenu];
+      if (!btn) return;
+      const rect = btn.getBoundingClientRect();
+      setSubmenuPos({ top: rect.bottom + 6, left: rect.left });
+    };
+    updatePos();
+    window.addEventListener('scroll', updatePos, true);
+    window.addEventListener('resize', updatePos);
+    return () => {
+      window.removeEventListener('scroll', updatePos, true);
+      window.removeEventListener('resize', updatePos);
+    };
+  }, [openSubmenu]);
 
   useEffect(() => {
     setIsProfileOpen(false);
@@ -155,14 +184,7 @@ function Header() {
                 : 'text-gray-500 hover:text-primary-600 hover:bg-gray-50'
               }`}
           >
-            <div className="relative flex-shrink-0">
-              <Icon icon={link.icon} className="w-4 h-4" />
-              {/* Pinging glowing badge */}
-              <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isActive ? 'bg-primary-400' : 'bg-red-400'}`}></span>
-                <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isActive ? 'bg-primary-500' : 'bg-red-500'}`}></span>
-              </span>
-            </div>
+            <Icon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
             <span>{link.name}</span>
             <Icon
               icon="solar:alt-arrow-down-bold"
@@ -171,8 +193,14 @@ function Header() {
             {isActive && <div className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary-600 rounded-full" />}
           </button>
 
-          {isOpen && (
-            <div className="absolute top-full left-0 mt-1.5 w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-50">
+          {/* Dropdown is portaled to <body> and fixed-positioned so the nav's
+              overflow-x:auto (custom-thin-scroll) can't clip it vertically. */}
+          {isOpen && mounted && createPortal(
+            <div
+              ref={submenuPanelRef}
+              style={{ position: 'fixed', top: submenuPos.top, left: submenuPos.left }}
+              className="w-52 bg-white rounded-xl shadow-xl border border-gray-100 py-1.5 z-[9999]"
+            >
               {link.submenu.map((sub) => (
                 <Link
                   key={sub.name}
@@ -182,12 +210,14 @@ function Header() {
                       ? 'text-primary-600 bg-primary-50 font-semibold'
                       : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                     }`}
+                  onClick={() => setOpenSubmenu(null)}
                 >
                   <Icon icon={sub.icon} className="w-4 h-4 flex-shrink-0 text-gray-400" />
                   {sub.name}
                 </Link>
               ))}
-            </div>
+            </div>,
+            document.body
           )}
         </div>
       );
@@ -199,20 +229,13 @@ function Header() {
       <Link
         key={link.name}
         href={link.path}
-        className={`relative px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 group whitespace-nowrap flex-shrink-0
+        className={`relative px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 flex items-center gap-1.5 whitespace-nowrap flex-shrink-0
           ${isActive
             ? 'text-primary-600 bg-primary-50'
             : 'text-gray-500 hover:text-primary-600 hover:bg-gray-50'
           }`}
       >
-        <div className="relative flex-shrink-0">
-          <Icon icon={link.icon} className="w-4 h-4" />
-          {/* Pinging glowing badge */}
-          <span className="absolute -top-0.5 -right-0.5 flex h-1.5 w-1.5">
-            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isActive ? 'bg-primary-400' : 'bg-red-400'}`}></span>
-            <span className={`relative inline-flex rounded-full h-1.5 w-1.5 ${isActive ? 'bg-primary-500' : 'bg-red-500'}`}></span>
-          </span>
-        </div>
+        <Icon icon={link.icon} className="w-4 h-4 flex-shrink-0" />
         <span>{link.name}</span>
         {isEnquiries && enquiryUnread > 0 && (
           <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-black leading-none">
@@ -278,38 +301,48 @@ function Header() {
               </button>
 
               {isProfileOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
-                  <div className="px-4 py-3 border-b border-gray-100 mb-1">
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-[60]">
+                  {/* User info */}
+                  <div className="px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md">
                         <span className="text-sm font-bold text-white">{getInitials(user?.name)}</span>
                       </div>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-gray-900 truncate text-sm capitalize">{user?.name}</p>
                         <p className="text-xs text-gray-400 truncate">{user?.email}</p>
-                        {user?.sellerId && (
-                          <p className="text-[11px] font-mono font-semibold text-primary-600 mt-0.5">
-                            ID: #{user.sellerId}
-                          </p>
-                        )}
                       </div>
                     </div>
+                    {/* Seller ID badge */}
+                    <div className="mt-2.5">
+                      {sellerIdDisplay ? (
+                        <div className="flex items-center gap-1.5 bg-primary-50 border border-primary-100 rounded-lg px-2.5 py-1.5">
+                          <Icon icon="mdi:identifier" className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />
+                          <span className="text-[10px] text-primary-500 font-semibold">Seller ID</span>
+                          <span className="text-[12px] font-mono font-black text-primary-700 ml-auto">#{sellerIdDisplay}</span>
+                        </div>
+                      ) : (
+                        <div className="h-7 bg-gray-100 rounded-lg animate-pulse" />
+                      )}
+                    </div>
                   </div>
-                  <div className="py-1">
+
+                  {/* Links */}
+                  <div className="py-1.5">
                     {dropdownLinks.map((link) => (
                       <React.Fragment key={link.name}>
                         {link.isLogout && <div className="border-t border-gray-100 my-1.5 mx-3" />}
                         <Link
                           href={link.path}
-                          className={`flex items-center gap-3 mx-2 px-3 py-2 rounded-lg text-sm transition-all duration-150
+                          className={`flex items-center gap-3 mx-2 px-3 py-2.5 rounded-xl text-sm transition-all duration-150
                             ${link.isLogout ? 'text-red-600 hover:bg-red-50' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'}`}
-                          onClick={() => link.isLogout && handleLogout()}
+                          onClick={() => { link.isLogout && handleLogout(); setIsProfileOpen(false); }}
                         >
                           <Icon
                             icon={link.icon}
-                            className={`w-4.5 h-4.5 flex-shrink-0 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`}
+                            className={`w-4 h-4 flex-shrink-0 ${link.isLogout ? 'text-red-400' : 'text-gray-400'}`}
                           />
-                          <span className="truncate font-medium">{link.name}</span>
+                          <span className="font-medium">{link.name}</span>
                         </Link>
                       </React.Fragment>
                     ))}

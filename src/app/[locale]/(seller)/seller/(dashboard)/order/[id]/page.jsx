@@ -12,6 +12,8 @@ import moment from "moment";
 const STATUS_CONFIG = {
   pending: { label: "Pending", bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:clock-outline" },
   processing: { label: "Processing", bg: "bg-indigo-100", text: "text-indigo-700", icon: "mdi:cogs" },
+  shipping: { label: "Shipping", bg: "bg-cyan-100", text: "text-cyan-700", icon: "mdi:package-variant" },
+  shipment_created: { label: "Shipment Created", bg: "bg-violet-100", text: "text-violet-700", icon: "mdi:truck-check-outline" },
   shipped: { label: "Shipped", bg: "bg-amber-100", text: "text-amber-700", icon: "mdi:truck-delivery-outline" },
   delivered: { label: "Delivered", bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:package-check" },
   on_hold: { label: "On Hold", bg: "bg-orange-100", text: "text-orange-700", icon: "mdi:pause-circle-outline" },
@@ -52,6 +54,326 @@ function InfoRow({ label, value, mono = false, icon }) {
       <span className={`text-sm font-semibold text-gray-800 break-all ${mono ? "font-mono" : ""}`}>
         {value || <span className="text-gray-400 font-normal italic">N/A</span>}
       </span>
+    </div>
+  );
+}
+
+/* ── Create Shipment Section ─────────────────────────────────────── */
+function CreateShipmentSection({ order, user, token, onCancel, onSuccess }) {
+  const [step, setStep] = useState('form');   // 'form' | 'confirming' | 'creating'
+  const [pkg, setPkg] = useState({ weight: '', width: '', height: '', length: '', packageCount: 1, notes: '' });
+  const [paymentMethod, setPaymentMethod] = useState('wallet'); // 'wallet' | 'card'
+  const [card, setCard] = useState({ cardHolder: user?.firstName ? `${user.firstName} ${user.lastName || ''}` : '', cardNumber: '', expiry: '', cvv: '' });
+  const [rateResult, setRateResult] = useState(null);
+  const [error, setError] = useState('');
+
+  const shippingAddress = order?.shippingAddress;
+  const sellerProfile = order?.sellerProfile;
+
+  const handlePkgChange = (e) => {
+    const { name, value } = e.target;
+    setPkg(p => ({ ...p, [name]: value }));
+    setError('');
+  };
+
+  const handleCardChange = (e) => {
+    const { name, value } = e.target;
+    if (name === 'cardNumber') {
+      const digits = value.replace(/\D/g, '').slice(0, 16);
+      setCard(c => ({ ...c, cardNumber: digits.replace(/(.{4})/g, '$1 ').trim() }));
+      return;
+    }
+    if (name === 'expiry') {
+      const digits = value.replace(/\D/g, '').slice(0, 4);
+      setCard(c => ({ ...c, expiry: digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits }));
+      return;
+    }
+    if (name === 'cvv') {
+      setCard(c => ({ ...c, cvv: value.replace(/\D/g, '').slice(0, 3) }));
+      return;
+    }
+    setCard(c => ({ ...c, [name]: value }));
+  };
+
+  const handleCalculate = async () => {
+    if (!pkg.weight || parseFloat(pkg.weight) <= 0) { setError('Weight is required and must be greater than 0'); return; }
+    if (paymentMethod === 'card') {
+      if (!card.cardHolder || !card.cardNumber || !card.expiry || !card.cvv) {
+        setError('Card details are required for card payment'); return;
+      }
+    }
+    setError('');
+    setStep('confirming');
+    try {
+      const { data } = await axiosInstance.post(
+        `/seller/orders/${order._id}/shipping/calculate`,
+        { weight: parseFloat(pkg.weight), width: parseFloat(pkg.width || 0), height: parseFloat(pkg.height || 0), length: parseFloat(pkg.length || 0) },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        setRateResult(data.data);
+      } else {
+        setError(data.message || 'Failed to calculate rate');
+        setStep('form');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Failed to calculate shipping rate');
+      setStep('form');
+    }
+  };
+
+  const handleCreate = async () => {
+    setStep('creating');
+    setError('');
+    try {
+      const payload = {
+        weight: parseFloat(pkg.weight),
+        width: parseFloat(pkg.width || 0),
+        height: parseFloat(pkg.height || 0),
+        length: parseFloat(pkg.length || 0),
+        packageCount: parseInt(pkg.packageCount || 1, 10),
+        notes: pkg.notes,
+        paymentMethod
+      };
+      if (paymentMethod === 'card') {
+        payload.cardHolder = card.cardHolder;
+        payload.cardNumber = card.cardNumber.replace(/\s/g, '');
+        const [month, year] = card.expiry.split('/');
+        payload.expireMonth = month;
+        payload.expireYear = `20${year}`;
+        payload.cvc = card.cvv;
+      }
+      const { data } = await axiosInstance.post(`/seller/orders/${order._id}/shipping/create`, payload, { headers: { Authorization: `Bearer ${token}` } });
+      if (data.success) {
+        onSuccess(data.data);
+      } else {
+        setError(data.message || 'Shipment creation failed');
+        setStep('confirming');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || 'Shipment creation failed');
+      setStep('confirming');
+    }
+  };
+
+  const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-400 transition-colors';
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
+          <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-violet-600" />
+          Create Shipment
+        </h2>
+        {step !== 'creating' && (
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
+            <Icon icon="mdi:close" className="w-5 h-5" />
+          </button>
+        )}
+      </div>
+
+      {/* Addresses (FROM / TO) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Icon icon="mdi:store-outline" /> FROM (Seller)</p>
+          <p className="font-semibold text-gray-800 text-sm">{sellerProfile?.businessName || sellerProfile?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Your Store')}</p>
+          <p className="text-gray-600 text-sm mt-1">{sellerProfile?.storeAddress || user?.address || 'Your Address'}</p>
+          <p className="text-gray-600 text-sm">
+            {[sellerProfile?.city?.name || user?.city, sellerProfile?.state?.name, sellerProfile?.country?.name || user?.country].filter(Boolean).join(', ')}
+          </p>
+          <p className="text-gray-500 text-xs mt-2">{sellerProfile?.phoneNumber || user?.phone || ''}</p>
+        </div>
+        <div className="border border-violet-100 rounded-xl p-4 bg-violet-50">
+          <p className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Icon icon="mdi:account-outline" /> TO (Customer)</p>
+          <p className="font-semibold text-violet-900 text-sm">{shippingAddress?.fullName}</p>
+          <p className="text-violet-700 text-sm mt-1">{shippingAddress?.addressLine}</p>
+          <p className="text-violet-700 text-sm">{[shippingAddress?.city, shippingAddress?.state, shippingAddress?.country].filter(Boolean).join(', ')}</p>
+          {shippingAddress?.postalCode && <p className="text-violet-600 text-xs mt-1">Postal: {shippingAddress.postalCode}</p>}
+          <p className="text-violet-600 text-xs mt-2">{shippingAddress?.phone}</p>
+        </div>
+      </div>
+
+      {(step === 'form' || step === 'confirming') && (
+        <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
+          {/* Left Col: Package Details */}
+          <div>
+            <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center gap-1.5"><Icon icon="mdi:package-variant-closed" className="text-gray-400" /> Package Details</h3>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="col-span-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Weight (kg) *</label>
+                <input type="number" name="weight" value={pkg.weight} onChange={handlePkgChange} min="0.1" step="0.1" placeholder="e.g. 1.5" className={inputCls} disabled={step === 'confirming'} />
+              </div>
+              <div className="col-span-1">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Package Count *</label>
+                <input type="number" name="packageCount" value={pkg.packageCount} onChange={handlePkgChange} min="1" step="1" className={inputCls} disabled={step === 'confirming'} />
+              </div>
+              {[{ name: 'length', label: 'Length (cm)' }, { name: 'width', label: 'Width (cm)' }, { name: 'height', label: 'Height (cm)' }].map(f => (
+                <div key={f.name} className="col-span-1">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label}</label>
+                  <input type="number" name={f.name} value={pkg[f.name]} onChange={handlePkgChange} min="0" step="1" placeholder="0" className={inputCls} disabled={step === 'confirming'} />
+                </div>
+              ))}
+              <div className="col-span-1"></div> {/* empty slot for grid alignment */}
+              <div className="col-span-2">
+                <label className="block text-xs font-semibold text-gray-600 mb-1">Special Instructions (Optional)</label>
+                <input type="text" name="notes" value={pkg.notes} onChange={handlePkgChange} placeholder="Fragile, handle with care…" className={inputCls} disabled={step === 'confirming'} />
+              </div>
+            </div>
+          </div>
+
+          {/* Right Col: Payment & Actions */}
+          <div>
+            <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center gap-1.5"><Icon icon="mdi:credit-card-outline" className="text-gray-400" /> Payment Method</h3>
+            <div className="flex gap-3 mb-4">
+              <label className={`flex-1 border rounded-xl p-3 cursor-pointer transition-colors ${paymentMethod === 'wallet' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" name="paymentMethod" value="wallet" checked={paymentMethod === 'wallet'} onChange={() => setPaymentMethod('wallet')} className="hidden" disabled={step === 'confirming'} />
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'wallet' ? 'border-violet-600' : 'border-gray-300'}`}>
+                    {paymentMethod === 'wallet' && <div className="w-2 h-2 rounded-full bg-violet-600" />}
+                  </div>
+                  <span className={`text-sm font-bold ${paymentMethod === 'wallet' ? 'text-violet-800' : 'text-gray-600'}`}>Wallet Balance</span>
+                </div>
+              </label>
+              <label className={`flex-1 border rounded-xl p-3 cursor-pointer transition-colors ${paymentMethod === 'card' ? 'border-violet-500 bg-violet-50' : 'border-gray-200 hover:border-gray-300'}`}>
+                <input type="radio" name="paymentMethod" value="card" checked={paymentMethod === 'card'} onChange={() => setPaymentMethod('card')} className="hidden" disabled={step === 'confirming'} />
+                <div className="flex items-center gap-2">
+                  <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'card' ? 'border-violet-600' : 'border-gray-300'}`}>
+                    {paymentMethod === 'card' && <div className="w-2 h-2 rounded-full bg-violet-600" />}
+                  </div>
+                  <span className={`text-sm font-bold ${paymentMethod === 'card' ? 'text-violet-800' : 'text-gray-600'}`}>Card Payment</span>
+                </div>
+              </label>
+            </div>
+
+            {paymentMethod === 'card' && (
+              <div className="bg-gray-50 border border-gray-100 rounded-xl p-4 mb-4 space-y-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Card Holder</label>
+                  <input type="text" name="cardHolder" value={card.cardHolder} onChange={handleCardChange} placeholder="John Doe" className={inputCls} disabled={step === 'confirming'} />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Card Number</label>
+                  <input type="text" name="cardNumber" value={card.cardNumber} onChange={handleCardChange} placeholder="0000 0000 0000 0000" className={`${inputCls} tracking-widest`} disabled={step === 'confirming'} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Expiry</label>
+                    <input type="text" name="expiry" value={card.expiry} onChange={handleCardChange} placeholder="MM/YY" className={inputCls} disabled={step === 'confirming'} />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">CVV</label>
+                    <input type="password" name="cvv" value={card.cvv} onChange={handleCardChange} placeholder="•••" className={inputCls} maxLength={3} disabled={step === 'confirming'} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {rateResult && step === 'confirming' && (
+              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+                <p className="text-xs font-bold text-green-700 mb-1">Estimated Cost</p>
+                <p className="text-2xl font-extrabold text-green-800">{rateResult.cost?.toFixed(2)} {rateResult.currency}</p>
+                <p className="text-xs text-green-600 mt-2">
+                  {paymentMethod === 'wallet' ? 'Will be deducted from your wallet.' : 'Your card will be charged immediately.'}
+                </p>
+              </div>
+            )}
+
+            {error && (
+              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-4 text-xs text-red-700">
+                <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />{error}
+              </div>
+            )}
+
+            {step === 'form' && (
+              <button onClick={handleCalculate} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+                <Icon icon="mdi:calculator-variant-outline" className="w-5 h-5" /> Calculate Rate
+              </button>
+            )}
+            {step === 'confirming' && (
+              <div className="flex gap-2">
+                <button onClick={() => { setStep('form'); setRateResult(null); }} className="w-1/3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition-colors">
+                  Edit
+                </button>
+                <button onClick={handleCreate} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
+                  <Icon icon="mdi:truck-check-outline" className="w-5 h-5" /> Confirm & Pay
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {step === 'creating' && (
+        <div className="flex flex-col items-center py-12">
+          <Icon icon="svg-spinners:180-ring-with-bg" className="w-12 h-12 text-violet-500 mb-4" />
+          <p className="text-base font-bold text-gray-800">Processing Payment & Shipment…</p>
+          <p className="text-sm text-gray-500 mt-1">Please do not close this window.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Shipment Info Card ─────────────────────────────────────────── */
+function ShipmentInfoCard({ shipment }) {
+  if (!shipment || shipment.status === 'not_created') return null;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+      <div className="flex items-center gap-2 mb-4">
+        <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center">
+          <Icon icon="mdi:truck-check-outline" className="w-4 h-4 text-cyan-600" />
+        </div>
+        <h2 className="font-bold text-gray-900">Aras Cargo Shipment</h2>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${shipment.status === 'created' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+          }`}>
+          {shipment.status === 'created' ? 'Created' : 'Failed'}
+        </span>
+      </div>
+
+      <div className="space-y-3 text-sm">
+        {shipment.trackingNumber && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-gray-400">Tracking No.</span>
+            <span className="font-mono font-bold text-violet-700 text-xs">{shipment.trackingNumber}</span>
+          </div>
+        )}
+        {shipment.shippingCost > 0 && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-gray-400">Shipping Cost (deducted)</span>
+            <span className="font-bold text-red-600">-{shipment.shippingCost?.toFixed(2)} TRY</span>
+          </div>
+        )}
+        {shipment.createdAt && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-gray-400">Created</span>
+            <span className="text-xs text-gray-500">{new Date(shipment.createdAt).toLocaleString()}</span>
+          </div>
+        )}
+        {shipment.packageDetails?.weight && (
+          <div className="bg-gray-50 rounded-xl p-2.5 text-xs">
+            <p className="font-bold text-gray-500 mb-1 uppercase">Package</p>
+            <p className="text-gray-700">
+              {shipment.packageDetails.weight}kg
+              {shipment.packageDetails.width ? ` · ${shipment.packageDetails.width}×${shipment.packageDetails.height}×${shipment.packageDetails.length}cm` : ''}
+            </p>
+          </div>
+        )}
+        <div className="flex flex-col gap-2 mt-2">
+          {shipment.trackingUrl && (
+            <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              <Icon icon="mdi:map-search-outline" className="w-4 h-4" /> Track Shipment
+            </a>
+          )}
+          {shipment.labelUrl && (
+            <a href={shipment.labelUrl} target="_blank" rel="noopener noreferrer"
+              className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              <Icon icon="mdi:download" className="w-4 h-4" /> Download Label (PDF)
+            </a>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -202,7 +524,7 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
 export default function OrderDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
-  const { token } = useSelector((s) => s.auth);
+  const { user, token } = useSelector((s) => s.auth);
 
   const [loading, setLoading] = useState(true);
   const [order, setOrder] = useState(null);
@@ -213,6 +535,9 @@ export default function OrderDetailsPage() {
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
+
+  /* Shipment state */
+  const [showShipmentForm, setShowShipmentForm] = useState(false);
 
   const fetchOrderDetails = useCallback(async () => {
     if (!token || !id) return;
@@ -282,6 +607,28 @@ export default function OrderDetailsPage() {
     setInvoice(updated);
   };
 
+  /* Shipment success handler */
+  const handleShipmentSuccess = (shipmentData) => {
+    // Optimistically update order state so UI refreshes without full reload
+    setOrder(prev => ({
+      ...prev,
+      orderStatus: 'shipping',
+      shippingFee: shipmentData.shippingCost,
+      shipment: {
+        status: 'created',
+        trackingNumber: shipmentData.trackingNumber,
+        trackingUrl: shipmentData.trackingUrl,
+        labelUrl: shipmentData.labelUrl,
+        shippingCost: shipmentData.shippingCost,
+        createdAt: new Date().toISOString(),
+        packageDetails: {},
+      },
+    }));
+    toast.success(`Shipment created! Tracking: ${shipmentData.trackingNumber}`);
+    // Refresh full order after a short delay for accuracy
+    setTimeout(() => fetchOrderDetails(), 1000);
+  };
+
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
@@ -303,6 +650,11 @@ export default function OrderDetailsPage() {
   const canChangeStatus = !["delivered", "cancelled"].includes(order.orderStatus);
   const canUploadInvoice = order.orderStatus !== 'cancelled';
   const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
+
+  /* Shipment helpers */
+  const shipment = order.shipment;
+  const shipmentCreated = shipment?.status === 'created';
+  const canCreateShipment = !shipmentCreated && !['cancelled', 'delivered'].includes(order.orderStatus);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -335,6 +687,23 @@ export default function OrderDetailsPage() {
         </div>
 
         <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
+          {/* Create Shipment button */}
+          {canCreateShipment && !showShipmentForm && (
+            <button
+              onClick={() => setShowShipmentForm(true)}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm bg-cyan-600 hover:bg-cyan-700 text-white"
+            >
+              <Icon icon="mdi:truck-plus-outline" className="w-4 h-4" />
+              Create Shipment
+            </button>
+          )}
+          {shipmentCreated && (
+            <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-700">
+              <Icon icon="mdi:truck-check-outline" className="w-4 h-4" />
+              Shipment Active
+            </span>
+          )}
+
           {/* Upload Invoice button */}
           {canUploadInvoice && (
             <button
@@ -374,8 +743,10 @@ export default function OrderDetailsPage() {
               >
                 <option value="pending">Pending</option>
                 <option value="processing">Processing</option>
-                <option value="shipped">Shipped</option>
-                <option value="delivered">Delivered</option>
+                <option value="shipping" disabled={!shipmentCreated}>Shipping {!shipmentCreated ? '(create shipment first)' : ''}</option>
+                <option value="shipment_created" disabled={!shipmentCreated}>Shipment Created {!shipmentCreated ? '(create shipment first)' : ''}</option>
+                <option value="shipped" disabled={!shipmentCreated}>Shipped {!shipmentCreated ? '(create shipment first)' : ''}</option>
+                <option value="delivered" disabled={!shipmentCreated}>Delivered {!shipmentCreated ? '(create shipment first)' : ''}</option>
                 <option value="on_hold">On Hold</option>
                 <option value="cancelled">Cancelled</option>
               </select>
@@ -473,6 +844,17 @@ export default function OrderDetailsPage() {
             </div>
           </div>
 
+          {/* Create Shipment Inline Section */}
+          {showShipmentForm && !shipmentCreated && (
+            <CreateShipmentSection
+              order={order}
+              user={user}
+              token={token}
+              onCancel={() => setShowShipmentForm(false)}
+              onSuccess={(data) => { setShowShipmentForm(false); handleShipmentSuccess(data); }}
+            />
+          )}
+
           {/* Financial Summary */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-5">
@@ -486,15 +868,20 @@ export default function OrderDetailsPage() {
                 </span>
                 <span className="font-semibold text-gray-800">${(order.subTotal || 0).toFixed(2)}</span>
               </div>
+              {/* Shipping cost row — populated after shipment creation */}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 flex items-center gap-1.5">
-                  <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping Fee
+                  <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping (from your wallet)
                 </span>
-                <span className="font-semibold text-gray-800">${(order.shippingFee || 0).toFixed(2)}</span>
+                {shipmentCreated ? (
+                  <span className="font-semibold text-red-600">-{(order.shippingFee || 0).toFixed(2)} TRY</span>
+                ) : (
+                  <span className="text-xs text-gray-400 italic">Pending shipment</span>
+                )}
               </div>
               <div className="flex justify-between text-sm border-t border-gray-100 pt-3">
                 <span className="font-bold text-gray-700 flex items-center gap-1.5">
-                  <Icon icon="mdi:sigma" className="w-4 h-4" />Order Total
+                  <Icon icon="mdi:sigma" className="w-4 h-4" />Order Total (customer paid)
                 </span>
                 <span className="font-extrabold text-gray-900">${(order.totalAmount || 0).toFixed(2)}</span>
               </div>
@@ -516,6 +903,9 @@ export default function OrderDetailsPage() {
 
         {/* ── RIGHT: Invoice Status + Order Meta + Customer + Shipping + Payment ── */}
         <div className="flex flex-col gap-6">
+
+          {/* Aras Cargo Shipment Info Card */}
+          <ShipmentInfoCard shipment={shipment} />
 
           {/* Invoice Status Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
@@ -673,8 +1063,14 @@ export default function OrderDetailsPage() {
                 </p>
                 <p className="text-gray-600 flex items-center gap-1.5">
                   <Icon icon="mdi:city-variant-outline" className="w-4 h-4 text-gray-400" />
-                  {[order.shippingAddress.area, order.shippingAddress.city].filter(Boolean).join(", ")}
+                  {[order.shippingAddress.city, order.shippingAddress.state].filter(Boolean).join(', ')}
                 </p>
+                {order.shippingAddress.country && (
+                  <p className="text-gray-600 flex items-center gap-1.5">
+                    <Icon icon="mdi:earth" className="w-4 h-4 text-gray-400" />
+                    {order.shippingAddress.country}
+                  </p>
+                )}
                 {order.shippingAddress.postalCode && (
                   <p className="text-gray-500 text-xs font-mono">Postal: {order.shippingAddress.postalCode}</p>
                 )}
@@ -686,6 +1082,7 @@ export default function OrderDetailsPage() {
             ) : (
               <p className="text-sm text-gray-400 italic">No shipping address provided.</p>
             )}
+
           </div>
         </div>
       </div>
