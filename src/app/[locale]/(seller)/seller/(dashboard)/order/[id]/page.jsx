@@ -80,12 +80,12 @@ function CreateShipmentSection({ order, user, token, onCancel, onSuccess, onRate
     try {
       const { data } = await axiosInstance.post(
         `/seller/orders/${order._id}/shipping/calculate`,
-        { 
-          weight: parseFloat(pkg.weight), 
-          width: parseFloat(pkg.width || 0), 
-          height: parseFloat(pkg.height || 0), 
+        {
+          weight: parseFloat(pkg.weight),
+          width: parseFloat(pkg.width || 0),
+          height: parseFloat(pkg.height || 0),
           length: parseFloat(pkg.length || 0),
-          unit: pkg.unit 
+          unit: pkg.unit
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -765,7 +765,7 @@ export default function OrderDetailsPage() {
               {/* Shipping cost row */}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 flex items-center gap-1.5">
-                  <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping (from your wallet)
+                  <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping
                 </span>
                 {shipmentCreated ? (
                   <span className="font-semibold text-red-600">-{(order.shippingFee || 0).toFixed(2)} TRY</span>
