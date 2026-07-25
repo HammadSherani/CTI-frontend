@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { Link } from '@/i18n/navigation';
+import { useParams } from 'next/navigation';
+import { Link ,useRouter} from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';

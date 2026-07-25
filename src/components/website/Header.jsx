@@ -567,6 +567,7 @@ function NavigationBar({ isHome, isScrolled }) {
         { name: "Software Issues", href: "/mobile-repair" },
       ],
     },
+    { name: "Sell Old Phone", href: "/sell-old-phone", },
     { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
     { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
     { name: "Academy", href: "/academy", hasDropdown: false },
