@@ -8,17 +8,13 @@ import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 
-function EcomHeader() {
+function RefurbishedHeader() {
   const pathname = usePathname();
   const dropdownRef = useRef(null);
   const catalogDropdownRef = useRef(null);
-  const ordersDropdownRef = useRef(null);
-  const adsDropdownRef = useRef(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
-  const [isOrdersDropdownOpen, setIsOrdersDropdownOpen] = useState(false);
-  const [isAdsDropdownOpen, setIsAdsDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -30,7 +26,7 @@ function EcomHeader() {
   const primaryNavLinks = [
     {
       name: "Dashboard",
-      path: "/admin/ecom/dashbaord",
+      path: "/admin/refurbished/categories",
       icon: "mdi:view-dashboard-outline",
     },
     {
@@ -40,68 +36,14 @@ function EcomHeader() {
       hasSubmenu: true,
       submenu: [
         {
-          category: "Categories",
+          category: "Refurbished Items",
           items: [
-            { name: "Categories", icon: "mdi:shape-outline", path: "/admin/ecom/categories" },
-            { name: "Sub Categories", icon: "mdi:shape-plus-outline", path: "/admin/ecom/sub-categories" },
-            { name: "Brand", icon: "mdi:shape-plus-outline", path: "/admin/ecom/brands" },
-            {
-              name: "Sellers",
-              path: "/admin/ecom/sellers",
-              icon: "mdi:store-outline",
-            },
-          ],
-        },
-
-      ],
-    },
-    {
-      name: "Products",
-      path: "/admin/ecom/products",
-      icon: "mdi:package-variant-outline",
-    },
-    {
-      name: "Ads",
-      path: "#",
-      icon: "mdi:bullhorn-outline",
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "Ad Management",
-          items: [
-            { name: "Campaigns", icon: "mdi:format-list-bulleted", path: "/admin/ecom/ads" },
-            { name: "Settings", icon: "mdi:cog-outline", path: "/admin/ecom/ads/settings" },
+            { name: "Categories", icon: "mdi:shape-outline", path: "/admin/refurbished/categories" },
+            { name: "Brands", icon: "mdi:tag-outline", path: "/admin/refurbished/brands" },
+            { name: "Models", icon: "mdi:cellphone-link", path: "/admin/refurbished/models" },
           ],
         },
       ],
-    },
-    {
-      name: "Orders",
-      path: "#",
-      icon: "mdi:cart-outline",
-      hasSubmenu: true,
-      submenu: [
-        {
-          category: "Order Management",
-          items: [
-            { name: "All Orders", icon: "mdi:clipboard-list-outline", path: "/admin/ecom/orders" },
-            { name: "Returns", icon: "mdi:package-variant-closed-remove", path: "/admin/ecom/returns" },
-            { name: "Customer Requests", icon: "mdi:message-text-outline", path: "/admin/ecom/returns?tab=__cr__" },
-            { name: "Invoices", icon: "mdi:file-document-outline", path: "/admin/ecom/invoices" },
-          ],
-        },
-      ],
-    },
-
-    {
-      name: "Wallet",
-      path: "/admin/ecom/wallet",
-      icon: "mdi:wallet-outline",
-    },
-    {
-      name: "Withdrawals",
-      path: "/admin/ecom/seller-withdrawals",
-      icon: "mdi:bank-transfer-out",
     },
   ];
 
@@ -119,12 +61,6 @@ function EcomHeader() {
       if (catalogDropdownRef.current && !catalogDropdownRef.current.contains(event.target)) {
         setIsCatalogDropdownOpen(false);
       }
-      if (ordersDropdownRef.current && !ordersDropdownRef.current.contains(event.target)) {
-        setIsOrdersDropdownOpen(false);
-      }
-      if (adsDropdownRef.current && !adsDropdownRef.current.contains(event.target)) {
-        setIsAdsDropdownOpen(false);
-      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -133,8 +69,6 @@ function EcomHeader() {
   useEffect(() => {
     setIsDropdownOpen(false);
     setIsCatalogDropdownOpen(false);
-    setIsOrdersDropdownOpen(false);
-    setIsAdsDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -155,8 +89,8 @@ function EcomHeader() {
             onClick={() => setDropdownOpen(!dropdownOpen)}
             className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2
               ${(isSubmenuActive(link.submenu) || dropdownOpen)
-                ? 'text-primary-600 '
-                : 'text-gray-600 hover:text-primary-600 '
+                ? 'text-primary-600'
+                : 'text-gray-600 hover:text-primary-600'
               }`}
           >
             <Icon icon={link.icon} className="w-4 h-4" />
@@ -212,8 +146,8 @@ function EcomHeader() {
         href={link.path}
         className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2
           ${isActiveLink(link.path)
-            ? 'text-primary-600 '
-            : 'text-gray-600 hover:text-primary-600 '
+            ? 'text-primary-600'
+            : 'text-gray-600 hover:text-primary-600'
           }`}
       >
         <Icon icon={link.icon} className="w-4 h-4" />
@@ -228,7 +162,7 @@ function EcomHeader() {
   return (
     <header className="bg-white sticky top-0 z-50 shadow-sm">
 
-      {/* Top breadcrumb bar - main header se link */}
+      {/* Top breadcrumb bar */}
       <div className="bg-primary-600 px-6 py-1.5 flex items-center gap-2">
         <Link
           href="/admin/dashboard"
@@ -239,8 +173,8 @@ function EcomHeader() {
         </Link>
         <Icon icon="mdi:chevron-right" className="w-3.5 h-3.5 text-white" />
         <div className="flex items-center cursor-pointer gap-1.5 text-white text-xs">
-          <Icon icon="mdi:store" className="w-3.5 h-3.5 text-white" />
-          <span>Ecommerce Module</span>
+          <Icon icon="mdi:cellphone-link" className="w-3.5 h-3.5 text-white" />
+          <span>Refurbished Module</span>
         </div>
       </div>
 
@@ -250,104 +184,99 @@ function EcomHeader() {
 
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6">
-            <Link href="/admin/ecom/dashbaord" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
+            <Link href="/admin/refurbished/categories" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
               <Image
                 src={logo}
-                alt="RepairHub Logo"
+                alt="CTI Logo"
                 width={120}
                 height={55}
                 className="w-20 h-auto object-contain"
                 priority
               />
-              {/* <div className="hidden sm:block">
-                <p className="text-xs font-semibold text-primary-600 leading-tight">Ecommerce</p>
-                <p className="text-[10px] text-gray-400 leading-tight">Management Panel</p>
-              </div> */}
             </Link>
 
             <nav className="hidden lg:flex items-center gap-1">
               {primaryNavLinks.map((link) => {
                 if (link.name === "Catalog") {
                   return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
-                } else if (link.name === "Orders") {
-                  return renderNavLink(link, isOrdersDropdownOpen, setIsOrdersDropdownOpen, ordersDropdownRef);
-                } else if (link.name === "Ads") {
-                  return renderNavLink(link, isAdsDropdownOpen, setIsAdsDropdownOpen, adsDropdownRef);
                 }
                 return renderNavLink(link);
               })}
             </nav>
           </div>
 
-          {/* Right: User dropdown */}
+          {/* Right: Ecom link + User dropdown */}
           <div className="flex items-center gap-4">
-            <Link href="/admin/refurbished/categories" className="text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-xl border border-gray-200/50 transition">
-              Refurbished Admin
+            <Link
+              href="/admin/ecom/dashbaord"
+              className="text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-xl border border-gray-200/50 transition"
+            >
+              Ecom Admin
             </Link>
 
             <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
-                ${isDropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
-            >
-              <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm ring-2 ring-white">
-                  <span className="text-xs font-bold text-white">
-                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
-                  </span>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
+                  ${isDropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm ring-2 ring-white">
+                    <span className="text-xs font-bold text-white">
+                      {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name || 'Admin User'}</p>
-                <p className="text-xs text-gray-500 leading-tight">{user?.email || 'admin@example.com'}</p>
-              </div>
-              <Icon
-                icon="mdi:chevron-down"
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name || 'Admin User'}</p>
+                  <p className="text-xs text-gray-500 leading-tight">{user?.email || 'admin@example.com'}</p>
+                </div>
+                <Icon
+                  icon="mdi:chevron-down"
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
 
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-3 z-50">
-                <div className="px-4 pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Admin User'}</p>
-                      <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-                      <p className="text-xs text-primary-600 font-medium mt-0.5">Ecom Administrator</p>
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-3 z-50">
+                  <div className="px-4 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Admin User'}</p>
+                        <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
+                        <p className="text-xs text-primary-600 font-medium mt-0.5">Refurbished Administrator</p>
+                      </div>
                     </div>
                   </div>
+                  <div className="py-2">
+                    {dropdownLinks.map((link) => (
+                      <div key={link.name}>
+                        {link.isLogout && <div className="my-1 border-t border-gray-100" />}
+                        <Link
+                          href={link.path}
+                          onClick={() => link.isLogout && handleLogout()}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                            ${link.isLogout
+                              ? 'text-red-600 hover:bg-red-50'
+                              : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                          <Icon icon={link.icon} className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`} />
+                          <span className="font-medium">{link.name}</span>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="py-2">
-                  {dropdownLinks.map((link) => (
-                    <div key={link.name}>
-                      {link.isLogout && <div className="my-1 border-t border-gray-100" />}
-                      <Link
-                        href={link.path}
-                        onClick={() => link.isLogout && handleLogout()}
-                        className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
-                          ${link.isLogout
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                      >
-                        <Icon icon={link.icon} className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`} />
-                        <span className="font-medium">{link.name}</span>
-                      </Link>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -399,4 +328,4 @@ function EcomHeader() {
   );
 }
 
-export default EcomHeader;
+export default RefurbishedHeader;

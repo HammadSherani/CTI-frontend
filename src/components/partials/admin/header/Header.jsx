@@ -280,7 +280,7 @@ function Header() {
               } else if (link.name === "Parts Management") {
                 return renderNavLink(link, isPartsDropdownOpen, setIsPartsDropdownOpen, partsDropdownRef);
               }
-              if (link.name === "Ecom") {
+              if (link.name === "Ecom" || link.name === "Refurbished") {
                 return (
                   <Link
                     key={link.name}
@@ -293,9 +293,6 @@ function Header() {
                   >
                     <Icon icon={link.icon} className="w-4 h-4" />
                     {link.name}
-                    {/* <span className="ml-0.5 text-[10px] font-semibold bg-primary-100 text-primary-600 px-1.5 py-0.5 rounded-full">
-                      NEW
-                    </span> */}
                   </Link>
                 );
               }
