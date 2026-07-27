@@ -41,6 +41,8 @@ function RefurbishedHeader() {
             { name: "Categories", icon: "mdi:shape-outline", path: "/admin/refurbished/categories" },
             { name: "Brands", icon: "mdi:tag-outline", path: "/admin/refurbished/brands" },
             { name: "Models", icon: "mdi:cellphone-link", path: "/admin/refurbished/models" },
+            { name: "Products", icon: "mdi:package-variant", path: "/admin/refurbished/products" },
+            { name: "Category Questions", icon: "mdi:help-circle-outline", path: "/admin/refurbished/questions" },
           ],
         },
       ],
@@ -207,12 +209,7 @@ function RefurbishedHeader() {
 
           {/* Right: Ecom link + User dropdown */}
           <div className="flex items-center gap-4">
-            <Link
-              href="/admin/ecom/dashbaord"
-              className="text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-xl border border-gray-200/50 transition"
-            >
-              Ecom Admin
-            </Link>
+
 
             <div className="relative" ref={dropdownRef}>
               <button

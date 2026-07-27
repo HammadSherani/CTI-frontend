@@ -281,9 +281,6 @@ function EcomHeader() {
 
           {/* Right: User dropdown */}
           <div className="flex items-center gap-4">
-            <Link href="/admin/refurbished/categories" className="text-xs font-bold text-gray-500 hover:text-primary-600 bg-gray-50 hover:bg-primary-50 px-3 py-1.5 rounded-xl border border-gray-200/50 transition">
-              Refurbished Admin
-            </Link>
 
             <div className="relative" ref={dropdownRef}>
             <button

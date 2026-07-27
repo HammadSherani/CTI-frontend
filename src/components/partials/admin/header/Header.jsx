@@ -15,12 +15,14 @@ function Header() {
   const usersDropdownRef = useRef(null);        // Renamed for clarity
   const partsDropdownRef = useRef(null);
   const academyDropdownRef = useRef(null);
+  const modulesDropdownRef = useRef(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // User profile dropdown
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
   const [isPartsDropdownOpen, setIsPartsDropdownOpen] = useState(false);
   const [isAcademyDropdownOpen, setIsAcademyDropdownOpen] = useState(false);
+  const [isModulesDropdownOpen, setIsModulesDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -122,7 +124,21 @@ function Header() {
 
       ]
     }, { name: "Withdrwals", path: `/admin/withdrawals/all-withdrawal-request`, icon: "mdi:cash" },
-    { name: "Ecom", path: `/admin/ecom/dashbaord`, icon: "mdi:store" },
+    {
+      name: "Modules",
+      path: "#",
+      icon: "mdi:view-grid-plus-outline",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Other Modules",
+          items: [
+            { name: "Ecommerce", icon: "mdi:store", path: "/admin/ecom/dashbaord" },
+            { name: "Refurbished", icon: "mdi:cellphone-link", path: "/admin/refurbished/categories" },
+          ]
+        }
+      ]
+    },
 
   ];
 
@@ -151,6 +167,9 @@ function Header() {
       if (partsDropdownRef.current && !partsDropdownRef.current.contains(event.target)) {
         setIsPartsDropdownOpen(false);
       }
+      if (modulesDropdownRef.current && !modulesDropdownRef.current.contains(event.target)) {
+        setIsModulesDropdownOpen(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -164,6 +183,7 @@ function Header() {
     setIsUsersDropdownOpen(false);
     setIsPartsDropdownOpen(false);
     setIsAcademyDropdownOpen(false);
+    setIsModulesDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -279,22 +299,8 @@ function Header() {
                 return renderNavLink(link, isUsersDropdownOpen, setIsUsersDropdownOpen, usersDropdownRef);
               } else if (link.name === "Parts Management") {
                 return renderNavLink(link, isPartsDropdownOpen, setIsPartsDropdownOpen, partsDropdownRef);
-              }
-              if (link.name === "Ecom" || link.name === "Refurbished") {
-                return (
-                  <Link
-                    key={link.name}
-                    href={link.path}
-                    className={`relative px-3 py-2 my-auto rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 border
-            ${isActiveLink(link.path)
-                        ? 'text-primary-600 bg-primary-50 border-primary-200'
-                        : 'text-gray-500 border-gray-200 hover:text-gray-900 hover:bg-gray-50 hover:border-gray-300'
-                      }`}
-                  >
-                    <Icon icon={link.icon} className="w-4 h-4" />
-                    {link.name}
-                  </Link>
-                );
+              } else if (link.name === "Modules") {
+                return renderNavLink(link, isModulesDropdownOpen, setIsModulesDropdownOpen, modulesDropdownRef);
               }
               return renderNavLink(link);
             })}
