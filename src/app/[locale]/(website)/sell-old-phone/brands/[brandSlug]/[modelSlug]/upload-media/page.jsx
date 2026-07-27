@@ -6,6 +6,13 @@ import { useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 
+// ── Module-level store for actual File objects (sessionStorage can't hold them)
+let _imageFiles = [];
+let _videoFiles = [];
+
+export const getSellMediaFiles = () => ({ imageFiles: _imageFiles, videoFiles: _videoFiles });
+export const clearSellMediaFiles = () => { _imageFiles = []; _videoFiles = []; };
+
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
   { id: 2, name: 'Model' },
@@ -20,8 +27,8 @@ export default function UploadMediaPage() {
   const router = useRouter();
   const { brandSlug, modelSlug } = useParams();
   const [deviceInfo, setDeviceInfo] = useState(null);
-  const [images, setImages] = useState([]);
-  const [videos, setVideos] = useState([]);
+  const [images, setImages] = useState([]);   // preview objects: { name, size, preview, file }
+  const [videos, setVideos] = useState([]);   // preview objects: { name, size, file }
   const [errorMsg, setErrorMsg] = useState('');
 
   const modelName = modelSlug?.replace(/-/g, ' ');
@@ -34,10 +41,10 @@ export default function UploadMediaPage() {
         const parsed = JSON.parse(saved);
         if (parsed.brand === brandSlug && parsed.model === modelSlug) {
           setDeviceInfo(parsed);
-          // If media already exists in session, load it (mock or filenames)
-          if (parsed.media) {
-            setImages(parsed.media.images || []);
-            setVideos(parsed.media.videos || []);
+          // Restore preview metadata (not File objects — those are in module store)
+          if (parsed.mediaPreview) {
+            setImages(parsed.mediaPreview.images || []);
+            setVideos(parsed.mediaPreview.videos || []);
           }
         } else {
           router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
@@ -51,6 +58,23 @@ export default function UploadMediaPage() {
     }
   }, [brandSlug, modelSlug, router]);
 
+  const syncSession = (updatedImages, updatedVideos, currentDeviceInfo) => {
+    if (!currentDeviceInfo) return;
+    const updated = {
+      ...currentDeviceInfo,
+      mediaPreview: {
+        images: updatedImages.map(i => ({ name: i.name, size: i.size })),
+        videos: updatedVideos.map(v => ({ name: v.name, size: v.size })),
+      },
+      mediaCount: {
+        images: updatedImages.length,
+        videos: updatedVideos.length,
+      }
+    };
+    sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
+    setDeviceInfo(updated);
+  };
+
   const handleImageUpload = (e) => {
     const files = Array.from(e.target.files);
     setErrorMsg('');
@@ -63,20 +87,15 @@ export default function UploadMediaPage() {
     const newImages = files.map(file => ({
       name: file.name,
       size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-      preview: URL.createObjectURL(file)
+      preview: URL.createObjectURL(file),
+      file,
     }));
 
     const updatedImages = [...images, ...newImages];
     setImages(updatedImages);
-
-    // Save to session
-    if (deviceInfo) {
-      const updated = {
-        ...deviceInfo,
-        media: { images: updatedImages, videos }
-      };
-      sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
-    }
+    // Store actual File objects in module-level store
+    _imageFiles = updatedImages.map(i => i.file);
+    syncSession(updatedImages, videos, deviceInfo);
   };
 
   const handleVideoUpload = (e) => {
@@ -91,46 +110,28 @@ export default function UploadMediaPage() {
     const newVideos = files.map(file => ({
       name: file.name,
       size: (file.size / (1024 * 1024)).toFixed(2) + ' MB',
-      preview: URL.createObjectURL(file)
+      file,
     }));
 
     const updatedVideos = [...videos, ...newVideos];
     setVideos(updatedVideos);
-
-    // Save to session
-    if (deviceInfo) {
-      const updated = {
-        ...deviceInfo,
-        media: { images, videos: updatedVideos }
-      };
-      sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
-    }
+    // Store actual File objects in module-level store
+    _videoFiles = updatedVideos.map(v => v.file);
+    syncSession(images, updatedVideos, deviceInfo);
   };
 
   const removeImage = (index) => {
     const updatedImages = images.filter((_, i) => i !== index);
     setImages(updatedImages);
-
-    if (deviceInfo) {
-      const updated = {
-        ...deviceInfo,
-        media: { images: updatedImages, videos }
-      };
-      sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
-    }
+    _imageFiles = updatedImages.map(i => i.file);
+    syncSession(updatedImages, videos, deviceInfo);
   };
 
   const removeVideo = (index) => {
     const updatedVideos = videos.filter((_, i) => i !== index);
     setVideos(updatedVideos);
-
-    if (deviceInfo) {
-      const updated = {
-        ...deviceInfo,
-        media: { images, videos: updatedVideos }
-      };
-      sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
-    }
+    _videoFiles = updatedVideos.map(v => v.file);
+    syncSession(images, updatedVideos, deviceInfo);
   };
 
   const handleNext = () => {
@@ -179,17 +180,6 @@ export default function UploadMediaPage() {
               </React.Fragment>
             ))}
           </div>
-        </div>
-
-        {/* Back Button */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/condition`)}
-            className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-bold transition text-sm cursor-pointer"
-          >
-            <Icon icon="lucide:chevron-left" />
-            <span>Back</span>
-          </button>
         </div>
 
         {/* Two Column Layout */}
@@ -305,7 +295,14 @@ export default function UploadMediaPage() {
               </div>
 
               {/* Next step button */}
-              <div className="flex justify-end pt-6 border-t border-gray-100">
+              <div className="flex items-center justify-between pt-6 border-t border-gray-100">
+                <button
+                  onClick={() => router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/condition`)}
+                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition cursor-pointer flex items-center gap-2"
+                >
+                  <Icon icon="lucide:chevron-left" />
+                  <span>Previous Step</span>
+                </button>
                 <button
                   onClick={handleNext}
                   className="bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3 px-8 rounded-2xl transition shadow-md hover:shadow-lg cursor-pointer flex items-center gap-2"
@@ -335,9 +332,15 @@ export default function UploadMediaPage() {
                   <span className="text-gray-400 font-semibold">Model</span>
                   <span className="font-extrabold text-gray-800 capitalize">{modelName}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400 font-semibold">Storage / RAM</span>
-                  <span className="font-extrabold text-gray-800">{deviceInfo.storage}</span>
+                {deviceInfo.selectedVariants?.map((v, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400 font-semibold">{v.key}</span>
+                    <span className="font-extrabold text-gray-800">{v.value}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-50">
+                  <span className="text-gray-400 font-semibold">Media Uploaded</span>
+                  <span className="font-extrabold text-gray-800">{images.length} Pics, {videos.length} Vids</span>
                 </div>
               </div>
             </div>

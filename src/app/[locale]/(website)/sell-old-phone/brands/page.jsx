@@ -4,43 +4,62 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-
-const BRANDS = [
-  { id: 'apple', name: 'Apple', slug: 'apple', icon: 'logos:apple', color: 'text-gray-900' },
-  { id: 'xiaomi', name: 'Xiaomi', slug: 'xiaomi', icon: 'simple-icons:xiaomi', color: 'text-orange-500' },
-  { id: 'samsung', name: 'Samsung', slug: 'samsung', icon: 'simple-icons:samsung', color: 'text-blue-800' },
-  { id: 'vivo', name: 'Vivo', slug: 'vivo', icon: 'simple-icons:vivo', color: 'text-blue-500' },
-  { id: 'oppo', name: 'Oppo', slug: 'oppo', icon: 'simple-icons:oppo', color: 'text-green-600' },
-  { id: 'oneplus', name: 'OnePlus', slug: 'oneplus', icon: 'simple-icons:oneplus', color: 'text-red-600' },
-];
+import axiosInstance from '@/config/axiosInstance';
+import { toast } from 'react-toastify';
 
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
   { id: 2, name: 'Model' },
-  { id: 3, name: 'Storage' },
+  { id: 3, name: 'Variants' },
   { id: 4, name: 'Condition' },
-  { id: 5, name: 'Quote' },
-  { id: 6, name: 'Verification' },
+  { id: 5, name: 'Upload Media' },
+  { id: 6, name: 'Quote' },
   { id: 7, name: 'Booking' },
 ];
 
 export default function SellBrandsListPage() {
   const router = useRouter();
+  const [brands, setBrands] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [filteredBrands, setFilteredBrands] = useState(BRANDS);
+  const [filteredBrands, setFilteredBrands] = useState([]);
+
+  useEffect(() => {
+    axiosInstance.get('/public/sell-device/brands')
+      .then(res => {
+        const brandsData = res.data.data || [];
+        setBrands(brandsData);
+        setFilteredBrands(brandsData);
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error("Failed to load brands.");
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, []);
 
   useEffect(() => {
     const query = searchQuery.trim().toLowerCase();
     if (query === '') {
-      setFilteredBrands(BRANDS);
+      setFilteredBrands(brands);
     } else {
-      setFilteredBrands(BRANDS.filter(brand => brand.name.toLowerCase().includes(query)));
+      setFilteredBrands(brands.filter(brand => brand.name.toLowerCase().includes(query)));
     }
-  }, [searchQuery]);
+  }, [searchQuery, brands]);
 
   const handleBrandSelect = (brandSlug) => {
     router.push(`/sell-old-phone/brands/${brandSlug}`);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -119,12 +138,16 @@ export default function SellBrandsListPage() {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {filteredBrands.map((brand) => (
             <button
-              key={brand.id}
+              key={brand._id}
               onClick={() => handleBrandSelect(brand.slug)}
               className="group bg-white rounded-2xl shadow-xs border border-gray-200/80 p-6 flex flex-col items-center justify-center hover:border-primary-500 hover:shadow-md transition duration-300 cursor-pointer"
             >
-              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition duration-300">
-                <Icon icon={brand.icon} className={`text-4xl ${brand.color}`} />
+              <div className="w-16 h-16 rounded-full bg-gray-50 flex items-center justify-center group-hover:scale-110 transition duration-300 overflow-hidden">
+                {brand.logoUrl ? (
+                  <img src={brand.logoUrl} alt={brand.name} className="w-12 h-12 object-contain" />
+                ) : (
+                  <Icon icon="lucide:smartphone" className="text-4xl text-gray-500" />
+                )}
               </div>
               <span className="mt-4 font-bold text-gray-800 text-base">{brand.name}</span>
             </button>

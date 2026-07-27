@@ -5,100 +5,31 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import axiosInstance from '@/config/axiosInstance';
+import { toast } from 'react-toastify';
 
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
   { id: 2, name: 'Model' },
-  { id: 3, name: 'Storage' },
+  { id: 3, name: 'Variants' },
   { id: 4, name: 'Condition' },
   { id: 5, name: 'Upload Media' },
   { id: 6, name: 'Quote' },
   { id: 7, name: 'Booking' },
 ];
 
-const QUESTIONS = [
-  {
-    id: 'power',
-    question: 'Does the device turn on and off normally?',
-    description: 'Ensure the device successfully boots to the home screen and can power off.',
-    options: [
-      { value: 'yes', label: 'Yes', description: 'Powers on and off without any issues', icon: 'lucide:power' },
-      { value: 'restarts', label: 'Restarts Randomly', description: 'Powers on but restarts or freezes sometimes', icon: 'lucide:refresh-cw' },
-      { value: 'no', label: 'No', description: 'Does not power on or is stuck on boot logo', icon: 'lucide:power-off' }
-    ]
-  },
-  {
-    id: 'screen',
-    question: 'What is the condition of the screen?',
-    description: 'Check for physical scratches, cracks, or faulty touch responses.',
-    options: [
-      { value: 'flawless', label: 'Flawless', description: 'No scratches or cracks at all', icon: 'lucide:sparkles' },
-      { value: 'scratched', label: 'Scratched', description: 'Minor visible scratches, but no cracks', icon: 'lucide:info' },
-      { value: 'cracked', label: 'Cracked / Faulty Touch', description: 'Glass broken, touch issues, or display lines', icon: 'lucide:slash' }
-    ]
-  },
-  {
-    id: 'body',
-    question: 'What is the condition of the phone body?',
-    description: 'Check side frames, back panel, and camera glass for damage.',
-    options: [
-      { value: 'like_new', label: 'Like New', description: 'No dents, scratches, or color fading', icon: 'lucide:award' },
-      { value: 'minor_dents', label: 'Minor Scratches / Dents', description: 'Few visible scratches or minor signs of use', icon: 'lucide:shield-alert' },
-      { value: 'heavy_damage', label: 'Heavy Damage / Cracks', description: 'Bent frame, cracked back panel, or heavy dents', icon: 'lucide:frown' }
-    ]
-  },
-  {
-    id: 'battery',
-    question: 'What is the battery health condition?',
-    description: 'Check battery health percentage or performance under load.',
-    options: [
-      { value: 'good', label: 'Good / Excellent', description: 'Battery health above 80% or holds charge well', icon: 'lucide:battery-charging' },
-      { value: 'degraded', label: 'Degraded', description: 'Discharges quickly or health is below 80%', icon: 'lucide:battery-warning' },
-      { value: 'swollen', label: 'Swollen / Bad', description: 'Battery swollen, physically pushes screen, or fails to charge', icon: 'lucide:battery-low' }
-    ]
-  },
-  {
-    id: 'camera',
-    question: 'Are the front and rear cameras working?',
-    description: 'Test both cameras, focus speed, flash, and check lens condition.',
-    options: [
-      { value: 'all_working', label: 'Fully Working', description: 'Both cameras take clear pictures and focus well', icon: 'lucide:camera' },
-      { value: 'partial_faulty', label: 'Partially Faulty', description: 'One camera has focus issues, or lens is scratched', icon: 'lucide:camera-off' },
-      { value: 'not_working', label: 'Not Working', description: 'Cameras fail to open, show black screen or error', icon: 'lucide:ban' }
-    ]
-  },
-  {
-    id: 'connectivity',
-    question: 'Are Wi-Fi, Bluetooth, and SIM networks working?',
-    description: 'Verify network signal search, Wi-Fi connectivity, and Bluetooth pairing.',
-    options: [
-      { value: 'all_working', label: 'Everything Works', description: 'Calls connect fine, Wi-Fi and Bluetooth work normally', icon: 'lucide:wifi' },
-      { value: 'faulty_wifi_bt', label: 'Faulty Wi-Fi / Bluetooth', description: 'Cannot connect to Wi-Fi or Bluetooth devices', icon: 'lucide:wifi-off' },
-      { value: 'no_signal', label: 'SIM Network Issue', description: 'Cannot read SIM card or shows no network signal', icon: 'lucide:signal-zero' }
-    ]
-  },
-  {
-    id: 'accessories',
-    question: 'Which accessories do you have?',
-    description: 'Having original accessories can fetch a better price for your device.',
-    options: [
-      { value: 'all', label: 'Box & Original Charger', description: 'I have the matching box and original charger/cable', icon: 'lucide:package-open' },
-      { value: 'charger_only', label: 'Only Original Charger', description: 'I only have the original charger', icon: 'lucide:cable' },
-      { value: 'none', label: 'None', description: 'No box or charger available', icon: 'lucide:x-circle' }
-    ]
-  }
-];
-
 export default function ConditionQuestionsPage() {
   const router = useRouter();
   const { brandSlug, modelSlug } = useParams();
   const [deviceInfo, setDeviceInfo] = useState(null);
+  const [questions, setQuestions] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [currentQuestionIdx, setCurrentQuestionIdx] = useState(0);
   const [answers, setAnswers] = useState({});
 
   const modelName = modelSlug?.replace(/-/g, ' ');
 
-  // Load from sessionStorage
+  // Load from sessionStorage and fetch config
   useEffect(() => {
     const saved = sessionStorage.getItem('sell_device_info');
     if (saved) {
@@ -107,6 +38,26 @@ export default function ConditionQuestionsPage() {
         if (parsed.brand === brandSlug && parsed.model === modelSlug) {
           setDeviceInfo(parsed);
           setAnswers(parsed.answers || {});
+          
+          // Fetch questions
+          axiosInstance.get(`/public/sell-device/config/${brandSlug}/${modelSlug}`)
+            .then(res => {
+              const fetchedQuestions = res.data.data.categoryQuestions || [];
+              setQuestions(fetchedQuestions);
+              
+              if (fetchedQuestions.length === 0) {
+                // No questions configured, skip this step
+                router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/upload-media`);
+              }
+            })
+            .catch(err => {
+              console.error(err);
+              toast.error("Failed to load category questions.");
+            })
+            .finally(() => {
+              setLoading(false);
+            });
+            
         } else {
           router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
         }
@@ -119,8 +70,8 @@ export default function ConditionQuestionsPage() {
     }
   }, [brandSlug, modelSlug, router]);
 
-  const handleOptionSelect = (questionId, optionVal) => {
-    const newAnswers = { ...answers, [questionId]: optionVal };
+  const handleOptionSelect = (questionText, optionVal) => {
+    const newAnswers = { ...answers, [questionText]: optionVal };
     setAnswers(newAnswers);
 
     // Save to sessionStorage
@@ -129,25 +80,26 @@ export default function ConditionQuestionsPage() {
       setDeviceInfo(updated);
       sessionStorage.setItem('sell_device_info', JSON.stringify(updated));
     }
-
-    if (currentQuestionIdx < QUESTIONS.length - 1) {
-      setCurrentQuestionIdx(currentQuestionIdx + 1);
-    } else {
-      // Go to Upload Media page
-      router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/upload-media`);
-    }
   };
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIdx > 0) {
       setCurrentQuestionIdx(currentQuestionIdx - 1);
     } else {
-      // Go back to storage selection
+      // Go back to variants selection
       router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
     }
   };
 
-  if (!deviceInfo) return null;
+  if (loading || questions.length === 0 || !deviceInfo) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  const currentQuestion = questions[currentQuestionIdx];
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -157,7 +109,7 @@ export default function ConditionQuestionsPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
-        {/* Step Indicator (7 Steps) */}
+        {/* Step Indicator */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider overflow-x-auto py-2">
             {STEP_ITEMS.map((step, idx) => (
@@ -187,16 +139,7 @@ export default function ConditionQuestionsPage() {
           </div>
         </div>
 
-        {/* Back Button */}
-        <div className="mb-6">
-          <button
-            onClick={handlePreviousQuestion}
-            className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-bold transition text-sm cursor-pointer"
-          >
-            <Icon icon="lucide:chevron-left" />
-            <span>Back</span>
-          </button>
-        </div>
+
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
@@ -207,24 +150,21 @@ export default function ConditionQuestionsPage() {
               {/* Question Header */}
               <div>
                 <span className="text-xs font-bold text-primary-600 uppercase tracking-wider">
-                  Question {currentQuestionIdx + 1} of {QUESTIONS.length}
+                  Question {currentQuestionIdx + 1} of {questions.length}
                 </span>
                 <h3 className="text-2xl font-black text-gray-900 mt-1">
-                  {QUESTIONS[currentQuestionIdx].question}
+                  {currentQuestion.question}
                 </h3>
-                <p className="text-gray-500 text-sm mt-1">
-                  {QUESTIONS[currentQuestionIdx].description}
-                </p>
               </div>
 
               {/* Options List */}
               <div className="space-y-4">
-                {QUESTIONS[currentQuestionIdx].options.map((opt) => {
-                  const isSelected = answers[QUESTIONS[currentQuestionIdx].id] === opt.value;
+                {currentQuestion.options.map((opt, idx) => {
+                  const isSelected = answers[currentQuestion.question] === opt;
                   return (
                     <button
-                      key={opt.value}
-                      onClick={() => handleOptionSelect(QUESTIONS[currentQuestionIdx].id, opt.value)}
+                      key={idx}
+                      onClick={() => handleOptionSelect(currentQuestion.question, opt)}
                       className={`w-full flex items-center gap-4 p-5 rounded-2xl border text-left transition-all duration-200 cursor-pointer ${isSelected
                           ? 'border-primary-500 bg-primary-50/10 ring-2 ring-primary-100'
                           : 'border-gray-100 bg-gray-50/50 hover:border-primary-300 hover:bg-white'
@@ -232,11 +172,10 @@ export default function ConditionQuestionsPage() {
                     >
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSelected ? 'bg-primary-600 text-white' : 'bg-white text-gray-400 border border-gray-100'
                         }`}>
-                        <Icon icon={opt.icon} className="text-xl" />
+                        <Icon icon="lucide:check-circle" className="text-xl" />
                       </div>
                       <div className="flex-1">
-                        <span className="font-bold text-gray-800 block text-base">{opt.label}</span>
-                        <span className="text-gray-400 text-xs mt-0.5 block">{opt.description}</span>
+                        <span className="font-bold text-gray-800 block text-base">{opt}</span>
                       </div>
                       {isSelected && (
                         <Icon icon="lucide:check-circle-2" className="text-primary-600 text-xl" />
@@ -245,14 +184,29 @@ export default function ConditionQuestionsPage() {
                   );
                 })}
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+              
+              {/* Previous and Next Navigation Buttons */}
+              <div className="flex items-center justify-between mt-8 pt-6 border-t border-gray-100">
                 <button
                   onClick={handlePreviousQuestion}
-                  className="px-5 py-2.5 rounded-xl text-gray-600 hover:bg-gray-50 font-bold transition text-sm cursor-pointer"
+                  className="px-6 py-3 rounded-xl border border-gray-200 text-gray-600 font-bold hover:bg-gray-50 transition cursor-pointer flex items-center gap-2"
                 >
-                  Previous Question
+                  <Icon icon="lucide:chevron-left" />
+                  <span>Previous</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (currentQuestionIdx < questions.length - 1) {
+                      setCurrentQuestionIdx(currentQuestionIdx + 1);
+                    } else {
+                      router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/upload-media`);
+                    }
+                  }}
+                  disabled={!answers[currentQuestion.question]}
+                  className="px-8 py-3 rounded-xl bg-primary-600 text-white font-bold hover:bg-primary-700 transition cursor-pointer flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                >
+                  <span>{currentQuestionIdx < questions.length - 1 ? 'Next Question' : 'Next Step'}</span>
+                  <Icon icon="lucide:chevron-right" />
                 </button>
               </div>
             </div>
@@ -275,10 +229,12 @@ export default function ConditionQuestionsPage() {
                   <span className="text-gray-400 font-semibold">Model</span>
                   <span className="font-extrabold text-gray-800 capitalize">{modelName}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400 font-semibold">Storage / RAM</span>
-                  <span className="font-extrabold text-gray-800">{deviceInfo.storage}</span>
-                </div>
+                {deviceInfo.selectedVariants?.map((v, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400 font-semibold">{v.key}</span>
+                    <span className="font-extrabold text-gray-800">{v.value}</span>
+                  </div>
+                ))}
               </div>
             </div>
 

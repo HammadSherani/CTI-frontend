@@ -44,9 +44,11 @@ function RefurbishedHeader() {
             { name: "Products", icon: "mdi:package-variant", path: "/admin/refurbished/products" },
             { name: "Category Questions", icon: "mdi:help-circle-outline", path: "/admin/refurbished/questions" },
           ],
-        },
+        },  
       ],
     },
+    { name: "Sell Requests", icon: "mdi:cellphone-arrow-down", path: "/admin/refurbished/requests" },
+
   ];
 
   const dropdownLinks = [

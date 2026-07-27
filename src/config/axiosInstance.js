@@ -29,7 +29,10 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && typeof window !== "undefined") {
+    // If it's a 401 but the endpoint is /login, do not dispatch the unauthorized redirect.
+    const isLoginEndpoint = error.config?.url?.includes('/login');
+
+    if (error.response?.status === 401 && typeof window !== "undefined" && !isLoginEndpoint) {
       localStorage.removeItem("token");
 
       // 🔔 only event dispatch

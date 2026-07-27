@@ -5,66 +5,125 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-
-const STORAGE_OPTIONS = [
-  { id: '4gb-64gb', value: '4 GB / 64 GB', description: 'Basic use and social apps', icon: 'lucide:database' },
-  { id: '4gb-128gb', value: '4 GB / 128 GB', description: 'Standard daily multitasking', icon: 'lucide:database' },
-  { id: '6gb-128gb', value: '6 GB / 128 GB', description: 'Recommended for standard users', icon: 'lucide:database' },
-  { id: '8gb-128gb', value: '8 GB / 128 GB', description: 'Better performance & media storage', icon: 'lucide:database' },
-  { id: '8gb-256gb', value: '8 GB / 256 GB', description: 'Excellent for photos, videos, and apps', icon: 'lucide:database' },
-  { id: '12gb-256gb', value: '12 GB / 256 GB', description: 'Power user speed with high storage', icon: 'lucide:database' },
-  { id: '12gb-512gb', value: '12 GB / 512 GB', description: 'Premium multitasking & extreme storage', icon: 'lucide:database' },
-  { id: '16gb-1tb', value: '16 GB / 1 TB', description: 'Maximum performance and extreme storage', icon: 'lucide:database' },
-];
+import axiosInstance from '@/config/axiosInstance';
+import { toast } from 'react-toastify';
 
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
   { id: 2, name: 'Model' },
-  { id: 3, name: 'Storage' },
+  { id: 3, name: 'Variants' },
   { id: 4, name: 'Condition' },
   { id: 5, name: 'Upload Media' },
   { id: 6, name: 'Quote' },
   { id: 7, name: 'Booking' },
 ];
 
-export default function SellStoragePage() {
+export default function SellVariantsPage() {
   const router = useRouter();
   const { brandSlug, modelSlug } = useParams();
-  const [selectedStorage, setSelectedStorage] = useState(null);
+  
+  const [config, setConfig] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [currentVariantIndex, setCurrentVariantIndex] = useState(0);
+  const [selectedVariants, setSelectedVariants] = useState({});
 
   const modelName = modelSlug?.replace(/-/g, ' ');
 
-  // Initialize state from sessionStorage if exists
   useEffect(() => {
-    const saved = sessionStorage.getItem('sell_device_info');
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved);
-        if (parsed.brand === brandSlug && parsed.model === modelSlug) {
-          setSelectedStorage(parsed.storage);
+    // Fetch product config
+    axiosInstance.get(`/public/sell-device/config/${brandSlug}/${modelSlug}`)
+      .then(res => {
+        const fetchedConfig = res.data.data;
+        setConfig(fetchedConfig);
+        
+        // Restore from session storage if exists
+        const saved = sessionStorage.getItem('sell_device_info');
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.brand === brandSlug && parsed.model === modelSlug) {
+              if (parsed.selectedVariants) {
+                const sv = {};
+                parsed.selectedVariants.forEach(v => sv[v.key] = v.value);
+                setSelectedVariants(sv);
+                
+                // Jump to last unanswered variant or end
+                const answeredCount = Object.keys(sv).length;
+                if (answeredCount < fetchedConfig.variants.length) {
+                  setCurrentVariantIndex(answeredCount);
+                } else {
+                  setCurrentVariantIndex(fetchedConfig.variants.length - 1);
+                }
+              }
+            }
+          } catch (e) {
+            console.error(e);
+          }
+        } else {
+          // Initialize session storage
+          sessionStorage.setItem('sell_device_info', JSON.stringify({
+            brand: brandSlug,
+            model: modelSlug,
+            brandId: fetchedConfig.brand._id,
+            modelId: fetchedConfig.model._id,
+            categoryId: fetchedConfig.categoryId,
+            selectedVariants: [],
+            answers: {},
+            media: { pictures: [], videos: [] }
+          }));
         }
-      } catch (e) {
-        console.error(e);
-      }
+      })
+      .catch(err => {
+        console.error(err);
+        toast.error("Failed to load device configuration.");
+        router.push(`/sell-old-phone/brands/${brandSlug}`);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [brandSlug, modelSlug, router]);
+
+  // If no variants exist for this product, skip immediately to condition
+  useEffect(() => {
+    if (!loading && config && config.variants.length === 0) {
+      router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/condition`);
     }
-  }, [brandSlug, modelSlug]);
+  }, [loading, config, brandSlug, modelSlug, router]);
 
-  const handleStorageSelect = (storageVal) => {
-    setSelectedStorage(storageVal);
-    
+  const handleVariantSelect = (key, value) => {
+    const updatedVariants = { ...selectedVariants, [key]: value };
+    setSelectedVariants(updatedVariants);
+
     // Save to sessionStorage
-    const info = {
-      brand: brandSlug,
-      model: modelSlug,
-      storage: storageVal,
-      answers: {},
-      media: { pictures: [], videos: [] }
-    };
-    sessionStorage.setItem('sell_device_info', JSON.stringify(info));
+    const saved = JSON.parse(sessionStorage.getItem('sell_device_info') || '{}');
+    saved.selectedVariants = Object.keys(updatedVariants).map(k => ({ key: k, value: updatedVariants[k] }));
+    sessionStorage.setItem('sell_device_info', JSON.stringify(saved));
 
-    // Navigate to condition page
-    router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/condition`);
+    // Move to next variant or next page
+    if (currentVariantIndex < config.variants.length - 1) {
+      setCurrentVariantIndex(prev => prev + 1);
+    } else {
+      router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/condition`);
+    }
   };
+
+  const handleBack = () => {
+    if (currentVariantIndex > 0) {
+      setCurrentVariantIndex(prev => prev - 1);
+    } else {
+      router.push(`/sell-old-phone/brands/${brandSlug}`);
+    }
+  };
+
+  if (loading || (config && config.variants.length === 0)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+      </div>
+    );
+  }
+
+  const currentVariant = config.variants[currentVariantIndex];
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -109,32 +168,32 @@ export default function SellStoragePage() {
         {/* Back Button */}
         <div className="mb-6">
           <button
-            onClick={() => router.push(`/sell-old-phone/brands/${brandSlug}`)}
+            onClick={handleBack}
             className="flex items-center gap-2 text-primary-600 hover:text-primary-700 font-bold transition text-sm cursor-pointer"
           >
             <Icon icon="lucide:chevron-left" />
-            <span>Back to Model Selection</span>
+            <span>{currentVariantIndex > 0 ? "Back to Previous Option" : "Back to Model Selection"}</span>
           </button>
         </div>
 
-        {/* Step 3: Storage Selection View */}
+        {/* Dynamic Variant View */}
         <div className="space-y-6">
           <div>
             <h2 className="text-3xl font-black text-gray-900 capitalize">
-              Select Storage Capacity
+              Select {currentVariant.key}
             </h2>
             <p className="text-gray-500 text-sm mt-1">
-              Select the RAM & storage variant for your <span className="font-bold text-primary-600 uppercase">{modelName}</span>
+              Select the {currentVariant.key} variant for your <span className="font-bold text-primary-600 uppercase">{modelName}</span>
             </p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 max-w-4xl">
-            {STORAGE_OPTIONS.map((option) => {
-              const isSelected = selectedStorage === option.value;
+            {currentVariant.values.map((val, idx) => {
+              const isSelected = selectedVariants[currentVariant.key] === val;
               return (
                 <button
-                  key={option.id}
-                  onClick={() => handleStorageSelect(option.value)}
+                  key={idx}
+                  onClick={() => handleVariantSelect(currentVariant.key, val)}
                   className={`group bg-white border rounded-3xl p-6 text-left transition-all duration-300 shadow-xs cursor-pointer flex items-center gap-4 ${
                     isSelected 
                       ? 'border-primary-500 ring-2 ring-primary-100 bg-primary-50/20' 
@@ -144,11 +203,10 @@ export default function SellStoragePage() {
                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
                     isSelected ? 'bg-primary-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-primary-50 group-hover:text-primary-600'
                   }`}>
-                    <Icon icon={option.icon} className="text-2xl" />
+                    <Icon icon="lucide:check-circle" className="text-2xl" />
                   </div>
                   <div className="flex-1">
-                    <h4 className="font-extrabold text-gray-800 text-lg">{option.value}</h4>
-                    <p className="text-gray-400 text-xs mt-0.5">{option.description}</p>
+                    <h4 className="font-extrabold text-gray-800 text-lg">{val}</h4>
                   </div>
                   {isSelected && (
                     <Icon icon="lucide:check" className="text-primary-600 text-xl font-bold ml-auto" />

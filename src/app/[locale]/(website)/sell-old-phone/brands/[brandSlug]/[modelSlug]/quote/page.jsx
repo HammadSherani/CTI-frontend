@@ -5,6 +5,10 @@ import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import { useSelector } from 'react-redux';
+import axiosInstance from '@/config/axiosInstance';
+import { toast } from 'react-toastify';
+import { getSellMediaFiles, clearSellMediaFiles } from '../upload-media/page';
 
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
@@ -19,8 +23,11 @@ const STEP_ITEMS = [
 export default function QuotePage() {
   const router = useRouter();
   const { brandSlug, modelSlug } = useParams();
+  const { token } = useSelector((state) => state.auth);
+
   const [deviceInfo, setDeviceInfo] = useState(null);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Form Fields State
   const [formData, setFormData] = useState({
@@ -37,6 +44,8 @@ export default function QuotePage() {
 
   // Load from sessionStorage
   useEffect(() => {
+    if (isSubmitted) return;
+    
     const saved = sessionStorage.getItem('sell_device_info');
     if (saved) {
       try {
@@ -53,16 +62,46 @@ export default function QuotePage() {
     } else {
       router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
     }
-  }, [brandSlug, modelSlug, router]);
+  }, [brandSlug, modelSlug, router, isSubmitted]);
 
-  const handleRestart = () => {
-    sessionStorage.removeItem('sell_device_info');
-    router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
-  };
+  // Save/Load formData to/from sessionStorage
+  useEffect(() => {
+    const savedForm = sessionStorage.getItem('sell_device_form_data');
+    if (savedForm) {
+      try {
+        const parsedForm = JSON.parse(savedForm);
+        setFormData(prev => ({ ...prev, ...parsedForm }));
+      } catch (e) {
+        console.error('Failed to parse saved form data', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    sessionStorage.setItem('sell_device_form_data', JSON.stringify(formData));
+  }, [formData]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
+
+    if ((name === 'telephone' || name === 'trIdNumber') && value !== '' && !/^\d+$/.test(value)) {
+      return;
+    }
+
+    let finalValue = value;
+    if (name === 'iban') {
+      let val = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      if (val.length > 0 && !val.startsWith('TR')) {
+        if (val[0] !== 'T' && val[0] !== 'R') {
+          val = 'TR' + val;
+        }
+      }
+      val = val.substring(0, 26);
+      const match = val.match(/.{1,4}/g);
+      finalValue = match ? match.join(' ') : val;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: finalValue }));
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -85,22 +124,83 @@ export default function QuotePage() {
     if (!formData.address.trim()) errors.address = 'Address information is required';
     if (!formData.iban.trim()) {
       errors.iban = 'IBAN is required';
-    } else if (!formData.iban.toUpperCase().startsWith('TR')) {
-      errors.iban = 'IBAN must start with TR';
+    } else {
+      const rawIban = formData.iban.replace(/\s+/g, '');
+      if (!rawIban.toUpperCase().startsWith('TR')) {
+        errors.iban = 'IBAN must start with TR';
+      } else if (rawIban.length !== 26) {
+        errors.iban = 'IBAN must be exactly 26 characters';
+      }
     }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
+  const submitDataToBackend = async () => {
+    setSubmitting(true);
+    try {
+      // Build FormData — so we can send actual files along with text fields
+      const fd = new FormData();
+
+      // Device IDs
+      fd.append('categoryId', deviceInfo.categoryId || '');
+      fd.append('brandId', deviceInfo.brandId || '');
+      fd.append('modelId', deviceInfo.modelId || '');
+
+      // Selected variants and question answers as JSON strings
+      fd.append('selectedVariants', JSON.stringify(deviceInfo.selectedVariants || []));
+      
+      // Build questionAnswers from answers object stored in deviceInfo
+      const questionAnswers = Object.keys(deviceInfo.answers || {}).map(k => ({
+        question: k,
+        answer: deviceInfo.answers[k],
+      }));
+      fd.append('questionAnswers', JSON.stringify(questionAnswers));
+
+      // Customer info from form
+      fd.append('name', formData.nameSurname);
+      fd.append('email', formData.email);
+      fd.append('phone', formData.telephone);
+      fd.append('trIdNumber', formData.trIdNumber);
+      fd.append('address', formData.address);
+      fd.append('iban', formData.iban.replace(/\s+/g, '')); // clean IBAN
+
+      // Append actual media files from module-level store
+      const { imageFiles, videoFiles } = getSellMediaFiles();
+      imageFiles.forEach(file => fd.append('pictures', file));
+      videoFiles.forEach(file => fd.append('videos', file));
+
+      await axiosInstance.post('/public/sell-device/submit', fd, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+
+      // Clear everything after successful submission
+      clearSellMediaFiles();
+      sessionStorage.removeItem('sell_device_info');
+      sessionStorage.removeItem('sell_device_form_data');
+      setIsSubmitted(true);
+    } catch (err) {
+      console.error('Submit error:', err);
+      toast.error('Failed to submit application. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (validateForm()) {
-      setIsSubmitted(true);
+      submitDataToBackend();
     }
   };
 
   if (!deviceInfo) return null;
+
+  const mediaCount = deviceInfo.mediaCount || { images: 0, videos: 0 };
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -109,7 +209,7 @@ export default function QuotePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Step Indicator (7 Steps) */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider overflow-x-auto py-2">
@@ -127,21 +227,18 @@ export default function QuotePage() {
                       if (step.id === 5) router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}/upload-media`);
                     }}
                     disabled={step.id > (isSubmitted ? 7 : 6)}
-                    className={`flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-                      isActive ? 'text-primary-600' : isCompleted ? 'text-primary-500 hover:text-primary-600' : 'text-gray-400'
-                    }`}
+                    className={`flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${isActive ? 'text-primary-600' : isCompleted ? 'text-primary-500 hover:text-primary-600' : 'text-gray-400'
+                      }`}
                   >
-                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                      isActive ? 'bg-primary-600 text-white' : isCompleted ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'
-                    }`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${isActive ? 'bg-primary-600 text-white' : isCompleted ? 'bg-primary-100 text-primary-600' : 'bg-gray-200 text-gray-500'
+                      }`}>
                       {isCompleted ? '✓' : step.id}
                     </span>
                     {step.name}
                   </button>
                   {idx < STEP_ITEMS.length - 1 && (
-                    <div className={`h-[2px] flex-1 min-w-[20px] mx-2 transition-colors ${
-                      isCompleted ? 'bg-primary-600' : 'bg-gray-200'
-                    }`}></div>
+                    <div className={`h-[2px] flex-1 min-w-[20px] mx-2 transition-colors ${isCompleted ? 'bg-primary-600' : 'bg-gray-200'
+                      }`}></div>
                   )}
                 </React.Fragment>
               );
@@ -164,7 +261,7 @@ export default function QuotePage() {
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
+
           {/* Left Column: Form OR Submission Confirmation */}
           <div className="lg:col-span-2 space-y-6">
             {!isSubmitted ? (
@@ -176,18 +273,16 @@ export default function QuotePage() {
 
                 <form onSubmit={handleSubmit} className="space-y-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {/* Name surname */}
+                    {/* Name Surname */}
                     <div className="space-y-1.5 text-left">
                       <label className="text-xs font-bold text-gray-700 block">Name Surname *</label>
-                      <input 
+                      <input
                         type="text"
                         name="nameSurname"
                         value={formData.nameSurname}
                         onChange={handleInputChange}
                         placeholder="John Doe"
-                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${
-                          formErrors.nameSurname ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.nameSurname ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                       />
                       {formErrors.nameSurname && <p className="text-red-500 text-xs font-bold">{formErrors.nameSurname}</p>}
                     </div>
@@ -195,15 +290,13 @@ export default function QuotePage() {
                     {/* E-mail */}
                     <div className="space-y-1.5 text-left">
                       <label className="text-xs font-bold text-gray-700 block">E-mail *</label>
-                      <input 
+                      <input
                         type="email"
                         name="email"
                         value={formData.email}
                         onChange={handleInputChange}
                         placeholder="example@mail.com"
-                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${
-                          formErrors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                       />
                       {formErrors.email && <p className="text-red-500 text-xs font-bold">{formErrors.email}</p>}
                     </div>
@@ -211,15 +304,13 @@ export default function QuotePage() {
                     {/* Telephone */}
                     <div className="space-y-1.5 text-left">
                       <label className="text-xs font-bold text-gray-700 block">Telephone *</label>
-                      <input 
+                      <input
                         type="tel"
                         name="telephone"
                         value={formData.telephone}
                         onChange={handleInputChange}
                         placeholder="+90 500 000 0000"
-                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${
-                          formErrors.telephone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.telephone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                       />
                       {formErrors.telephone && <p className="text-red-500 text-xs font-bold">{formErrors.telephone}</p>}
                     </div>
@@ -227,16 +318,14 @@ export default function QuotePage() {
                     {/* TR ID Number */}
                     <div className="space-y-1.5 text-left">
                       <label className="text-xs font-bold text-gray-700 block">TR ID Number *</label>
-                      <input 
+                      <input
                         type="text"
                         name="trIdNumber"
                         maxLength={11}
                         value={formData.trIdNumber}
                         onChange={handleInputChange}
                         placeholder="Your 11-digit TR ID number"
-                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${
-                          formErrors.trIdNumber ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                        }`}
+                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.trIdNumber ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                       />
                       {formErrors.trIdNumber && <p className="text-red-500 text-xs font-bold">{formErrors.trIdNumber}</p>}
                     </div>
@@ -245,15 +334,13 @@ export default function QuotePage() {
                   {/* Address */}
                   <div className="space-y-1.5 text-left">
                     <label className="text-xs font-bold text-gray-700 block">Address *</label>
-                    <textarea 
+                    <textarea
                       name="address"
                       rows={3}
                       value={formData.address}
                       onChange={handleInputChange}
                       placeholder="Enter your address information"
-                      className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition resize-none ${
-                        formErrors.address ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                      }`}
+                      className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition resize-none ${formErrors.address ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                     />
                     {formErrors.address && <p className="text-red-500 text-xs font-bold">{formErrors.address}</p>}
                   </div>
@@ -261,24 +348,25 @@ export default function QuotePage() {
                   {/* IBAN */}
                   <div className="space-y-1.5 text-left">
                     <label className="text-xs font-bold text-gray-700 block">IBAN (For payment) *</label>
-                    <input 
+                    <input
                       type="text"
                       name="iban"
+                      maxLength={32}
                       value={formData.iban}
                       onChange={handleInputChange}
-                      placeholder="TR00 0000 0000 0000 0000 0000"
-                      className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${
-                        formErrors.iban ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'
-                      }`}
+                      placeholder="TR00 0000 0000 0000 0000 0000 00"
+                      className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.iban ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
                     />
                     {formErrors.iban && <p className="text-red-500 text-xs font-bold">{formErrors.iban}</p>}
                   </div>
 
                   <button
                     type="submit"
-                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-4 px-6 rounded-2xl transition shadow-md hover:shadow-lg cursor-pointer text-base pt-3 pb-3 mt-4"
+                    disabled={submitting}
+                    className="w-full bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-4 px-6 rounded-2xl transition shadow-md hover:shadow-lg cursor-pointer text-base mt-4 disabled:opacity-60 flex items-center justify-center gap-2"
                   >
-                    Complete Application
+                    {submitting && <Icon icon="mdi:loading" className="animate-spin" />}
+                    {submitting ? 'Submitting...' : 'Complete Application'}
                   </button>
                 </form>
               </div>
@@ -298,7 +386,6 @@ export default function QuotePage() {
                 <div className="pt-4">
                   <button
                     onClick={() => {
-                      sessionStorage.removeItem('sell_device_info');
                       router.push('/sell-old-phone');
                     }}
                     className="bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-3.5 px-8 rounded-2xl transition shadow-md cursor-pointer"
@@ -327,18 +414,33 @@ export default function QuotePage() {
                   <span className="text-gray-400 font-semibold">Model</span>
                   <span className="font-extrabold text-gray-800 capitalize">{modelName}</span>
                 </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400 font-semibold">Storage / RAM</span>
-                  <span className="font-extrabold text-gray-800">{deviceInfo.storage}</span>
-                </div>
-                {deviceInfo.media && (
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400 font-semibold">Media Uploaded</span>
-                    <span className="font-extrabold text-gray-800">
-                      {(deviceInfo.media.images?.length || 0)} Pics, {(deviceInfo.media.videos?.length || 0)} Vids
-                    </span>
+                {deviceInfo.selectedVariants?.map((v, i) => (
+                  <div key={i} className="flex justify-between items-center text-sm">
+                    <span className="text-gray-400 font-semibold">{v.key}</span>
+                    <span className="font-extrabold text-gray-800">{v.value}</span>
+                  </div>
+                ))}
+                
+                {/* Condition Answers Summary */}
+                {deviceInfo.answers && Object.keys(deviceInfo.answers).length > 0 && (
+                  <div className="pt-3 border-t border-gray-50">
+                    <p className="text-xs font-bold text-gray-500 mb-2 uppercase">Device Condition</p>
+                    {Object.entries(deviceInfo.answers).map(([q, a], i) => (
+                      <div key={i} className="flex justify-between items-start text-xs mb-1">
+                        <span className="text-gray-400 font-medium truncate mr-2">{q}</span>
+                        <span className="font-bold text-gray-700 text-right">{a}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
+
+                {/* Media uploaded count */}
+                <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-50">
+                  <span className="text-gray-400 font-semibold">Media Uploaded</span>
+                  <span className="font-extrabold text-gray-800">
+                    {mediaCount.images} Pics, {mediaCount.videos} Vids
+                  </span>
+                </div>
               </div>
             </div>
 

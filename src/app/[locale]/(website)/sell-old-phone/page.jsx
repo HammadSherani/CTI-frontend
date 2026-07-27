@@ -5,57 +5,8 @@ import { useRouter } from '@/i18n/navigation';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-
-const BRANDS = [
-  { id: 'apple', name: 'Apple', slug: 'apple', icon: 'logos:apple', color: 'text-gray-900' },
-  { id: 'xiaomi', name: 'Xiaomi', slug: 'xiaomi', icon: 'simple-icons:xiaomi', color: 'text-orange-500' },
-  { id: 'samsung', name: 'Samsung', slug: 'samsung', icon: 'simple-icons:samsung', color: 'text-blue-800' },
-  { id: 'vivo', name: 'Vivo', slug: 'vivo', icon: 'simple-icons:vivo', color: 'text-blue-500' },
-  { id: 'oppo', name: 'Oppo', slug: 'oppo', icon: 'simple-icons:oppo', color: 'text-green-600' },
-  { id: 'oneplus', name: 'OnePlus', slug: 'oneplus', icon: 'simple-icons:oneplus', color: 'text-red-600' },
-];
-
-const MOCK_MODELS = {
-  apple: [
-    { id: 'iphone-15-pro-max', name: 'iPhone 15 Pro Max', slug: 'iphone-15-pro-max', icon: '/fallback-model.png' },
-    { id: 'iphone-15-pro', name: 'iPhone 15 Pro', slug: 'iphone-15-pro', icon: '/fallback-model.png' },
-    { id: 'iphone-15', name: 'iPhone 15', slug: 'iphone-15', icon: '/fallback-model.png' },
-    { id: 'iphone-14-pro-max', name: 'iPhone 14 Pro Max', slug: 'iphone-14-pro-max', icon: '/fallback-model.png' },
-    { id: 'iphone-14-pro', name: 'iPhone 14 Pro', slug: 'iphone-14-pro', icon: '/fallback-model.png' },
-    { id: 'iphone-13-pro-max', name: 'iPhone 13 Pro Max', slug: 'iphone-13-pro-max', icon: '/fallback-model.png' },
-    { id: 'iphone-13', name: 'iPhone 13', slug: 'iphone-13', icon: '/fallback-model.png' },
-    { id: 'iphone-12', name: 'iPhone 12', slug: 'iphone-12', icon: '/fallback-model.png' },
-  ],
-  xiaomi: [
-    { id: 'redmi-note-6-pro', name: 'Xiaomi Redmi Note 6 Pro', slug: 'redmi-note-6-pro', icon: '/fallback-model.png' },
-    { id: 'mi-a2', name: 'Xiaomi Mi A2', slug: 'mi-a2', icon: '/fallback-model.png' },
-    { id: 'redmi-6', name: 'Xiaomi Redmi 6', slug: 'redmi-6', icon: '/fallback-model.png' },
-    { id: 'redmi-6-pro', name: 'Xiaomi Redmi 6 Pro', slug: 'redmi-6-pro', icon: '/fallback-model.png' },
-    { id: 'redmi-6a', name: 'Xiaomi Redmi 6A', slug: 'redmi-6a', icon: '/fallback-model.png' },
-    { id: 'redmi-y2', name: 'Xiaomi Redmi Y2', slug: 'redmi-y2', icon: '/fallback-model.png' },
-    { id: 'redmi-5', name: 'Xiaomi Redmi 5', slug: 'redmi-5', icon: '/fallback-model.png' },
-    { id: 'redmi-note-5-pro', name: 'Xiaomi Redmi Note 5 Pro', slug: 'redmi-note-5-pro', icon: '/fallback-model.png' },
-  ],
-  samsung: [
-    { id: 'galaxy-s24-ultra', name: 'Samsung Galaxy S24 Ultra', slug: 'galaxy-s24-ultra', icon: '/fallback-model.png' },
-    { id: 'galaxy-s23-ultra', name: 'Samsung Galaxy S23 Ultra', slug: 'galaxy-s23-ultra', icon: '/fallback-model.png' },
-    { id: 'galaxy-s22-ultra', name: 'Samsung Galaxy S22 Ultra', slug: 'galaxy-s22-ultra', icon: '/fallback-model.png' },
-    { id: 'galaxy-a54', name: 'Samsung Galaxy A54 5G', slug: 'galaxy-a54', icon: '/fallback-model.png' },
-    { id: 'galaxy-z-fold5', name: 'Samsung Galaxy Z Fold 5', slug: 'galaxy-z-fold5', icon: '/fallback-model.png' },
-    { id: 'galaxy-z-flip5', name: 'Samsung Galaxy Z Flip 5', slug: 'galaxy-z-flip5', icon: '/fallback-model.png' },
-  ],
-  vivo: [
-    { id: 'v29-pro', name: 'Vivo V29 Pro', slug: 'v29-pro', icon: '/fallback-model.png' },
-    { id: 'v27-pro', name: 'Vivo V27 Pro', slug: 'v27-pro', icon: '/fallback-model.png' },
-    { id: 'y200', name: 'Vivo Y200', slug: 'y200', icon: '/fallback-model.png' },
-    { id: 't2-pro', name: 'Vivo T2 Pro', slug: 't2-pro', icon: '/fallback-model.png' },
-    { id: 'x100-pro', name: 'Vivo X100 Pro', slug: 'x100-pro', icon: '/fallback-model.png' },
-  ],
-};
-
-const ALL_MODELS = Object.entries(MOCK_MODELS).flatMap(([brandSlug, models]) =>
-  models.map(model => ({ ...model, brandSlug }))
-);
+import axiosInstance from '@/config/axiosInstance';
+import { toast } from 'react-toastify';
 
 export default function SellOldPhonePage() {
   const router = useRouter();
@@ -64,16 +15,45 @@ export default function SellOldPhonePage() {
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef(null);
 
+  const [topBrands, setTopBrands] = useState([]);
+  const [allModels, setAllModels] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Fetch brands and models concurrently
+    Promise.all([
+      axiosInstance.get('/public/sell-device/brands'),
+      axiosInstance.get('/public/sell-device/models/all')
+    ])
+    .then(([brandsRes, modelsRes]) => {
+      let brandsData = brandsRes.data.data || [];
+      const modelsData = modelsRes.data.data || [];
+
+      // Sort brands by totalModels descending and take top 6
+      brandsData.sort((a, b) => (b.totalModels || 0) - (a.totalModels || 0));
+      setTopBrands(brandsData.slice(0, 6));
+
+      setAllModels(modelsData);
+    })
+    .catch(err => {
+      console.error(err);
+      toast.error("Failed to load initial data.");
+    })
+    .finally(() => {
+      setLoading(false);
+    });
+  }, []);
+
   useEffect(() => {
     if (searchQuery.trim() === '') {
       setSuggestions([]);
       return;
     }
-    const filtered = ALL_MODELS.filter(model =>
+    const filtered = allModels.filter(model =>
       model.name.toLowerCase().includes(searchQuery.toLowerCase())
     ).slice(0, 8);
     setSuggestions(filtered);
-  }, [searchQuery]);
+  }, [searchQuery, allModels]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -157,7 +137,7 @@ export default function SellOldPhonePage() {
                       >
                         <div className="relative w-10 h-10 p-1 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
                           <Image
-                            src={model.icon}
+                            src={model.imageUrl || "/fallback-model.png"}
                             alt={model.name}
                             width={32}
                             height={32}
@@ -197,13 +177,17 @@ export default function SellOldPhonePage() {
                 </div>
 
                 <div className="flex flex-wrap gap-4 items-center">
-                  {BRANDS.slice(0, 4).map((brand) => (
+                  {topBrands.map((brand) => (
                     <button
-                      key={brand.id}
+                      key={brand._id}
                       onClick={() => router.push(`/sell-old-phone/brands/${brand.slug}`)}
                       className="bg-white hover:bg-gray-50 hover:border-primary-500 hover:shadow-md cursor-pointer border border-gray-100 rounded-2xl px-6 py-4 flex items-center gap-3 font-semibold text-gray-700 transition duration-200"
                     >
-                      <Icon icon={brand.icon} className={`text-2xl ${brand.color}`} />
+                      {brand.logoUrl ? (
+                        <img src={brand.logoUrl} alt={brand.name} className="w-6 h-6 object-contain" />
+                      ) : (
+                        <Icon icon="lucide:smartphone" className="text-2xl text-gray-400" />
+                      )}
                       <span>{brand.name}</span>
                     </button>
                   ))}

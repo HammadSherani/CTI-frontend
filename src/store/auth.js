@@ -54,12 +54,12 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
-    
+
     setUserDetails: (state, action) => {
       state.userDetails = action.payload; // Corrected line
       saveAuthState(state);
     },
-    
+
     setUser: (state, action) => {
       const newState = {
         ...state,
@@ -69,7 +69,7 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
-    
+
     setProfileComplete: (state, action) => {
       const newState = {
         ...state,
@@ -78,13 +78,13 @@ const authSlice = createSlice({
       saveAuthState(newState);
       return newState;
     },
-    
+
     clearAuth: () => {
       const newState = {
         user: null,
         userType: null,
         token: null,
-        userDetails: null, 
+        userDetails: null,
         // isProfileComplete: false,
       };
       saveAuthState(newState);
