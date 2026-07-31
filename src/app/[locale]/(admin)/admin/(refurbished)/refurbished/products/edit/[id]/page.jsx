@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useSelector } from "react-redux";
 import axiosInstance from "@/config/axiosInstance";
-import ProductForm from "../../ProductForm";
+import ProductForm from "@/components/partials/admin/ecom/productForm";
 import { toast } from "react-toastify";
 
 export default function EditProductPage() {
@@ -34,5 +34,5 @@ export default function EditProductPage() {
 
   if (!initialData) return null;
 
-  return <ProductForm mode="edit" initialData={initialData} />;
+  return <ProductForm mode="edit" initialData={initialData} adminMode={true} type="refurbished" />;
 }

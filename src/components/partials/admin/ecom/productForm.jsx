@@ -228,7 +228,7 @@ function SimplePricing({ value, onChange }) {
 /* ══════════════════════════════════════════════════════════
    MAIN FORM
 ══════════════════════════════════════════════════════════ */
-export default function ProductForm({ mode = "create", initialData = null, adminMode = false }) {
+export default function ProductForm({ mode = "create", initialData = null, adminMode = false, type = "standard" }) {
   const router = useRouter();
   const { token } = useSelector((s) => s.auth);
 
@@ -302,15 +302,22 @@ export default function ProductForm({ mode = "create", initialData = null, admin
 
   /* Load Categories */
   useEffect(() => {
-    const url = adminMode ? "/admin/e-commerce/product/categories" : "/seller/product/categories";
+    let url = adminMode ? "/admin/e-commerce/product/categories" : "/seller/product/categories";
+    if (type === "refurbished") url = "/admin/refurbish/categories";
+    
     axiosInstance
       .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setCategories(data.data || []))
       .catch(() => toast.error("Failed to load categories"));
-  }, [token, adminMode]);
+  }, [token, adminMode, type]);
 
   /* Load Subcategories */
   useEffect(() => {
+    if (type === "refurbished") {
+      setSubCategories([]);
+      return;
+    }
+    
     if (!watchCategory) {
       setSubCategories([]);
       if (!adminMode) setBrands([]);
@@ -323,7 +330,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setSubCategories(data.data || []))
       .catch(() => toast.error("Failed to load subcategories"));
-  }, [watchCategory, token, adminMode]);
+  }, [watchCategory, token, adminMode, type]);
 
 
 
@@ -355,8 +362,10 @@ export default function ProductForm({ mode = "create", initialData = null, admin
 
   /* Load Brands when Subcategory changes */
   useEffect(() => {
-    loadBrands(watchSubCategory);
-  }, [watchSubCategory, loadBrands]);
+    if (type !== "refurbished") {
+      loadBrands(watchSubCategory);
+    }
+  }, [watchSubCategory, loadBrands, type]);
 
   useEffect(() => {
     if (!initialData || mode !== "edit") return;
@@ -377,7 +386,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       });
 
     // Load subcategories and brands for edit mode
-    if (catId) {
+    if (type !== "refurbished" && catId) {
       const subUrl = adminMode
         ? `/admin/e-commerce/product/subcategories/${catId}`
         : `/seller/product/subcategories/${catId}`;
@@ -388,7 +397,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
           if (subId) loadBrands(subId);
         });
     }
-  }, [initialData, mode, reset, token, loadBrands, adminMode]);
+  }, [initialData, mode, reset, token, loadBrands, adminMode, type]);
 
   /* ── Load subcategories ── */
   useEffect(() => {
@@ -429,20 +438,46 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       });
 
       // Explicitly load brands for pre-filled subcategory in edit mode
-      if (subId) {
+      if (type !== "refurbished" && subId) {
         loadBrands(subId);
       }
     }
-  }, [initialData, reset, loadBrands]);
+  }, [initialData, reset, loadBrands, type]);
 
   /* ── Admin mode: load all brands on mount (no subcategory filter) ── */
   useEffect(() => {
-    if (!adminMode) return;
+    if (!adminMode || type === "refurbished") return;
+    
+    const url = "/admin/e-commerce/product/brands";
+    
     axiosInstance
-      .get("/admin/e-commerce/product/brands", { headers: { Authorization: `Bearer ${token}` } })
+      .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => setBrands(data.data || []))
       .catch(() => toast.error("Failed to load brands"));
-  }, [adminMode, token]);
+  }, [adminMode, token, type]);
+
+  /* ── Refurbished mode: load brands based on category ── */
+  useEffect(() => {
+    if (type !== "refurbished") return;
+    if (!watchCategory) {
+      setBrands([]);
+      return;
+    }
+    
+    axiosInstance
+      .get(`/admin/refurbish/brands?categoryId=${watchCategory}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => {
+        setBrands(data.data || []);
+        if (mode === "edit" && initialData) {
+          const brandId = initialData?.brandId?._id || initialData?.brandId || "";
+          if (brandId) {
+            const brandExists = (data.data || []).some(b => b._id === brandId);
+            if (brandExists) setValue("brandId", brandId);
+          }
+        }
+      })
+      .catch(() => toast.error("Failed to load brands"));
+  }, [type, watchCategory, token, mode, initialData, setValue]);
 
   /* ── Admin mode: load sellers for seller dropdown ── */
   useEffect(() => {
@@ -510,7 +545,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       return;
     }
 
-    if (adminMode && mode === "create" && !selectedSellerId) {
+    if (adminMode && mode === "create" && type !== "refurbished" && !selectedSellerId) {
       toast.error("Please select a seller");
       return;
     }
@@ -526,7 +561,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
         fd.append("modelNumber", productData.modelNumber);
         if (productData.shortDescription) fd.append("shortDescription", productData.shortDescription);
         if (productData.categoryId) fd.append("categoryId", productData.categoryId);
-        if (productData.subCategoryId) fd.append("subCategoryId", productData.subCategoryId);
+        if (productData.subCategoryId && type !== "refurbished") fd.append("subCategoryId", productData.subCategoryId);
         if (productData.brandId) fd.append("brandId", productData.brandId);
         
         fd.append("price", Number(simplePricing.price));
@@ -539,7 +574,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
         if (dirtyFields.modelNumber) fd.append("modelNumber", productData.modelNumber);
         if (dirtyFields.shortDescription) fd.append("shortDescription", productData.shortDescription);
         if (dirtyFields.categoryId) fd.append("categoryId", productData.categoryId);
-        if (dirtyFields.subCategoryId) fd.append("subCategoryId", productData.subCategoryId);
+        if (dirtyFields.subCategoryId && type !== "refurbished") fd.append("subCategoryId", productData.subCategoryId);
         if (dirtyFields.brandId) fd.append("brandId", productData.brandId);
 
         previews
@@ -567,11 +602,15 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       const isCreate = mode === "create";
 
       // Admin mode: include sellerId on create
-      if (adminMode && isCreate) fd.append("sellerId", selectedSellerId);
+      if (adminMode && isCreate && selectedSellerId) fd.append("sellerId", selectedSellerId);
 
-      const productUrl = isCreate
+      let productUrl = isCreate
         ? (adminMode ? "/admin/e-commerce/product" : "/seller/product")
         : (adminMode ? `/admin/e-commerce/product/${initialData._id}` : `/seller/product/${initialData._id}`);
+
+      if (type === "refurbished") {
+         productUrl = isCreate ? "/admin/refurbish/products" : `/admin/refurbish/products/${initialData._id}`;
+      }
 
       const res = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
         headers: {
@@ -581,7 +620,13 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       });
 
       toast.success(`Product ${isCreate ? "created" : "updated"} successfully`);
-      if (adminMode) {
+      if (type === "refurbished") {
+        if (isCreate) {
+          router.push(`/admin/refurbished/products/${res.data.data._id}/variants`);
+        } else {
+          router.push("/admin/refurbished/products");
+        }
+      } else if (adminMode) {
         router.push("/admin/ecom/products");
       } else if (isCreate) {
         router.push(`/seller/product/${res.data.data._id}/variants`);
@@ -638,7 +683,10 @@ export default function ProductForm({ mode = "create", initialData = null, admin
           <div className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
             <span
               className="hover:text-primary-600 cursor-pointer"
-              onClick={() => router.push(adminMode ? "/admin/ecom/products" : "/seller/product")}
+              onClick={() => {
+                if (type === "refurbished") router.push("/admin/refurbished/products");
+                else router.push(adminMode ? "/admin/ecom/products" : "/seller/product");
+              }}
             >
               Products
             </span>
@@ -697,8 +745,8 @@ export default function ProductForm({ mode = "create", initialData = null, admin
               </div>
             </Card>
 
-            {/* Admin-only: Seller selector */}
-            {adminMode && mode === "create" && (
+            {/* Admin-only: Seller selector (not needed for refurbished as it auto assigns to admin) */}
+            {adminMode && mode === "create" && type !== "refurbished" && (
               <Card>
                 <CardTitle icon="mdi:storefront-outline">Seller</CardTitle>
                 <div>
@@ -728,7 +776,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
             {/* Categorization */}
             <Card>
               <CardTitle icon="mdi:shape-outline">Categorization</CardTitle>
-              <div className="grid grid-cols-3 gap-3">
+              <div className={`grid ${type === "refurbished" ? "grid-cols-2" : "grid-cols-3"} gap-3`}>
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">
                     Category <span className="text-red-500">*</span>
@@ -740,38 +788,65 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                   >
                     <option value="">Select</option>
                     {categories.map((c) => (
-                      <option key={c._id} value={c._id}>{c.title}</option>
+                      <option key={c._id} value={c._id}>{c.title || c.name}</option>
                     ))}
                   </select>
                   <FieldError err={errors.categoryId} />
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Subcategory</label>
-                  <select
-                    {...register("subCategoryId")}
-                    disabled={!watchCategory}
-                    className={SEL}
-                    style={{ backgroundImage: CHEVRON }}
-                  >
-                    <option value="">Select</option>
-                    {subCategories.map((s) => (
-                      <option key={s._id} value={s._id}>{s.title}</option>
-                    ))}
-                  </select>
-                </div>
+                {type !== "refurbished" && (
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">Subcategory</label>
+                    <select
+                      {...register("subCategoryId")}
+                      disabled={!watchCategory}
+                      className={SEL}
+                      style={{ backgroundImage: CHEVRON }}
+                    >
+                      <option value="">Select</option>
+                      {subCategories.map((s) => (
+                        <option key={s._id} value={s._id}>{s.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-xs font-semibold text-gray-600 mb-1">Brand</label>
                   <select
                     {...register("brandId")}
-                    disabled={adminMode ? false : !watchSubCategory}
+                    disabled={(adminMode && type !== "refurbished") ? false : (type === "refurbished" ? !watchCategory : !watchSubCategory)}
                     className={SEL}
                     style={{ backgroundImage: CHEVRON }}
                   >
                     <option value="">Select</option>
                     {brands.map((b) => (
-                      <option key={b._id} value={b._id}>{b.title}</option>
+                      <option key={b._id} value={b._id}>{b.title || b.name}</option>
                     ))}
                   </select>
+                  {!adminMode && type !== "refurbished" && (
+                    <button
+                      type="button"
+                      onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
+                      className="px-4 py-2 bg-white text-primary-600 text-sm font-semibold rounded-xl border border-primary-200 hover:bg-primary-50 transition-colors whitespace-nowrap"
+                    >
+                      Manage Variants →
+                    </button>
+                  )}
+                  {(adminMode || type === "refurbished") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (type === "refurbished") {
+                          router.push(`/admin/refurbished/products/${initialData._id}/variants`);
+                        } else {
+                          // Standard admin variants URL (assuming it exists or will be added if admin manages variants)
+                          router.push(`/admin/ecom/products/${initialData._id}/variants`);
+                        }
+                      }}
+                      className="px-4 py-2 bg-white text-primary-600 text-sm font-semibold rounded-xl border border-primary-200 hover:bg-primary-50 transition-colors whitespace-nowrap"
+                    >
+                      Manage Variants →
+                    </button>
+                  )}
                 </div>
               </div>
             </Card>
@@ -794,10 +869,25 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                       <p className="text-xs text-primary-700 max-w-sm">Every product has at least one default variant. Manage prices, stock, and options from the Variant Manager.</p>
                     </div>
                   </div>
-                  {!adminMode && (
+                  {(!adminMode && type !== "refurbished") && (
                     <button
                       type="button"
                       onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
+                      className="flex-shrink-0 px-5 py-2.5 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
+                    >
+                      Manage Variants
+                    </button>
+                  )}
+                  {(adminMode || type === "refurbished") && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (type === "refurbished") {
+                          router.push(`/admin/refurbished/products/${initialData._id}/variants`);
+                        } else {
+                          router.push(`/admin/ecom/products/${initialData._id}/variants`);
+                        }
+                      }}
                       className="flex-shrink-0 px-5 py-2.5 bg-primary-600 text-white text-xs font-bold rounded-xl hover:bg-primary-700 transition-colors shadow-sm whitespace-nowrap"
                     >
                       Manage Variants

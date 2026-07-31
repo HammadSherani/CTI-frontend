@@ -127,28 +127,72 @@ export default function RefurbishedProductsPage() {
           </div>
           <div>
             <p className="font-bold text-gray-800 text-sm">{row.title || "—"}</p>
-            <p className="text-xs text-gray-400">SKU: {row.sku || "—"} · {row.categoryId?.name}</p>
+            <p className="text-xs text-gray-400">SKU: {row.sku || "—"}</p>
           </div>
         </div>
       ),
     },
     {
-      key: "attributes",
-      header: "Specs",
+      key: "model",
+      header: "Model No.",
       cell: (row) => (
-        <div className="flex flex-wrap gap-1 max-w-xs">
-          {row.attributes?.slice(0, 3).map((a, i) => (
-            <span key={i} className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-              {a.key}: {Array.isArray(a.values) ? a.values.join(", ") : a.value || "—"}
-            </span>
-          ))}
-          {row.attributes?.length > 3 && (
-            <span className="text-[10px] font-bold bg-primary-50 text-primary-600 px-2 py-0.5 rounded-full">
-              +{row.attributes.length - 3} more
-            </span>
-          )}
+        <span className="text-sm font-medium text-gray-700">
+          {row.modelNumber || "—"}
+        </span>
+      ),
+    },
+    // {
+    //   key: "barcode",
+    //   header: "Barcode",
+    //   cell: (row) => (
+    //     <span className="text-sm font-medium text-gray-700">
+    //       {row.barcode || "—"}
+    //     </span>
+    //   ),
+    // },
+    {
+      key: "categoryBrand",
+      header: "Category & Brand",
+      cell: (row) => (
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold text-gray-800">{row.categoryId?.name || "—"}</span>
+          <span className="text-xs text-gray-500">{row.brandId?.name || "—"}</span>
         </div>
       ),
+    },
+    {
+      key: "price",
+      header: "Price",
+      cell: (row) => {
+        const v = row.variants?.[0];
+        return (
+          <div>
+            <span className="font-bold text-gray-900">${v?.sellingPrice?.toFixed(2) || "0.00"}</span>
+            {v?.discountPrice && (
+              <p className="text-[11px] text-emerald-600 font-medium">${v.discountPrice.toFixed(2)} discounted</p>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: "stock",
+      header: "Stock",
+      cell: (row) => {
+        const stock = row.variants?.[0]?.stock ?? 0;
+        return (
+          <span
+            className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${stock === 0
+              ? "bg-red-50 text-red-600"
+              : stock < 5
+                ? "bg-amber-50 text-amber-600"
+                : "bg-emerald-50 text-emerald-600"
+              }`}
+          >
+            {stock} in stock
+          </span>
+        );
+      },
     },
     {
       key: "isActive",
@@ -167,13 +211,16 @@ export default function RefurbishedProductsPage() {
       header: "Actions",
       cell: (row) => (
         <div className="flex gap-1">
-          <button onClick={() => router.push(`/admin/refurbished/products/view/${row._id}`)} className="p-2 hover:bg-green-50 rounded-xl text-green-600">
+          <button onClick={() => router.push(`/admin/refurbished/products/view/${row._id}`)} className="p-2 hover:bg-green-50 rounded-xl text-green-600" title="View Details">
             <Icon icon="mdi:eye-outline" className="w-4 h-4" />
           </button>
-          <button onClick={() => router.push(`/admin/refurbished/products/edit/${row._id}`)} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600">
+          <button onClick={() => router.push(`/admin/refurbished/products/edit/${row._id}`)} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600" title="Edit">
             <Icon icon="mdi:pencil-outline" className="w-4 h-4" />
           </button>
-          <button onClick={() => setConfirm({ id: row._id, label: row.title })} className="p-2 hover:bg-red-50 rounded-xl text-red-600">
+          <button onClick={() => router.push(`/admin/refurbished/products/${row._id}/variants`)} className="p-2 hover:bg-purple-50 rounded-xl text-purple-600" title="Manage Variants">
+            <Icon icon="mdi:layers-triple-outline" className="w-4 h-4" />
+          </button>
+          <button onClick={() => setConfirm({ id: row._id, label: row.title })} className="p-2 hover:bg-red-50 rounded-xl text-red-600" title="Delete">
             <Icon icon="mdi:delete-outline" className="w-4 h-4" />
           </button>
         </div>
