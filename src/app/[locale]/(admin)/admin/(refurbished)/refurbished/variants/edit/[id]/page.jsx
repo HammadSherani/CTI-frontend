@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import ProductForm from "../../ProductForm";
+import VariantForm from "../../VariantForm";
 import axiosInstance from "@/config/axiosInstance";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
@@ -19,7 +19,7 @@ export default function EditProductPage({ params }) {
 
   useEffect(() => {
     if (!token || !id) return;
-    
+
     axiosInstance
       .get(`/admin/refurbish/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -46,5 +46,5 @@ export default function EditProductPage({ params }) {
 
   if (!product) return null;
 
-  return <ProductForm mode="edit" initialData={product} />;
+  return <VariantForm mode="edit" initialData={product} />;
 }

@@ -567,8 +567,46 @@ function NavigationBar({ isHome, isScrolled }) {
         { name: "Software Issues", href: "/mobile-repair" },
       ],
     },
-    { name: "Sell Old Phone", href: "/sell-old-phone", },
-    { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
+    {
+      name: "Sell Phone", href: "/sell-old-phone", hasDropdown: true,
+      dropdownItems: [
+        { sectionTitle: "Top Brands", href: "/sell-old-phone" },
+        { name: "Samsung", href: "/sell-old-phone" },
+        { name: "Apple", href: "/sell-old-phone" },
+        { name: "Xiaomi", href: "/sell-old-phone" },
+        { name: "Oppo", href: "/sell-old-phone" },
+        { name: "Vivo", href: "/sell-old-phone" },
+        { name: "Realme", href: "/sell-old-phone" },
+        { name: "OnePlus", href: "/sell-old-phone" },
+      ],
+    },
+    // {
+    //   name: "Buy Refurbished Devices", href: "/refurbished", hasDropdown: true,
+    //   dropdownItems: [
+
+    //   ],
+    // },
+    {
+      name: "Buy Refurbished Devices", href: "/refurbished", hasDropdown: true,
+      dropdownItems: [
+        { sectionTitle: "Refurbished Products", href: "/refurbished" },
+        { name: "Refurbished Phone", href: "/coming" },
+        { name: "Refurbished Tablet", href: "/coming" },
+        { name: "Refurbished Laptop", href: "/coming" },
+        { name: "Refurbished Smart Watch", href: "/coming" },
+        { name: "Refurbished Accessory", href: "/coming" },
+        { name: "Sell Speakers", href: "/coming" },
+        { name: "Sell Game Console", href: "/coming" },
+        { sectionTitle: "Top Brands", href: "/refurbished" },
+        { name: "Samsung", href: "/coming" },
+        { name: "Apple", href: "/coming" },
+        { name: "Xiaomi", href: "/coming" },
+        { name: "Oppo", href: "/coming" },
+        { name: "Vivo", href: "/coming" },
+        { name: "Realme", href: "/coming" },
+        { name: "OnePlus", href: "/coming" },
+      ],
+    }, { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
     { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
     { name: "Academy", href: "/academy", hasDropdown: false },
     { name: "About", href: "/about-us", hasDropdown: false },
@@ -634,33 +672,86 @@ function NavigationBar({ isHome, isScrolled }) {
                       onClose={() => setOpenDropdown(null)}
                     />
                   ) : (
-                    <motion.div
-                      key="generic-dd"
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
-                    >
-                      {item.dropdownItems?.map((di) => (
-                        <Link
-                          key={di.name}
-                          href={di.href}
-                          onClick={() => setOpenDropdown(null)}
-                          className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    (() => {
+                      const hasSections = item.dropdownItems?.some((di) => di.sectionTitle);
+                      if (hasSections) {
+                        const groups = [];
+                        let currentGroup = null;
+                        item.dropdownItems.forEach((di) => {
+                          if (di.sectionTitle) {
+                            currentGroup = { title: di.sectionTitle, href: di.href, items: [] };
+                            groups.push(currentGroup);
+                          } else if (currentGroup) {
+                            currentGroup.items.push(di);
+                          } else {
+                            if (!groups.length) groups.push({ items: [] });
+                            groups[0].items.push(di);
+                          }
+                        });
+                        return (
+                          <motion.div
+                            key="generic-dd"
+                            initial={{ opacity: 0, y: 6 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 6 }}
+                            transition={{ duration: 0.15 }}
+                            className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 p-5 z-50 flex gap-8"
+                          >
+                            {groups.map((g, i) => (
+                              <div key={i} className="min-w-[140px]">
+                                {g.title && (
+                                  <Link href={g.href || "#"} onClick={() => setOpenDropdown(null)} className="block mb-3 text-sm font-bold text-gray-900 hover:text-orange-600 transition-colors">
+                                    {g.title}
+                                  </Link>
+                                )}
+                                <div className="space-y-1.5">
+                                  {g.items.map((di, j) => (
+                                    <Link
+                                      key={j}
+                                      href={di.href}
+                                      onClick={() => setOpenDropdown(null)}
+                                      className="block py-1 text-[13px] font-medium text-gray-500 hover:text-orange-600 transition-colors"
+                                    >
+                                      {di.name}
+                                    </Link>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </motion.div>
+                        );
+                      }
+
+                      return (
+                        <motion.div
+                          key="generic-dd"
+                          initial={{ opacity: 0, y: 6 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 6 }}
+                          transition={{ duration: 0.15 }}
+                          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
                         >
-                          {di.name}
-                        </Link>
-                      ))}
-                    </motion.div>
-                  )
-                )}
+                          {item.dropdownItems?.map((di, idx) => (
+                            <Link
+                              key={idx}
+                              href={di.href}
+                              onClick={() => setOpenDropdown(null)}
+                              className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                            >
+                              {di.name}
+                            </Link>
+                          ))}
+                        </motion.div>
+                      );
+                    })()
+                )
+                  )}
               </AnimatePresence>
             </div>
           ))}
         </nav>
-      </div>
-    </div>
+      </div >
+    </div >
   );
 }
 
