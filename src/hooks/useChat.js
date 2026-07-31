@@ -9,8 +9,8 @@ import {
   selectChat,
   backToInbox,
   setInputText,
-  setSelectedFile,
-  clearSelectedFile,
+  setSelectedFiles,
+  clearSelectedFiles,
   sendMessage,
   addMessage,
   addChat,
@@ -52,24 +52,6 @@ export const useChat = () => {
     }
   }, [token, dispatch]);
 
-  // // OLD CODE — Duplicate auto-join: ChatView ALSO joins/leaves chat rooms
-  // // This caused double join_chat socket emissions
-  // // Auto-join chat when selected
-  // useEffect(() => {
-  //   if (chatState.selectedChat && connected) {
-  //     joinChat(chatState.selectedChat.id);
-  //     
-  //     return () => {
-  //       if (chatState.selectedChat) {
-  //         leaveChat(chatState.selectedChat.id);
-  //       }
-  //     };
-  //   }
-  // }, [chatState.selectedChat, connected, joinChat, leaveChat]);
-
-  // ✅ NEW CODE — ChatView handles join/leave, no need to duplicate here
-  // ✅ END NEW CODE
-
   const handleToggleChat = useCallback(() => {
     if (!chatState.currentUser) return;
     dispatch(toggleChat());
@@ -89,14 +71,6 @@ export const useChat = () => {
     dispatch(selectChat(chat));
     const chatId = chat.id;
     dispatch(markChatAsRead(chatId));
-    
-    // // OLD CODE — caused DOUBLE fetch (ChatView also fetches messages)
-    // // CRITICAL FIX: Fetch messages when chat is selected
-    // fetchMessages(chatId);
-
-    // ✅ NEW CODE — Let ChatView handle fetching (cache-aware), don't duplicate here
-    // ChatView already has useEffect that checks cache and fetches if needed
-    // ✅ END NEW CODE
   }, [dispatch, chatState.currentUser]);
 
   const handleBackToInbox = useCallback(() => {
@@ -115,13 +89,13 @@ export const useChat = () => {
     }
   }, [dispatch, chatState.currentUser, chatState.selectedChat, connected, startTyping, stopTyping]);
 
-  const handleSetSelectedFile = useCallback((file) => {
+  const handleSetSelectedFiles = useCallback((files) => {
     if (!chatState.currentUser) return;
-    dispatch(setSelectedFile(file));
+    dispatch(setSelectedFiles(files));
   }, [dispatch, chatState.currentUser]);
 
-  const handleClearSelectedFile = useCallback(() => {
-    dispatch(clearSelectedFile());
+  const handleClearSelectedFiles = useCallback(() => {
+    dispatch(clearSelectedFiles());
   }, [dispatch]);
 
   // Updated sendMessage with real API + Socket
@@ -162,7 +136,7 @@ export const useChat = () => {
 
       // Clear input
       dispatch(setInputText(''));
-      dispatch(clearSelectedFile());
+      dispatch(clearSelectedFiles());
       
     } catch (error) {
       console.error('Error sending message:', error);
@@ -210,12 +184,17 @@ export const useChat = () => {
       //   unreadCounts: {}
       // }));
 
-      // ✅ NEW CODE — Don't pass messages: {} so cached messages are preserved
+      const unreadCounts = {};
+      if (data.chats) {
+        data.chats.forEach(chat => {
+          unreadCounts[chat.chatId] = chat.unreadCount || 0;
+        });
+      }
+
       dispatch(loadUserChats({
         chats: data.chats || [],
-        unreadCounts: {}
+        unreadCounts
       }));
-      // ✅ END NEW CODE
     } catch (error) {
       handleError(error);
     }
@@ -232,8 +211,8 @@ export const useChat = () => {
     selectChat: handleSelectChat,
     backToInbox: handleBackToInbox,
     setInputText: handleSetInputText,
-    setSelectedFile: handleSetSelectedFile,
-    clearSelectedFile: handleClearSelectedFile,
+    setSelectedFiles: handleSetSelectedFiles,
+    clearSelectedFiles: handleClearSelectedFiles,
     sendMessage: handleSendMessage,
     addChat: handleAddChat,
     removeChat: handleRemoveChat,

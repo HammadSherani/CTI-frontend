@@ -23,7 +23,7 @@ const initialState = {
     isOpen: false,
     selectedChat: null,
     inputText: '',
-    selectedFile: null,
+    selectedFiles: [],
     onlineUsers: [],
     unreadCounts: authUser?.unreadCounts || {},
     totalUnreadCount: 0,
@@ -48,7 +48,7 @@ const chatSlice = createSlice({
                 state.isOpen = false;
                 state.selectedChat = null;
                 state.inputText = '';
-                state.selectedFile = null;
+                state.selectedFiles = [];
                 state.onlineUsers = [];
             }
         },
@@ -83,12 +83,12 @@ const chatSlice = createSlice({
             state.inputText = action.payload;
         },
 
-        setSelectedFile: (state, action) => {
-            state.selectedFile = action.payload;
+        setSelectedFiles: (state, action) => {
+            state.selectedFiles = action.payload;
         },
 
-        clearSelectedFile: (state) => {
-            state.selectedFile = null;
+        clearSelectedFiles: (state) => {
+            state.selectedFiles = [];
         },
 
         setMessages: (state, action) => {
@@ -101,62 +101,47 @@ const chatSlice = createSlice({
 
             const chatIndexById = state.chats.findIndex(c => c.id === chatId);
             const chatIndexByChatId = state.chats.findIndex(c => c.chatId === chatId);
-
-            // // OLD CODE (no dedup) — commented out
-            // console.log('Found chat by id index:', chatIndexById);
-            // console.log('Found chat by chatId index:', chatIndexByChatId);
-
             const chatIndex = chatIndexById !== -1 ? chatIndexById : chatIndexByChatId;
-            // // OLD CODE — commented out
-            // console.log('Final chat index used:', chatIndex);
+
+            if (!state.messages[chatId]) state.messages[chatId] = [];
+
+            // Deduplication check to prevent duplicate messages
+            const msgId = message._id || message.messageId;
+            const isDuplicate = msgId && state.messages[chatId].some(
+                m => (m._id && m._id === msgId) || (m.messageId && m.messageId === msgId)
+            );
+            if (isDuplicate) {
+                return; // Message already exists, skip adding
+            }
+
+            state.messages[chatId].push({
+                ...message,
+                id: msgId || Date.now() + Math.random(),
+                timestamp: message.timestamp || new Date().toISOString(),
+            });
 
             if (chatIndex !== -1) {
-                // // OLD CODE — commented out
-                // console.log('✅ Chat found! Adding message...');
-
-                if (!state.messages[chatId]) state.messages[chatId] = [];
-
-                // ✅ NEW CODE — Deduplication check to prevent duplicate messages
-                const msgId = message._id || message.messageId;
-                const isDuplicate = msgId && state.messages[chatId].some(
-                    m => (m._id && m._id === msgId) || (m.messageId && m.messageId === msgId)
-                );
-                if (isDuplicate) {
-                    return; // Message already exists, skip adding
-                }
-                // ✅ END NEW CODE
-
-                state.messages[chatId].push({
-                    ...message,
-                    id: msgId || Date.now() + Math.random(), // ✅ UPDATED — use server id if available
-                    timestamp: message.timestamp || new Date().toISOString(),
-                });
-
-                // // OLD CODE — commented out
-                // console.log('Message added. Total messages now:', state.messages[chatId].length);
-
                 state.chats[chatIndex].lastMessage = message.text || message.content || "Media";
                 state.chats[chatIndex].timestamp = new Date().toISOString();
 
                 const [updatedChat] = state.chats.splice(chatIndex, 1);
                 state.chats.unshift(updatedChat);
-
-                if (message.sender !== 'user' && state.selectedChat?.id !== chatId) {
-                    // // OLD CODE — commented out
-                    // console.log('Incrementing unread count for chatId:', chatId);
-                    state.unreadCounts[chatId] = (state.unreadCounts[chatId] || 0) + 1;
-                }
-                // // OLD CODE — commented out
-                // else {
-                //     console.log('Not incrementing unread - sender is user or chat is selected');
-                // }
+            } else {
+                // If chat is not in the list, create a placeholder so it appears in the inbox instantly
+                const newChatPlaceholder = {
+                    id: chatId,
+                    chatId: chatId,
+                    lastMessage: message.text || message.content || "Media",
+                    timestamp: new Date().toISOString(),
+                    otherUser: {
+                        _id: message.user?._id || message.senderId,
+                        name: message.user?.name || 'User',
+                        avatar: message.user?.avatar || null,
+                        role: message.user?.role || 'customer'
+                    }
+                };
+                state.chats.unshift(newChatPlaceholder);
             }
-            // // OLD CODE — commented out
-            // else {
-            //     console.log('❌ Chat NOT found for chatId:', chatId);
-            //     console.log('Available chat IDs:', state.chats.map(c => c.id));
-            //     console.log('Available chatIds:', state.chats.map(c => c.chatId));
-            // }
         },
 
         sendMessage: (state, action) => {
@@ -215,6 +200,25 @@ const chatSlice = createSlice({
             }
         },
 
+        setOnlineUsers: (state, action) => {
+            const onlineUsersList = action.payload.map(u => u.userId);
+            state.onlineUsers = onlineUsersList;
+
+            state.chats.forEach(chat => {
+                if (onlineUsersList.includes(chat.otherUser?._id)) {
+                    chat.online = true;
+                } else {
+                    chat.online = false;
+                }
+            });
+
+            if (state.selectedChat && onlineUsersList.includes(state.selectedChat.otherUser?._id)) {
+                state.selectedChat.online = true;
+            } else if (state.selectedChat) {
+                state.selectedChat.online = false;
+            }
+        },
+
         setUserOnline: (state, action) => {
             const userId = action.payload;
 
@@ -223,10 +227,13 @@ const chatSlice = createSlice({
             }
 
             state.chats.forEach(chat => {
-                if (chat.userId === userId) {
+                if (chat.otherUser?._id === userId || chat.otherUser === userId) {
                     chat.online = true;
                 }
             });
+            if (state.selectedChat?.otherUser?._id === userId) {
+                state.selectedChat.online = true;
+            }
         },
 
         setUserOffline: (state, action) => {
@@ -235,10 +242,13 @@ const chatSlice = createSlice({
             state.onlineUsers = state.onlineUsers.filter(id => id !== userId);
 
             state.chats.forEach(chat => {
-                if (chat.userId === userId) {
+                if (chat.otherUser?._id === userId || chat.otherUser === userId) {
                     chat.online = false;
                 }
             });
+            if (state.selectedChat?.otherUser?._id === userId) {
+                state.selectedChat.online = false;
+            }
         },
 
         markChatAsRead: (state, action) => {
@@ -336,7 +346,17 @@ const chatSlice = createSlice({
             if (!state.messages[chatId]) {
                 state.messages[chatId] = [];
             }
-            state.messages[chatId] = [...newMessages, ...state.messages[chatId]];
+            
+            // Deduplicate to avoid React key issues and scroll jumps
+            const existingIds = new Set(
+                state.messages[chatId].map(m => m._id || m.messageId)
+            );
+            
+            const uniqueNewMessages = newMessages.filter(
+                m => !existingIds.has(m._id || m.messageId)
+            );
+
+            state.messages[chatId] = [...uniqueNewMessages, ...state.messages[chatId]];
         }
     },
 });
@@ -349,14 +369,15 @@ export const {
     selectChat,
     backToInbox,
     setInputText,
-    setSelectedFile,
-    clearSelectedFile,
+    setSelectedFiles,
+    clearSelectedFiles,
     setMessages,
     addMessage,
     sendMessage,
     prependMessages,
     addChat,
     removeChat,
+    setOnlineUsers,
     setUserOnline,
     setUserOffline,
     markChatAsRead,

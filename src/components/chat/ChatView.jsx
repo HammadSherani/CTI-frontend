@@ -8,25 +8,25 @@ import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
 import {
     setMessages,
-    clearSelectedFile,
-    setSelectedFile,
+    clearSelectedFiles,
+    setSelectedFiles,
     prependMessages
 } from '@/store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
 import QuotationForm from './QuotationForm';
 import QuotationMessage from './QuotationMessage';
+import { toast } from 'react-toastify';
 
 // Helper function to get file icon based on file type
 const getFileIcon = (fileName, messageType) => {
     if (!fileName) return { icon: 'mdi:file', color: 'text-gray-500' };
 
-    const ext = fileName.split('.').pop()?.toLowerCase();
+    const ext = fileName.split('.').pop().toLowerCase();
 
     // Document files
     if (['pdf'].includes(ext)) return { icon: 'mdi:file-pdf-box', color: 'text-red-500' };
-    if (['doc', 'docx'].includes(ext)) return { icon: 'mdi:file-word', color: 'text-blue-600' };
-    if (['xls', 'xlsx'].includes(ext)) return { icon: 'mdi:file-excel', color: 'text-green-600' };
-    if (['ppt', 'pptx'].includes(ext)) return { icon: 'mdi:file-powerpoint', color: 'text-orange-600' };
+    if (['doc', 'docx'].includes(ext)) return { icon: 'mdi:file-word-box', color: 'text-blue-600' };
+    if (['xls', 'xlsx'].includes(ext)) return { icon: 'mdi:file-excel-box', color: 'text-green-600' };
     if (['txt'].includes(ext)) return { icon: 'mdi:file-document', color: 'text-gray-600' };
 
     // Archive files
@@ -91,9 +91,9 @@ const ChatView = ({ chat, onBack }) => {
     const [initialLoading, setInitialLoading] = useState(true);
 
     const { token, user } = useSelector((state) => state.auth);
-    const { messages, inputText, selectedFile, setInputText: updateInputText, selectChat } = useChat();
+    const { messages, inputText, selectedFiles, setInputText: updateInputText, selectChat } = useChat();
 
-    
+
 
     const {
         socket,
@@ -130,56 +130,60 @@ const ChatView = ({ chat, onBack }) => {
                 headers: { Authorization: `Bearer ${token}` },
             });
 
-            if (before) {
-                dispatch(prependMessages({
-                    chatId: chat.id,
-                    messages: data.messages
-                }));
-            } else {
-                dispatch(setMessages({
-                    chatId: chat.id,
-                    messages: data.messages || []
-                }));
-                // Initial load ke baad scroll down
-                setTimeout(() => {
-                    if (messagesEndRef.current) {
-                        messagesEndRef.current.scrollIntoView({ behavior: "auto" });
-                    }
-                }, 100);
+            if (data.success) {
+                if (before) {
+                    dispatch(prependMessages({
+                        chatId: chat.id,
+                        messages: data.messages
+                    }));
+                } else {
+                    dispatch(setMessages({
+                        chatId: chat.id,
+                        messages: data.messages
+                    }));
+                }
+                setHasMore(data.hasMore);
+                if (data.oldestMessageId) {
+                    setOldestMessageId(data.oldestMessageId);
+                }
             }
-
-            setHasMore(data.hasMore);
-            setOldestMessageId(data.oldestMessageId);
         } catch (error) {
-            console.error("Failed to fetch messages:", error);
+            console.error('Error fetching messages:', error);
             handleError(error);
         } finally {
             setLoadingMore(false);
             setInitialLoading(false);
         }
-    }, [token, chat.id, dispatch]);
+    }, [chat.id, token, dispatch]);
 
-    console.log(chatMessages.length, "messages loaded for chat", chat.id);  
+    // Check if we need to fetch messages
     useEffect(() => {
-    if(chatMessages.length === 0) {
-        setInitialLoading(true);
-        fetchMessages();
-    } else {
-        setInitialLoading(false);  
-    }
-}, [chat.id]);
-
-
-    useEffect(() => {
-        if (messagesEndRef.current && !loadingMore && !initialLoading) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        if (chatMessages.length === 0) {
+            setInitialLoading(true);
         }
-    }, [chatMessages.length, initialLoading, loadingMore]);
+        // Always fetch to ensure we have the absolute latest messages
+        fetchMessages();
+    }, [chat.id]); // Removed fetchMessages from dependencies to avoid infinite loops
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    };
+
+    // Only scroll if we are not loading old messages and we are near the bottom
+    useEffect(() => {
+        if (!loadingMore && messagesContainerRef.current) {
+            const container = messagesContainerRef.current;
+            // Scroll to bottom only if we're already near the bottom (within 200px) or if it's initial load
+            const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+
+            if (isNearBottom || initialLoading) {
+                scrollToBottom();
+            }
+        }
+    }, [chatMessages, loadingMore, initialLoading]);
 
     const handleScroll = useCallback(() => {
-        if (!messagesContainerRef.current || loadingMore || !hasMore) {
-            return;
-        }
+        if (!messagesContainerRef.current || loadingMore || !hasMore) return;
 
         const { scrollTop } = messagesContainerRef.current;
 
@@ -198,9 +202,14 @@ const ChatView = ({ chat, onBack }) => {
     }, [loadingMore, hasMore, oldestMessageId, fetchMessages]);
 
     const handleFileSelect = useCallback((e) => {
-        const file = e.target.files[0];
-        if (file) {
-            dispatch(setSelectedFile(file));
+        const files = Array.from(e.target.files);
+        if (files.length > 0) {
+            if (files.length > 5) {
+                toast.error("You can only upload up to 5 files at a time.");
+                dispatch(setSelectedFiles(files.slice(0, 5)));
+            } else {
+                dispatch(setSelectedFiles(files));
+            }
         }
     }, [dispatch]);
 
@@ -288,93 +297,89 @@ const ChatView = ({ chat, onBack }) => {
     // }, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
 
     const handleSendMessage = useCallback(async (e) => {
-    e.preventDefault();
-    if ((!inputText.trim() && !selectedFile) || sending) return;
+        e.preventDefault();
+        if ((!inputText.trim() && (!selectedFiles || selectedFiles.length === 0)) || sending) return;
 
-    const messageContent = inputText.trim();
+        const messageContent = inputText.trim();
 
-    if (connected && socket && !selectedFile) {
-        updateInputText("");
-        socketSendMessage(chat.id, messageContent, 'text');
-        return;
-    }
+        if (connected && socket && (!selectedFiles || selectedFiles.length === 0)) {
+            updateInputText("");
+            socketSendMessage(chat.id, messageContent, 'text');
+            return;
+        }
 
-    // File upload ke liye hi setSending
-    setSending(true);
+        setSending(true);
 
-    try {
-        if (connected && socket && selectedFile) {
-            const formData = new FormData();
-            formData.append('content', messageContent);
-            formData.append('media', selectedFile);
+        try {
+            if (selectedFiles && selectedFiles.length > 0) {
+                // Upload multiple files concurrently
+                const uploadPromises = selectedFiles.map(async (file, index) => {
+                    const formData = new FormData();
+                    // Attach text content only to the first file's message
+                    if (index === 0 && messageContent) {
+                        formData.append('content', messageContent);
+                    } else {
+                        formData.append('content', '');
+                    }
 
-            let messageType;
-            if (messageContent && selectedFile) {
-                messageType = 'mixed';
-            } else if (selectedFile.type.startsWith('image/')) {
-                messageType = 'image';
-            } else {
-                messageType = 'file';
-            }
+                    formData.append('media', file);
 
-            formData.append('messageType', messageType);
+                    let messageType;
+                    if (index === 0 && messageContent) {
+                        messageType = 'mixed';
+                    } else if (file.type.startsWith('image/')) {
+                        messageType = 'image';
+                    } else if (file.type.startsWith('video/')) {
+                        messageType = 'video';
+                    } else {
+                        messageType = 'file';
+                    }
 
-            await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'multipart/form-data'
-                },
-            });
+                    formData.append('messageType', messageType);
 
-        } else {
-            // HTTP fallback
-            const messageData = {
-                content: messageContent,
-                messageType: selectedFile
-                    ? (selectedFile.type.startsWith('image/') ? 'image' : 'file')
-                    : 'text',
-            };
-
-            if (selectedFile) {
-                const formData = new FormData();
-                formData.append('content', messageData.content);
-                formData.append('media', selectedFile);
-                formData.append('messageType', messageData.messageType);
-
-                await axiosInstance.post(`/chat/${chat.id}/send`, formData, {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'multipart/form-data'
-                    },
+                    return axiosInstance.post(`/chat/${chat.id}/send`, formData, {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'multipart/form-data'
+                        },
+                    });
                 });
+
+                await Promise.all(uploadPromises);
+
             } else {
+                // HTTP fallback for text only (should theoretically not hit here because of the socket check above, but safe to keep)
+                const messageData = {
+                    content: messageContent,
+                    messageType: 'text',
+                };
+
                 await axiosInstance.post(`/chat/${chat.id}/send`, messageData, {
                     headers: { Authorization: `Bearer ${token}` },
                 });
             }
+
+            updateInputText("");
+            dispatch(clearSelectedFiles());
+            if (fileInputRef.current) fileInputRef.current.value = '';
+
+        } catch (error) {
+            console.error("Error sending message:", error);
+            handleError(error);
+        } finally {
+            setSending(false);
         }
-
-        updateInputText("");
-        dispatch(clearSelectedFile());
-        if (fileInputRef.current) fileInputRef.current.value = '';
-
-    } catch (error) {
-        console.error("Error sending message:", error);
-        handleError(error);
-    } finally {
-        setSending(false);
-    }
-}, [inputText, selectedFile, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
+    }, [inputText, selectedFiles, sending, chat.id, connected, socket, socketSendMessage, updateInputText, dispatch, token]);
     const handleModelClose = () => {
         setShowQuotationForm(false)
         console.log(`selectedParts_quotation_chat_${chat.id}`);
-        
+
         localStorage.removeItem(`selectedParts_quotation_chat_${chat.id}`);
     }
 
     // console.log("chat.id" ,chat.id);
-    
-    
+
+
 
     const handleKeyPress = useCallback((e) => {
         if (e.key === 'Enter' && !e.shiftKey) {
@@ -424,8 +429,8 @@ const ChatView = ({ chat, onBack }) => {
                     <div className="flex items-center gap-2">
                         {user?.role === 'repairman' && (
                             <p
-                            onClick={() => setShowQuotationForm(true)}
-                            className='text-sm cursor-pointer border py-1 px-2 rounded-sm'>Create Quote</p>
+                                onClick={() => setShowQuotationForm(true)}
+                                className='text-sm cursor-pointer border py-1 px-2 rounded-sm'>Create Quote</p>
                         )}
                     </div>
                 </div>
@@ -461,17 +466,18 @@ const ChatView = ({ chat, onBack }) => {
                             // Quotation messages
                             if (message.messageType === 'quotation' && message.quotationData) {
                                 return (
-                                                    <QuotationMessage
-                                                        key={message.id || message._id}
-                                                        message={message}
-                                                        isOwner={user.role === message.senderType}
-                                                        chatId={chat.id}
-                                                        onQuotationUpdate={() => fetchMessages()}
-                                                    />
-                                                );
+                                    <QuotationMessage
+                                        key={message.id || message._id}
+                                        message={message}
+                                        isOwner={user.role === message.senderType}
+                                        chatId={chat.id}
+                                        onQuotationUpdate={() => fetchMessages()}
+                                    />
+                                );
                             }
 
-                            const isOwner = user.role === message.senderType;
+                            const senderIdStr = typeof message?.senderId === 'object' ? message?.senderId?._id : message?.senderId;
+                            const isOwner = message.sender === 'user' || user?._id === senderIdStr || (user?.role === 'admin' && message?.senderType === 'repairman') || user?.role === message?.senderType;
 
                             return (
                                 <div
@@ -480,8 +486,8 @@ const ChatView = ({ chat, onBack }) => {
                                 >
                                     <div
                                         className={`max-w-[70%] p-2 rounded-lg ${isOwner
-                                                ? "bg-primary-500 text-white"
-                                                : "bg-gray-200 text-gray-800"
+                                            ? "bg-primary-500 text-white"
+                                            : "bg-gray-200 text-gray-800"
                                             }`}
                                     >
                                         {/* Image Messages */}
@@ -494,14 +500,33 @@ const ChatView = ({ chat, onBack }) => {
                                             />
                                         )}
 
-                                        {/* Mixed Messages (Image + Text) */}
-                                        {message?.messageType === 'mixed' && message?.mediaUrl && (
-                                            <img
+                                        {/* Video Messages */}
+                                        {message?.messageType === 'video' && message?.mediaUrl && (
+                                            <video
                                                 src={message.mediaUrl}
-                                                alt="Image"
-                                                className="max-w-full h-auto rounded-md mb-1 cursor-pointer hover:opacity-90"
-                                                onClick={() => handleFileClick(message.mediaUrl)}
+                                                controls
+                                                className="max-w-full h-auto rounded-md mb-1"
+                                                style={{ maxHeight: '250px' }}
                                             />
+                                        )}
+
+                                        {/* Mixed Messages (Image/Video + Text) */}
+                                        {message?.messageType === 'mixed' && message?.mediaUrl && (
+                                            message.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
+                                                <video
+                                                    src={message.mediaUrl}
+                                                    controls
+                                                    className="max-w-full h-auto rounded-md mb-1"
+                                                    style={{ maxHeight: '250px' }}
+                                                />
+                                            ) : (
+                                                <img
+                                                    src={message.mediaUrl}
+                                                    alt="Image"
+                                                    className="max-w-full h-auto rounded-md mb-1 cursor-pointer hover:opacity-90"
+                                                    onClick={() => handleFileClick(message.mediaUrl)}
+                                                />
+                                            )
                                         )}
 
                                         {/* File Messages */}
@@ -560,26 +585,31 @@ const ChatView = ({ chat, onBack }) => {
                 </div>
 
                 {/* File Preview */}
-                {selectedFile && (
-                    <div className="px-4 py-2 border-t bg-gray-50">
-                        <div className="flex items-center justify-between bg-white p-2 rounded-lg border">
-                            <div className="flex items-center gap-2">
-                                {selectedFile.type.startsWith('image/') ? (
-                                    <Icon icon="mdi:image" width={20} className="text-primary-500" />
-                                ) : selectedFile.type.startsWith('video/') ? (
-                                    <Icon icon="mdi:video" width={20} className="text-purple-500" />
-                                ) : (
-                                    <Icon icon={getFileIcon(selectedFile.name).icon} width={20} className={getFileIcon(selectedFile.name).color} />
-                                )}
-                                <span className="text-sm truncate max-w-[200px]">{selectedFile.name}</span>
+                {selectedFiles && selectedFiles.length > 0 && (
+                    <div className="px-4 py-2 border-t bg-gray-50 max-h-32 overflow-y-auto space-y-2">
+                        {selectedFiles.map((file, index) => (
+                            <div key={index} className="flex items-center justify-between bg-white p-2 rounded-lg border">
+                                <div className="flex items-center gap-2">
+                                    {file.type.startsWith('image/') ? (
+                                        <Icon icon="mdi:image" width={20} className="text-primary-500" />
+                                    ) : file.type.startsWith('video/') ? (
+                                        <Icon icon="mdi:video" width={20} className="text-purple-500" />
+                                    ) : (
+                                        <Icon icon={getFileIcon(file.name).icon} width={20} className={getFileIcon(file.name).color} />
+                                    )}
+                                    <span className="text-sm truncate max-w-[200px]">{file.name}</span>
+                                </div>
+                                <Icon
+                                    icon="mdi:close"
+                                    width={16}
+                                    className="text-gray-500 cursor-pointer hover:text-red-500"
+                                    onClick={() => {
+                                        const newFiles = selectedFiles.filter((_, i) => i !== index);
+                                        dispatch(setSelectedFiles(newFiles));
+                                    }}
+                                />
                             </div>
-                            <Icon
-                                icon="mdi:close"
-                                width={16}
-                                className="text-gray-500 cursor-pointer hover:text-red-500"
-                                onClick={() => dispatch(clearSelectedFile())}
-                            />
-                        </div>
+                        ))}
                     </div>
                 )}
 
@@ -597,6 +627,7 @@ const ChatView = ({ chat, onBack }) => {
                             ref={fileInputRef}
                             accept="image/*,video/*,*"
                             className="hidden"
+                            multiple
                             onChange={handleFileSelect}
                         />
                         <input
@@ -614,7 +645,7 @@ const ChatView = ({ chat, onBack }) => {
                             <Icon
                                 icon="mdi:send"
                                 width={20}
-                                className={`cursor-pointer transition-colors ${(inputText.trim() || selectedFile) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
+                                className={`cursor-pointer transition-colors ${(inputText.trim() || (selectedFiles && selectedFiles.length > 0)) ? "text-primary-500 hover:text-primary-600" : "text-gray-400"
                                     }`}
                                 onClick={handleSendMessage}
                             />

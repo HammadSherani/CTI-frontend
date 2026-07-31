@@ -27,32 +27,13 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     
-    //  IMPROVED: Use sessionStorage to persist fetch status across remounts
-    const [hasFetched, setHasFetched] = useState(() => {
-        // Check if we've already fetched in this session
-        if (typeof window !== 'undefined') {
-            const fetched = sessionStorage.getItem('chats_fetched');
-            return fetched === 'true';
-        }
-        return false;
-    });
-
-    const {
-        socket,
-        connected,
-        joinChat,
-        leaveChat
-    } = useSocket();
+    const { socket, connected } = useSocket();
 
     useEffect(() => {
         if (!token) return;
         
-        // Only fetch if not fetched in this session
-        if (!hasFetched) {
-            fetchChatList();
-            setHasFetched(true);
-            sessionStorage.setItem('chats_fetched', 'true');
-        }
+        // Fetch on mount to ensure we have the latest chats
+        fetchChatList();
     }, [token]);
 
 
@@ -91,11 +72,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
 
     // Manual refresh function 
     const refreshChats = useCallback(async () => {
-        setHasFetched(false);
-        sessionStorage.removeItem('chats_fetched');
         await fetchChatList();
-        setHasFetched(true);
-        sessionStorage.setItem('chats_fetched', 'true');
     }, [fetchChatList]);
 
     //  NEW: Socket listeners for real-time updates
@@ -230,19 +207,21 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                                         )}
                                     </div>
                                     <span className="text-xs text-gray-400">
-                                        {typeof chat?.lastMessage === 'object' && chat?.lastMessage?.timestamp ?
+                                        {chat?.lastMessage && typeof chat.lastMessage === 'object' && chat.lastMessage.timestamp ?
                                             new Date(chat.lastMessage.timestamp).toLocaleDateString() :
                                             chat?.lastMessage?.createdAt ?
                                                 new Date(chat.lastMessage.createdAt).toLocaleDateString() :
-                                                'Now'
+                                                (chat?.lastMessage ? 'Now' : '')
                                         }
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <p className="text-sm text-gray-700 truncate max-w-[200px]">
-                                        {typeof chat?.lastMessage === 'object'
-                                            ? chat.lastMessage?.content || 'Media message'
-                                            : chat?.lastMessage || 'Start a conversation...'
+                                        {chat?.lastMessage 
+                                            ? (typeof chat.lastMessage === 'object' 
+                                                ? (chat.lastMessage.content || 'Media message') 
+                                                : chat.lastMessage)
+                                            : 'Start a conversation...'
                                         }
                                     </p>
                                     {unreadCounts[chat?.chatId] > 0 && (

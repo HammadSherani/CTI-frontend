@@ -1,50 +1,38 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import ProductForm from "../../ProductForm";
-import axiosInstance from "@/config/axiosInstance";
+import { useParams } from "next/navigation";
 import { useSelector } from "react-redux";
+import axiosInstance from "@/config/axiosInstance";
+import ProductForm from "../../ProductForm";
 import { toast } from "react-toastify";
-import { Icon } from "@iconify/react";
-import { useRouter } from '@/i18n/navigation';
 
-export default function EditProductPage({ params }) {
+export default function EditProductPage() {
+  const { id } = useParams();
   const { token } = useSelector((s) => s.auth);
-  const router = useRouter();
-  const [product, setProduct] = useState(null);
+  const [initialData, setInitialData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Note: in Next.js 13+ params is a promise in some cases or object, but here we can just read id.
-  const id = params?.id;
-
   useEffect(() => {
-    if (!token || !id) return;
-    
+    if (!token) return;
     axiosInstance
       .get(`/admin/refurbish/products/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then((res) => {
-        setProduct(res.data.data);
-      })
-      .catch((err) => {
-        toast.error("Failed to fetch product details");
-        router.push("/admin/refurbished/products");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, [id, token, router]);
+      .then((res) => setInitialData(res.data.data))
+      .catch(() => toast.error("Failed to load product details"))
+      .finally(() => setLoading(false));
+  }, [id, token]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50/50">
-        <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
       </div>
     );
   }
 
-  if (!product) return null;
+  if (!initialData) return null;
 
-  return <ProductForm mode="edit" initialData={product} />;
+  return <ProductForm mode="edit" initialData={initialData} />;
 }

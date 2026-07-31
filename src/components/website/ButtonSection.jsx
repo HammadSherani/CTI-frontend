@@ -121,11 +121,12 @@ function ButtonSection() {
   const handleNotificationClick = () => router.push("/coming");
 
   const dropdownLinks = [
-    { name: "My Account",     path: "/my-account"    },
-    { name: "My Orders",      path: "/orders"        },
-    { name: "My Messages",    path: "/messages"      },
-    { name: "Help & Support", path: "/help-support"  },
-    { name: "Sign Out",       path: "/", isLogout: true },
+    { name: "My Account",       path: "/my-account"    },
+    { name: "My Orders",        path: "/orders"        },
+    { name: "My Messages",      path: "/messages"      },
+    { name: "My Sell Requests", path: "/my-sell-requests" },
+    { name: "Help & Support",   path: "/help-support"  },
+    { name: "Sign Out",         path: "/", isLogout: true },
   ];
 
   if (!user) {

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSelector, useDispatch } from 'react-redux';
-import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList, setCurrentUser } from '../store/chat';
+import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList, setCurrentUser, setOnlineUsers } from '../store/chat';
 import { addNotification } from '@/store/notifications';
 
 const SocketContext = createContext();
@@ -39,6 +39,7 @@ export const SocketProvider = ({ children }) => {
         console.log('Socket connected:', newSocket.id);
         setConnected(true);
         newSocket.emit('user_online');
+        newSocket.emit('get_online_users');
       });
 
       newSocket.on('disconnect', (reason) => {
@@ -108,6 +109,11 @@ export const SocketProvider = ({ children }) => {
       newSocket.on('messages_read', (data) => {
         console.log('Messages marked as read:', data);
         dispatch(markChatAsRead(data.chatId));
+      });
+      
+      newSocket.on('online_users_list', (onlineUsers) => {
+        console.log('Received online users list:', onlineUsers);
+        dispatch(setOnlineUsers(onlineUsers));
       });
 
       newSocket.on('user_online', (data) => {

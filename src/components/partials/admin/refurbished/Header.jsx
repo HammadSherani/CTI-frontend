@@ -37,17 +37,18 @@ function RefurbishedHeader() {
       submenu: [
         {
           category: "Refurbished Items",
-          items: [
-            { name: "Categories", icon: "mdi:shape-outline", path: "/admin/refurbished/categories" },
-            { name: "Brands", icon: "mdi:tag-outline", path: "/admin/refurbished/brands" },
-            { name: "Models", icon: "mdi:cellphone-link", path: "/admin/refurbished/models" },
-            { name: "Products", icon: "mdi:package-variant", path: "/admin/refurbished/products" },
-            { name: "Category Questions", icon: "mdi:help-circle-outline", path: "/admin/refurbished/questions" },
+          "items": [
+            { "name": "Categories", "icon": "mdi:shape-outline", "path": "/admin/refurbished/categories" },
+            { "name": "Brands", "icon": "mdi:tag-outline", "path": "/admin/refurbished/brands" },
+            { "name": "Models", "icon": "mdi:cellphone-link", "path": "/admin/refurbished/models" },
+            { "name": "Variants", "icon": "mdi:package-variant", "path": "/admin/refurbished/variants" },
+            { "name": "Category Questions", "icon": "mdi:help-circle-outline", "path": "/admin/refurbished/questions" },
           ],
-        },  
+        },
       ],
     },
     { name: "Sell Requests", icon: "mdi:cellphone-arrow-down", path: "/admin/refurbished/requests" },
+    { "name": "Products", "icon": "mdi:cellphone", "path": "/admin/refurbished/products" },
 
   ];
 
