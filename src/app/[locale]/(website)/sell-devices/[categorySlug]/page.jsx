@@ -1,26 +1,22 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
-import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 
-const PHONE_SLUG = 'phone';
-
 export default function SellDevicesPage() {
   const router = useRouter();
-  // next-intl [locale] folder: useParams from next/navigation returns { locale, categorySlug }
   const rawParams = useParams();
-  const categorySlug = rawParams?.categorySlug || PHONE_SLUG;
+  const categorySlug = rawParams?.categorySlug || 'phone';
 
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchContainerRef = useRef(null);
+  const searchContainerRef = React.useRef(null);
 
   const [categoryName, setCategoryName] = useState('');
   const [topBrands, setTopBrands] = useState([]);
@@ -75,7 +71,7 @@ export default function SellDevicesPage() {
   }, []);
 
   const handleModelClick = (brandSlug, modelSlug) => {
-    router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
+    router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}`);
   };
 
   const displayName = categoryName || 'Device';
@@ -163,13 +159,10 @@ export default function SellDevicesPage() {
                         className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-primary-50/50 transition text-left group"
                       >
                         <div className="relative w-10 h-10 p-1 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
-                          <Image
+                          <img
                             src={model.imageUrl || '/fallback-model.png'}
                             alt={model.name}
-                            width={32}
-                            height={32}
-                            className="object-contain group-hover:scale-110 transition duration-200"
-                            onError={(e) => { e.currentTarget.src = '/fallback-model.png'; }}
+                            className="object-contain w-full h-full"
                           />
                         </div>
                         <div>
@@ -202,7 +195,7 @@ export default function SellDevicesPage() {
                     {topBrands.map((brand) => (
                       <button
                         key={brand._id}
-                        onClick={() => router.push(`/sell-old-phone/brands/${brand.slug}`)}
+                        onClick={() => router.push(`/sell-devices/${categorySlug}/brands/${brand.slug}`)}
                         className="bg-white hover:bg-gray-50 hover:border-primary-500 hover:shadow-md cursor-pointer border border-gray-100 rounded-2xl px-6 py-4 flex items-center gap-3 font-semibold text-gray-700 transition duration-200"
                       >
                         {brand.logoUrl ? (
@@ -214,7 +207,7 @@ export default function SellDevicesPage() {
                       </button>
                     ))}
                     <button
-                      onClick={() => router.push('/sell-old-phone/brands')}
+                      onClick={() => router.push(`/sell-devices/${categorySlug}/brands`)}
                       className="text-primary-600 hover:text-primary-700 font-bold flex items-center gap-1.5 transition text-sm ml-2 group cursor-pointer"
                     >
                       <span>More Brands</span>
@@ -233,12 +226,10 @@ export default function SellDevicesPage() {
 
             {/* Hero Illustration */}
             <div className="relative w-80 h-80 z-0 hidden md:block">
-              <Image
+              <img
                 src="/assets/home/sell.avif"
                 alt={`Sell ${displayName} Hero illustration`}
-                fill
-                className="object-contain"
-                priority
+                className="object-contain w-full h-full"
               />
             </div>
           </div>

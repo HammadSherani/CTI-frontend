@@ -128,7 +128,7 @@ export default function MySellRequestsPage() {
             <p className="text-gray-500 text-sm mt-1">Manage and track requests to sell your device to CTI Platform</p>
           </div>
           <button
-            onClick={() => router.push('/sell-old-phone')}
+            onClick={() => router.push('/sell-devices/phone')}
             className="flex items-center justify-center gap-2 px-5 py-3 bg-orange-500 text-white font-extrabold rounded-xl shadow-xs hover:bg-orange-600 transition"
           >
             <Icon icon="mdi:plus" className="w-5 h-5" />
@@ -147,7 +147,7 @@ export default function MySellRequestsPage() {
               You haven't submitted any requests to sell your devices yet.
             </p>
             <button
-              onClick={() => router.push('/sell-old-phone')}
+              onClick={() => router.push('/sell-devices/phone')}
               className="px-6 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition"
             >
               Get Started

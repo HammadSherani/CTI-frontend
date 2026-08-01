@@ -669,7 +669,7 @@ function NavigationBar({ isHome, isScrolled }) {
   // Sell Phone data — links to /sell-devices/mobile-phone
   const SELL_PHONE = topBrands.length > 0 ? [
     { sectionTitle: "Top Brands", href: "/sell-devices/phone" },
-    ...topBrands.map(b => ({ name: b.name, href: `/sell-old-phone/brands/${b.slug}` }))
+    ...topBrands.map(b => ({ name: b.name, href: `/sell-devices/brands/${b.slug}` }))
   ] : [];
 
   // Sell Gadgets - links to /sell-devices/[slug]
@@ -678,7 +678,7 @@ function NavigationBar({ isHome, isScrolled }) {
     href: `/sell-devices/${cat.slug}`,
     brands: (cat.brands || []).map(b => ({
       name: b.name,
-      href: `/sell-old-phone/brands/${b.slug}`
+      href: `/sell-devices/${cat.slug}/brands/${b.slug}`
     }))
   }));
 
@@ -711,7 +711,7 @@ function NavigationBar({ isHome, isScrolled }) {
     },
     {
       name: "Sell Phone",
-      href: "/sell-devices",
+      href: "/sell-devices/phone",
       hasDropdown: true,
       dropdownItems: SELL_PHONE,
       isLoading: loadingProductCategories,
@@ -726,7 +726,7 @@ function NavigationBar({ isHome, isScrolled }) {
     },
     {
       name: "Sell Gadgets",
-      href: "/sell-gadgets",
+      href: "/sell-devices",
       hasDropdown: true,
       dropdownItems: SELL_GADGETS,
       isNested: true,
