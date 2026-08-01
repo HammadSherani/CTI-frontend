@@ -296,9 +296,7 @@ function SearchBar({ className = "" }) {
   );
 }
 
-/* ════════════════════════════════════════════
-   PRODUCTS DROPDOWN (with live top-categories)
-════════════════════════════════════════════ */
+
 function ProductsDropdown({ isHome, isScrolled, onClose }) {
   const [cats, setCats] = useState([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -323,12 +321,9 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
       className="absolute top-full left-0 mt-2 w-72 rounded-xl shadow-xl border bg-white border-gray-200 overflow-hidden"
     >
       {/* Header */}
-      <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-        <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
-          <Icon icon="mdi:fire" className="w-3.5 h-3.5 text-orange-500" />
-          Top Categories
-        </p>
-      </div>
+      <p className="text-[11px] font-black uppercase tracking-widest text-gray-900 flex items-center gap-1.5">
+        Top Categories
+      </p>
 
       {loadingCats ? (
         <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
@@ -343,45 +338,108 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
               onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-gray-50 group ${textClass}`}
             >
-              {/* Rank badge */}
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-black flex items-center justify-center">
-                {i + 1}
-              </span>
-              {/* Category icon / image */}
-              <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-orange-50 overflow-hidden flex items-center justify-center transition-colors">
-                {cat.icon ? (
-                  <img src={cat.icon} alt={cat.title} className="w-full h-full object-cover" />
-                ) : (
-                  <Icon icon="mdi:tag" className="w-4 h-4 text-gray-500 group-hover:text-orange-500" />
-                )}
-              </span>
+
+
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-gray-800 block truncate">{cat.title}</span>
-                <span className="text-[10px] text-gray-400">
-                  {cat.productCount} product{cat.productCount !== 1 ? "s" : ""}
-                  {cat.avgRating > 0 && ` · ${cat.avgRating}★`}
-                </span>
+
               </div>
-              {/* <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" /> */}
             </Link>
           ))}
 
-          {/* View all products */}
-          <div className="border-t border-gray-100 mt-1">
-            <Link
-              href="/product"
-              onClick={onClose}
-              className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-orange-500 hover:bg-orange-50 transition-colors"
-            >
-              <Icon icon="mdi:shopping" className="w-4 h-4" />
-              Browse all products
-            </Link>
-          </div>
+
         </div>
       )}
     </motion.div>
   );
 }
+
+/* ════════════════════════════════════════════
+   PRODUCTS DROPDOWN (with live top-categories)
+════════════════════════════════════════════ */
+// function ProductsDropdown({ isHome, isScrolled, onClose }) {
+//   const [cats, setCats] = useState([]);
+//   const [loadingCats, setLoadingCats] = useState(true);
+//   const router = useRouter();
+
+//   useEffect(() => {
+//     axiosInstance
+//       .get("/e-commerce/products/top-categories")
+//       .then(({ data }) => { if (data.success) setCats(data.data); })
+//       .catch(() => { })
+//       .finally(() => setLoadingCats(false));
+//   }, []);
+
+//   const textClass = "text-gray-900";
+
+//   return (
+//     <motion.div
+//       initial={{ opacity: 0, y: 10 }}
+//       animate={{ opacity: 1, y: 0 }}
+//       exit={{ opacity: 0, y: 10 }}
+//       transition={{ duration: 0.2 }}
+//       className="absolute top-full left-0 mt-2 w-72 rounded-xl shadow-xl border bg-white border-gray-200 overflow-hidden"
+//     >
+//       {/* Header */}
+//       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
+//         <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
+//           <Icon icon="mdi:fire" className="w-3.5 h-3.5 text-orange-500" />
+//           Top Categories
+//         </p>
+//       </div>
+
+//       {loadingCats ? (
+//         <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
+//           <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
+//         </div>
+//       ) : (
+//         <div className="py-1">
+//           {cats.map((cat, i) => (
+//             <Link
+//               key={cat._id}
+//               href={`/product?categoryIds=${cat._id}`}
+//               onClick={onClose}
+//               className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-gray-50 group ${textClass}`}
+//             >
+//               {/* Rank badge */}
+//               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-black flex items-center justify-center">
+//                 {i + 1}
+//               </span>
+//               {/* Category icon / image */}
+//               <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-orange-50 overflow-hidden flex items-center justify-center transition-colors">
+//                 {cat.icon ? (
+//                   <img src={cat.icon} alt={cat.title} className="w-full h-full object-cover" />
+//                 ) : (
+//                   <Icon icon="mdi:tag" className="w-4 h-4 text-gray-500 group-hover:text-orange-500" />
+//                 )}
+//               </span>
+//               <div className="flex-1 min-w-0">
+//                 <span className="text-sm font-semibold text-gray-800 block truncate">{cat.title}</span>
+//                 <span className="text-[10px] text-gray-400">
+//                   {cat.productCount} product{cat.productCount !== 1 ? "s" : ""}
+//                   {cat.avgRating > 0 && ` · ${cat.avgRating}★`}
+//                 </span>
+//               </div>
+//               {/* <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" /> */}
+//             </Link>
+//           ))}
+
+//           {/* View all products */}
+//           <div className="border-t border-gray-100 mt-1">
+//             <Link
+//               href="/product"
+//               onClick={onClose}
+//               className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-orange-500 hover:bg-orange-50 transition-colors"
+//             >
+//               <Icon icon="mdi:shopping" className="w-4 h-4" />
+//               Browse all products
+//             </Link>
+//           </div>
+//         </div>
+//       )}
+//     </motion.div>
+//   );
+// }
 
 /* ════════════════════════════════════════════
    ANNOUNCEMENT BAR
@@ -552,81 +610,179 @@ function PromoMarquee() {
    NAVIGATION BAR (not fixed — lives inside sticky header)
 ════════════════════════════════════════════ */
 function NavigationBar({ isHome, isScrolled }) {
+  const [productCategories, setProductCategories] = useState([]);
+  const [loadingProductCategories, setLoadingProductCategories] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
+  const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [topBrands, setTopBrands] = useState([]);
+  const [sellGadgetsData, setSellGadgetsData] = useState([]);
+  const [buyRefurbishedData, setBuyRefurbishedData] = useState([]);
+
+  useEffect(() => {
+    setLoadingProductCategories(true);
+
+    Promise.all([
+      axiosInstance.get("/e-commerce/products/top-categories"),
+      axiosInstance.get('/public/sell-device/header-data')
+    ])
+      .then(([categoriesResponse, headerResponse]) => {
+        // Handle categories
+        if (categoriesResponse.data.success) {
+          setProductCategories(categoriesResponse.data.data || []);
+        } else {
+          setProductCategories([]);
+        }
+
+        // Handle header data
+        if (headerResponse.data.success) {
+          const { mobileBrands, sellGadgets, buyRefurbished } = headerResponse.data.data;
+          setTopBrands(mobileBrands || []);
+          setSellGadgetsData(sellGadgets || []);
+          setBuyRefurbishedData(buyRefurbished || []);
+        } else {
+          setTopBrands([]);
+          setSellGadgetsData([]);
+          setBuyRefurbishedData([]);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching data:", error);
+        setProductCategories([]);
+        setTopBrands([]);
+        setSellGadgetsData([]);
+        setBuyRefurbishedData([]);
+      })
+      .finally(() => setLoadingProductCategories(false));
+  }, []);
+
+  console.log(topBrands, 'brands');
+  // Services data
+  const SERVICES = [
+    { name: "Mobile Repair", href: "/mobile-repair" },
+    { name: "Battery Replacement", href: "/mobile-repair" },
+    { name: "Motherboard Repair", href: "/mobile-repair" },
+    { name: "Screen Repair", href: "/mobile-repair" },
+    { name: "Water Damage", href: "/mobile-repair" },
+    { name: "Software Issues", href: "/mobile-repair" },
+  ];
+
+  // Sell Phone data — links to /sell-devices/mobile-phone
+  const SELL_PHONE = topBrands.length > 0 ? [
+    { sectionTitle: "Top Brands", href: "/sell-devices/phone" },
+    ...topBrands.map(b => ({ name: b.name, href: `/sell-old-phone/brands/${b.slug}` }))
+  ] : [];
+
+  // Sell Gadgets - links to /sell-devices/[slug]
+  const SELL_GADGETS = sellGadgetsData.map(cat => ({
+    name: cat.name,
+    href: `/sell-devices/${cat.slug}`,
+    brands: (cat.brands || []).map(b => ({
+      name: b.name,
+      href: `/sell-old-phone/brands/${b.slug}`
+    }))
+  }));
+
+  // Refurbished data - dynamic nested by category
+  const REFURBISHED = buyRefurbishedData.map(cat => ({
+    name: cat.name,
+    href: `/refurbished/${cat.slug}`,
+    brands: (cat.brands || []).map(b => ({
+      name: b.name,
+      href: `/refurbished/${cat.slug}/${b.slug}`
+    }))
+  }));
+  // Support data
+  const SUPPORT = [
+    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: "Terms of Service", href: "/terms-of-service" },
+    { name: "Environmental Policy", href: "/e-waste-policy" },
+    { name: "How to return", href: "/how-to-return" },
+    { name: "FAQ", href: "/faq" },
+    { name: "Refund Policy", href: "/refund-policy" },
+  ];
 
   const mainNav = [
     { name: "Home", href: "/", hasDropdown: false },
     {
-      name: "Services", href: "/mobile-repair", hasDropdown: true,
-      dropdownItems: [
-        { name: "Mobile Repair", href: "/mobile-repair" },
-        { name: "Battery Replacement", href: "/mobile-repair" },
-        { name: "Motherboard Repair", href: "/mobile-repair" },
-        { name: "Screen Repair", href: "/mobile-repair" },
-        { name: "Water Damage", href: "/mobile-repair" },
-        { name: "Software Issues", href: "/mobile-repair" },
-      ],
+      name: "Services",
+      href: "/mobile-repair",
+      hasDropdown: true,
+      dropdownItems: SERVICES,
     },
     {
-      name: "Sell Phone", href: "/sell-old-phone", hasDropdown: true,
-      dropdownItems: [
-        { sectionTitle: "Top Brands", href: "/sell-old-phone" },
-        { name: "Samsung", href: "/sell-old-phone" },
-        { name: "Apple", href: "/sell-old-phone" },
-        { name: "Xiaomi", href: "/sell-old-phone" },
-        { name: "Oppo", href: "/sell-old-phone" },
-        { name: "Vivo", href: "/sell-old-phone" },
-        { name: "Realme", href: "/sell-old-phone" },
-        { name: "OnePlus", href: "/sell-old-phone" },
-      ],
+      name: "Sell Phone",
+      href: "/sell-devices",
+      hasDropdown: true,
+      dropdownItems: SELL_PHONE,
+      isLoading: loadingProductCategories,
     },
-    // {
-    //   name: "Buy Refurbished Devices", href: "/refurbished", hasDropdown: true,
-    //   dropdownItems: [
-
-    //   ],
-    // },
     {
-      name: "Buy Refurbished Devices", href: "/refurbished", hasDropdown: true,
-      dropdownItems: [
-        { sectionTitle: "Refurbished Products", href: "/refurbished" },
-        { name: "Refurbished Phone", href: "/coming" },
-        { name: "Refurbished Tablet", href: "/coming" },
-        { name: "Refurbished Laptop", href: "/coming" },
-        { name: "Refurbished Smart Watch", href: "/coming" },
-        { name: "Refurbished Accessory", href: "/coming" },
-        { name: "Sell Speakers", href: "/coming" },
-        { name: "Sell Game Console", href: "/coming" },
-        { sectionTitle: "Top Brands", href: "/refurbished" },
-        { name: "Samsung", href: "/coming" },
-        { name: "Apple", href: "/coming" },
-        { name: "Xiaomi", href: "/coming" },
-        { name: "Oppo", href: "/coming" },
-        { name: "Vivo", href: "/coming" },
-        { name: "Realme", href: "/coming" },
-        { name: "OnePlus", href: "/coming" },
-      ],
-    }, { name: "Products", href: "/product", hasDropdown: true, isProductsMenu: true },
-    { name: "Experts / Top Repairmen", href: "/repairmans", hasDropdown: false },
-    { name: "Academy", href: "/academy", hasDropdown: false },
-    { name: "About", href: "/about-us", hasDropdown: false },
-    {
-      name: "Support", href: "/live-support", hasDropdown: true,
-      dropdownItems: [
-        { name: "Privacy Policy", href: "/privacy-policy" },
-        { name: "Terms of Service", href: "/terms-of-service" },
-        { name: "Environmental Policy", href: "/e-waste-policy" },
-        { name: "How to return", href: "/how-to-return" },
-        { name: "FAQ", href: "/faq" },
-        { name: "Refund Policy", href: "/refund-policy" },
-      ],
+      name: "Buy Refurbished Devices",
+      href: "/refurbished",
+      hasDropdown: true,
+      dropdownItems: REFURBISHED,
+      isNested: true,
+      isLoading: loadingProductCategories,
     },
-    { name: "Blog", href: "/blog", hasDropdown: false },
+    {
+      name: "Sell Gadgets",
+      href: "/sell-gadgets",
+      hasDropdown: true,
+      dropdownItems: SELL_GADGETS,
+      isNested: true,
+      isLoading: loadingProductCategories,
+    },
+    {
+      name: "Products",
+      href: "/product",
+      hasDropdown: true,
+      isLoading: loadingProductCategories,
+      // FIX: Map the API data to use 'title' instead of 'name'
+      dropdownItems: productCategories.length > 0 ? [
+        {
+          sectionTitle: "Top Categories",
+          href: "/product",
+        },
+        ...productCategories.map((category) => ({
+          name: category.title, // Changed from category.name to category.title
+          href: `/product/${category.slug}`,
+        })),
+      ] : [],
+    },
+    {
+      name: "Experts / Top Repairmen",
+      href: "/repairmans",
+      hasDropdown: false,
+    },
+    {
+      name: "Academy",
+      href: "/academy",
+      hasDropdown: false,
+    },
+    {
+      name: "About",
+      href: "/about-us",
+      hasDropdown: false,
+    },
+    {
+      name: "Support",
+      href: "/live-support",
+      hasDropdown: true,
+      dropdownItems: SUPPORT,
+    },
+    {
+      name: "Blog",
+      href: "/blog",
+      hasDropdown: false,
+    },
   ];
 
   useEffect(() => {
     const close = (e) => {
-      if (!e.target.closest(".nav-dropdown")) setOpenDropdown(null);
+      if (!e.target.closest(".nav-dropdown")) {
+        setOpenDropdown(null);
+        setHoveredCategory(null);
+      }
     };
     document.addEventListener("click", close);
     return () => document.removeEventListener("click", close);
@@ -636,6 +792,188 @@ function NavigationBar({ isHome, isScrolled }) {
 
   const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
     }`;
+
+  // Helper function to render dropdown content
+  const renderDropdownContent = (item) => {
+    // Handle loading state for Products
+    if (item.isLoading) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50"
+        >
+          <div className="flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
+          </div>
+        </motion.div>
+      );
+    }
+
+    // Handle empty state for Dropdowns
+    if (item.dropdownItems.length === 0) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50"
+        >
+          <p className="text-sm text-gray-500 text-center">No data available</p>
+        </motion.div>
+      );
+    }
+
+    // Handle nested dropdown (Sell Gadgets)
+    if (item.isNested) {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
+          style={{ minWidth: "240px" }}
+        >
+          {item.dropdownItems.map((category, idx) => (
+            <div
+              key={idx}
+              className="relative group"
+              onMouseEnter={() => setHoveredCategory(category.name)}
+              onMouseLeave={() => setHoveredCategory(null)}
+            >
+              <div className="flex items-center justify-between px-4 py-2 hover:bg-orange-50 cursor-pointer">
+                <Link
+                  href={category.href}
+                  onClick={() => {
+                    setOpenDropdown(null);
+                    setHoveredCategory(null);
+                  }}
+                  className="text-[13px] font-medium text-gray-700 hover:text-orange-600 transition-colors flex-1"
+                >
+                  {category.name}
+                </Link>
+                <Icon
+                  icon="mdi:chevron-right"
+                  width={16}
+                  className="text-gray-400 ml-2"
+                />
+              </div>
+
+              {/* Sub-dropdown for brands */}
+              {hoveredCategory === category.name && (
+                <motion.div
+                  initial={{ opacity: 0, x: -5 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -5 }}
+                  transition={{ duration: 0.15 }}
+                  className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+                  style={{ minWidth: "200px" }}
+                >
+                  {category.brands && category.brands.length > 0 ? (
+                    category.brands.map((brand, brandIdx) => (
+                      <Link
+                        key={brandIdx}
+                        href={brand.href}
+                        onClick={() => {
+                          setOpenDropdown(null);
+                          setHoveredCategory(null);
+                        }}
+                        className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                      >
+                        {brand.name}
+                      </Link>
+                    ))
+                  ) : (
+                    <p className="text-[13px] text-gray-500 text-center px-4 py-3">No brands available</p>
+                  )}
+                </motion.div>
+              )}
+            </div>
+          ))}
+        </motion.div>
+      );
+    }
+
+    // Handle dropdown with sections
+    const hasSections = item.dropdownItems?.some((di) => di.sectionTitle);
+    if (hasSections) {
+      const groups = [];
+      let currentGroup = null;
+      item.dropdownItems.forEach((di) => {
+        if (di.sectionTitle) {
+          currentGroup = { title: di.sectionTitle, href: di.href, items: [] };
+          groups.push(currentGroup);
+        } else if (currentGroup) {
+          currentGroup.items.push(di);
+        } else {
+          if (!groups.length) groups.push({ items: [] });
+          groups[0].items.push(di);
+        }
+      });
+
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 p-5 z-50 flex gap-8"
+        >
+          {groups.map((g, i) => (
+            <div key={i} className="min-w-[140px]">
+              {g.title && (
+                <Link
+                  href={g.href || "#"}
+                  onClick={() => setOpenDropdown(null)}
+                  className="block mb-3 text-sm font-bold text-gray-900 text-nowrap hover:text-orange-600 transition-colors"
+                >
+                  {g.title}
+                </Link>
+              )}
+              <div className="space-y-1.5">
+                {g.items.map((di, j) => (
+                  <Link
+                    key={j}
+                    href={di.href}
+                    onClick={() => setOpenDropdown(null)}
+                    className="block py-1 text-[13px] font-medium text-gray-500 hover:text-orange-600 transition-colors"
+                  >
+                    {di.name}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      );
+    }
+
+    // Default simple dropdown
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 6 }}
+        transition={{ duration: 0.15 }}
+        className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
+      >
+        {item.dropdownItems?.map((di, idx) => (
+          <Link
+            key={idx}
+            href={di.href}
+            onClick={() => setOpenDropdown(null)}
+            className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+          >
+            {di.name}
+          </Link>
+        ))}
+      </motion.div>
+    );
+  };
 
   return (
     <div className={`w-full transition-colors duration-300 ${onNav
@@ -648,8 +986,17 @@ function NavigationBar({ isHome, isScrolled }) {
             <div
               key={item.name}
               className="relative nav-dropdown"
-              onMouseEnter={() => item.hasDropdown && setOpenDropdown(item.name)}
-              onMouseLeave={() => item.hasDropdown && setOpenDropdown(null)}
+              onMouseEnter={() => {
+                if (item.hasDropdown) {
+                  setOpenDropdown(item.name);
+                }
+              }}
+              onMouseLeave={() => {
+                if (item.hasDropdown) {
+                  setOpenDropdown(null);
+                  setHoveredCategory(null);
+                }
+              }}
             >
               <Link href={item.href} className={linkCls}>
                 {item.name}
@@ -663,95 +1010,13 @@ function NavigationBar({ isHome, isScrolled }) {
               </Link>
 
               <AnimatePresence>
-                {item.hasDropdown && openDropdown === item.name && (
-                  item.isProductsMenu ? (
-                    <ProductsDropdown
-                      key="products-dd"
-                      isHome={isHome}
-                      isScrolled={isScrolled}
-                      onClose={() => setOpenDropdown(null)}
-                    />
-                  ) : (
-                    (() => {
-                      const hasSections = item.dropdownItems?.some((di) => di.sectionTitle);
-                      if (hasSections) {
-                        const groups = [];
-                        let currentGroup = null;
-                        item.dropdownItems.forEach((di) => {
-                          if (di.sectionTitle) {
-                            currentGroup = { title: di.sectionTitle, href: di.href, items: [] };
-                            groups.push(currentGroup);
-                          } else if (currentGroup) {
-                            currentGroup.items.push(di);
-                          } else {
-                            if (!groups.length) groups.push({ items: [] });
-                            groups[0].items.push(di);
-                          }
-                        });
-                        return (
-                          <motion.div
-                            key="generic-dd"
-                            initial={{ opacity: 0, y: 6 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: 6 }}
-                            transition={{ duration: 0.15 }}
-                            className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 p-5 z-50 flex gap-8"
-                          >
-                            {groups.map((g, i) => (
-                              <div key={i} className="min-w-[140px]">
-                                {g.title && (
-                                  <Link href={g.href || "#"} onClick={() => setOpenDropdown(null)} className="block mb-3 text-sm font-bold text-gray-900 hover:text-orange-600 transition-colors">
-                                    {g.title}
-                                  </Link>
-                                )}
-                                <div className="space-y-1.5">
-                                  {g.items.map((di, j) => (
-                                    <Link
-                                      key={j}
-                                      href={di.href}
-                                      onClick={() => setOpenDropdown(null)}
-                                      className="block py-1 text-[13px] font-medium text-gray-500 hover:text-orange-600 transition-colors"
-                                    >
-                                      {di.name}
-                                    </Link>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </motion.div>
-                        );
-                      }
-
-                      return (
-                        <motion.div
-                          key="generic-dd"
-                          initial={{ opacity: 0, y: 6 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 6 }}
-                          transition={{ duration: 0.15 }}
-                          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
-                        >
-                          {item.dropdownItems?.map((di, idx) => (
-                            <Link
-                              key={idx}
-                              href={di.href}
-                              onClick={() => setOpenDropdown(null)}
-                              className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
-                            >
-                              {di.name}
-                            </Link>
-                          ))}
-                        </motion.div>
-                      );
-                    })()
-                )
-                  )}
+                {item.hasDropdown && openDropdown === item.name && renderDropdownContent(item)}
               </AnimatePresence>
             </div>
           ))}
         </nav>
-      </div >
-    </div >
+      </div>
+    </div>
   );
 }
 

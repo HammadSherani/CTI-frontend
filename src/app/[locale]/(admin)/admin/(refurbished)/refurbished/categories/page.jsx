@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 import Button from "@/components/partials/admin/ecom/myButton";
 
 /* ─── Confirm Dialog ─────────────────────────────────────── */
-function ConfirmDialog({ message, onConfirm, onCancel }) {
+function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
@@ -26,8 +26,11 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
           </div>
         </div>
         <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200">Cancel</button>
-          <button onClick={onConfirm} className="px-5 py-2 text-sm text-white bg-red-600 rounded-xl hover:bg-red-700">Delete</button>
+          <button disabled={loading} onClick={onCancel} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200">Cancel</button>
+          <button disabled={loading} onClick={onConfirm} className="px-5 py-2 text-sm text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-70 flex items-center gap-2">
+            {loading && <Icon icon="mdi:loading" className="animate-spin" />}
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -241,6 +244,7 @@ export default function CategoriesPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [modal, setModal] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const { token } = useSelector((state) => state.auth);
 
@@ -289,21 +293,23 @@ export default function CategoriesPage() {
           item._id === cat._id ? { ...item, isActive: oldStatus } : item
         )
       );
-      toast.error("Failed to toggle status");
+      toast.error(err?.response?.data?.message || "Failed to toggle status");
     }
   };
 
   const handleDelete = async (id) => {
+    setDeleting(true);
     try {
       await axiosInstance.delete(`/admin/refurbish/categories/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Category deleted successfully");
       fetchCategories();
+      setConfirm(null);
     } catch (err) {
       toast.error(err?.response?.data?.message || "Delete failed");
     } finally {
-      setConfirm(null);
+      setDeleting(false);
     }
   };
 
@@ -422,7 +428,7 @@ export default function CategoriesPage() {
       ) : modal && (
         <CategoryModal mode={modal.mode} initial={modal.item} onClose={() => setModal(null)} onSuccess={fetchCategories} />
       )}
-      {confirm && <ConfirmDialog message={`Delete "${confirm.label}"?`} onConfirm={() => handleDelete(confirm.id)} onCancel={() => setConfirm(null)} />}
+      {confirm && <ConfirmDialog message={`Delete "${confirm.label}"?`} onConfirm={() => handleDelete(confirm.id)} onCancel={() => setConfirm(null)} loading={deleting} />}
     </div>
   );
 }

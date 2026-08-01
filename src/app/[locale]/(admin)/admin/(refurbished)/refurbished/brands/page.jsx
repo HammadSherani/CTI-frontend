@@ -50,6 +50,7 @@ function BrandModal({ mode, initial, categoriesList, onClose, onSuccess }) {
     const e = {};
     if (!form.name.trim()) e.name = "Brand name is required";
     if (!form.categoryId) e.categoryId = "Please select a category";
+    if (mode === "create" && !form.logo) e.logo = "Brand logo is required";
     return e;
   };
 
@@ -141,9 +142,11 @@ function BrandModal({ mode, initial, categoriesList, onClose, onSuccess }) {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Brand Logo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Brand Logo <span className="text-red-500">*</span>
+            </label>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-3xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
+              className={`border-2 border-dashed rounded-3xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer ${errors.logo ? "border-red-400 bg-red-50" : "border-gray-300"}`}
               onClick={() => document.getElementById("logo-upload").click()}
             >
               <input
@@ -164,6 +167,7 @@ function BrandModal({ mode, initial, categoriesList, onClose, onSuccess }) {
                 </div>
               )}
             </div>
+            {errors.logo && <p className="text-red-500 text-sm mt-1">{errors.logo}</p>}
           </div>
 
           <div className="flex gap-4 pt-4">
@@ -250,7 +254,7 @@ export default function RefurbishedBrandsPage() {
 
       const [brandsRes, categoriesRes] = await Promise.all([
         axiosInstance.get(`/admin/refurbish/brands?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axiosInstance.get("/admin/refurbish/categories", { headers: { Authorization: `Bearer ${token}` } })
+        axiosInstance.get("/admin/refurbish/categories?isActive=true", { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setBrands(brandsRes.data?.data || []);
       setCategories(categoriesRes.data?.data || []);

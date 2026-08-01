@@ -2,56 +2,65 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from '@/i18n/navigation';
+import { useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 
-export default function SellOldPhonePage() {
+const PHONE_SLUG = 'phone';
+
+export default function SellDevicesPage() {
   const router = useRouter();
+  // next-intl [locale] folder: useParams from next/navigation returns { locale, categorySlug }
+  const rawParams = useParams();
+  const categorySlug = rawParams?.categorySlug || PHONE_SLUG;
+
   const [searchQuery, setSearchQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchContainerRef = useRef(null);
 
+  const [categoryName, setCategoryName] = useState('');
   const [topBrands, setTopBrands] = useState([]);
   const [allModels, setAllModels] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Fetch brands and models concurrently
+    setLoading(true);
+    setNotFound(false);
+    setTopBrands([]);
+    setAllModels([]);
+    setCategoryName('');
+
     Promise.all([
-      axiosInstance.get('/public/sell-device/brands/phone'),
-      axiosInstance.get('/public/sell-device/models/all')
+      axiosInstance.get(`/public/sell-device/category/${categorySlug}/brands`),
+      axiosInstance.get(`/public/sell-device/category/${categorySlug}/models`),
     ])
       .then(([brandsRes, modelsRes]) => {
-        let brandsData = brandsRes.data.data || [];
-        const modelsData = modelsRes.data.data || [];
-
-        // Sort brands by totalModels descending and take top 6
-        brandsData.sort((a, b) => (b.totalModels || 0) - (a.totalModels || 0));
+        if (!brandsRes.data.success) {
+          setNotFound(true);
+          return;
+        }
+        const brandsData = (brandsRes.data.data || []).sort((a, b) => (b.totalModels || 0) - (a.totalModels || 0));
         setTopBrands(brandsData.slice(0, 6));
-
-        setAllModels(modelsData);
+        setCategoryName(brandsRes.data.category?.name || '');
+        setAllModels(modelsRes.data.data || []);
       })
-      .catch(err => {
-        console.error(err);
-        toast.error("Failed to load initial data.");
+      .catch(() => {
+        setNotFound(true);
+        toast.error('Failed to load data.');
       })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []);
+      .finally(() => setLoading(false));
+  }, [categorySlug]);
 
   useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setSuggestions([]);
-      return;
-    }
-    const filtered = allModels.filter(model =>
-      model.name.toLowerCase().includes(searchQuery.toLowerCase())
-    ).slice(0, 8);
+    if (!searchQuery.trim()) { setSuggestions([]); return; }
+    const filtered = allModels
+      .filter(m => m.name.toLowerCase().includes(searchQuery.toLowerCase()))
+      .slice(0, 8);
     setSuggestions(filtered);
   }, [searchQuery, allModels]);
 
@@ -69,6 +78,29 @@ export default function SellOldPhonePage() {
     router.push(`/sell-old-phone/brands/${brandSlug}/${modelSlug}`);
   };
 
+  const displayName = categoryName || 'Device';
+
+  if (loading) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+      </div>
+    );
+  }
+
+  if (notFound) {
+    return (
+      <div className="bg-gray-50 min-h-screen flex flex-col items-center justify-center gap-4 text-center px-4">
+        <Icon icon="mdi:category-plus-outline" className="w-20 h-20 text-gray-300" />
+        <h1 className="text-2xl font-bold text-gray-800">Category Not Found</h1>
+        <p className="text-gray-500">The category you are looking for does not exist or is inactive.</p>
+        <button onClick={() => router.push('/sell-devices')} className="mt-4 px-6 py-2 bg-primary-600 text-white rounded-xl font-semibold hover:bg-primary-700 transition">
+          Back to Sell Devices
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="px-6 md:px-12 py-3 bg-white border-b border-gray-100">
@@ -76,17 +108,15 @@ export default function SellOldPhonePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
-        {/* Main landing layout without step tracker */}
         <div className="space-y-12">
 
-          {/* Hero Banner Grid */}
+          {/* Hero Banner */}
           <div className="bg-gradient-to-r from-primary-50 via-teal-50/50 to-white rounded-3xl p-8 md:p-12 shadow-sm border border-primary-100/60 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 animate-in fade-in duration-300">
 
-            {/* Left Side Content */}
+            {/* Left Content */}
             <div className="flex-1 space-y-6 z-10">
               <h1 className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
-                Sell Old Mobile Phone for <span className="text-primary-600">Instant Cash</span>
+                Sell Your <span className="text-primary-600">{displayName}</span> for Instant Cash
               </h1>
 
               <div className="flex flex-wrap gap-4 text-sm font-semibold text-gray-700">
@@ -104,7 +134,7 @@ export default function SellOldPhonePage() {
                 </div>
               </div>
 
-              {/* Autocomplete Search Bar */}
+              {/* Search Bar */}
               <div className="relative w-full max-w-xl" ref={searchContainerRef}>
                 <div className="relative flex items-center bg-white rounded-2xl border border-gray-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 shadow-sm transition-all duration-200">
                   <Icon icon="lucide:search" className="text-gray-400 ml-4 text-xl" />
@@ -113,47 +143,38 @@ export default function SellOldPhonePage() {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setIsSearchFocused(true)}
-                    placeholder="Search your Mobile Phone to sell"
+                    placeholder={`Search your ${displayName} to sell`}
                     className="w-full py-4 pl-3 pr-4 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none text-base"
                   />
                   {searchQuery && (
-                    <button
-                      onClick={() => setSearchQuery('')}
-                      className="p-1 mr-3 hover:bg-gray-100 rounded-full transition"
-                    >
+                    <button onClick={() => setSearchQuery('')} className="p-1 mr-3 hover:bg-gray-100 rounded-full transition">
                       <Icon icon="lucide:x" className="text-gray-400" />
                     </button>
                   )}
                 </div>
 
-                {/* Suggestions Dropdown */}
+                {/* Suggestions */}
                 {isSearchFocused && suggestions.length > 0 && (
                   <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl shadow-xl z-50 overflow-hidden divide-y divide-gray-50">
                     {suggestions.map((model) => (
                       <button
-                        key={model.id}
+                        key={model._id}
                         onClick={() => handleModelClick(model.brandSlug, model.slug)}
                         className="w-full flex items-center gap-4 px-5 py-3.5 hover:bg-primary-50/50 transition text-left group"
                       >
                         <div className="relative w-10 h-10 p-1 bg-gray-50 rounded-lg flex items-center justify-center border border-gray-100">
                           <Image
-                            src={model.imageUrl || "/fallback-model.png"}
+                            src={model.imageUrl || '/fallback-model.png'}
                             alt={model.name}
                             width={32}
                             height={32}
                             className="object-contain group-hover:scale-110 transition duration-200"
-                            onError={(e) => {
-                              e.currentTarget.src = "/fallback-model.png";
-                            }}
+                            onError={(e) => { e.currentTarget.src = '/fallback-model.png'; }}
                           />
                         </div>
                         <div>
-                          <p className="font-semibold text-gray-800 text-sm group-hover:text-primary-700 transition">
-                            {model.name}
-                          </p>
-                          <p className="text-xs text-gray-400 capitalize">
-                            Brand: {model.brandSlug}
-                          </p>
+                          <p className="font-semibold text-gray-800 text-sm group-hover:text-primary-700 transition">{model.name}</p>
+                          <p className="text-xs text-gray-400 capitalize">Brand: {model.brandName || model.brandSlug}</p>
                         </div>
                         <Icon icon="lucide:arrow-right" className="ml-auto text-gray-300 group-hover:text-primary-600 transition" />
                       </button>
@@ -163,51 +184,58 @@ export default function SellOldPhonePage() {
 
                 {isSearchFocused && searchQuery && suggestions.length === 0 && (
                   <div className="absolute left-0 right-0 mt-2 bg-white border border-gray-100 rounded-2xl p-6 shadow-xl z-50 text-center">
-                    <p className="text-gray-500 font-medium">No phones found matching "{searchQuery}"</p>
+                    <p className="text-gray-500 font-medium">No devices found matching "{searchQuery}"</p>
                   </div>
                 )}
               </div>
 
-              {/* Brand selection block */}
-              <div className="space-y-4 pt-2">
-                <div className="flex items-center gap-3">
-                  <div className="h-[1px] bg-gray-200 flex-1"></div>
-                  <span className="text-xs font-bold text-gray-400 tracking-wider uppercase">Or choose a brand</span>
-                  <div className="h-[1px] bg-gray-200 flex-1"></div>
-                </div>
+              {/* Brand Selection */}
+              {topBrands.length > 0 && (
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-3">
+                    <div className="h-[1px] bg-gray-200 flex-1" />
+                    <span className="text-xs font-bold text-gray-400 tracking-wider uppercase">Or choose a brand</span>
+                    <div className="h-[1px] bg-gray-200 flex-1" />
+                  </div>
 
-                <div className="flex flex-wrap gap-4 items-center">
-                  {topBrands.map((brand) => (
+                  <div className="flex flex-wrap gap-4 items-center">
+                    {topBrands.map((brand) => (
+                      <button
+                        key={brand._id}
+                        onClick={() => router.push(`/sell-old-phone/brands/${brand.slug}`)}
+                        className="bg-white hover:bg-gray-50 hover:border-primary-500 hover:shadow-md cursor-pointer border border-gray-100 rounded-2xl px-6 py-4 flex items-center gap-3 font-semibold text-gray-700 transition duration-200"
+                      >
+                        {brand.logoUrl ? (
+                          <img src={brand.logoUrl} alt={brand.name} className="w-6 h-6 object-contain" />
+                        ) : (
+                          <Icon icon="lucide:smartphone" className="text-2xl text-gray-400" />
+                        )}
+                        <span>{brand.name}</span>
+                      </button>
+                    ))}
                     <button
-                      key={brand._id}
-                      onClick={() => router.push(`/sell-old-phone/brands/${brand.slug}`)}
-                      className="bg-white hover:bg-gray-50 hover:border-primary-500 hover:shadow-md cursor-pointer border border-gray-100 rounded-2xl px-6 py-4 flex items-center gap-3 font-semibold text-gray-700 transition duration-200"
+                      onClick={() => router.push('/sell-old-phone/brands')}
+                      className="text-primary-600 hover:text-primary-700 font-bold flex items-center gap-1.5 transition text-sm ml-2 group cursor-pointer"
                     >
-                      {brand.logoUrl ? (
-                        <img src={brand.logoUrl} alt={brand.name} className="w-6 h-6 object-contain" />
-                      ) : (
-                        <Icon icon="lucide:smartphone" className="text-2xl text-gray-400" />
-                      )}
-                      <span>{brand.name}</span>
+                      <span>More Brands</span>
+                      <Icon icon="lucide:arrow-right" className="group-hover:translate-x-1 transition duration-200" />
                     </button>
-                  ))}
-                  <button
-                    onClick={() => router.push('/sell-old-phone/brands')}
-                    className="text-primary-600 hover:text-primary-700 font-bold flex items-center gap-1.5 transition text-sm ml-2 group cursor-pointer"
-                  >
-                    <span>More Brands</span>
-                    <Icon icon="lucide:arrow-right" className="group-hover:translate-x-1 transition duration-200" />
-                  </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
+              {topBrands.length === 0 && (
+                <div className="bg-white rounded-2xl border border-gray-100 px-6 py-4 text-gray-500 text-sm">
+                  No brands available for this category yet.
+                </div>
+              )}
             </div>
 
             {/* Hero Illustration */}
             <div className="relative w-80 h-80 z-0 hidden md:block">
               <Image
                 src="/assets/home/sell.avif"
-                alt="Sell Phone Hero illustration"
+                alt={`Sell ${displayName} Hero illustration`}
                 fill
                 className="object-contain"
                 priority
@@ -217,9 +245,7 @@ export default function SellOldPhonePage() {
 
           {/* How It Works */}
           <div className="space-y-8 py-6">
-            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 text-center">
-              How It Works
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 text-center">How It Works</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 hover:shadow-lg transition duration-300">
                 <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto text-primary-600">
@@ -230,7 +256,6 @@ export default function SellOldPhonePage() {
                   Select your device & tell us about its current condition. Our smart system will tailor make the perfect price for you.
                 </p>
               </div>
-
               <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 hover:shadow-lg transition duration-300">
                 <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto text-primary-600">
                   <Icon icon="lucide:calendar" className="text-3xl" />
@@ -240,7 +265,6 @@ export default function SellOldPhonePage() {
                   Book a free pickup from your home or work at a time slot that best suits your convenience.
                 </p>
               </div>
-
               <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 hover:shadow-lg transition duration-300">
                 <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto text-primary-600">
                   <Icon icon="lucide:wallet" className="text-3xl" />

@@ -26,7 +26,7 @@ function RefurbishedHeader() {
   const primaryNavLinks = [
     {
       name: "Dashboard",
-      path: "/admin/refurbished/categories",
+      path: "/admin/refurbished/dashboard",
       icon: "mdi:view-dashboard-outline",
     },
     {

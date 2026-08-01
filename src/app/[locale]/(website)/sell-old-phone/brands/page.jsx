@@ -25,7 +25,7 @@ export default function SellBrandsListPage() {
   const [filteredBrands, setFilteredBrands] = useState([]);
 
   useEffect(() => {
-    axiosInstance.get('/public/sell-device/brands')
+    axiosInstance.get('/public/sell-device/brands/phone')
       .then(res => {
         const brandsData = res.data.data || [];
         setBrands(brandsData);
@@ -68,16 +68,15 @@ export default function SellBrandsListPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
+
         {/* Step Indicator (7 Steps) */}
         <div className="max-w-4xl mx-auto mb-12">
           <div className="flex items-center justify-between text-xs font-bold text-gray-400 uppercase tracking-wider overflow-x-auto py-2">
             {STEP_ITEMS.map((step, idx) => (
               <React.Fragment key={step.id}>
                 <span className={`flex items-center gap-1.5 whitespace-nowrap ${step.id === 1 ? 'text-primary-600' : 'text-gray-400'}`}>
-                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${
-                    step.id === 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'
-                  }`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step.id === 1 ? 'bg-primary-600 text-white' : 'bg-gray-200 text-gray-500'
+                    }`}>
                     {step.id}
                   </span>
                   {step.name}
@@ -99,7 +98,7 @@ export default function SellBrandsListPage() {
             <Icon icon="lucide:chevron-left" />
             <span>Back to Sell Home</span>
           </button>
-          
+
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div>
               <h2 className="text-3xl font-black text-gray-900">
@@ -122,7 +121,7 @@ export default function SellBrandsListPage() {
                   className="w-full py-3 pl-3 pr-4 rounded-2xl text-gray-800 placeholder-gray-400 focus:outline-none text-sm"
                 />
                 {searchQuery && (
-                  <button 
+                  <button
                     onClick={() => setSearchQuery('')}
                     className="p-1 mr-3 hover:bg-gray-100 rounded-full transition"
                   >

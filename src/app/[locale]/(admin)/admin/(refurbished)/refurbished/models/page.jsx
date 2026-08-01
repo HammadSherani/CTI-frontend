@@ -12,7 +12,7 @@ import { toast } from "react-toastify";
 import Button from "@/components/partials/admin/ecom/myButton";
 
 /* ─── Confirm Dialog ─────────────────────────────────────── */
-function ConfirmDialog({ message, onConfirm, onCancel }) {
+function ConfirmDialog({ message, onConfirm, onCancel, loading }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
@@ -26,8 +26,11 @@ function ConfirmDialog({ message, onConfirm, onCancel }) {
           </div>
         </div>
         <div className="flex gap-3 justify-end">
-          <button onClick={onCancel} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200">Cancel</button>
-          <button onClick={onConfirm} className="px-5 py-2 text-sm text-white bg-red-600 rounded-xl hover:bg-red-700">Delete</button>
+          <button disabled={loading} onClick={onCancel} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200">Cancel</button>
+          <button disabled={loading} onClick={onConfirm} className="px-5 py-2 text-sm text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-70 flex items-center gap-2">
+            {loading && <Icon icon="mdi:loading" className="animate-spin" />}
+            Delete
+          </button>
         </div>
       </div>
     </div>
@@ -42,17 +45,26 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
     categoryId: initial?.categoryId?._id || initial?.categoryId || "",
     image: null,
   });
-  
+
   const [preview, setPreview] = useState(initial?.imageUrl || null);
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const { token } = useSelector((state) => state.auth);
 
+  // Filter brands by selected category — categories is array of ObjectIds, compare as strings
+  const filteredBrands = form.categoryId
+    ? brandsList.filter(b =>
+      Array.isArray(b.categories) &&
+      b.categories.some(catId => catId?.toString() === form.categoryId || catId?._id?.toString() === form.categoryId)
+    )
+    : [];
+
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Model name is required";
-    if (!form.brandId) e.brandId = "Please select a brand";
     if (!form.categoryId) e.categoryId = "Please select a category";
+    if (!form.brandId) e.brandId = "Please select a brand";
+    if (mode === "create" && !form.image) e.image = "Model image is required";
     return e;
   };
 
@@ -105,9 +117,13 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
-        <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between">
+    <div
+      className="fixed inset-0 z-50 flex items-start justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md my-auto">
+        {/* Header */}
+        <div className="px-6 py-5 border-b bg-gray-50 flex items-center justify-between rounded-t-3xl">
           <h2 className="text-xl font-semibold text-gray-900">
             {mode === "create" ? "Add New Model" : "Edit Model"}
           </h2>
@@ -116,25 +132,17 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6 animate-in fade-in">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Brand *</label>
-            <select
-              value={form.brandId}
-              onChange={(e) => setForm((p) => ({ ...p, brandId: e.target.value }))}
-              className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:border-primary-500 bg-white ${errors.brandId ? "border-red-400" : "border-gray-200"}`}
-            >
-              <option value="">Choose Brand</option>
-              {brandsList.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-            </select>
-            {errors.brandId && <p className="text-red-500 text-sm mt-1">{errors.brandId}</p>}
-          </div>
+        {/* Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
 
+          {/* Step 1: Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Select Category *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Category <span className="text-red-500">*</span>
+            </label>
             <select
               value={form.categoryId}
-              onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value }))}
+              onChange={(e) => setForm((p) => ({ ...p, categoryId: e.target.value, brandId: "" }))}
               className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:border-primary-500 bg-white ${errors.categoryId ? "border-red-400" : "border-gray-200"}`}
             >
               <option value="">Choose Category</option>
@@ -143,8 +151,36 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
             {errors.categoryId && <p className="text-red-500 text-sm mt-1">{errors.categoryId}</p>}
           </div>
 
+          {/* Step 2: Brand — filtered by category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Model Name *</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Select Brand <span className="text-red-500">*</span>
+            </label>
+            {!form.categoryId ? (
+              <div className="w-full h-12 px-4 rounded-2xl border border-gray-200 bg-gray-50 flex items-center text-sm text-gray-400">
+                Select a category first
+              </div>
+            ) : (
+              <select
+                value={form.brandId}
+                onChange={(e) => setForm((p) => ({ ...p, brandId: e.target.value }))}
+                className={`w-full h-12 px-4 rounded-2xl border focus:outline-none focus:border-primary-500 bg-white ${errors.brandId ? "border-red-400" : "border-gray-200"}`}
+              >
+                <option value="">Choose Brand</option>
+                {filteredBrands.length > 0
+                  ? filteredBrands.map(b => <option key={b._id} value={b._id}>{b.name}</option>)
+                  : <option disabled value="">No brands for this category</option>
+                }
+              </select>
+            )}
+            {errors.brandId && <p className="text-red-500 text-sm mt-1">{errors.brandId}</p>}
+          </div>
+
+          {/* Step 3: Model Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Model Name <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={form.name}
@@ -155,10 +191,13 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
             {errors.name && <p className="text-red-500 text-sm mt-1">{errors.name}</p>}
           </div>
 
+          {/* Model Image */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Model Image</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Model Image {mode === "create" && <span className="text-red-500">*</span>}
+            </label>
             <div
-              className="border-2 border-dashed border-gray-300 rounded-3xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer"
+              className={`border-2 border-dashed rounded-3xl p-6 text-center hover:border-primary-400 transition-colors cursor-pointer ${errors.image ? "border-red-400 bg-red-50" : "border-gray-300"}`}
               onClick={() => document.getElementById("image-upload").click()}
             >
               <input
@@ -179,9 +218,11 @@ function ModelModal({ mode, initial, brandsList, categoriesList, onClose, onSucc
                 </div>
               )}
             </div>
+            {errors.image && <p className="text-red-500 text-sm mt-1">{errors.image}</p>}
           </div>
 
-          <div className="flex gap-4 pt-4">
+          {/* Actions */}
+          <div className="flex gap-4 pt-2">
             <button type="button" onClick={onClose} className="flex-1 h-12 rounded-2xl bg-gray-100 hover:bg-gray-200 text-sm font-bold">Cancel</button>
             <button type="submit" disabled={submitting} className="flex-1 h-12 rounded-2xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold disabled:opacity-50">
               {submitting ? "Saving..." : "Save Model"}
@@ -252,8 +293,10 @@ export default function RefurbishedModelsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
   const [modal, setModal] = useState(null);
   const [confirm, setConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const { token } = useSelector((state) => state.auth);
 
   const fetchData = useCallback(async () => {
@@ -264,14 +307,14 @@ export default function RefurbishedModelsPage() {
 
       const [modelsRes, brandsRes, categoriesRes] = await Promise.all([
         axiosInstance.get(`/admin/refurbish/models?${params}`, { headers: { Authorization: `Bearer ${token}` } }),
-        axiosInstance.get("/admin/refurbish/brands", { headers: { Authorization: `Bearer ${token}` } }),
-        axiosInstance.get("/admin/refurbish/categories", { headers: { Authorization: `Bearer ${token}` } })
+        axiosInstance.get("/admin/refurbish/brands?isActive=true", { headers: { Authorization: `Bearer ${token}` } }),
+        axiosInstance.get("/admin/refurbish/categories?isActive=true", { headers: { Authorization: `Bearer ${token}` } })
       ]);
       setModels(modelsRes.data?.data || []);
       setBrands(brandsRes.data?.data || []);
       setCategories(categoriesRes.data?.data || []);
     } catch (err) {
-      toast.error("Failed to load models, brands or categories");
+      toast.error("Failed to load data");
     } finally {
       setLoading(false);
     }
@@ -284,58 +327,50 @@ export default function RefurbishedModelsPage() {
   const handleToggleStatus = async (model) => {
     const oldStatus = model.isActive;
     const newStatus = !oldStatus;
-
-    setModels(prev =>
-      prev.map(item =>
-        item._id === model._id ? { ...item, isActive: newStatus } : item
-      )
-    );
-
+    setModels(prev => prev.map(item => item._id === model._id ? { ...item, isActive: newStatus } : item));
     try {
-      await axiosInstance.patch(
-        `/admin/refurbish/models/toggle/${model._id}`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axiosInstance.patch(`/admin/refurbish/models/toggle/${model._id}`, {}, { headers: { Authorization: `Bearer ${token}` } });
       toast.success(`Model ${newStatus ? "activated" : "deactivated"} successfully`);
     } catch (err) {
-      setModels(prev =>
-        prev.map(item =>
-          item._id === model._id ? { ...item, isActive: oldStatus } : item
-        )
-      );
-      toast.error("Failed to toggle status");
+      setModels(prev => prev.map(item => item._id === model._id ? { ...item, isActive: oldStatus } : item));
+      toast.error(err?.response?.data?.message || "Failed to toggle status");
     }
   };
 
   const handleDelete = async (id) => {
+    setDeleting(true);
     try {
-      await axiosInstance.delete(`/admin/refurbish/models/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await axiosInstance.delete(`/admin/refurbish/models/${id}`, { headers: { Authorization: `Bearer ${token}` } });
       toast.success("Model deleted successfully");
       fetchData();
-    } catch (err) {
-      toast.error("Delete operation failed");
-    } finally {
       setConfirm(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Delete operation failed");
+    } finally {
+      setDeleting(false);
     }
   };
 
-  const filteredModels = models.filter(m => 
+  const filteredModels = models.filter(m =>
+    (categoryFilter === "" || (m.categoryId && (m.categoryId._id || m.categoryId) === categoryFilter)) &&
     m.name.toLowerCase().includes(search.toLowerCase())
   );
 
   const summaryCardsData = [
-    { label: "Total Models", value: models.length, icon: "mdi:cellphone-link", color: "#6366f1" },
-    { label: "Active Models", value: models.filter(m => m.isActive).length, icon: "mdi:check-circle-outline", color: "#10b981" },
-    { label: "Inactive Models", value: models.filter(m => !m.isActive).length, icon: "mdi:minus-circle-outline", color: "#f59e0b" },
+    { label: "Total Models", value: filteredModels.length, icon: "mdi:cellphone-link", color: "#6366f1" },
+    { label: "Active Models", value: filteredModels.filter(m => m.isActive).length, icon: "mdi:check-circle-outline", color: "#10b981" },
+    { label: "Inactive Models", value: filteredModels.filter(m => !m.isActive).length, icon: "mdi:minus-circle-outline", color: "#f59e0b" },
   ];
 
   const statusOptions = [
     { label: "All Statuses", value: "" },
     { label: "Active", value: "true" },
     { label: "Inactive", value: "false" },
+  ];
+
+  const categoryOptions = [
+    { label: "All Categories", value: "" },
+    ...categories.map(c => ({ label: c.name, value: c._id }))
   ];
 
   const columns = [
@@ -353,21 +388,19 @@ export default function RefurbishedModelsPage() {
               <Icon icon="mdi:cellphone" className="w-5 h-5 text-gray-400" />
             </div>
           )}
-          <div>
-            <span className="font-extrabold text-gray-800 text-sm block">{row.name}</span>
-          </div>
+          <span className="font-extrabold text-gray-800 text-sm">{row.name}</span>
         </div>
       )
     },
     {
       key: "brandId",
       header: "Brand",
-      cell: (row) => <span className="font-bold text-gray-700 capitalize">{row.brandId?.name || "None"}</span>
+      cell: (row) => <span className="font-bold text-gray-700 capitalize">{row.brandId?.name || "—"}</span>
     },
     {
       key: "categoryId",
       header: "Category",
-      cell: (row) => <span className="font-bold text-gray-700 capitalize">{row.categoryId?.name || "None"}</span>
+      cell: (row) => <span className="font-bold text-gray-700 capitalize">{row.categoryId?.name || "—"}</span>
     },
     {
       key: "isActive",
@@ -375,13 +408,9 @@ export default function RefurbishedModelsPage() {
       cell: (row) => (
         <button
           onClick={() => handleToggleStatus(row)}
-          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-sm
-        ${row.isActive ? "bg-green-500" : "bg-gray-300"}`}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-all duration-300 shadow-sm ${row.isActive ? "bg-green-500" : "bg-gray-300"}`}
         >
-          <span
-            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-300
-          ${row.isActive ? "translate-x-6" : "translate-x-1"}`}
-          />
+          <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-md transition-all duration-300 ${row.isActive ? "translate-x-6" : "translate-x-1"}`} />
         </button>
       ),
     },
@@ -406,7 +435,7 @@ export default function RefurbishedModelsPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-50/50 space-y-6">
-      
+
       {/* Title block */}
       <div className="flex items-center justify-between">
         <div>
@@ -421,18 +450,35 @@ export default function RefurbishedModelsPage() {
 
       <SummaryCards data={summaryCardsData} />
 
-      {/* Filters block */}
+      {/* Filters + Table */}
       <div className="bg-white rounded-3xl border border-gray-200/60 p-6 shadow-sm space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+          {/* Search */}
           <div className="flex-1 w-full">
             <SearchInput placeholder="Search Models..." value={search} onChange={(val) => setSearch(val)} />
           </div>
-          <div className="w-full sm:w-48">
-            <CustomDropdown icon="mdi:filter-outline" placeholder="Status" options={statusOptions} value={statusFilter} onChange={(val) => setStatusFilter(val)} />
+          {/* Category Filter */}
+          <div className="w-full sm:w-52">
+            <CustomDropdown
+              icon="mdi:shape-outline"
+              placeholder="All Categories"
+              options={categoryOptions}
+              value={categoryFilter}
+              onChange={(val) => setCategoryFilter(val)}
+            />
+          </div>
+          {/* Status Filter */}
+          <div className="w-full sm:w-44">
+            <CustomDropdown
+              icon="mdi:filter-outline"
+              placeholder="All Statuses"
+              options={statusOptions}
+              value={statusFilter}
+              onChange={(val) => setStatusFilter(val)}
+            />
           </div>
         </div>
 
-        {/* Data Table */}
         <DataTable data={filteredModels} columns={columns} loading={loading} />
       </div>
 
@@ -456,6 +502,7 @@ export default function RefurbishedModelsPage() {
           message={`Delete "${confirm.label}"?`}
           onConfirm={() => handleDelete(confirm.id)}
           onCancel={() => setConfirm(null)}
+          loading={deleting}
         />
       )}
     </div>
