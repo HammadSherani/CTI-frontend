@@ -149,7 +149,6 @@ export default function FilterSidebar({
       try {
         const p = new URLSearchParams();
         if (initialQ) p.append('q', initialQ);
-        if (initialCategoryIds.length) p.append('categoryIds', initialCategoryIds.join(','));
         const { data } = await axiosInstance.get(`/e-commerce/products/filters?${p.toString()}`);
         if (data.success) {
           setCategories(data.data.categories || []);

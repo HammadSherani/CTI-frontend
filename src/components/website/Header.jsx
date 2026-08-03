@@ -685,7 +685,7 @@ function NavigationBar({ isHome, isScrolled }) {
   // Refurbished data - dynamic nested by category
   const REFURBISHED = buyRefurbishedData.map(cat => ({
     name: cat.name,
-    href: `/refurbished/${cat.slug}`,
+    href: `/buy-refurbish-gadgets/${cat.slug}`,
     brands: (cat.brands || []).map(b => ({
       name: b.name,
       href: `/refurbished/${cat.slug}/${b.slug}`
@@ -745,7 +745,7 @@ function NavigationBar({ isHome, isScrolled }) {
         },
         ...productCategories.map((category) => ({
           name: category.title, // Changed from category.name to category.title
-          href: `/product/${category.slug}`,
+          href: `/product?categoryIds=${category._id}`,
         })),
       ] : [],
     },
