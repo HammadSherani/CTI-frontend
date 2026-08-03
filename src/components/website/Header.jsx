@@ -718,7 +718,7 @@ function NavigationBar({ isHome, isScrolled }) {
     },
     {
       name: "Buy Refurbished Devices",
-      href: "/refurbished",
+      href: "/buy-refurbish-gadgets", 
       hasDropdown: true,
       dropdownItems: REFURBISHED,
       isNested: true,

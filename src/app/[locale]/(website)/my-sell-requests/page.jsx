@@ -120,7 +120,7 @@ export default function MySellRequestsPage() {
   return (
     <div className="min-h-screen bg-gray-50/50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
-        
+
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
@@ -161,10 +161,10 @@ export default function MySellRequestsPage() {
               const offerStatus = hasOffer ? reqItem.offer.status : null;
               const isOfferExpired = hasOffer && new Date() > new Date(reqItem.offer.expiryDate);
               const resolvedOfferStatus = isOfferExpired && offerStatus === 'pending' ? 'expired' : offerStatus;
-
+              console.log(reqItem, 'req')
               return (
                 <div key={reqItem._id} className="bg-white rounded-3xl border border-gray-200/60 shadow-xs overflow-hidden flex flex-col md:flex-row">
-                  
+
                   {/* Left Column: Device Details */}
                   <div className="p-6 md:p-8 flex-1 space-y-4">
                     <div className="flex flex-wrap items-center justify-between gap-3">
@@ -219,11 +219,10 @@ export default function MySellRequestsPage() {
                       <div className="space-y-4 text-left">
                         <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
                           <h4 className="font-black text-sm text-gray-900">Offer Received</h4>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md capitalize ${
-                            resolvedOfferStatus === 'accepted' ? 'bg-green-100 text-green-700' :
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md capitalize ${resolvedOfferStatus === 'accepted' ? 'bg-green-100 text-green-700' :
                             resolvedOfferStatus === 'rejected' ? 'bg-red-100 text-red-700' :
-                            resolvedOfferStatus === 'expired' ? 'bg-gray-200 text-gray-600' : 'bg-yellow-100 text-yellow-700'
-                          }`}>
+                              resolvedOfferStatus === 'expired' ? 'bg-gray-200 text-gray-600' : 'bg-yellow-100 text-yellow-700'
+                            }`}>
                             {resolvedOfferStatus}
                           </span>
                         </div>
@@ -238,6 +237,8 @@ export default function MySellRequestsPage() {
                           <div className="bg-white border border-gray-200/60 rounded-xl p-3">
                             <p className="text-[10px] font-bold text-gray-400 uppercase">Notes</p>
                             <p className="text-xs text-gray-600 mt-1 line-clamp-3">{reqItem.offer.notes}</p>
+                            <p className="text-[10px] font-bold mt-1 text-gray-400 uppercase">Condition</p>
+                            <p className="text-xs text-gray-600 mt-1 line-clamp-3">{reqItem.offer.conditions}</p>
                           </div>
                         )}
 

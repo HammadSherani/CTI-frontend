@@ -54,16 +54,20 @@ const DEFAULT_ROW = {
  */
 export function useVariantBuilder(initialVariants = [], product = null) {
   const fallbackRow = useMemo(() => {
-    const basePrice = String(product?.summary?.minSalePrice || product?.summary?.minPrice || product?.price || "");
-    const baseStock = String(product?.stock || "");
-    const baseDiscount = String(product?.discountPercentage || "");
+    const defaultVariant = initialVariants?.find(v => v.isDefault || !v.attributes?.length) || initialVariants?.[0];
+    const basePrice = defaultVariant ? String(defaultVariant.price || "") : String(product?.summary?.minSalePrice || product?.summary?.minPrice || product?.price || "");
+    const baseStock = defaultVariant ? String(defaultVariant.stock || "") : String(product?.stock || "");
+    const baseDiscount = defaultVariant ? String(defaultVariant.discountPercentage || "") : String(product?.discountPercentage || "");
+    const baseImages = defaultVariant ? (defaultVariant.images || []) : [];
+
     return {
       ...DEFAULT_ROW,
       price: basePrice,
       stock: baseStock,
       discountPercentage: baseDiscount,
+      existingImages: baseImages,
     };
-  }, [product]);
+  }, [initialVariants, product]);
 
 
   /* ── Does the seller want attribute-based variants? ── */
@@ -148,16 +152,25 @@ export function useVariantBuilder(initialVariants = [], product = null) {
     }
 
     // Generate all combinations
+    const liveDefaultRow = rowData["default"] || fallbackRow;
+
     return cartesian(valueGroups)
       .map((combo) => {
         const attrs = combo.map((v) => ({ name: v.type, label: v.label, hex: v.hex || null }));
         const key   = makeComboKey(attrs);
         const label = attrs.map((a) => a.label).join(" / ");
+
+        const inheritedData = {
+          ...liveDefaultRow,
+          _id: undefined, // Do NOT inherit the ID of the default variant
+          sku: "", // Reset SKU because SKUs must be unique for each variant
+        };
+
         return {
           key,
           label,
           combo: attrs.map((a) => ({ name: a.name, value: a.label, colorHex: a.hex || null })),
-          ...(rowData[key] || fallbackRow),
+          ...(rowData[key] || inheritedData),
         };
       })
       // Filter out rows the user explicitly removed
