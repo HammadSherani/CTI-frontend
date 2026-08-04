@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { Link } from '@/i18n/navigation';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
 import RefurbishedProductCard from './RefurbishedProductCard';
@@ -51,28 +51,28 @@ export default function RefurbishedSliderSection({ title, products = [], viewAll
         >
           {loading
             ? Array.from({ length: 5 }).map((_, idx) => (
-                <SwiperSlide key={`skeleton-${idx}`}>
-                  <div className="animate-pulse border border-gray-200 rounded-xl overflow-hidden bg-white p-4 space-y-4 h-[350px] flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className="flex justify-between items-center">
-                        <div className="h-5 w-16 bg-gray-200 rounded-md"></div>
-                        <div className="h-5 w-10 bg-gray-200 rounded-md"></div>
-                      </div>
-                      <div className="h-36 w-full bg-gray-200 rounded-lg"></div>
+              <SwiperSlide key={`skeleton-${idx}`}>
+                <div className="animate-pulse border border-gray-200 rounded-xl overflow-hidden bg-white p-4 space-y-4 h-[350px] flex flex-col justify-between">
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div className="h-5 w-16 bg-gray-200 rounded-md"></div>
+                      <div className="h-5 w-10 bg-gray-200 rounded-md"></div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="h-3 w-1/3 bg-gray-200 rounded-md"></div>
-                      <div className="h-4 w-5/6 bg-gray-200 rounded-md"></div>
-                      <div className="h-5 w-1/2 bg-gray-200 rounded-md"></div>
-                    </div>
+                    <div className="h-36 w-full bg-gray-200 rounded-lg"></div>
                   </div>
-                </SwiperSlide>
-              ))
+                  <div className="space-y-2">
+                    <div className="h-3 w-1/3 bg-gray-200 rounded-md"></div>
+                    <div className="h-4 w-5/6 bg-gray-200 rounded-md"></div>
+                    <div className="h-5 w-1/2 bg-gray-200 rounded-md"></div>
+                  </div>
+                </div>
+              </SwiperSlide>
+            ))
             : products.map((product) => (
-                <SwiperSlide key={product.id || product._id}>
-                  <RefurbishedProductCard product={product} />
-                </SwiperSlide>
-              ))
+              <SwiperSlide key={product.id || product._id}>
+                <RefurbishedProductCard product={product} />
+              </SwiperSlide>
+            ))
           }
         </Swiper>
 

@@ -143,7 +143,7 @@ export default function Refurbish() {
 
     <div className="w-[80%] mx-auto relative">
       {/* Main Slider */}
-      <div className="relative">
+      <div className="relative mt-5">
         <Swiper
           modules={[Autoplay, Pagination, Navigation, Thumbs]}
           thumbs={{ swiper: thumbsSwiper }}

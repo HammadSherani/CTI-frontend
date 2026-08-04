@@ -685,10 +685,10 @@ function NavigationBar({ isHome, isScrolled }) {
   // Refurbished data - dynamic nested by category
   const REFURBISHED = buyRefurbishedData.map(cat => ({
     name: cat.name,
-    href: `/buy-refurbish-gadgets/${cat.slug}`,
+    href: `/refurbish?category=${cat.slug}`,
     brands: (cat.brands || []).map(b => ({
       name: b.name,
-      href: `/refurbished/${cat.slug}/${b.slug}`
+      href: `/refurbish?brand=${b.slug}`
     }))
   }));
   // Support data
@@ -718,7 +718,7 @@ function NavigationBar({ isHome, isScrolled }) {
     },
     {
       name: "Buy Refurbished Devices",
-      href: "/buy-refurbish-gadgets", 
+      href: "/buy-refurbish-gadgets",
       hasDropdown: true,
       dropdownItems: REFURBISHED,
       isNested: true,
