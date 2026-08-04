@@ -688,7 +688,7 @@ function NavigationBar({ isHome, isScrolled }) {
     href: `/refurbish?category=${cat.slug}`,
     brands: (cat.brands || []).map(b => ({
       name: b.name,
-      href: `/refurbish?brand=${b.slug}`
+      href: `/refurbish?category=${cat.slug}&brand=${b.slug}`
     }))
   }));
   // Support data
