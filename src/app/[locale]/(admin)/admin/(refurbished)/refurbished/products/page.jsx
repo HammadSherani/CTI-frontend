@@ -126,8 +126,9 @@ export default function RefurbishedProductsPage() {
             )}
           </div>
           <div>
-            <p className="font-bold text-gray-800 text-sm">{row.title || "—"}</p>
-            <p className="text-xs text-gray-400">SKU: {row.sku || "—"}</p>
+            <p className="font-bold text-gray-800 text-sm line-clamp-1">
+              {row.title ? row.title.split(' ').slice(0, 4).join(' ') + (row.title.split(' ').length > 4 ? '...' : '') : "—"}
+            </p>            <p className="text-xs text-gray-400">SKU: {row.sku || "—"}</p>
           </div>
         </div>
       ),

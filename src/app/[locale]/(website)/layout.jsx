@@ -17,7 +17,7 @@ import { usePathname } from '@/i18n/navigation'
 import useNotifications from '@/hooks/useNotifications'
 
 function Layout({ children }) {
-  const { token } = useSelector(state => state.auth);
+  const { token, user } = useSelector(state => state.auth);
   const [loading, setLoading] = useState(false)
   const dispatch = useDispatch();
   const pathname = usePathname();
@@ -43,7 +43,9 @@ function Layout({ children }) {
 
     const fetchUserDetails = async () => {
       try {
-        setLoading(true);
+        if (!user) {
+          setLoading(true);
+        }
 
         const { data } = await axiosInstance.get('/auth/user-details', {
           headers: {
@@ -66,7 +68,7 @@ function Layout({ children }) {
     return () => {
       isMounted = false;
     };
-  }, [token, dispatch]);
+  }, [token, dispatch, user]);
 
   // Hydrate wishlist + cart from backend whenever auth state changes
   useEffect(() => {

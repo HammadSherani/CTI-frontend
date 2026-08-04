@@ -605,6 +605,15 @@ function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCus
           </p>
         </div>
       )}
+
+      {activeTypes.length > 0 && activeTypes.some((t) => (selectedAttrs[t]?.length || 0) === 0) && (
+        <div className="flex items-center gap-2 p-3 bg-amber-50 rounded-xl border border-amber-200">
+          <Icon icon="mdi:alert-circle-outline" className="w-5 h-5 text-amber-500 flex-shrink-0" />
+          <p className="text-xs font-semibold text-amber-700">
+            Please add at least one value/option for each variant type (e.g. add a value under &quot;{activeTypes.find(t => (selectedAttrs[t]?.length || 0) === 0)}&quot;) to generate the variants pricing and bulk fill section.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
