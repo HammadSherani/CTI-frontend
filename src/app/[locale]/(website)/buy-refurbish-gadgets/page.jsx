@@ -49,7 +49,7 @@ export default function Refurbish() {
       mrp,
       price,
       goldPrice,
-      href: `/product/${p.slug}`,
+      href: `/refurbish/${p.slug}`,
       isVideo,
       videoSrc,
       stock,
@@ -59,11 +59,11 @@ export default function Refurbish() {
   useEffect(() => {
     (async () => {
       try {
-        const catRes = await axiosInstance.get('/public/sell-device/refurbished/categories');
+        const catRes = await axiosInstance.get('/public/refurbished-devices/categories');
         const activeCategories = catRes.data?.data || [];
         setDynamicCategories(activeCategories);
 
-        const topRes = await axiosInstance.get('/public/sell-device/refurbished/products/top-selling');
+        const topRes = await axiosInstance.get('/public/refurbished-devices/products/top-selling');
         setTopSellingProducts((topRes.data?.data || []).map(mapProduct).filter(Boolean));
 
         const phoneCat = activeCategories.find(c => {
@@ -71,7 +71,7 @@ export default function Refurbish() {
           return s.includes('phone') || s.includes('mobile');
         });
         if (phoneCat) {
-          const phoneRes = await axiosInstance.get(`/public/sell-device/refurbished/products/category/${phoneCat.slug}`);
+          const phoneRes = await axiosInstance.get(`/public/refurbished-devices/products/category/${phoneCat.slug}`);
           setPhones((phoneRes.data?.data || []).map(phone => mapProduct(phone)).filter(Boolean));
         }
 
@@ -80,7 +80,7 @@ export default function Refurbish() {
           return s.includes('laptop') || s.includes('notebook');
         });
         if (laptopCat) {
-          const laptopRes = await axiosInstance.get(`/public/sell-device/refurbished/products/category/${laptopCat.slug}`);
+          const laptopRes = await axiosInstance.get(`/public/refurbished-devices/products/category/${laptopCat.slug}`);
           setLaptops((laptopRes.data?.data || []).map(laptop => mapProduct(laptop)).filter(Boolean));
         }
 
@@ -89,7 +89,7 @@ export default function Refurbish() {
           return s.includes('watch');
         });
         if (watchCat) {
-          const watchRes = await axiosInstance.get(`/public/sell-device/refurbished/products/category/${watchCat.slug}`);
+          const watchRes = await axiosInstance.get(`/public/refurbished-devices/products/category/${watchCat.slug}`);
           setWatches((watchRes.data?.data || []).map(watch => mapProduct(watch)).filter(Boolean));
         }
 
@@ -98,7 +98,7 @@ export default function Refurbish() {
           return s.includes('gaming-console') || s.includes('gaming');
         });
         if (gamingCat) {
-          const gamingRes = await axiosInstance.get(`/public/sell-device/refurbished/products/category/${gamingCat.slug}`);
+          const gamingRes = await axiosInstance.get(`/public/refurbished-devices/products/category/${gamingCat.slug}`);
           setGamingConsoles((gamingRes.data?.data || []).map(game => mapProduct(game)).filter(Boolean));
         }
       } catch (err) {

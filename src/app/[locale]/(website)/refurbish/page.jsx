@@ -66,7 +66,7 @@ export default function RefurbishListingPage() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await axiosInstance.get('/public/sell-device/refurbished/filters');
+        const res = await axiosInstance.get('/public/refurbished-devices/filters');
         if (res.data?.success) {
           const meta = res.data.data;
           setFilterMetadata(meta);
@@ -113,7 +113,7 @@ export default function RefurbishListingPage() {
       if (selectedStorages.length > 0) params.append('storage', selectedStorages.join(','));
       if (selectedRating > 0) params.append('rating', selectedRating);
 
-      const res = await axiosInstance.get(`/public/sell-device/refurbished/products?${params.toString()}`);
+      const res = await axiosInstance.get(`/public/refurbished-devices/products?${params.toString()}`);
       if (res.data?.success) {
         setProducts(res.data.data);
         setTotalPages(res.data.pagination?.pages || 1);

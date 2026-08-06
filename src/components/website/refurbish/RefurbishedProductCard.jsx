@@ -13,15 +13,15 @@ export default function RefurbishedProductCard({ product }) {
   const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
 
   const title = product.title || defaultVariant?.title || '';
-  const href = product.href || (product.slug ? `/product/${product.slug}` : '#');
+  const href = product.href || (product.slug ? `/refurbish/${product.slug}` : '#');
   const rating = product.rating !== undefined ? product.rating : (product.ratings?.average || null);
   const badge = product.badge || defaultVariant?.badge || 'Lowest Price';
   const discount = product.discount !== undefined ? product.discount : (defaultVariant?.discountPercentage || 0);
-  
+
   const price = product.price !== undefined ? product.price : (defaultVariant?.discountPrice || defaultVariant?.sellingPrice || 0);
   const mrp = product.mrp !== undefined ? product.mrp : (defaultVariant?.price || 0);
   const goldPrice = product.goldPrice !== undefined ? product.goldPrice : (defaultVariant?.goldPrice || null);
-  
+
   // Stock count details (mock or database)
   const stock = product.stock !== undefined ? product.stock : (defaultVariant?.stock !== undefined ? defaultVariant.stock : null);
   // Defaulting to showing stock if between 1 and 5

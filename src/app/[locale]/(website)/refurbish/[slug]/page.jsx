@@ -262,7 +262,7 @@ export default function RefurbishedProductDetailPage() {
       try {
         setLoading(true);
         const [{ data: res }, { data: revRes }] = await Promise.all([
-          axiosInstance.get(`/public/sell-device/refurbished/products/${params.slug}`),
+          axiosInstance.get(`/public/refurbished-devices/products/${params.slug}`),
           // Reviews placeholder — you can hook up a refurbished reviews endpoint later
           Promise.resolve({ data: { success: true, data: [] } }),
         ]);
@@ -283,7 +283,7 @@ export default function RefurbishedProductDetailPage() {
           // Fetch related refurbished products by same category
           if (prod.categoryId) {
             try {
-              const rel = await axiosInstance.get(`/public/sell-device/refurbished/products?category=${prod.categoryId?.slug || ''}&limit=5`);
+              const rel = await axiosInstance.get(`/public/refurbished-devices/products?category=${prod.categoryId?.slug || ''}&limit=5`);
               if (rel.data?.success) {
                 setRelatedProducts((rel.data.data || []).filter(p => p._id !== prod._id).slice(0, 4));
               }

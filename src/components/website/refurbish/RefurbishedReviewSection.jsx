@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation } from 'swiper/modules';
 import { Icon } from '@iconify/react';
@@ -8,7 +9,95 @@ import { Icon } from '@iconify/react';
 import 'swiper/css';
 import 'swiper/css/navigation';
 
+const MAX_LENGTH = 90;
+
+/* ─── Full Review Modal ─── */
+function ReviewModal({ review, onClose }) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl p-7 max-w-md w-full shadow-2xl relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close btn */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition-colors"
+          aria-label="Close"
+        >
+          <Icon icon="mdi:close" className="text-2xl" />
+        </button>
+
+        {/* Quote icon */}
+        <div className="text-primary-600 leading-none mb-3">
+          <Icon icon="mdi:format-quote-open" className="text-5xl" />
+        </div>
+
+        {/* Full text */}
+        <p className="text-gray-700 text-sm leading-relaxed font-medium mb-6">
+          {review.text}
+        </p>
+
+        {/* Profile */}
+        <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
+          <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0">
+            <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+          </div>
+          <span className="text-gray-900 text-sm font-bold">{review.name}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Single Review Card (original design, height untouched) ─── */
+function ReviewCard({ review, onReadMore }) {
+  const isLong = review.text.length > MAX_LENGTH;
+
+  return (
+    <div className="bg-white rounded-xl p-6 flex flex-col justify-between h-[300px] border border-gray-100 shadow-sm overflow-hidden">
+      <div>
+        {/* Quote Icon */}
+        <div className="text-primary-600 leading-none mb-3">
+          <Icon icon="mdi:format-quote-open" className="text-5xl" />
+        </div>
+
+        {/* Review Text with inline "more" button */}
+        <p className="text-gray-700 text-[13px] md:text-sm leading-relaxed mb-3 font-medium">
+          {isLong ? (
+            <>
+              {review.text.slice(0, MAX_LENGTH)}…{' '}
+              <button
+                onClick={() => onReadMore(review)}
+                className="text-primary-500 hover:text-primary-700 font-semibold underline underline-offset-2 transition-colors focus:outline-none"
+              >
+                more
+              </button>
+            </>
+          ) : (
+            review.text
+          )}
+        </p>
+      </div>
+
+      {/* Profile Footer */}
+      <div className="flex items-center gap-3 mt-auto">
+        <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0">
+          <Image src={review.avatar} alt={review.name} fill className="object-cover" />
+        </div>
+        <span className="text-gray-900 text-sm font-bold">{review.name}</span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Section ─── */
 export default function RefurbishedReviewSection() {
+  const [activeReview, setActiveReview] = useState(null);
+
   const reviews = [
     {
       id: 1,
@@ -37,77 +126,57 @@ export default function RefurbishedReviewSection() {
   ];
 
   return (
-    <div className="bg-[#121212] -mx-[12.5%] px-[12.5%] py-12 md:py-16 mt-12 mb-12 rounded-xl">
-      {/* Title */}
-      <h2 className="text-white text-xl md:text-2xl lg:text-3xl font-bold text-center mb-10 leading-tight">
-        10+ lakh Happy heroes of Earth trust us to buy refurbished phones
-      </h2>
+    <>
+      {/* Full Review Modal */}
+      {activeReview && (
+        <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
+      )}
 
-      {/* Swiper Slider Wrapper */}
-      <div className="relative px-8 md:px-12">
-        <Swiper
-          modules={[Navigation]}
-          spaceBetween={24}
-          slidesPerView={1}
-          navigation={{
-            prevEl: '.review-prev',
-            nextEl: '.review-next',
-          }}
-          breakpoints={{
-            640: { slidesPerView: 2 },
-            1024: { slidesPerView: 3 },
-            1280: { slidesPerView: 4 },
-          }}
-          className="!pb-2"
-        >
-          {reviews.map((review) => (
-            <SwiperSlide key={review.id} className="h-auto">
-              <div className="bg-white rounded-xl p-6 flex flex-col justify-between h-full min-h-[300px] border border-gray-100 shadow-sm">
-                <div>
-                  {/* Teal Quote Icon */}
-                  <div className="text-primary-600 leading-none mb-3">
-                    <Icon icon="mdi:format-quote-open" className="text-5xl" />
-                  </div>
+      <div className="bg-[#121212] -mx-[12.5%] px-[12.5%] py-12 md:py-16 mt-12 mb-12 rounded-xl">
+        {/* Title */}
+        <h2 className="text-white text-xl md:text-2xl lg:text-3xl font-bold text-center mb-10 leading-tight">
+          10+ lakh Happy heroes of Earth trust us to buy refurbished phones
+        </h2>
 
-                  {/* Review Text */}
-                  <p className="text-gray-700 text-[13px] md:text-sm leading-relaxed mb-6 font-medium">
-                    {review.text}
-                  </p>
-                </div>
+        {/* Swiper Slider Wrapper */}
+        <div className="relative px-8 md:px-12">
+          <Swiper
+            modules={[Navigation]}
+            spaceBetween={24}
+            slidesPerView={1}
+            navigation={{
+              prevEl: '.review-prev',
+              nextEl: '.review-next',
+            }}
+            breakpoints={{
+              640: { slidesPerView: 2 },
+              1024: { slidesPerView: 3 },
+              1280: { slidesPerView: 3 },
+            }}
+            className="!pb-2"
+          >
+            {reviews.map((review) => (
+              <SwiperSlide key={review.id} className="h-auto">
+                <ReviewCard review={review} onReadMore={setActiveReview} />
+              </SwiperSlide>
+            ))}
+          </Swiper>
 
-                {/* Profile Footer */}
-                <div className="flex items-center gap-3 mt-auto">
-                  <div className="relative w-10 h-10 rounded-full overflow-hidden shrink-0">
-                    <Image
-                      src={review.avatar}
-                      alt={review.name}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <span className="text-gray-900 text-sm font-bold">
-                    {review.name}
-                  </span>
-                </div>
-              </div>
-            </SwiperSlide>
-          ))}
-        </Swiper>
-
-        {/* Custom Circular Navigation Buttons */}
-        <button
-          className="review-prev absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-150 flex items-center justify-center hover:bg-gray-50 transition-colors"
-          aria-label="Previous reviews"
-        >
-          <Icon icon="mdi:arrow-left" className="text-gray-800 text-xl" />
-        </button>
-        <button
-          className="review-next absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-150 flex items-center justify-center hover:bg-gray-50 transition-colors"
-          aria-label="Next reviews"
-        >
-          <Icon icon="mdi:arrow-right" className="text-gray-800 text-xl" />
-        </button>
+          {/* Custom Circular Navigation Buttons */}
+          <button
+            className="review-prev absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-150 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            aria-label="Previous reviews"
+          >
+            <Icon icon="mdi:arrow-left" className="text-gray-800 text-xl" />
+          </button>
+          <button
+            className="review-next absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white shadow-lg border border-gray-150 flex items-center justify-center hover:bg-gray-50 transition-colors"
+            aria-label="Next reviews"
+          >
+            <Icon icon="mdi:arrow-right" className="text-gray-800 text-xl" />
+          </button>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
