@@ -350,7 +350,7 @@ export default function OrderDetailPage() {
       const { data } = await axiosInstance.get(getUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) setOrder(data.orders || data.data);
+      if (data.success) setOrder(data.order || data.orders || data.data);
       else { toast.error('Order not found'); router.push('/orders'); }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load order');
@@ -426,6 +426,7 @@ export default function OrderDetailPage() {
 
   /* ── Enquiry ── */
   const handleEnquiry = async ({ subject, message }) => {
+    if (isRefurbishedMode) { toast.info('For refurbished device orders, please contact platform support.'); return; }
     const sellerId = order?.items?.[0]?.sellerId;
     if (!sellerId) { toast.error('Seller information not available'); return; }
     setEnquiryLoading(true);
@@ -463,6 +464,8 @@ export default function OrderDetailPage() {
   const currentStepIdx = TIMELINE_STEPS.indexOf(order.orderStatus?.toLowerCase());
   const isCancelled = order.orderStatus === 'cancelled';
   const subtotal = order.items?.reduce((s, i) => s + (i.price || 0) * (i.quantity || 1), 0) || 0;
+  const shipment = isRefurbishedMode ? order.shipment : null;
+  const shipmentCreated = shipment?.status === 'created';
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -551,13 +554,15 @@ export default function OrderDetailPage() {
                           {product?.title || 'Unknown Product'}
                         </Link>
                       ) : (
-                        <p className="font-semibold text-gray-900 text-sm line-clamp-1">{product?.title || 'Unknown Product'}</p>
+                        <p className="font-semibold text-gray-900 text-sm line-clamp-1">{product?.title || 'Refurbished Device'}</p>
                       )}
-                      {item.variant && (
+                      {/* Variant label — standard orders use item.variant, refurbished use item.variantId */}
+                      {(item.variant || item.variantId?.title) && (
                         <p className="text-xs text-gray-400 mt-0.5">
-                          {typeof item.variant === 'object'
-                            ? Object.entries(item.variant).map(([k, v]) => `${k}: ${v}`).join(' · ')
-                            : item.variant}
+                          {item.variantId?.title ||
+                            (typeof item.variant === 'object'
+                              ? Object.entries(item.variant).map(([k, v]) => `${k}: ${v}`).join(' · ')
+                              : item.variant)}
                         </p>
                       )}
                       <div className="flex items-center gap-3 mt-2">
@@ -576,6 +581,37 @@ export default function OrderDetailPage() {
               })}
             </div>
           </div>
+
+          {/* Shipment Tracking (refurbished only) */}
+          {shipmentCreated && (
+            <div className="bg-white rounded-2xl border border-cyan-100 shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-cyan-50 flex items-center gap-2">
+                <Icon icon="solar:delivery-bold-duotone" className="w-5 h-5 text-cyan-500" />
+                <h2 className="font-bold text-gray-900">Shipment Tracking</h2>
+                <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">Active</span>
+              </div>
+              <div className="p-5 space-y-3">
+                {shipment.trackingNumber && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Tracking No.</span>
+                    <span className="font-mono font-bold text-violet-700 text-xs">{shipment.trackingNumber}</span>
+                  </div>
+                )}
+                {shipment.trackingUrl && (
+                  <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                    <Icon icon="mdi:map-search-outline" className="w-4 h-4" /> Track My Shipment
+                  </a>
+                )}
+                {shipment.labelUrl && (
+                  <a href={shipment.labelUrl} target="_blank" rel="noopener noreferrer"
+                    className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+                    <Icon icon="mdi:download" className="w-4 h-4" /> Download Shipping Label
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Shipping Address */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -651,17 +687,28 @@ export default function OrderDetailPage() {
 
           {/* Action Buttons */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2.5">
-            {/* Contact Seller */}
-            <button
-              onClick={() => {
-                if (!token) { toast.error('Please log in first'); return; }
-                setEnquiryModal(true);
-              }}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold rounded-xl text-sm transition-colors"
-            >
-              <Icon icon="solar:chat-round-dots-bold-duotone" className="w-4 h-4" />
-              Contact Seller
-            </button>
+            {/* Contact button — seller for standard, support for refurbished */}
+            {!isRefurbishedMode && (
+              <button
+                onClick={() => {
+                  if (!token) { toast.error('Please log in first'); return; }
+                  setEnquiryModal(true);
+                }}
+                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold rounded-xl text-sm transition-colors"
+              >
+                <Icon icon="solar:chat-round-dots-bold-duotone" className="w-4 h-4" />
+                Contact Seller
+              </button>
+            )}
+            {isRefurbishedMode && (
+              <div className="w-full flex items-center gap-3 px-4 py-3 bg-cyan-50 border border-cyan-100 rounded-xl text-sm">
+                <Icon icon="solar:shield-check-bold-duotone" className="w-5 h-5 text-cyan-600 flex-shrink-0" />
+                <div>
+                  <p className="font-bold text-cyan-800 text-xs">Platform-Sold Item</p>
+                  <p className="text-cyan-600 text-[11px]">This is sold & shipped by TRB Platform</p>
+                </div>
+              </div>
+            )}
 
             {/* View all messages */}
             <Link
