@@ -11,6 +11,8 @@ import axiosInstance from '@/config/axiosInstance'
 import { setUserDetails } from '@/store/auth'
 import { fetchWishlist } from '@/store/wishlist'
 import { fetchCart } from '@/store/cart'
+import { fetchRefurbishedWishlist } from '@/store/refurbishedWishlist'
+import { fetchRefurbishedCart } from '@/store/refurbishedCart'
 import handleError from '@/helper/handleError'
 import { useLocale } from 'next-intl'
 import { usePathname } from '@/i18n/navigation'
@@ -74,6 +76,8 @@ function Layout({ children }) {
   useEffect(() => {
     dispatch(fetchWishlist());
     dispatch(fetchCart());
+    dispatch(fetchRefurbishedWishlist());
+    dispatch(fetchRefurbishedCart());
   }, [token, dispatch]);
 
   useEffect(() => {

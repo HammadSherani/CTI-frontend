@@ -3,9 +3,13 @@
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { useRouter } from '@/i18n/navigation';
+import { useDispatch, useSelector } from 'react-redux';
+import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
+import { toast } from 'react-toastify';
 
 export default function RefurbishedProductCard({ product }) {
   const router = useRouter();
+  const dispatch = useDispatch();
 
   if (!product) return null;
 
@@ -37,11 +41,18 @@ export default function RefurbishedProductCard({ product }) {
   // Calculate off amount
   const offAmount = mrp - price;
 
+  const wishlistItems = useSelector((s) => s.refurbishedWishlist?.items) || [];
+  const productIdVal = product._id || product.id || '';
+  const isWishlisted = wishlistItems.some(item => {
+    const itemProdId = item.productId?._id || item.productId;
+    return itemProdId === productIdVal;
+  });
+
   const formatPrice = (value) => {
-    return new Intl.NumberFormat('en-IN', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'INR',
-      maximumFractionDigits: 0,
+      currency: 'USD',
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -53,14 +64,24 @@ export default function RefurbishedProductCard({ product }) {
     }
   };
 
+  const handleWishlist = (e) => {
+    e.stopPropagation();
+    e.preventDefault();
+    dispatch(toggleRefurbishedWishlistItem({
+      product: { _id: productIdVal },
+      variantId: defaultVariant?._id || defaultVariant || null
+    }));
+    toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
+  };
+
   return (
     <div
       onClick={handleCardClick}
-      className="group block border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col justify-between"
+      className="group block relative border border-gray-200 rounded-xl overflow-hidden bg-white hover:shadow-lg transition-shadow duration-200 cursor-pointer h-full flex flex-col justify-between"
     >
       <div>
-        {/* Top Header Row: CTI Logo & Stock Badge */}
-        <div className="flex items-center justify-between p-3 pb-0">
+        {/* Top Header Row: CTI Logo, Stock Badge, and Wishlist Heart */}
+        <div className="flex items-center justify-between p-3 pb-0 z-10 relative">
           {/* CTI logo on the left */}
           <div className="relative w-16 h-8 flex items-center">
             <Image
@@ -72,12 +93,28 @@ export default function RefurbishedProductCard({ product }) {
             />
           </div>
 
-          {/* Stock count badge on the right */}
-          {showStock && (
-            <span className="bg-rose-50 border border-rose-200 text-rose-500 text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded">
-              {stock} left
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {/* Stock count badge */}
+            {showStock && (
+              <span className="bg-rose-50 border border-rose-200 text-rose-500 text-[10px] md:text-[11px] font-semibold px-2 py-0.5 rounded">
+                {stock} left
+              </span>
+            )}
+
+            {/* Wishlist Button */}
+            <button
+              onClick={handleWishlist}
+              className={`w-8 h-8 rounded-full border shadow flex items-center justify-center transition-all active:scale-95 ${isWishlisted
+                ? 'bg-red-50 border-red-300 text-red-500'
+                : 'bg-white/90 border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300'
+                }`}
+            >
+              <Icon
+                icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
+                className="text-base"
+              />
+            </button>
+          </div>
         </div>
 
         {/* Product Image Container */}

@@ -6,6 +6,8 @@ import home from "./home";
 import academy from "./academy";
 import wishlist from "./wishlist";
 import cart from "./cart";
+import refurbishedWishlist from "./refurbishedWishlist";
+import refurbishedCart from "./refurbishedCart";
 
 const rootReducer = {
   auth,
@@ -16,5 +18,7 @@ const rootReducer = {
   academy,
   wishlist,
   cart,
+  refurbishedWishlist,
+  refurbishedCart,
 };
 export default rootReducer;

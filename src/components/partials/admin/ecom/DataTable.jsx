@@ -88,7 +88,7 @@ export function DataTable({
               >
                 {columns.map((col) => (
                   <td key={col.key || col.header} className="px-6 py-4 whitespace-nowrap">
-                    {col.cell ? col.cell(row) : row[col.key]}
+                    {col.accessor ? col.accessor(row) : (col.cell ? col.cell(row) : row[col.key])}
                   </td>
                 ))}
               </tr>

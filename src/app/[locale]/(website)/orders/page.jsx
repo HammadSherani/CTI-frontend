@@ -9,6 +9,7 @@ import moment from 'moment';
 import { useSelector } from 'react-redux';
 import { CustomDropdown } from '@/components/partials/admin/ecom/Dropdown';
 import SearchInput from '@/components/SearchInput';
+import { useSearchParams } from 'next/navigation';
 
 const RETURN_STATUS_CFG = {
   requested: { label: 'Pending Review', bg: 'bg-blue-100 text-blue-700' },
@@ -18,41 +19,160 @@ const RETURN_STATUS_CFG = {
 };
 
 function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
+  const isRefurbished = order?.orderNo?.startsWith('REF-');
+  
   const [reason, setReason] = useState('');
+  
+  // Refurbished items state
+  // Stores { [itemKey]: { selected: boolean, quantity: number, reason: string } }
+  const [selectedItems, setSelectedItems] = useState({});
+
+  useEffect(() => {
+    if (order && isRefurbished) {
+      const initial = {};
+      order.items.forEach(item => {
+        const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
+        initial[key] = {
+          selected: false,
+          quantity: item.quantity || 1,
+          reason: ''
+        };
+      });
+      setSelectedItems(initial);
+    }
+  }, [order, isRefurbished]);
+
   if (!order) return null;
+
+  const handleRefurbishedSubmit = () => {
+    const itemsToReturn = [];
+    order.items.forEach(item => {
+      const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
+      const state = selectedItems[key];
+      if (state?.selected) {
+        itemsToReturn.push({
+          productId: item.productId?._id || item.productId,
+          variantId: item.variantId?._id || item.variantId,
+          quantity: state.quantity,
+          reason: state.reason.trim() || 'No reason provided'
+        });
+      }
+    });
+
+    if (itemsToReturn.length === 0) {
+      toast.warn('Please select at least one item to return');
+      return;
+    }
+
+    onSubmit(order._id, { items: itemsToReturn });
+  };
+
+  const handleStandardSubmit = () => {
+    onSubmit(order._id, { reason });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-          <h3 className="font-bold text-gray-900">Request Return</h3>
+          <h3 className="font-bold text-gray-900 text-sm">Request Return ({isRefurbished ? 'Refurbished Device' : 'Standard Product'})</h3>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100">
             <Icon icon="mdi:close" className="w-5 h-5 text-gray-500" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4">
+        
+        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700">
-            <p className="font-semibold">{order.orderId}</p>
-            <p className="text-gray-500 mt-0.5">{order.items?.length || 0} item(s) · Rs. {(order.totalAmount || 0).toLocaleString()}</p>
+            <p className="font-semibold">{order.orderNo || order.orderId}</p>
+            <p className="text-gray-500 mt-0.5">{order.items?.length || 0} item(s) · ${(order.totalAmount || 0).toLocaleString()}</p>
           </div>
-          <div>
-            <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
-              Reason for Return <span className="text-red-500">*</span>
-            </label>
-            <textarea
-              rows={4}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe why you want to return this order (e.g. damaged item, wrong size, not as described)..."
-              className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
-            />
-          </div>
-          <div className="flex gap-3">
+
+          {isRefurbished ? (
+            <div className="space-y-4">
+              <p className="text-xs font-bold text-gray-500 uppercase">Select items and quantity to return:</p>
+              {order.items.map(item => {
+                const prod = item.productId || {};
+                const variant = item.variantId || {};
+                const key = `${prod._id || prod}-${variant._id || variant}`;
+                const state = selectedItems[key] || { selected: false, quantity: 1, reason: '' };
+
+                return (
+                  <div key={key} className="border border-gray-100 rounded-xl p-3 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={state.selected}
+                        onChange={(e) => setSelectedItems(prev => ({
+                          ...prev,
+                          [key]: { ...prev[key], selected: e.target.checked }
+                        }))}
+                        className="rounded border-gray-300 text-primary-500 focus:ring-primary-500 w-4 h-4"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{prod.title}</p>
+                        <p className="text-xs text-gray-500">{variant.title || 'Default variant'}</p>
+                      </div>
+                      <span className="text-sm font-bold text-gray-700">${(item.price || variant.price || 0).toFixed(2)}</span>
+                    </div>
+
+                    {state.selected && (
+                      <div className="pl-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Qty to Return</label>
+                          <select
+                            value={state.quantity}
+                            onChange={(e) => setSelectedItems(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], quantity: parseInt(e.target.value) }
+                            }))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500 font-semibold"
+                          >
+                            {Array.from({ length: item.quantity }, (_, i) => i + 1).map(q => (
+                              <option key={q} value={q}>{q}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Reason</label>
+                          <input
+                            type="text"
+                            placeholder="Reason for return..."
+                            value={state.reason}
+                            onChange={(e) => setSelectedItems(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], reason: e.target.value }
+                            }))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                Reason for Return <span className="text-red-500">*</span>
+              </label>
+              <textarea
+                rows={4}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Describe why you want to return this order..."
+                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm">
               Cancel
             </button>
             <button
-              onClick={() => onSubmit(order._id, reason)}
-              disabled={loading || !reason.trim()}
+              onClick={isRefurbished ? handleRefurbishedSubmit : handleStandardSubmit}
+              disabled={loading || (!isRefurbished && !reason.trim())}
               className="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors text-sm disabled:opacity-50"
             >
               {loading ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 mx-auto" /> : 'Submit Request'}
@@ -65,6 +185,10 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
 }
 
 export default function MyOrdersPage() {
+  const searchParams = useSearchParams();
+  const typeParam = searchParams.get('type') === 'refurbished' ? 'refurbished' : 'marketplace';
+
+  const [orderType, setOrderType] = useState(typeParam); // 'marketplace' or 'refurbished'
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedOrderId, setExpandedOrderId] = useState(null);
@@ -83,10 +207,16 @@ export default function MyOrdersPage() {
   const [returnsList, setReturnsList]       = useState([]);
   const [activeTab, setActiveTab]           = useState('orders');
 
+  const isRefurbishedMode = orderType === 'refurbished';
+
   const fetchExistingReturns = useCallback(async () => {
     if (!token) return;
     try {
-      const res = await axiosInstance.get('/e-commerce/orders/my-returns', {
+      const returnsUrl = isRefurbishedMode 
+        ? '/refurbished/orders/my-returns' 
+        : '/e-commerce/orders/my-returns';
+
+      const res = await axiosInstance.get(returnsUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
@@ -99,12 +229,16 @@ export default function MyOrdersPage() {
         setReturnsList(list);
       }
     } catch {}
-  }, [token]);
+  }, [token, isRefurbishedMode]);
 
   const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await axiosInstance.get('/e-commerce/orders', {
+      const ordersUrl = isRefurbishedMode 
+        ? '/refurbished/orders' 
+        : '/e-commerce/orders';
+
+      const res = await axiosInstance.get(ordersUrl, {
         params: {
           page,
           limit: 10,
@@ -127,7 +261,7 @@ export default function MyOrdersPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, search, status, paymentStatus, token]);
+  }, [page, search, status, paymentStatus, token, isRefurbishedMode]);
 
   useEffect(() => {
     fetchOrders();
@@ -137,10 +271,14 @@ export default function MyOrdersPage() {
     fetchExistingReturns();
   }, [fetchExistingReturns]);
 
-  const handleRequestReturn = async (orderId, reason) => {
+  const handleRequestReturn = async (orderId, returnPayload) => {
     setReturnLoading(true);
     try {
-      const res = await axiosInstance.post(`/e-commerce/orders/${orderId}/return`, { reason }, {
+      const returnUrl = isRefurbishedMode
+        ? `/refurbished/orders/${orderId}/return`
+        : `/e-commerce/orders/${orderId}/return`;
+
+      const res = await axiosInstance.post(returnUrl, returnPayload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.data.success) {
@@ -198,7 +336,11 @@ export default function MyOrdersPage() {
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     try {
-      const res = await axiosInstance.put(`/e-commerce/orders/${orderId}/cancel`, {}, {
+      const cancelUrl = isRefurbishedMode
+        ? `/refurbished/orders/${orderId}/cancel`
+        : `/e-commerce/orders/${orderId}/cancel`;
+
+      const res = await axiosInstance.put(cancelUrl, {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -239,6 +381,30 @@ export default function MyOrdersPage() {
           <Icon icon="mdi:shopping" />
           Continue Shopping
         </Link>
+      </div>
+
+      {/* Purchase Type Switcher */}
+      <div className="flex gap-6 border-b border-gray-200 mb-6">
+        <button
+          onClick={() => { setOrderType('marketplace'); setPage(1); }}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+            orderType === 'marketplace'
+              ? 'border-primary-500 text-primary-500'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          Marketplace Purchases
+        </button>
+        <button
+          onClick={() => { setOrderType('refurbished'); setPage(1); }}
+          className={`pb-3 text-sm font-bold border-b-2 transition-all ${
+            orderType === 'refurbished'
+              ? 'border-amber-500 text-amber-600'
+              : 'border-transparent text-gray-500 hover:text-gray-800'
+          }`}
+        >
+          Refurbished Devices
+        </button>
       </div>
 
       {/* Tabs */}
@@ -314,7 +480,7 @@ export default function MyOrdersPage() {
                     <div className="flex-shrink-0">
                       {ret.orderId && (
                         <Link
-                          href={`/orders/${ret.orderId}`}
+                          href={`/orders/${ret.orderId}${isRefurbishedMode ? '?type=refurbished' : ''}`}
                           className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-semibold transition-colors"
                         >
                           View Order
@@ -461,7 +627,7 @@ export default function MyOrdersPage() {
                             <p className="text-xs text-gray-400 mt-0.5">{order.orderNo}</p>
                           )}
                           <Link
-                            href={`/orders/${order._id}`}
+                            href={`/orders/${order._id}${isRefurbishedMode ? '?type=refurbished' : ''}`}
                             onClick={(e) => e.stopPropagation()}
                             className="text-[11px] text-primary-600 hover:text-primary-700 font-semibold mt-0.5 inline-flex items-center gap-0.5 transition-colors"
                           >

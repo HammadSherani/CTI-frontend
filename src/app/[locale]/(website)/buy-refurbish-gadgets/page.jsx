@@ -122,7 +122,7 @@ export default function Refurbish() {
   ]
 
   // Replace src paths with your actual product image paths
-  const formatPrice = (num) => `₹${num.toLocaleString('en-IN')}`
+  const formatPrice = (num) => `$${Number(num).toFixed(2)}`
 
   const displayCategories = dynamicCategories.map((cat, idx) => ({
     id: cat._id,

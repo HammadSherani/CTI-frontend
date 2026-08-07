@@ -6,6 +6,8 @@ import { Link } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchWishlist, toggleWishlistItem } from '@/store/wishlist';
 import { toggleCart } from '@/store/cart';
+import { fetchRefurbishedWishlist, toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
+import { addRefurbishedToCart } from '@/store/refurbishedCart';
 
 // ── Star Rating ──
 function StarRating({ rating = 5 }) {
@@ -63,7 +65,7 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
   const product = item.productId || {};
   const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
 
-  const price = variant.discountPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+  const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
   const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
   const title = product.title || "Product";
   const variantText = variant.title || null;
@@ -74,6 +76,10 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
     onAddToCart(item);
     setAdding(false);
   };
+
+  const productLink = item.itemType === 'refurbished' 
+    ? `/refurbish/${product.slug || product._id}` 
+    : `/product/${product.slug || product._id}`;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
@@ -101,7 +107,7 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
         ) : (
           <p className="text-xs text-gray-400 mb-1">{product.category?.title || "Category"}</p>
         )}
-        <Link href={`/product/${product.slug || product._id}`}>
+        <Link href={productLink}>
           <h3 className="font-bold text-gray-800 text-sm leading-tight hover:text-primary-500 transition-colors line-clamp-2 mb-2">
             {title}
           </h3>
@@ -116,6 +122,9 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-4">
           <span className="text-base font-extrabold text-primary-600">${price.toFixed(2)}</span>
+          {item.itemType === 'refurbished' && (
+            <span className="ml-auto text-[10px] uppercase font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Refurbished</span>
+          )}
         </div>
 
         {/* Actions */}
@@ -148,14 +157,23 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
 // ── Main Wishlist Page ──
 export default function WishlistPage() {
   const dispatch = useDispatch();
-  const { items: wishlist, loading } = useSelector((state) => state.wishlist || { items: [], loading: false });
+  const { items: wishlist, loading: ecomLoading } = useSelector((state) => state.wishlist || { items: [], loading: false });
+  const { items: refurbishedWishlist, loading: refurbLoading } = useSelector((state) => state.refurbishedWishlist || { items: [], loading: false });
+  const loading = ecomLoading || refurbLoading;
+  
   const { items: cartItems } = useSelector((state) => state.cart || { items: [] });
-  // Derive which wishlist items are already in cart — no local state needed
-  const cartAddedIds = cartItems.map(i => i.productId?._id || i.productId).filter(Boolean);
+  const { items: refurbishedCartItems } = useSelector((state) => state.refurbishedCart || { items: [] });
+
+  const cartAddedIds = [
+    ...cartItems.map(i => i.productId?._id || i.productId),
+    ...refurbishedCartItems.map(i => i.productId?._id || i.productId)
+  ].filter(Boolean);
+  
   const [notification, setNotification] = useState(null);
 
   useEffect(() => {
     dispatch(fetchWishlist());
+    dispatch(fetchRefurbishedWishlist());
   }, [dispatch]);
 
   if (loading) {
@@ -170,28 +188,46 @@ export default function WishlistPage() {
   const handleRemove = (item) => {
     const product = item.productId;
     if (!product) return;
-    dispatch(toggleWishlistItem({ product, variantId: item.variantId }))
-      .unwrap()
-      .then(() => showNotification('Item removed from wishlist', 'info'))
-      .catch(() => showNotification('Failed to remove item', 'error'));
+    if (item.itemType === 'refurbished') {
+      dispatch(toggleRefurbishedWishlistItem({ product, variantId: item.variantId }))
+        .unwrap()
+        .then(() => showNotification('Item removed from wishlist', 'info'))
+        .catch(() => showNotification('Failed to remove item', 'error'));
+    } else {
+      dispatch(toggleWishlistItem({ product, variantId: item.variantId }))
+        .unwrap()
+        .then(() => showNotification('Item removed from wishlist', 'info'))
+        .catch(() => showNotification('Failed to remove item', 'error'));
+    }
   };
 
   const handleAddToCart = (item) => {
     const product = item.productId;
     if (!product) return;
     const pId = product._id || product;
-    dispatch(toggleCart({ product: typeof product === 'object' ? product : { _id: pId }, variantId: item.variantId, quantity: 1 }))
-      .unwrap()
-      .then(() => showNotification('Item added to cart!', 'success'))
-      .catch(() => showNotification('Failed to add to cart', 'error'));
+    if (item.itemType === 'refurbished') {
+      dispatch(addRefurbishedToCart({ product: typeof product === 'object' ? product : { _id: pId }, variantId: item.variantId, quantity: 1 }))
+        .unwrap()
+        .then(() => showNotification('Item added to cart!', 'success'))
+        .catch(() => showNotification('Failed to add to cart', 'error'));
+    } else {
+      dispatch(toggleCart({ product: typeof product === 'object' ? product : { _id: pId }, variantId: item.variantId, quantity: 1 }))
+        .unwrap()
+        .then(() => showNotification('Item added to cart!', 'success'))
+        .catch(() => showNotification('Failed to add to cart', 'error'));
+    }
   };
 
   const handleClearAll = () => {
-    // For local storage, we'd clear it. For backend, we'd delete all. 
-    // Omitting for brevity in this mock up.
     showNotification('Wishlist cleared', 'info');
   };
-  const validWishlist = wishlist.filter(
+
+  const mergedWishlist = [
+    ...(wishlist || []).map(i => ({ ...i, itemType: 'standard' })),
+    ...(refurbishedWishlist || []).map(i => ({ ...i, itemType: 'refurbished' }))
+  ];
+
+  const validWishlist = mergedWishlist.filter(
     (item) => item?.productId
   );
 

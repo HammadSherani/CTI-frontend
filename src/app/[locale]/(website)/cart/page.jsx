@@ -5,11 +5,12 @@ import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
+import { fetchRefurbishedCart, updateRefurbishedCartItem, removeRefurbishedFromCart } from '@/store/refurbishedCart';
 
 const SHIPPING = 10.00;
 
-// ── Order Summary Sidebar ──
-function OrderSummary({ subtotal, onCheckout }) {
+// ── Order Summary Sidebar Component ──
+function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
   const total = subtotal + SHIPPING;
   const rows = [
     { label: 'Items', value: subtotal, color: 'text-gray-700' },
@@ -19,7 +20,7 @@ function OrderSummary({ subtotal, onCheckout }) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sticky top-6">
-      <h3 className="text-base font-extrabold text-gray-800 mb-5">Order Summary</h3>
+      <h3 className="text-base font-extrabold text-gray-800 mb-5">{title}</h3>
       <div className="space-y-3 mb-5">
         {rows.map(r => (
           <div key={r.label} className="flex justify-between items-center text-sm">
@@ -36,7 +37,7 @@ function OrderSummary({ subtotal, onCheckout }) {
           <span className="font-extrabold text-gray-900 text-lg">${Math.max(0, total).toFixed(2)}</span>
         </div>
       </div>
-      <Link href="/checkout">
+      <Link href={checkoutLink}>
         <button
           className="w-full bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary-100 text-sm"
         >
@@ -50,34 +51,165 @@ function OrderSummary({ subtotal, onCheckout }) {
 // ── Main Cart Page ──
 export default function CartPage() {
   const dispatch = useDispatch();
-  const { items: cart, loading } = useSelector(s => s.cart || { items: [], loading: false });
+  
+  const { items: standardCart, loading: standardLoading } = useSelector(s => s.cart || { items: [], loading: false });
+  const { items: refurbishedCart, loading: refurbishedLoading } = useSelector(s => s.refurbishedCart || { items: [], loading: false });
+  
+  const loading = standardLoading || refurbishedLoading;
 
   useEffect(() => {
     dispatch(fetchCart());
+    dispatch(fetchRefurbishedCart());
   }, [dispatch]);
 
   if (loading) {
-    return <div className="py-20 text-center flex flex-col items-center justify-center min-h-[50vh]"><Icon icon="mdi:loading" className="animate-spin text-4xl text-primary-500 mb-4" /><p className="text-gray-500">Loading your cart...</p></div>;
+    return (
+      <div className="py-20 text-center flex flex-col items-center justify-center min-h-[50vh]">
+        <Icon icon="mdi:loading" className="animate-spin text-4xl text-primary-500 mb-4" />
+        <p className="text-gray-500">Loading your cart...</p>
+      </div>
+    );
   }
 
-  const updateQty = (item, delta) => {
-    dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }));
+  const updateQty = (item, delta, isRefurbished) => {
+    if (isRefurbished) {
+      dispatch(updateRefurbishedCartItem({ product: item.productId, variantId: item.variantId, delta }));
+    } else {
+      dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }));
+    }
   };
 
-  const removeItem = (item) => {
-    dispatch(removeFromCart({ product: item.productId, variantId: item.variantId }));
+  const removeItem = (item, isRefurbished) => {
+    if (isRefurbished) {
+      dispatch(removeRefurbishedFromCart({ product: item.productId, variantId: item.variantId }));
+    } else {
+      dispatch(removeFromCart({ product: item.productId, variantId: item.variantId }));
+    }
   };
 
-  const subtotal = cart.reduce((sum, item) => {
-    const product = item.productId || {};
-    const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
-    const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
-    return sum + (price * item.quantity);
-  }, 0);
+  const getSubtotal = (cartItems) => {
+    return cartItems.reduce((sum, item) => {
+      const product = item.productId || {};
+      const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
+      const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+      return sum + (price * item.quantity);
+    }, 0);
+  };
+
+  const standardSubtotal = getSubtotal(standardCart);
+  const refurbishedSubtotal = getSubtotal(refurbishedCart);
+
+  const isCartEmpty = standardCart.length === 0 && refurbishedCart.length === 0;
+
+  const renderCartGroup = (cartItems, isRefurbished, groupTitle, checkoutLink) => {
+    if (cartItems.length === 0) return null;
+
+    const subtotal = getSubtotal(cartItems);
+
+    return (
+      <div className="mb-12">
+        <h2 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
+          <Icon icon={isRefurbished ? "mdi:cellphone-link" : "mdi:shopping"} className={isRefurbished ? "text-amber-500" : "text-primary-500"} />
+          {groupTitle}
+        </h2>
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          {/* Table */}
+          <div className="flex-1 min-w-0 bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden w-full">
+            {/* Header */}
+            <div className={`grid grid-cols-12 gap-4 px-6 py-4 text-white text-sm font-semibold ${isRefurbished ? 'bg-amber-500' : 'bg-primary-500'}`}>
+              <div className="col-span-5">Product</div>
+              <div className="col-span-2 text-center">Price</div>
+              <div className="col-span-3 text-center">Quantity</div>
+              <div className="col-span-2 text-right">Subtotal</div>
+            </div>
+
+            {/* Items */}
+            {cartItems.map((item, idx) => {
+              const product = item.productId || {};
+              const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
+
+              const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+              const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
+              const title = product.title;
+              const variantText = variant.title ? variant.title : null;
+              const detailLink = isRefurbished ? `/refurbish/${product.slug || product._id}` : `/product/${product.slug || product._id}`;
+
+              return (
+                <div
+                  key={`${product._id}-${item.variantId?._id || item.variantId}`}
+                  className={`grid grid-cols-12 gap-4 px-6 py-5 items-center transition-colors ${idx !== cartItems.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/50`}
+                >
+                  {/* Product */}
+                  <div className="col-span-5 flex items-center gap-4">
+                    <button
+                      onClick={() => removeItem(item, isRefurbished)}
+                      className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
+                      title="Remove item"
+                    >
+                      <Icon icon="mdi:close-circle" className="text-xl" />
+                    </button>
+                    <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
+                      <img src={image} alt={title} className="w-full h-full object-contain p-1" />
+                    </div>
+                    <div>
+                      <Link href={detailLink}>
+                        <p className="font-semibold text-gray-800 text-sm leading-tight hover:text-primary-500">{title}</p>
+                      </Link>
+                      {variantText ? (
+                        <p className="text-gray-500 text-xs mt-0.5">{variantText}</p>
+                      ) : (
+                        <p className="text-gray-400 text-xs mt-0.5">{product.category?.title || "Product"}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
+                    ${price.toFixed(2)}
+                  </div>
+
+                  {/* Quantity */}
+                  <div className="col-span-3 flex justify-center">
+                    <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
+                      <button
+                        onClick={() => updateQty(item, -1, isRefurbished)}
+                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                      >
+                        <Icon icon="mdi:minus" />
+                      </button>
+                      <span className="px-3 py-2 text-sm font-semibold text-gray-800 min-w-[2.5rem] text-center">
+                        {item.quantity}
+                      </span>
+                      <button
+                        onClick={() => updateQty(item, 1, isRefurbished)}
+                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                      >
+                        <Icon icon="mdi:plus" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Subtotal */}
+                  <div className="col-span-2 text-right text-sm font-bold text-gray-800">
+                    ${(price * item.quantity).toFixed(2)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sidebar */}
+          <div className="w-full lg:w-80 flex-shrink-0">
+            <OrderSummary subtotal={subtotal} checkoutLink={checkoutLink} title={`${groupTitle} Summary`} />
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between mb-8 flex-wrap gap-4">
         <h1 className="text-2xl font-extrabold text-gray-900">My Shopping Cart</h1>
         <Link
@@ -85,117 +217,30 @@ export default function CartPage() {
           className="flex items-center gap-1.5 text-primary-500 hover:text-primary-600 text-sm font-semibold transition-colors"
         >
           <Icon icon="mdi:arrow-left" className="text-base" />
-          Clear Shopping Cart
+          Continue Shopping
         </Link>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8 items-start">
-        {/* ── Cart Table ── */}
-        <div className="flex-1 min-w-0">
-          {cart.length === 0 ? (
-            <div className="text-center py-24 bg-white rounded-2xl border border-gray-100 shadow-sm">
-              <Icon icon="mdi:cart-off" className="text-6xl text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-600">Your cart is empty</h3>
-              <p className="text-gray-400 text-sm mt-1 mb-6">Looks like you haven't added anything yet</p>
-              <Link href="/products">
-                <button className="bg-primary-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-primary-600 transition-colors">
-                  Start Shopping
-                </button>
-              </Link>
-            </div>
-          ) : (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-              {/* Table Header */}
-              <div className="grid grid-cols-12 gap-4 px-6 py-4 bg-primary-500 text-white text-sm font-semibold">
-                <div className="col-span-5">Product</div>
-                <div className="col-span-2 text-center">Price</div>
-                <div className="col-span-3 text-center">Quantity</div>
-                <div className="col-span-2 text-right">Subtotal</div>
-              </div>
-
-              {/* Cart Items */}
-              {cart.map((item, idx) => {
-                const product = item.productId || {};
-                const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
-
-                const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
-                const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
-                const title = product.title;
-                const variantText = variant.title ? variant.title : null;
-
-                return (
-                  <div
-                    key={`${product._id}-${item.variantId?._id || item.variantId}`}
-                    className={`grid grid-cols-12 gap-4 px-6 py-5 items-center transition-colors ${idx !== cart.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/50`}
-                  >
-                    {/* Product */}
-                    <div className="col-span-5 flex items-center gap-4">
-                      <button
-                        onClick={() => removeItem(item)}
-                        className="text-gray-300 hover:text-red-500 transition-colors flex-shrink-0"
-                        title="Remove item"
-                      >
-                        <Icon icon="mdi:close-circle" className="text-xl" />
-                      </button>
-                      <div className="w-14 h-14 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
-                        <img src={image} alt={title} className="w-full h-full object-contain p-1" />
-                      </div>
-                      <div>
-                        <Link href={`/product/${product.slug || product._id}`}>
-                          <p className="font-semibold text-gray-800 text-sm leading-tight hover:text-primary-500">{title}</p>
-                        </Link>
-                        {variantText ? (
-                          <p className="text-gray-500 text-xs mt-0.5">{variantText}</p>
-                        ) : (
-                          <p className="text-gray-400 text-xs mt-0.5">{product.category?.title || "Product"}</p>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Price */}
-                    <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
-                      ${price.toFixed(2)}
-                    </div>
-
-                    {/* Quantity */}
-                    <div className="col-span-3 flex justify-center">
-                      <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
-                        <button
-                          onClick={() => updateQty(item, -1)}
-                          className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
-                        >
-                          <Icon icon="mdi:minus" />
-                        </button>
-                        <span className="px-3 py-2 text-sm font-semibold text-gray-800 min-w-[2.5rem] text-center">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQty(item, 1)}
-                          className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
-                        >
-                          <Icon icon="mdi:plus" />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Subtotal */}
-                    <div className="col-span-2 text-right text-sm font-bold text-gray-800">
-                      ${(price * item.quantity).toFixed(2)}
-                    </div>
-                  </div>
-                );
-              })}
-
-
-            </div>
-          )}
+      {isCartEmpty ? (
+        <div className="text-center py-24 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-xl mx-auto">
+          <Icon icon="mdi:cart-off" className="text-6xl text-gray-200 mx-auto mb-4" />
+          <h3 className="text-lg font-bold text-gray-600">Your cart is empty</h3>
+          <p className="text-gray-400 text-sm mt-1 mb-6">Looks like you haven't added anything yet</p>
+          <Link href="/products">
+            <button className="bg-primary-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-primary-600 transition-colors">
+              Start Shopping
+            </button>
+          </Link>
         </div>
+      ) : (
+        <div>
+          {/* Marketplace Group */}
+          {renderCartGroup(standardCart, false, "Marketplace Products", "/checkout")}
 
-        {/* ── Order Summary ── */}
-        <div className="w-full lg:w-80 flex-shrink-0">
-          <OrderSummary subtotal={subtotal} />
+          {/* Refurbished Group */}
+          {renderCartGroup(refurbishedCart, true, "Refurbished Devices", "/checkout?type=refurbished")}
         </div>
-      </div>
+      )}
     </div>
   );
 }

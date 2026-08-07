@@ -47,9 +47,13 @@ const DashboardLink = ({ link }) => (
 );
 
 function ButtonSection() {
-  // const { user } = useSelector((state) => state.auth);
-  const cartItems = useSelector((state) => state.cart?.items?.length) || 0;
-  const wishlistItems = useSelector((state) => state.wishlist?.items?.length) || 0;
+  const standardCartItems = useSelector((state) => state.cart?.items?.length) || 0;
+  const refurbishedCartItems = useSelector((state) => state.refurbishedCart?.items?.length) || 0;
+  const cartItems = standardCartItems + refurbishedCartItems;
+
+  const standardWishlistItems = useSelector((state) => state.wishlist?.items?.length) || 0;
+  const refurbishedWishlistItems = useSelector((state) => state.refurbishedWishlist?.items?.length) || 0;
+  const wishlistItems = standardWishlistItems + refurbishedWishlistItems;
   const [notificationCount] = useState(0); // Keep static for now
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);

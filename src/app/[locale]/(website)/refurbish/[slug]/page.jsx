@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Link, useRouter } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart, toggleCart } from '@/store/cart';
+import { addRefurbishedToCart } from '@/store/refurbishedCart';
 import { useParams } from 'next/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import DOMPurify from 'isomorphic-dompurify';
@@ -402,15 +402,10 @@ export default function RefurbishedProductDetailPage() {
 
   const handleAddToCart = () => {
     if (!inStock) { toast.warn('Out of stock!'); return; }
-    dispatch(addToCart({
-      id: selectedVariant._id,
-      productId: productData._id,
-      title: productData.title,
-      variantTitle: selectedVariant.title,
-      price,
-      image: allImages[0] || '/assets/placeholder.jpg',
+    dispatch(addRefurbishedToCart({
+      product: productData,
+      variantId: selectedVariant._id,
       quantity,
-      stock: stockCount,
     }));
     toast.success(`${productData.title} added to cart!`);
   };
@@ -418,8 +413,7 @@ export default function RefurbishedProductDetailPage() {
   const handleBuyNow = () => {
     if (!inStock) return;
     if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
-    handleAddToCart();
-    router.push('/checkout');
+    router.push(`/checkout?type=refurbished&buyNow=true&slug=${productData.slug}&variantId=${selectedVariant._id}&quantity=${quantity}`);
   };
 
   const handleAddReview = async () => {
@@ -460,7 +454,7 @@ export default function RefurbishedProductDetailPage() {
 
   const userReview = currentUserId ? reviews.find(r => r.userId?._id?.toString() === currentUserId.toString()) : null;
 
-  const formatPrice = (num) => `₹${Math.round(num).toLocaleString('en-IN')}`;
+  const formatPrice = (num) => `$${Number(num).toFixed(2)}`;
 
   // Scroll to order section helper
   const scrollToOrder = () => {

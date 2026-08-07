@@ -187,7 +187,7 @@ export default function RefurbishListingPage() {
     router.push('/refurbish');
   };
 
-  const formatPrice = (num) => `₹${Math.round(num).toLocaleString('en-IN')}`;
+  const formatPrice = (num) => `$${Number(num).toFixed(2)}`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 min-h-screen bg-gray-50/50">
@@ -315,7 +315,7 @@ export default function RefurbishListingPage() {
                   <div className="flex-1">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Min</span>
                     <div className="relative mt-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">₹</span>
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
                       <input
                         type="number"
                         value={priceMin}
@@ -327,7 +327,7 @@ export default function RefurbishListingPage() {
                   <div className="flex-1">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Max</span>
                     <div className="relative mt-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">₹</span>
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
                       <input
                         type="number"
                         value={priceMax}

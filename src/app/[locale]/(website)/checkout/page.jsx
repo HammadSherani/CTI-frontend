@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { removeFromCart, clearCart } from '@/store/cart';
+import { clearRefurbishedCart } from '@/store/refurbishedCart';
 import * as yup from 'yup';
 import { Country, State, City } from 'country-state-city';
 import LoginModal from './LoginModal';
@@ -73,8 +74,17 @@ export default function CheckoutPage() {
   const dispatch     = useDispatch();
   const { token, isAuthenticated } = useSelector(s => s.auth);
   const auth      = useSelector(s => s.auth);
-  const cartItems = useSelector(s => s.cart?.items || []);
-  const cartId    = useSelector(s => s.cart?.cartId);
+  const type = searchParams.get('type');
+  const isRefurbished = type === 'refurbished';
+  
+  const standardCartItems = useSelector(s => s.cart?.items || []);
+  const standardCartId    = useSelector(s => s.cart?.cartId);
+  
+  const refurbishedCartItems = useSelector(s => s.refurbishedCart?.items || []);
+  const refurbishedCartId    = useSelector(s => s.refurbishedCart?.cartId);
+  
+  const cartItems = isRefurbished ? refurbishedCartItems : standardCartItems;
+  const cartId    = isRefurbished ? refurbishedCartId : standardCartId;
 
   const [errors, setErrors]         = useState({});
   const isBuyNow     = searchParams.get('buyNow') === 'true';
@@ -155,17 +165,21 @@ export default function CheckoutPage() {
   // ── Load items (Buy Now vs Cart) ──────────────────────────────────────────────
   useEffect(() => {
     if (isBuyNow && slug) {
-      axiosInstance.get(`/e-commerce/products/${slug}`)
+      const fetchUrl = isRefurbished 
+        ? `/public/refurbished-devices/products/${slug}` 
+        : `/e-commerce/products/${slug}`;
+
+      axiosInstance.get(fetchUrl)
         .then(res => {
-          const product  = res.data.data.product;
-          const variants = res.data.data.variants;
+          const product  = isRefurbished ? res.data.data : res.data.data.product;
+          const variants = isRefurbished ? (res.data.data.variants || []) : res.data.data.variants;
           const variant  = queryVariantId ? variants.find(v => v._id === queryVariantId) : variants[0];
           if (!product || !variant) {
             toast.error('Product or variant not found');
             router.push('/');
             return;
           }
-          if (product.sellerId === auth?.user?._id || product.sellerId === auth?.user?.id) {
+          if (!isRefurbished && (product.sellerId === auth?.user?._id || product.sellerId === auth?.user?.id)) {
             toast.error('You cannot buy your own product');
             router.push('/');
             return;
@@ -196,7 +210,7 @@ export default function CheckoutPage() {
       setSubTotal(currentSubTotal);
       setLoading(false);
     }
-  }, [isBuyNow, slug, queryVariantId, queryQuantity, cartItems, auth, router]);
+  }, [isBuyNow, slug, queryVariantId, queryQuantity, cartItems, auth, router, isRefurbished]);
 
   // ── Customer pays no shipping ─────────────────────────────────────────────────
   const TOTAL = subTotal;
@@ -303,20 +317,35 @@ export default function CheckoutPage() {
         payload.cartId = cartId;
       }
 
-      const res = await axiosInstance.post('/e-commerce/orders/create', payload, {
+      const orderCreateUrl = isRefurbished 
+        ? '/refurbished/orders/create' 
+        : '/e-commerce/orders/create';
+
+      const res = await axiosInstance.post(orderCreateUrl, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
       if (res.data.success) {
         toast.success('Order placed successfully!');
         localStorage.removeItem('checkout_form_data');
-        dispatch(clearCart());
-        if (!isBuyNow && token) {
-          try {
-            await axiosInstance.delete('/e-commerce/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
-          } catch (_) {}
+        
+        if (isRefurbished) {
+          dispatch(clearRefurbishedCart());
+          if (!isBuyNow && token) {
+            try {
+              await axiosInstance.delete('/refurbished/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
+            } catch (_) {}
+          }
+          router.push('/orders?type=refurbished');
+        } else {
+          dispatch(clearCart());
+          if (!isBuyNow && token) {
+            try {
+              await axiosInstance.delete('/e-commerce/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
+            } catch (_) {}
+          }
+          router.push('/orders');
         }
-        router.push('/orders');
       } else {
         toast.error(res.data.message || 'Failed to place order');
       }

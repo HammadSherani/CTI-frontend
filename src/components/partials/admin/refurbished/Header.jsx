@@ -49,7 +49,8 @@ function RefurbishedHeader() {
     },
     { name: "Sell Requests", icon: "mdi:cellphone-arrow-down", path: "/admin/refurbished/requests" },
     { "name": "Products", "icon": "mdi:cellphone", "path": "/admin/refurbished/products" },
-
+    { "name": "Orders", "icon": "mdi:package-variant", "path": "/admin/refurbished/orders" },
+    { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
   ];
 
   const dropdownLinks = [

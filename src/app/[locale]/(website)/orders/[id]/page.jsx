@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Link ,useRouter} from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
@@ -11,7 +11,7 @@ import moment from 'moment';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
-══════════════════════════════════════════ */
+   ══════════════════════════════════════════ */
 const ORDER_STATUS = {
   pending:    { color: 'bg-blue-100 text-blue-700',     icon: 'solar:clock-circle-bold-duotone',      label: 'Pending' },
   processing: { color: 'bg-indigo-100 text-indigo-700', icon: 'solar:settings-bold-duotone',          label: 'Processing' },
@@ -47,6 +47,7 @@ function OrderStatusBadge({ status }) {
   );
 }
 
+// ── PaymentBadge ──
 function PaymentBadge({ status }) {
   const cfg = PAYMENT_STATUS[status] || { color: 'bg-gray-100 text-gray-600', label: status };
   return (
@@ -58,7 +59,7 @@ function PaymentBadge({ status }) {
 
 /* ══════════════════════════════════════════
    ASK SELLER MODAL  (Order Enquiry)
-══════════════════════════════════════════ */
+   ══════════════════════════════════════════ */
 const ORDER_QUICK_SUBJECTS = [
   'Where is my order?',
   'Tracking information',
@@ -166,34 +167,147 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
 
 /* ══════════════════════════════════════════
    RETURN MODAL
-══════════════════════════════════════════ */
+   ══════════════════════════════════════════ */
 function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
+  const isRefurbished = order?.orderNo?.startsWith('REF-') || order?.orderId?.startsWith('REF-');
   const [reason, setReason] = useState('');
+  const [selectedItems, setSelectedItems] = useState({});
+
+  useEffect(() => {
+    if (order && isRefurbished) {
+      const initial = {};
+      order.items.forEach(item => {
+        const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
+        initial[key] = {
+          selected: false,
+          quantity: item.quantity || 1,
+          reason: ''
+        };
+      });
+      setSelectedItems(initial);
+    }
+  }, [order, isRefurbished]);
+
   if (!order) return null;
+
+  const handleRefurbishedSubmit = () => {
+    const itemsToReturn = [];
+    order.items.forEach(item => {
+      const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
+      const state = selectedItems[key];
+      if (state?.selected) {
+        itemsToReturn.push({
+          productId: item.productId?._id || item.productId,
+          variantId: item.variantId?._id || item.variantId,
+          quantity: state.quantity,
+          reason: state.reason.trim() || 'No reason provided'
+        });
+      }
+    });
+
+    if (itemsToReturn.length === 0) {
+      toast.warn('Please select at least one item to return');
+      return;
+    }
+
+    onSubmit({ items: itemsToReturn });
+  };
+
+  const handleStandardSubmit = () => {
+    onSubmit({ reason });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg my-8">
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <h3 className="font-extrabold text-gray-900">Request Return</h3>
+          <h3 className="font-extrabold text-gray-900">Request Return ({isRefurbished ? 'Refurbished Device' : 'Standard Product'})</h3>
           <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100">
             <Icon icon="solar:close-circle-bold" className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4">
-          <textarea
-            rows={4}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            placeholder="Describe why you want to return this order..."
-            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
-          />
-          <div className="flex gap-3">
+        <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          {isRefurbished ? (
+            <div className="space-y-4">
+              <p className="text-xs font-bold text-gray-500 uppercase">Select items and quantity to return:</p>
+              {order.items.map(item => {
+                const prod = item.productId || {};
+                const variant = item.variantId || {};
+                const key = `${prod._id || prod}-${variant._id || variant}`;
+                const state = selectedItems[key] || { selected: false, quantity: 1, reason: '' };
+
+                return (
+                  <div key={key} className="border border-gray-100 rounded-xl p-3 space-y-3">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={state.selected}
+                        onChange={(e) => setSelectedItems(prev => ({
+                          ...prev,
+                          [key]: { ...prev[key], selected: e.target.checked }
+                        }))}
+                        className="rounded border-gray-300 text-primary-500 focus:ring-primary-500 w-4 h-4"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-800 truncate">{prod.title}</p>
+                        <p className="text-xs text-gray-500">{variant.title || 'Default variant'}</p>
+                      </div>
+                      <span className="text-sm font-bold text-gray-700">${(item.price || variant.price || 0).toFixed(2)}</span>
+                    </div>
+
+                    {state.selected && (
+                      <div className="pl-7 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Qty to Return</label>
+                          <select
+                            value={state.quantity}
+                            onChange={(e) => setSelectedItems(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], quantity: parseInt(e.target.value) }
+                            }))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500 font-semibold"
+                          >
+                            {Array.from({ length: item.quantity }, (_, i) => i + 1).map(q => (
+                              <option key={q} value={q}>{q}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase block mb-1">Reason</label>
+                          <input
+                            type="text"
+                            placeholder="Reason for return..."
+                            value={state.reason}
+                            onChange={(e) => setSelectedItems(prev => ({
+                              ...prev,
+                              [key]: { ...prev[key], reason: e.target.value }
+                            }))}
+                            className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <textarea
+              rows={4}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Describe why you want to return this order..."
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
+            />
+          )}
+
+          <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 text-sm">
               Cancel
             </button>
             <button
-              onClick={() => onSubmit(reason)}
-              disabled={loading || !reason.trim()}
+              onClick={isRefurbished ? handleRefurbishedSubmit : handleStandardSubmit}
+              disabled={loading || (!isRefurbished && !reason.trim())}
               className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm"
             >
               {loading ? '…' : 'Submit Request'}
@@ -210,6 +324,9 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
 ══════════════════════════════════════════ */
 export default function OrderDetailPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const isRefurbishedMode = searchParams.get('type') === 'refurbished';
+  
   const router = useRouter();
   const { token } = useSelector((s) => s.auth);
 
@@ -226,7 +343,11 @@ export default function OrderDetailPage() {
     if (!token || !id) return;
     setLoading(true);
     try {
-      const { data } = await axiosInstance.get(`/e-commerce/orders/${id}`, {
+      const getUrl = isRefurbishedMode 
+        ? `/refurbished/orders/${id}` 
+        : `/e-commerce/orders/${id}`;
+
+      const { data } = await axiosInstance.get(getUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) setOrder(data.orders || data.data);
@@ -237,20 +358,24 @@ export default function OrderDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, token, router]);
+  }, [id, token, router, isRefurbishedMode]);
 
   useEffect(() => { fetchOrder(); }, [fetchOrder]);
 
   const fetchReturnStatus = useCallback(async () => {
     if (!token || !id) return;
     try {
-      const { data } = await axiosInstance.get(`/e-commerce/orders/my-returns?orderId=${id}`, {
+      const getReturnsUrl = isRefurbishedMode 
+        ? `/refurbished/orders/my-returns?orderId=${id}` 
+        : `/e-commerce/orders/my-returns?orderId=${id}`;
+
+      const { data } = await axiosInstance.get(getReturnsUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success && data.data?.length > 0) setExistingReturn(data.data[0]);
       else setExistingReturn(null);
     } catch {}
-  }, [id, token]);
+  }, [id, token, isRefurbishedMode]);
 
   useEffect(() => { fetchReturnStatus(); }, [fetchReturnStatus]);
 
@@ -259,7 +384,11 @@ export default function OrderDetailPage() {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     setCancelling(true);
     try {
-      const { data } = await axiosInstance.put(`/e-commerce/orders/${id}/cancel`, {}, {
+      const cancelUrl = isRefurbishedMode 
+        ? `/refurbished/orders/${id}/cancel` 
+        : `/e-commerce/orders/${id}/cancel`;
+
+      const { data } = await axiosInstance.put(cancelUrl, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) { toast.success('Order cancelled'); fetchOrder(); }
@@ -272,10 +401,14 @@ export default function OrderDetailPage() {
   };
 
   /* ── Return ── */
-  const handleReturn = async (reason) => {
+  const handleReturn = async (returnPayload) => {
     setReturnLoading(true);
     try {
-      const { data } = await axiosInstance.post(`/e-commerce/orders/${id}/return`, { reason }, {
+      const returnUrl = isRefurbishedMode
+        ? `/refurbished/orders/${id}/return`
+        : `/e-commerce/orders/${id}/return`;
+
+      const { data } = await axiosInstance.post(returnUrl, returnPayload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
