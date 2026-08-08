@@ -12,9 +12,11 @@ function RefurbishedHeader() {
   const pathname = usePathname();
   const dropdownRef = useRef(null);
   const catalogDropdownRef = useRef(null);
+  const productDropdownRef = useRef(null);
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
+  const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
@@ -26,7 +28,7 @@ function RefurbishedHeader() {
   const primaryNavLinks = [
     {
       name: "Dashboard",
-      path: "/admin/refurbished/dashboard",
+      path: "/admin/refurbished/dashbaord",
       icon: "mdi:view-dashboard-outline",
     },
     {
@@ -43,14 +45,31 @@ function RefurbishedHeader() {
             { "name": "Models", "icon": "mdi:cellphone-link", "path": "/admin/refurbished/models" },
             { "name": "Variants", "icon": "mdi:package-variant", "path": "/admin/refurbished/variants" },
             { "name": "Category Questions", "icon": "mdi:help-circle-outline", "path": "/admin/refurbished/questions" },
+            { name: "Sell Requests", icon: "mdi:cellphone-arrow-down", path: "/admin/refurbished/requests" },
           ],
         },
       ],
     },
-    { name: "Sell Requests", icon: "mdi:cellphone-arrow-down", path: "/admin/refurbished/requests" },
-    { "name": "Products", "icon": "mdi:cellphone", "path": "/admin/refurbished/products" },
-    { "name": "Orders", "icon": "mdi:package-variant", "path": "/admin/refurbished/orders" },
-    { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
+    {
+      name: "Product & Order Management",
+      path: "#",
+      icon: "mdi:folder-outline",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Refurbished Items",
+          "items": [
+            { "name": "Products", "icon": "mdi:cellphone", "path": "/admin/refurbished/products" },
+            { "name": "Orders", "icon": "mdi:package-variant", "path": "/admin/refurbished/orders" },
+            { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
+            { "name": "Enquiries", "icon": "mdi:message-text-outline", "path": "/admin/refurbished/enquiries" },
+          ],
+        },
+      ],
+    },
+
+    { "name": "Earnings", "icon": "mdi:currency-usd", "path": "/admin/refurbished/earnings" },
+
   ];
 
   const dropdownLinks = [
@@ -67,6 +86,9 @@ function RefurbishedHeader() {
       if (catalogDropdownRef.current && !catalogDropdownRef.current.contains(event.target)) {
         setIsCatalogDropdownOpen(false);
       }
+      if (productDropdownRef.current && !productDropdownRef.current.contains(event.target)) {
+        setIsProductDropdownOpen(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -75,6 +97,7 @@ function RefurbishedHeader() {
   useEffect(() => {
     setIsDropdownOpen(false);
     setIsCatalogDropdownOpen(false);
+    setIsProductDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -205,6 +228,9 @@ function RefurbishedHeader() {
               {primaryNavLinks.map((link) => {
                 if (link.name === "Catalog") {
                   return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
+                }
+                if (link.name === "Product & Order Management") {
+                  return renderNavLink(link, isProductDropdownOpen, setIsProductDropdownOpen, productDropdownRef);
                 }
                 return renderNavLink(link);
               })}

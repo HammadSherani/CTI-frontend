@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/config/axiosInstance";
 
-const resolveId = (val) => val?._id || val || null;
+const resolveId = (val) => {
+  if (!val) return null;
+  if (typeof val === 'string') return val;
+  return val._id || val.id || null;
+};
 
 export const getWishlistItemKey = (productId, variantId) => {
   const pId = resolveId(productId);
@@ -32,11 +36,12 @@ export const toggleRefurbishedWishlistItem = createAsyncThunk(
   async ({ product, variantId }, { getState }) => {
     const { auth } = getState();
     const vId = resolveId(variantId);
+    const pId = resolveId(product);
 
     if (auth.token) {
       const res = await axiosInstance.post(
         "/refurbished/wishlist/toggle",
-        { productId: product._id, variantId: vId },
+        { productId: pId, variantId: vId },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       return res.data.data?.items || [];
@@ -47,13 +52,14 @@ export const toggleRefurbishedWishlistItem = createAsyncThunk(
       let items = local ? JSON.parse(local) : [];
       const idx = items.findIndex(
         (i) =>
-          resolveId(i.productId) === product._id &&
+          resolveId(i.productId) === pId &&
           resolveId(i.variantId) === vId
       );
       if (idx > -1) {
         items.splice(idx, 1);
       } else {
-        items.push({ productId: product, variantId: vId });
+        const productWithId = { ...product, _id: pId };
+        items.push({ productId: productWithId, variantId: vId });
       }
       localStorage.setItem("refurbished_wishlist", JSON.stringify(items));
       return items;
@@ -89,14 +95,15 @@ const refurbishedWishlistSlice = createSlice({
       .addCase(toggleRefurbishedWishlistItem.pending, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getWishlistItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getWishlistItemKey(pId, vId);
 
         if (state.loadingIds.includes(key)) return;
         state.loadingIds.push(key);
 
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -108,7 +115,8 @@ const refurbishedWishlistSlice = createSlice({
       .addCase(toggleRefurbishedWishlistItem.fulfilled, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getWishlistItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getWishlistItemKey(pId, vId);
 
         state.items = (action.payload || []).filter(
           (item) => item?.productId && item?.productId !== null
@@ -119,11 +127,12 @@ const refurbishedWishlistSlice = createSlice({
       .addCase(toggleRefurbishedWishlistItem.rejected, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getWishlistItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getWishlistItemKey(pId, vId);
 
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -137,3 +146,4 @@ const refurbishedWishlistSlice = createSlice({
 });
 
 export default refurbishedWishlistSlice.reducer;
+

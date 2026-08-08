@@ -32,139 +32,123 @@ function ReturnDetailModal({ returnRequest, onClose, onActionSuccess }) {
   const [submitting, setSubmitting] = useState(false);
   const [adminNotes, setAdminNotes] = useState(returnRequest.adminNotes || "");
   const [rejectReason, setRejectReason] = useState("");
-  const [showRejectForm, setShowRejectForm] = useState(false);
+  const [activeAction, setActiveAction] = useState(null); // 'reject' | null
 
-  const handleApprove = async () => {
-    if (!window.confirm("Are you sure you want to approve this return and initiate refund?")) return;
+  const isPending = returnRequest.returnStatus === "requested";
+  const isShipped = returnRequest.returnStatus === "shipped";
+  const isSettled = ["approved", "rejected"].includes(returnRequest.returnStatus);
+  const canAct    = isPending || isShipped;
+
+  const run = async (fn) => {
     setSubmitting(true);
-    try {
-      const { data } = await axiosInstance.post(
-        "/admin/refurbish/returns/approve",
-        { returnId: returnRequest._id, adminNotes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success("Return request approved & refunded successfully");
-        onActionSuccess();
-        onClose();
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to approve return");
-    } finally {
-      setSubmitting(false);
-    }
+    try { await fn(); }
+    finally { setSubmitting(false); }
   };
+
+  const handleMarkShipped = () => run(async () => {
+    const { data } = await axiosInstance.post(
+      "/admin/refurbish/returns/update-status",
+      { returnId: returnRequest._id, status: "shipped", adminNotes },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (data.success) { toast.success("Marked as shipped back"); onActionSuccess(); onClose(); }
+  });
+
+  const handleApprove = () => run(async () => {
+    const { data } = await axiosInstance.post(
+      "/admin/refurbish/returns/approve",
+      { returnId: returnRequest._id, adminNotes },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (data.success) { toast.success("Return approved & refund initiated"); onActionSuccess(); onClose(); }
+  });
 
   const handleReject = async (e) => {
     e.preventDefault();
-    if (!rejectReason.trim()) {
-      toast.error("Please enter a rejection reason");
-      return;
-    }
-    setSubmitting(true);
-    try {
+    if (!rejectReason.trim()) return toast.error("Please enter a rejection reason");
+    await run(async () => {
       const { data } = await axiosInstance.post(
         "/admin/refurbish/returns/reject",
         { returnId: returnRequest._id, rejectionReason: rejectReason.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (data.success) {
-        toast.success("Return request rejected");
-        onActionSuccess();
-        onClose();
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to reject return");
-    } finally {
-      setSubmitting(false);
-    }
+      if (data.success) { toast.success("Return rejected"); onActionSuccess(); onClose(); }
+    });
   };
-
-  const handleUpdateStatus = async (newStatus) => {
-    setSubmitting(true);
-    try {
-      const { data } = await axiosInstance.post(
-        "/admin/refurbish/returns/update-status",
-        { returnId: returnRequest._id, status: newStatus, adminNotes },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success(`Return status updated to '${newStatus}'`);
-        onActionSuccess();
-        onClose();
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || "Failed to update return status");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const isPending = returnRequest.returnStatus === "requested";
-  const isShipped = returnRequest.returnStatus === "shipped";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl my-8">
+
+        {/* ── Header ── */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
-          <div>
-            <h3 className="font-extrabold text-gray-900 text-lg">Return Request Detail</h3>
-            <p className="text-xs text-gray-400 font-mono mt-0.5">{returnRequest.returnNo || returnRequest._id}</p>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center">
+              <Icon icon="solar:refresh-circle-bold" className="w-5 h-5 text-primary-500" />
+            </div>
+            <div>
+              <h3 className="font-extrabold text-gray-900 text-base leading-tight">Return Request</h3>
+              <p className="text-[10px] text-gray-400 font-mono">{returnRequest.returnNo || returnRequest._id}</p>
+            </div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
             <Icon icon="solar:close-circle-bold" className="w-5 h-5 text-gray-400" />
           </button>
         </div>
 
-        <div className="px-6 py-5 space-y-6 max-h-[65vh] overflow-y-auto text-xs">
-          {/* Info Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4">
-              <p className="font-bold text-gray-400 uppercase tracking-wider mb-2">Customer Details</p>
+        {/* ── Body ── */}
+        <div className="px-6 py-5 space-y-5 max-h-[60vh] overflow-y-auto text-xs">
+
+          {/* Info cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+              <p className="font-bold text-gray-400 uppercase tracking-wider text-[10px] mb-2">Customer</p>
               <p className="font-bold text-gray-800 text-sm">
                 {returnRequest.customerId?.firstName} {returnRequest.customerId?.lastName}
               </p>
-              <p className="text-gray-500 mt-1">{returnRequest.customerId?.email}</p>
-              <p className="text-gray-500 mt-0.5">{returnRequest.customerId?.phone}</p>
+              <p className="text-gray-500 mt-0.5">{returnRequest.customerId?.email}</p>
+              {returnRequest.customerId?.phone && (
+                <p className="text-gray-500 mt-0.5">{returnRequest.customerId?.phone}</p>
+              )}
             </div>
-            <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-4">
-              <p className="font-bold text-gray-400 uppercase tracking-wider mb-2">Order Association</p>
-              <p className="font-bold text-gray-800 text-sm">
-                Order No: <span className="font-mono">{returnRequest.orderId?.orderNo || returnRequest.orderId?._id}</span>
+            <div className="bg-gray-50 border border-gray-100 rounded-2xl p-4">
+              <p className="font-bold text-gray-400 uppercase tracking-wider text-[10px] mb-2">Order Info</p>
+              <p className="font-bold text-gray-800 text-sm font-mono">
+                {returnRequest.orderId?.orderNo || "—"}
               </p>
-              <p className="text-gray-500 mt-1">Requested: {moment(returnRequest.createdAt).format("DD MMM YYYY hh:mm A")}</p>
-              <p className="text-gray-500 mt-0.5">Status: <span className="font-bold uppercase text-amber-600">{returnRequest.returnStatus}</span></p>
+              <p className="text-gray-500 mt-0.5">
+                {moment(returnRequest.createdAt).format("DD MMM YYYY, hh:mm A")}
+              </p>
+              <span className={`inline-flex mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase border ${RETURN_STATUS_STYLES[returnRequest.returnStatus] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                {returnRequest.returnStatus}
+              </span>
             </div>
           </div>
 
-          {/* Return items */}
+          {/* Items table */}
           <div>
-            <p className="font-bold text-gray-400 uppercase tracking-wider mb-3">Returned Items List</p>
+            <p className="font-bold text-gray-400 uppercase tracking-wider text-[10px] mb-2">Returned Items</p>
             <div className="border border-gray-100 rounded-2xl overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100">
+                <thead className="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100 text-[10px] uppercase tracking-wider">
                   <tr>
-                    <th className="px-4 py-3">Product Name</th>
-                    <th className="px-4 py-3 text-center">Returned Qty</th>
-                    <th className="px-4 py-3">Item Status</th>
-                    <th className="px-4 py-3">Return Reason</th>
+                    <th className="px-4 py-2.5">Product</th>
+                    <th className="px-4 py-2.5 text-center">Qty</th>
+                    <th className="px-4 py-2.5">Reason</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {returnRequest.items?.map((item, idx) => {
                     const prod = item.productId || {};
                     return (
-                      <tr key={idx} className="hover:bg-gray-50/30">
+                      <tr key={idx} className="hover:bg-gray-50/40">
                         <td className="px-4 py-3 font-semibold text-gray-800">
                           {prod.title || item.productName || "Refurbished Device"}
                         </td>
                         <td className="px-4 py-3 text-center font-bold text-gray-700">{item.quantity}</td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-2 py-0.5 rounded text-[9px] font-black uppercase ${RETURN_STATUS_STYLES[item.itemStatus] || 'bg-gray-100 text-gray-600'}`}>
-                            {item.itemStatus}
-                          </span>
+                        <td className="px-4 py-3 text-gray-500 italic">
+                          {item.reason || "—"}
                         </td>
-                        <td className="px-4 py-3 text-gray-600 italic">"{item.reason || 'No reason provided'}"</td>
                       </tr>
                     );
                   })}
@@ -173,82 +157,146 @@ function ReturnDetailModal({ returnRequest, onClose, onActionSuccess }) {
             </div>
           </div>
 
-          {/* Admin notes & history */}
-          <div className="space-y-4">
-            <div>
-              <label className="font-bold text-gray-400 uppercase block mb-1.5">Admin Notes (internal only)</label>
-              <textarea
-                rows={3}
-                value={adminNotes}
-                onChange={(e) => setAdminNotes(e.target.value)}
-                placeholder="Write internal review notes..."
-                className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none resize-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-
-            {returnRequest.rejectionReason && (
-              <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-2xl">
-                <p className="font-bold">Rejection Reason</p>
-                <p className="mt-1">"{returnRequest.rejectionReason}"</p>
-              </div>
-            )}
+          {/* Admin notes */}
+          <div>
+            <label className="font-bold text-gray-400 uppercase text-[10px] tracking-wider block mb-1.5">
+              Internal Admin Notes
+            </label>
+            <textarea
+              rows={2}
+              value={adminNotes}
+              onChange={(e) => setAdminNotes(e.target.value)}
+              placeholder="Optional internal note..."
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl outline-none resize-none focus:ring-2 focus:ring-primary-500 text-xs"
+            />
           </div>
 
-          {/* Rejection Form */}
-          {showRejectForm && (
-            <form onSubmit={handleReject} className="bg-red-50 border border-red-100 rounded-2xl p-4 space-y-3">
+          {/* Rejection reason (settled) */}
+          {returnRequest.rejectionReason && (
+            <div className="flex gap-3 bg-red-50 border border-red-100 text-red-700 p-3 rounded-2xl">
+              <Icon icon="solar:close-circle-bold" className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>
-                <label className="font-bold text-red-700 block mb-1.5">Rejection Reason *</label>
-                <input
-                  type="text"
-                  required
-                  value={rejectReason}
-                  onChange={(e) => setRejectReason(e.target.value)}
-                  placeholder="Provide reason for rejecting the return request..."
-                  className="w-full px-3 py-2 bg-white border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-500"
-                />
+                <p className="font-bold text-xs">Rejection Reason</p>
+                <p className="mt-0.5 text-red-600">"{returnRequest.rejectionReason}"</p>
               </div>
-              <div className="flex gap-2 justify-end">
-                <button type="button" onClick={() => setShowRejectForm(false)} className="px-4 py-2 border border-gray-200 hover:bg-gray-50 rounded-xl font-bold">Cancel</button>
-                <button type="submit" disabled={submitting} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold">Confirm Reject</button>
+            </div>
+          )}
+
+          {/* ── Action Panel (only when actionable) ── */}
+          {canAct && !isSettled && (
+            <div className="border border-gray-100 rounded-2xl overflow-hidden">
+              <div className="px-4 py-3 bg-gray-50 border-b border-gray-100">
+                <p className="font-bold text-gray-500 uppercase text-[10px] tracking-wider">Take Action</p>
               </div>
-            </form>
+
+              {activeAction === null && (
+                <div className="p-4 grid gap-2.5">
+                  {isPending && (
+                    <button
+                      disabled={submitting}
+                      onClick={handleMarkShipped}
+                      className="group w-full flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors text-left disabled:opacity-60"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 group-hover:bg-amber-200 flex items-center justify-center flex-shrink-0 transition-colors">
+                        <Icon icon="solar:delivery-bold" className="w-4 h-4 text-amber-600" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-amber-700 text-xs">Mark as Shipped Back</p>
+                        <p className="text-amber-600/70 text-[10px]">Customer has sent the item back to you</p>
+                      </div>
+                      {submitting && <Icon icon="mdi:loading" className="animate-spin ml-auto text-amber-500" />}
+                    </button>
+                  )}
+
+                  <button
+                    disabled={submitting}
+                    onClick={handleApprove}
+                    className="group w-full flex items-center gap-3 p-3 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 transition-colors text-left disabled:opacity-60"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-emerald-100 group-hover:bg-emerald-200 flex items-center justify-center flex-shrink-0 transition-colors">
+                      <Icon icon="solar:check-circle-bold" className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-emerald-700 text-xs">Approve & Issue Refund</p>
+                      <p className="text-emerald-600/70 text-[10px]">Accept the return and refund the customer</p>
+                    </div>
+                    {submitting && <Icon icon="mdi:loading" className="animate-spin ml-auto text-emerald-500" />}
+                  </button>
+
+                  <button
+                    onClick={() => setActiveAction("reject")}
+                    className="group w-full flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-white hover:bg-red-50 hover:border-red-200 transition-colors text-left"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-red-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                      <Icon icon="solar:close-circle-bold" className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-gray-600 group-hover:text-red-600 text-xs transition-colors">Reject Return</p>
+                      <p className="text-gray-400 text-[10px]">Deny the return request with a reason</p>
+                    </div>
+                  </button>
+                </div>
+              )}
+
+              {activeAction === "reject" && (
+                <form onSubmit={handleReject} className="p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAction(null)}
+                      className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      <Icon icon="solar:arrow-left-linear" className="w-4 h-4" />
+                    </button>
+                    <p className="font-bold text-red-600 text-xs">Provide Rejection Reason</p>
+                  </div>
+                  <input
+                    type="text"
+                    required
+                    value={rejectReason}
+                    onChange={(e) => setRejectReason(e.target.value)}
+                    placeholder="Why are you rejecting this return?"
+                    className="w-full px-3 py-2.5 bg-white border border-red-200 rounded-xl outline-none focus:ring-2 focus:ring-red-400 text-xs"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAction(null)}
+                      className="px-4 py-2 text-xs border border-gray-200 hover:bg-gray-50 rounded-xl font-bold text-gray-600 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-4 py-2 text-xs bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold transition-colors disabled:opacity-60 flex items-center gap-1.5"
+                    >
+                      {submitting && <Icon icon="mdi:loading" className="animate-spin w-3.5 h-3.5" />}
+                      Confirm Rejection
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          )}
+
+          {isSettled && (
+            <div className={`flex items-center gap-3 p-3 rounded-2xl ${returnRequest.returnStatus === 'approved' ? 'bg-emerald-50 border border-emerald-100 text-emerald-700' : 'bg-gray-50 border border-gray-100 text-gray-600'}`}>
+              <Icon icon={returnRequest.returnStatus === 'approved' ? "solar:check-circle-bold" : "solar:close-circle-bold"} className="w-4 h-4 flex-shrink-0" />
+              <p className="font-bold text-xs">
+                This return has been <span className="uppercase">{returnRequest.returnStatus}</span>. No further actions available.
+              </p>
+            </div>
           )}
         </div>
 
-        {/* Footer Actions */}
-        <div className="px-6 py-5 border-t border-gray-100 flex items-center justify-between gap-4 flex-wrap">
-          <div className="flex items-center gap-2">
-            {(isPending || isShipped) && !showRejectForm && (
-              <>
-                {isPending && (
-                  <button
-                    disabled={submitting}
-                    onClick={() => handleUpdateStatus("shipped")}
-                    className="px-4 py-2.5 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-all shadow-md shadow-amber-100"
-                  >
-                    Mark Shipped
-                  </button>
-                )}
-                <button
-                  disabled={submitting}
-                  onClick={handleApprove}
-                  className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-all shadow-md shadow-emerald-100"
-                >
-                  Approve & Refund
-                </button>
-                <button
-                  disabled={submitting}
-                  onClick={() => setShowRejectForm(true)}
-                  className="px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-all"
-                >
-                  Reject Return
-                </button>
-              </>
-            )}
-          </div>
-
-          <button onClick={onClose} className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors">
+        {/* ── Footer ── */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-6 py-2.5 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-colors"
+          >
             Close
           </button>
         </div>

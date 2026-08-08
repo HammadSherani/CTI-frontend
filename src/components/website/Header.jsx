@@ -14,6 +14,18 @@ import axiosInstance from "@/config/axiosInstance";
 import useDebounce from "@/hooks/useDebounce";
 
 /* ════════════════════════════════════════════
+   SHARED CONTAINER — single source of truth for
+   left/right alignment across every header row
+════════════════════════════════════════════ */
+function Container({ children, className = "" }) {
+  return (
+    <div className={`max-w-7xl mx-auto px-6 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════
    SEARCH SUGGESTIONS DROPDOWN
 ════════════════════════════════════════════ */
 function SearchSuggestions({ query, data, loading, onSelect, visible }) {
@@ -296,7 +308,6 @@ function SearchBar({ className = "" }) {
   );
 }
 
-
 function ProductsDropdown({ isHome, isScrolled, onClose }) {
   const [cats, setCats] = useState([]);
   const [loadingCats, setLoadingCats] = useState(true);
@@ -338,108 +349,16 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
               onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-gray-50 group ${textClass}`}
             >
-
-
               <div className="flex-1 min-w-0">
                 <span className="text-sm font-semibold text-gray-800 block truncate">{cat.title}</span>
-
               </div>
             </Link>
           ))}
-
-
         </div>
       )}
     </motion.div>
   );
 }
-
-/* ════════════════════════════════════════════
-   PRODUCTS DROPDOWN (with live top-categories)
-════════════════════════════════════════════ */
-// function ProductsDropdown({ isHome, isScrolled, onClose }) {
-//   const [cats, setCats] = useState([]);
-//   const [loadingCats, setLoadingCats] = useState(true);
-//   const router = useRouter();
-
-//   useEffect(() => {
-//     axiosInstance
-//       .get("/e-commerce/products/top-categories")
-//       .then(({ data }) => { if (data.success) setCats(data.data); })
-//       .catch(() => { })
-//       .finally(() => setLoadingCats(false));
-//   }, []);
-
-//   const textClass = "text-gray-900";
-
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 10 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       exit={{ opacity: 0, y: 10 }}
-//       transition={{ duration: 0.2 }}
-//       className="absolute top-full left-0 mt-2 w-72 rounded-xl shadow-xl border bg-white border-gray-200 overflow-hidden"
-//     >
-//       {/* Header */}
-//       <div className="px-4 py-3 border-b border-gray-100 bg-gray-50">
-//         <p className="text-[11px] font-black uppercase tracking-widest text-gray-500 flex items-center gap-1.5">
-//           <Icon icon="mdi:fire" className="w-3.5 h-3.5 text-orange-500" />
-//           Top Categories
-//         </p>
-//       </div>
-
-//       {loadingCats ? (
-//         <div className="py-6 flex items-center justify-center gap-2 text-sm text-gray-400">
-//           <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
-//         </div>
-//       ) : (
-//         <div className="py-1">
-//           {cats.map((cat, i) => (
-//             <Link
-//               key={cat._id}
-//               href={`/product?categoryIds=${cat._id}`}
-//               onClick={onClose}
-//               className={`flex items-center gap-3 px-4 py-3 transition-all duration-200 hover:bg-gray-50 group ${textClass}`}
-//             >
-//               {/* Rank badge */}
-//               <span className="flex-shrink-0 w-5 h-5 rounded-full bg-orange-100 text-orange-600 text-[10px] font-black flex items-center justify-center">
-//                 {i + 1}
-//               </span>
-//               {/* Category icon / image */}
-//               <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-gray-100 group-hover:bg-orange-50 overflow-hidden flex items-center justify-center transition-colors">
-//                 {cat.icon ? (
-//                   <img src={cat.icon} alt={cat.title} className="w-full h-full object-cover" />
-//                 ) : (
-//                   <Icon icon="mdi:tag" className="w-4 h-4 text-gray-500 group-hover:text-orange-500" />
-//                 )}
-//               </span>
-//               <div className="flex-1 min-w-0">
-//                 <span className="text-sm font-semibold text-gray-800 block truncate">{cat.title}</span>
-//                 <span className="text-[10px] text-gray-400">
-//                   {cat.productCount} product{cat.productCount !== 1 ? "s" : ""}
-//                   {cat.avgRating > 0 && ` · ${cat.avgRating}★`}
-//                 </span>
-//               </div>
-//               {/* <Icon icon="mdi:chevron-right" className="w-4 h-4 text-gray-300 group-hover:text-orange-400 flex-shrink-0" /> */}
-//             </Link>
-//           ))}
-
-//           {/* View all products */}
-//           <div className="border-t border-gray-100 mt-1">
-//             <Link
-//               href="/product"
-//               onClick={onClose}
-//               className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-orange-500 hover:bg-orange-50 transition-colors"
-//             >
-//               <Icon icon="mdi:shopping" className="w-4 h-4" />
-//               Browse all products
-//             </Link>
-//           </div>
-//         </div>
-//       )}
-//     </motion.div>
-//   );
-// }
 
 /* ════════════════════════════════════════════
    ANNOUNCEMENT BAR
@@ -449,30 +368,30 @@ function AnnouncementBar() {
 
   return (
     <div className="bg-gray-50 border-b border-gray-100 py-1 text-[11px] font-medium text-gray-500">
-      <div className="max-w-7xl mx-auto px-6 flex justify-between items-center gap-2">
-        <p className="hidden sm:block">
+      <Container className="flex justify-between items-center gap-2">
+        <p className="hidden sm:block truncate min-w-0">
           {t.rich("message", {
             hours: (chunks) => (
-              <span className="text-red-500 font-semibold">{chunks}</span>
+              <span className="text-red-500 font-semibold whitespace-nowrap">{chunks}</span>
             ),
           })}
         </p>
-        <div className="flex items-center gap-4 ml-auto">
+        <div className="flex items-center gap-3 sm:gap-4 ml-auto shrink-0">
           <Link
             href="/auth/login"
-            className="hover:text-orange-600 transition-colors"
+            className="hover:text-orange-600 transition-colors whitespace-nowrap"
           >
             {t("login")}
           </Link>
           <a
             href="tel:+234567890"
-            className="hover:text-orange-600 transition-colors"
+            className="hover:text-orange-600 transition-colors hidden md:inline whitespace-nowrap"
           >
             +234 567 890
           </a>
           <CustomTranslate />
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
@@ -483,7 +402,7 @@ function AnnouncementBar() {
 function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
   return (
     <div className="bg-white border-b border-gray-100">
-      <div className="max-w-7xl mx-auto px-6">
+      <Container>
         <div className="flex items-center justify-between gap-3 md:gap-5 py-2">
           {/* Hamburger (mobile) */}
           <button
@@ -496,7 +415,7 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 
           {/* Logo */}
           <Link href="/" className="flex-shrink-0">
-            <div className="relative w-12 h-10 md:w-[90px] md:h-[38px]">
+            <div className="relative w-12 h-10 -ml-3 md:w-[95px] md:h-[38px]">
               <Image src="/assets/logo.png" alt="Click To Integrate" fill className="object-contain" />
             </div>
           </Link>
@@ -513,7 +432,7 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
         <div className="md:hidden pb-2">
           <SearchBar />
         </div>
-      </div>
+      </Container>
     </div>
   );
 }
@@ -626,14 +545,12 @@ function NavigationBar({ isHome, isScrolled }) {
       axiosInstance.get('/public/sell-device/header-data')
     ])
       .then(([categoriesResponse, headerResponse]) => {
-        // Handle categories
         if (categoriesResponse.data.success) {
           setProductCategories(categoriesResponse.data.data || []);
         } else {
           setProductCategories([]);
         }
 
-        // Handle header data
         if (headerResponse.data.success) {
           const { mobileBrands, sellGadgets, buyRefurbished } = headerResponse.data.data;
           setTopBrands(mobileBrands || []);
@@ -655,8 +572,6 @@ function NavigationBar({ isHome, isScrolled }) {
       .finally(() => setLoadingProductCategories(false));
   }, []);
 
-  console.log(topBrands, 'brands');
-  // Services data
   const SERVICES = [
     { name: "Mobile Repair", href: "/mobile-repair" },
     { name: "Battery Replacement", href: "/mobile-repair" },
@@ -666,13 +581,11 @@ function NavigationBar({ isHome, isScrolled }) {
     { name: "Software Issues", href: "/mobile-repair" },
   ];
 
-  // Sell Phone data — links to /sell-devices/mobile-phone
   const SELL_PHONE = topBrands.length > 0 ? [
     { sectionTitle: "Top Brands", href: "/sell-devices/phone" },
     ...topBrands.map(b => ({ name: b.name, href: `/sell-devices/brands/${b.slug}` }))
   ] : [];
 
-  // Sell Gadgets - links to /sell-devices/[slug]
   const SELL_GADGETS = sellGadgetsData.map(cat => ({
     name: cat.name,
     href: `/sell-devices/${cat.slug}`,
@@ -682,7 +595,6 @@ function NavigationBar({ isHome, isScrolled }) {
     }))
   }));
 
-  // Refurbished data - dynamic nested by category
   const REFURBISHED = buyRefurbishedData.map(cat => ({
     name: cat.name,
     href: `/refurbish?category=${cat.slug}`,
@@ -691,7 +603,7 @@ function NavigationBar({ isHome, isScrolled }) {
       href: `/refurbish?category=${cat.slug}&brand=${b.slug}`
     }))
   }));
-  // Support data
+
   const SUPPORT = [
     { name: "Privacy Policy", href: "/privacy-policy" },
     { name: "Terms of Service", href: "/terms-of-service" },
@@ -737,14 +649,13 @@ function NavigationBar({ isHome, isScrolled }) {
       href: "/product",
       hasDropdown: true,
       isLoading: loadingProductCategories,
-      // FIX: Map the API data to use 'title' instead of 'name'
       dropdownItems: productCategories.length > 0 ? [
         {
           sectionTitle: "Top Categories",
           href: "/product",
         },
         ...productCategories.map((category) => ({
-          name: category.title, // Changed from category.name to category.title
+          name: category.title,
           href: `/product?categoryIds=${category._id}`,
         })),
       ] : [],
@@ -793,9 +704,7 @@ function NavigationBar({ isHome, isScrolled }) {
   const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
     }`;
 
-  // Helper function to render dropdown content
   const renderDropdownContent = (item) => {
-    // Handle loading state for Products
     if (item.isLoading) {
       return (
         <motion.div
@@ -812,7 +721,6 @@ function NavigationBar({ isHome, isScrolled }) {
       );
     }
 
-    // Handle empty state for Dropdowns
     if (item.dropdownItems.length === 0) {
       return (
         <motion.div
@@ -827,7 +735,6 @@ function NavigationBar({ isHome, isScrolled }) {
       );
     }
 
-    // Handle nested dropdown (Sell Gadgets)
     if (item.isNested) {
       return (
         <motion.div
@@ -863,7 +770,6 @@ function NavigationBar({ isHome, isScrolled }) {
                 />
               </div>
 
-              {/* Sub-dropdown for brands */}
               {hoveredCategory === category.name && (
                 <motion.div
                   initial={{ opacity: 0, x: -5 }}
@@ -898,7 +804,6 @@ function NavigationBar({ isHome, isScrolled }) {
       );
     }
 
-    // Handle dropdown with sections
     const hasSections = item.dropdownItems?.some((di) => di.sectionTitle);
     if (hasSections) {
       const groups = [];
@@ -952,7 +857,6 @@ function NavigationBar({ isHome, isScrolled }) {
       );
     }
 
-    // Default simple dropdown
     return (
       <motion.div
         initial={{ opacity: 0, y: 6 }}
@@ -980,8 +884,8 @@ function NavigationBar({ isHome, isScrolled }) {
       ? "bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]"
       : "bg-white"
       }`}>
-      <div className="max-w-7xl mx-auto px-6">
-        <nav className="hidden lg:flex items-center justify-center gap-0.5 py-1">
+      <Container>
+        <nav className="hidden lg:flex items-center -ml-3 justify-between gap-0.5 py-1">
           {mainNav.map((item) => (
             <div
               key={item.name}
@@ -1015,7 +919,7 @@ function NavigationBar({ isHome, isScrolled }) {
             </div>
           ))}
         </nav>
-      </div>
+      </Container>
     </div>
   );
 }
@@ -1054,7 +958,6 @@ export default function Header() {
 
   return (
     <>
-      {/* One sticky block — all rows stick together */}
       <header className="sticky top-0 z-30 shadow-sm">
         <AnnouncementBar />
         <MidHeader mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />

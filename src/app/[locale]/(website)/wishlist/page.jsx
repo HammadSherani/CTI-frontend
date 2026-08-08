@@ -296,7 +296,7 @@ export default function WishlistPage() {
       )}
 
       {/* ── Empty State ── */}
-      {wishlist.length === 0 ? (
+      {validWishlist.length === 0 ? (
         <div className="text-center py-32 bg-white rounded-3xl border border-gray-100 shadow-sm">
           <div className="w-24 h-24 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-6">
             <Icon icon="mdi:heart-off-outline" className="text-5xl text-red-300" />
@@ -315,20 +315,17 @@ export default function WishlistPage() {
       ) : (
         <>
           {/* ── Grid ── */}
-          {validWishlist.length === 0 ? (
-            <EmptyWishlist />
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
-              {validWishlist.map((item) => (
-                <WishlistCard
-                  key={item._id}
-                  item={item}
-                  onRemove={handleRemove}
-                  onAddToCart={handleAddToCart}
-                />
-              ))}
-            </div>
-          )}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 gap-4">
+            {validWishlist.map((item) => (
+              <WishlistCard
+                key={item._id}
+                item={item}
+                onRemove={handleRemove}
+                onAddToCart={handleAddToCart}
+              />
+            ))}
+          </div>
+
 
           {/* ── Continue Shopping ── */}
           <div className="mt-10 text-center">

@@ -34,7 +34,6 @@ export default function Refurbish() {
     const price = defaultVar ? (defaultVar.discountPrice || defaultVar.sellingPrice || 0) : 0;
     const mrp = defaultVar ? (defaultVar.sellingPrice || 0) : 0;
     const discount = defaultVar?.discountPercentage || 0;
-    const goldPrice = price ? Math.round(price * 0.97) : null;
     const videoSrc = defaultVar?.videos?.[0]?.url || p.videos?.[0]?.url || null;
     const isVideo = !!videoSrc;
     const stock = defaultVar ? (defaultVar.stock || 0) : 0;
@@ -43,12 +42,13 @@ export default function Refurbish() {
       id: p._id,
       src,
       title: p.title,
+      brand: p.brandId?.name || '',
+      categoryName: p.categoryId?.name || '',
+      shortDescription: p.shortDescription || '',
       rating: p.ratings?.average || 5.0,
-      badge: 'Lowest Price',
       discount,
       mrp,
       price,
-      goldPrice,
       href: `/refurbish/${p.slug}`,
       isVideo,
       videoSrc,

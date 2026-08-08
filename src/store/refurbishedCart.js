@@ -1,7 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/config/axiosInstance";
 
-const resolveId = (val) => val?._id || val || null;
+const resolveId = (val) => {
+  if (!val) return null;
+  if (typeof val === 'string') return val;
+  return val._id || val.id || null;
+};
 
 export const getCartItemKey = (productId, variantId) => {
   const pId = resolveId(productId);
@@ -36,10 +40,11 @@ export const addRefurbishedToCart = createAsyncThunk(
   async ({ product, variantId, quantity = 1 }, { getState }) => {
     const { auth } = getState();
     const vId = resolveId(variantId);
+    const pId = resolveId(product);
     if (auth.token) {
       const res = await axiosInstance.post(
         "/refurbished/cart/my-cart/items",
-        { productId: product._id, variantId: vId, quantity },
+        { productId: pId, variantId: vId, quantity },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       return res.data.data?.items || [];
@@ -49,13 +54,14 @@ export const addRefurbishedToCart = createAsyncThunk(
       let items = local ? JSON.parse(local) : [];
       const idx = items.findIndex(
         (i) =>
-          resolveId(i.productId) === product._id &&
+          resolveId(i.productId) === pId &&
           resolveId(i.variantId) === vId
       );
       if (idx > -1) {
         items[idx].quantity += quantity;
       } else {
-        items.push({ productId: product, variantId: vId, quantity });
+        const productWithId = { ...product, _id: pId };
+        items.push({ productId: productWithId, variantId: vId, quantity });
       }
       localStorage.setItem("refurbished_cart", JSON.stringify(items));
       return items;
@@ -69,10 +75,11 @@ export const updateRefurbishedCartItem = createAsyncThunk(
   async ({ product, variantId, delta }, { getState }) => {
     const { auth } = getState();
     const vId = resolveId(variantId);
+    const pId = resolveId(product);
     if (auth.token) {
       const res = await axiosInstance.put(
         "/refurbished/cart/my-cart/items",
-        { productId: product._id, variantId: vId, delta },
+        { productId: pId, variantId: vId, delta },
         { headers: { Authorization: `Bearer ${auth.token}` } }
       );
       return res.data.data?.items || [];
@@ -82,7 +89,7 @@ export const updateRefurbishedCartItem = createAsyncThunk(
       let items = local ? JSON.parse(local) : [];
       const idx = items.findIndex(
         (i) =>
-          resolveId(i.productId) === product._id &&
+          resolveId(i.productId) === pId &&
           resolveId(i.variantId) === vId
       );
       if (idx > -1) {
@@ -100,10 +107,11 @@ export const removeRefurbishedFromCart = createAsyncThunk(
   async ({ product, variantId }, { getState }) => {
     const { auth } = getState();
     const vId = resolveId(variantId);
+    const pId = resolveId(product);
     if (auth.token) {
       const res = await axiosInstance.delete("/refurbished/cart/my-cart/items", {
         headers: { Authorization: `Bearer ${auth.token}` },
-        data: { productId: product._id, variantId: vId },
+        data: { productId: pId, variantId: vId },
       });
       return res.data.data?.items || [];
     }
@@ -113,7 +121,7 @@ export const removeRefurbishedFromCart = createAsyncThunk(
       items = items.filter(
         (i) =>
           !(
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
           )
       );
@@ -160,12 +168,13 @@ const refurbishedCartSlice = createSlice({
       .addCase(addRefurbishedToCart.pending, (state, action) => {
         const { product, variantId, quantity = 1 } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         if (!state.loadingIds.includes(key)) state.loadingIds.push(key);
 
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -177,18 +186,20 @@ const refurbishedCartSlice = createSlice({
       .addCase(addRefurbishedToCart.fulfilled, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.items = action.payload;
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
       })
       .addCase(addRefurbishedToCart.rejected, (state, action) => {
         const { product, variantId, quantity = 1 } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -201,11 +212,12 @@ const refurbishedCartSlice = createSlice({
       .addCase(updateRefurbishedCartItem.pending, (state, action) => {
         const { product, variantId, delta } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         if (!state.loadingIds.includes(key)) state.loadingIds.push(key);
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -215,18 +227,20 @@ const refurbishedCartSlice = createSlice({
       .addCase(updateRefurbishedCartItem.fulfilled, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.items = action.payload;
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
       })
       .addCase(updateRefurbishedCartItem.rejected, (state, action) => {
         const { product, variantId, delta } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -238,12 +252,13 @@ const refurbishedCartSlice = createSlice({
       .addCase(removeRefurbishedFromCart.pending, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         if (!state.loadingIds.includes(key)) state.loadingIds.push(key);
 
         const idx = state.items.findIndex(
           (i) =>
-            resolveId(i.productId) === product._id &&
+            resolveId(i.productId) === pId &&
             resolveId(i.variantId) === vId
         );
         if (idx > -1) {
@@ -254,14 +269,16 @@ const refurbishedCartSlice = createSlice({
       .addCase(removeRefurbishedFromCart.fulfilled, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.items = action.payload;
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
       })
       .addCase(removeRefurbishedFromCart.rejected, (state, action) => {
         const { product, variantId } = action.meta.arg;
         const vId = resolveId(variantId);
-        const key = getCartItemKey(product._id, vId);
+        const pId = resolveId(product);
+        const key = getCartItemKey(pId, vId);
         state.loadingIds = state.loadingIds.filter((id) => id !== key);
         if (action.meta.removedItem) {
           state.items.push(action.meta.removedItem);
@@ -272,3 +289,4 @@ const refurbishedCartSlice = createSlice({
 
 export const { clearRefurbishedCart } = refurbishedCartSlice.actions;
 export default refurbishedCartSlice.reducer;
+
