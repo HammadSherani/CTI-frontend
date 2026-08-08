@@ -12,6 +12,7 @@ import ImageZoom from '../ImageZoom';
 import ReviewCard from '../ReviewCard';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
+import RefurbishedSliderSection from './RefurbishedSliderSection';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -33,6 +34,8 @@ export default function RefurbishedProductDetail({ params }) {
   const [editingReview, setEditingReview] = useState(null);
   const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
+  const [relatedByBrand, setRelatedByBrand] = useState([]);
+  const [topSellingFallback, setTopSellingFallback] = useState([]);
 
   /* Ask Platform Modal */
   const [showAskModal, setShowAskModal] = useState(false);
@@ -75,15 +78,46 @@ export default function RefurbishedProductDetail({ params }) {
           }
 
           // Fetch related refurbished products by category slug
+          let categoryList = [];
           if (prod.categoryId?.slug) {
             try {
               const rel = await axiosInstance.get(`/public/refurbished-devices/products/category/${prod.categoryId.slug}`);
               if (rel.data?.success || rel.data?.data) {
                 const list = rel.data.data || [];
-                setRelatedProducts(list.filter(p => p._id !== prod._id).slice(0, 4));
+                categoryList = list.filter(p => p._id !== prod._id).slice(0, 4);
+                setRelatedProducts(categoryList);
               }
             } catch (e) {
               console.error('Failed to fetch related refurbished products', e);
+            }
+          }
+
+          // Fetch related refurbished products from the same brand
+          let brandList = [];
+          const brandSlug = prod.brandId?.slug || prod.brandId;
+          if (brandSlug) {
+            try {
+              const rel = await axiosInstance.get('/public/refurbished-devices/products', { params: { brand: brandSlug, limit: 5 } });
+              const list = rel.data?.data || [];
+              if (Array.isArray(list)) {
+                brandList = list.filter(p => p._id !== prod._id).slice(0, 4);
+                setRelatedByBrand(brandList);
+              }
+            } catch (e) {
+              console.error('Failed to fetch related products by brand', e);
+            }
+          }
+
+          // If nothing related was found by category or brand, fall back to top-selling products
+          if (categoryList.length === 0 && brandList.length === 0) {
+            try {
+              const topRes = await axiosInstance.get('/public/refurbished-devices/products/top-selling');
+              const topList = topRes.data?.data || [];
+              if (Array.isArray(topList)) {
+                setTopSellingFallback(topList.filter(p => p._id !== prod._id).slice(0, 4));
+              }
+            } catch (e) {
+              console.error('Failed to fetch top-selling fallback products', e);
             }
           }
         }
@@ -627,28 +661,31 @@ export default function RefurbishedProductDetail({ params }) {
         </div>
 
         {/* Related products */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-12 pt-10 border-t border-gray-100 max-w-6xl">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold text-gray-900">Similar Refurbished Products</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {relatedProducts.map(rp => {
-                const defVar = rp.variants?.find(v => v.isDefault) || rp.variants?.[0];
-                const rPrice = defVar?.discountPrice || defVar?.sellingPrice || 0;
-                const imgSrc = defVar?.images?.[0]?.url || rp.images?.[0]?.url || '/assets/placeholder.jpg';
-                return (
-                  <Link key={rp._id} href={`/refurbish/${rp.slug}`}
-                    className="bg-white border border-gray-100 hover:border-primary-200 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all group flex flex-col">
-                    <div className="w-full aspect-square bg-gray-50 rounded-xl mb-3 overflow-hidden flex items-center justify-center">
-                      <img src={imgSrc} alt={rp.title} className="object-contain max-h-32 p-2 group-hover:scale-105 transition-transform duration-300" />
-                    </div>
-                    <p className="text-xs font-bold text-gray-900 group-hover:text-primary-500 transition-colors line-clamp-2">{rp.title}</p>
-                    <p className="text-sm font-black text-gray-900 mt-1.5">{formatPrice(rPrice)}</p>
-                  </Link>
-                );
-              })}
-            </div>
+        {(relatedProducts.length > 0 || relatedByBrand.length > 0 || topSellingFallback.length > 0) && (
+          <div className="mt-12 pt-10 border-t border-gray-100">
+            {relatedProducts.length > 0 && (
+              <RefurbishedSliderSection
+                title={`More in ${productData.categoryId?.name || 'this Category'}`}
+                products={relatedProducts}
+                viewAllHref={productData.categoryId?.slug ? `/refurbish?category=${productData.categoryId.slug}` : '/refurbish'}
+              />
+            )}
+
+            {relatedByBrand.length > 0 && (
+              <RefurbishedSliderSection
+                title={`More from ${productData.brandId?.name || 'this Brand'}`}
+                products={relatedByBrand}
+                viewAllHref={productData.brandId?.slug ? `/refurbish?brand=${productData.brandId.slug}` : '/refurbish'}
+              />
+            )}
+
+            {relatedProducts.length === 0 && relatedByBrand.length === 0 && topSellingFallback.length > 0 && (
+              <RefurbishedSliderSection
+                title="Top Selling Refurbished Products"
+                products={topSellingFallback}
+                viewAllHref="/refurbish"
+              />
+            )}
           </div>
         )}
       </div>
