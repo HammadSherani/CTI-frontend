@@ -138,9 +138,7 @@ function normalizeProducts(products) {
 }
 
 function isShoppingQuery(text) {
-  const value = String(text || '').toLowerCase();
-  if (!value.trim()) return false;
-  return SHOPPING_HINTS.some((hint) => value.includes(hint));
+  return true;
 }
 
 function getOffTopicReply() {
@@ -160,9 +158,9 @@ function AssistantProductCard({ product, onClick }) {
     <button
       type="button"
       onClick={onClick}
-      className="group w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 hover:shadow-lg hover:shadow-primary-100/50"
+      className="flex flex-col h-[290px] justify-between group w-full overflow-hidden rounded-2xl border border-slate-200/80 bg-white text-left shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-primary-300 hover:shadow-lg hover:shadow-primary-100/50"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-gradient-to-br from-slate-50 to-primary-50/30">
+      <div className="relative h-[130px] w-full shrink-0 overflow-hidden bg-gradient-to-br from-slate-50 to-primary-50/30">
         <Image
           src={image}
           alt={product?.title || 'Product'}
@@ -183,7 +181,7 @@ function AssistantProductCard({ product, onClick }) {
         )}
       </div>
 
-      <div className="space-y-2.5 p-3.5">
+      <div className="flex-1 flex flex-col justify-between p-3.5">
         <div className="space-y-1.5">
           <h4 className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-900">
             {product?.title}
@@ -205,7 +203,7 @@ function AssistantProductCard({ product, onClick }) {
         <div className="flex items-end justify-between gap-2 border-t border-slate-100 pt-2.5">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Price</p>
-            <p className="text-[15px] font-bold text-primary-700">{getPriceLabel(product)}</p>
+            <p className="text-[14px] font-bold text-primary-700">{getPriceLabel(product)}</p>
           </div>
           {product?.ratings?.average ? (
             <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
@@ -224,6 +222,17 @@ function AssistantProductCard({ product, onClick }) {
 function AssistantBubble({ message, onProductClick }) {
   const isUser = message.role === 'user';
   const hasProducts = Array.isArray(message.products) && message.products.length > 0;
+
+  const renderFormattedContent = (content) => {
+    if (!content) return '';
+    const parts = content.split('**');
+    return parts.map((part, index) => {
+      if (index % 2 === 1) {
+        return <strong key={index} className="font-bold text-slate-900">{part}</strong>;
+      }
+      return part;
+    });
+  };
 
   return (
     <motion.div
@@ -247,21 +256,25 @@ function AssistantBubble({ message, onProductClick }) {
             : 'rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
         }`}
       >
-        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">{message.content}</p>
+        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
+          {renderFormattedContent(message.content)}
+        </p>
 
         {hasProducts && (
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-3 space-y-2">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               <Icon icon="mdi:shopping-search" className="text-sm text-primary-500" />
               Matching products
             </div>
-            <div className="grid gap-2.5 sm:grid-cols-2">
+            {/* Horizontal Carousel Slider */}
+            <div className="flex w-full gap-3 overflow-x-auto pb-2.5 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 snap-x snap-mandatory">
               {message.products.map((product) => (
-                <AssistantProductCard
-                  key={product.id || product._id || product.slug}
-                  product={product}
-                  onClick={() => onProductClick(product)}
-                />
+                <div key={product.id || product._id || product.slug} className="w-[210px] shrink-0 snap-start">
+                  <AssistantProductCard
+                    product={product}
+                    onClick={() => onProductClick(product)}
+                  />
+                </div>
               ))}
             </div>
           </div>
