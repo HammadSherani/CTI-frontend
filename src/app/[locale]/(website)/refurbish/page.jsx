@@ -189,6 +189,20 @@ export default function RefurbishListingPage() {
 
   const formatPrice = (num) => `$${Number(num).toFixed(2)}`;
 
+  const getShortDescription = (value, wordLimit = 12) => {
+    if (!value) return 'Premium refurbished gadget with verified quality and reliable performance.';
+
+    const plainText = String(value)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!plainText) return 'Premium refurbished gadget with verified quality and reliable performance.';
+
+    const words = plainText.split(' ');
+    return words.length > wordLimit ? `${words.slice(0, wordLimit).join(' ')}...` : plainText;
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-8 py-8 min-h-screen bg-gray-50/50">
 
@@ -498,12 +512,11 @@ export default function RefurbishListingPage() {
                 const price = defaultVar ? (defaultVar.discountPrice || defaultVar.sellingPrice || 0) : 0;
                 const mrp = defaultVar ? (defaultVar.sellingPrice || 0) : 0;
                 const discount = defaultVar?.discountPercentage || 0;
-                const goldPrice = price ? Math.round(price * 0.97) : null;
-                const monthlyEmi = price ? Math.round(price / 24) : null;
                 const stock = defaultVar?.stock || 0;
 
                 // Extract tags from attributes
                 const specs = defaultVar?.attributes?.map(a => a.value).slice(0, 3) || [];
+                const descriptionText = getShortDescription(p.description || p.shortDescription || p.metaDescription);
 
                 return (
                   <div
@@ -572,20 +585,10 @@ export default function RefurbishListingPage() {
                           )}
                         </div>
 
-                        {/* Special Badges: Gold Price, EMI */}
-                        <div className="flex flex-wrap items-center gap-2.5 mt-3">
-                          {goldPrice && (
-                            <span className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-black px-2 py-0.5 rounded-lg shadow-sm">
-                              <Icon icon="solar:crown-minimalistic-bold" className="w-3.5 h-3.5 text-amber-500" />
-                              {formatPrice(goldPrice)} with GOLD
-                            </span>
-                          )}
-                          {monthlyEmi && (
-                            <span className="bg-slate-100 text-slate-700 text-[10px] font-bold px-2 py-0.5 rounded">
-                              No Cost EMI from {formatPrice(monthlyEmi)}/mo
-                            </span>
-                          )}
-                        </div>
+                        {/* Short Description Preview */}
+                        <p className="mt-3 text-[12px] leading-5 text-gray-600 line-clamp-2">
+                          {descriptionText}
+                        </p>
                       </div>
 
                       {/* Specs Tags & Actions */}

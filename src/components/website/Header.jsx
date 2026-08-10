@@ -712,7 +712,7 @@ function NavigationBar({ isHome, isScrolled }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50"
+          className={`absolute top-full ${item.name === "Support" ? "right-0" : "left-0"} mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50`}
         >
           <div className="flex items-center justify-center">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
@@ -728,7 +728,7 @@ function NavigationBar({ isHome, isScrolled }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50"
+          className={`absolute top-full ${item.name === "Support" ? "right-0" : "left-0"} mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50`}
         >
           <p className="text-sm text-gray-500 text-center">No data available</p>
         </motion.div>
@@ -863,7 +863,7 @@ function NavigationBar({ isHome, isScrolled }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: 6 }}
         transition={{ duration: 0.15 }}
-        className="absolute top-full left-0 mt-1 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50"
+        className={`absolute top-full ${item.name === "Support" ? "right-0" : "left-0"} mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-1 z-50`}
       >
         {item.dropdownItems?.map((di, idx) => (
           <Link
