@@ -3,7 +3,7 @@
 import FieldCorrections from '@/components/admin/FieldCorrection';
 import Chat from '@/components/chat/GlobalChat'
 import Header from '@/components/partials/seller/Header';
-import SmallLoader from '@/components/SmallLoaderHeader';
+import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useRouter } from '@/i18n/navigation';
