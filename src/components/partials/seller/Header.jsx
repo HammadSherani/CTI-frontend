@@ -252,7 +252,7 @@ function Header() {
         </div>
         <span>{link.name}</span>
         {isEnquiries && enquiryUnread > 0 && (
-          <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-white text-[10px] font-black leading-none">
+          <span className="flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-primary-500 text-white text-[10px] font-black leading-none">
             {enquiryUnread > 99 ? '99+' : enquiryUnread}
           </span>
         )}

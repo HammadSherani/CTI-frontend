@@ -112,6 +112,10 @@ function getProductBrand(product) {
   return product?.brand?.title || product?.brand?.name || product?.brand || null;
 }
 
+function getProductShortDescription(product) {
+  return product?.shortDescription || null;
+}
+
 function getStockLabel(product) {
   if (!product) return null;
   if (product.stockStatus === 'out_of_stock') {
@@ -152,6 +156,7 @@ function AssistantProductCard({ product, onClick }) {
   const stock = getStockLabel(product);
   const brand = getProductBrand(product);
   const category = getProductCategory(product);
+  const shortDescription = getProductShortDescription(product);
   const metaParts = [brand, category].filter(Boolean);
 
   return (
@@ -186,6 +191,11 @@ function AssistantProductCard({ product, onClick }) {
           <h4 className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-900">
             {product?.title}
           </h4>
+          {shortDescription && (
+            <p className="line-clamp-2 text-[11px] leading-snug text-slate-500">
+              {shortDescription}
+            </p>
+          )}
           {metaParts.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {metaParts.map((part) => (
@@ -311,7 +321,10 @@ export default function AiShoppingAssistant() {
     return conversations.find((c) => c.id === activeConversationId) || conversations[0];
   }, [conversations, activeConversationId]);
 
+  console.log('Conversations:', conversations);
+  console.log('Active Conversation:', activeConversation);
   const messages = activeConversation?.messages || [createWelcomeMessage()];
+  console.log('Active Conversation Messages:', messages);
 
   const sessionHint = useMemo(() => {
     const count = Math.max(0, messages.length - 1);
