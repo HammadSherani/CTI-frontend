@@ -1,30 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axiosInstance from '@/config/axiosInstance';
 import { useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
+import LoginModal from '@/components/website/ai-assistant/LoginModal';
 
 const STORAGE_KEY = 'cti-ai-shopping-assistant-session-v1';
 const CONVERSATIONS_KEY = 'cti-ai-shopping-assistant-conversations-v1';
 const ACTIVE_CONVERSATION_KEY = 'cti-ai-shopping-assistant-active-v1';
 const ASSISTANT_PREFS_KEY = 'cti-ai-shopping-assistant-prefs-v1';
 
-const QUICK_PROMPTS = [
-  'Show me best-selling phones',
-  'Find budget earbuds under 5000',
-  'Show refurbished iPhones',
-];
-
-const SHOPPING_HINTS = [
-  'product', 'products', 'phone', 'phones', 'mobile', 'laptop', 'tablet', 'watch', 'earbuds',
-  'headphones', 'accessories', 'charger', 'case', 'refurbished', 'price', 'stock', 'available',
-  'buy', 'order', 'deal', 'discount', 'brand', 'category', 'model', 'compare', 'shop', 'shopping',
-  'iphone', 'samsung', 'oppo', 'vivo', 'xiaomi', 'realme', 'honor', 'huawei', 'google', 'oneplus',
-];
 
 function createId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -60,104 +49,45 @@ function getConversationTitle(messages) {
   return firstUserMessage.content.slice(0, 42).trim() + (firstUserMessage.content.length > 42 ? '…' : '');
 }
 
-function formatPrice(value, currency = 'PKR') {
+function formatPrice(value, currency = 'USD') {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount) || amount <= 0) return 'Price on request';
   try {
-    return new Intl.NumberFormat('en-PK', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency,
       maximumFractionDigits: 0,
     }).format(amount);
   } catch {
-    return `${currency} ${amount.toLocaleString()}`;
+    return `${currency} ${amount.toLocaleString('en-US')}`;
   }
-}
-
-function getProductImage(product) {
-  if (!product) return '/assets/placeholder.jpg';
-  if (Array.isArray(product.images) && product.images.length > 0) {
-    const first = product.images[0];
-    if (typeof first === 'string') return first;
-    if (first?.url) return first.url;
-  }
-  if (product.image?.url) return product.image.url;
-  if (product.image && typeof product.image === 'string') return product.image;
-  return '/assets/placeholder.jpg';
-}
-
-function getPriceLabel(product) {
-  const currency = product?.priceRange?.currency || 'PKR';
-  const minPrice = Number(product?.priceRange?.minPrice ?? product?.price ?? 0);
-  const maxPrice = Number(product?.priceRange?.maxPrice ?? minPrice);
-  if (maxPrice > minPrice && minPrice > 0) {
-    return `${formatPrice(minPrice, currency)} – ${formatPrice(maxPrice, currency)}`;
-  }
-  return formatPrice(minPrice || maxPrice, currency);
-}
-
-function getProductTitle(product) {
-  return product?.title || product?.name || product?.productName || 'Product';
-}
-
-function getProductRoute(product) {
-  return product?.slug || product?.productSlug || product?._id || product?.id || null;
-}
-
-function getProductCategory(product) {
-  return product?.category?.title || product?.category?.name || product?.category || product?.subcategory || null;
-}
-
-function getProductBrand(product) {
-  return product?.brand?.title || product?.brand?.name || product?.brand || null;
-}
-
-function getProductShortDescription(product) {
-  return product?.shortDescription || null;
-}
-
-function getStockLabel(product) {
-  if (!product) return null;
-  if (product.stockStatus === 'out_of_stock') {
-    return { label: 'Out of stock', tone: 'danger' };
-  }
-  if (product.stockStatus === 'in_stock') {
-    return { label: 'In stock', tone: 'success' };
-  }
-  const stockCount = product.variants
-    ?.map((variant) => Number(variant?.stock || 0))
-    .reduce((sum, value) => sum + value, 0);
-  if (Number.isFinite(stockCount) && stockCount > 0) {
-    return { label: 'In stock', tone: 'success' };
-  }
-  return null;
-}
-
-function normalizeProducts(products) {
-  if (!Array.isArray(products)) return [];
-  return products.map((product) => ({
-    ...product,
-    title: getProductTitle(product),
-  }));
-}
-
-function isShoppingQuery(text) {
-  return true;
-}
-
-function getOffTopicReply() {
-  return 'I can only help with shopping-related questions like products, prices, stock, brands, comparisons, and product pages.';
 }
 
 /* ───────────────────────── Product Card ───────────────────────── */
 
 function AssistantProductCard({ product, onClick }) {
-  const image = getProductImage(product);
-  const stock = getStockLabel(product);
-  const brand = getProductBrand(product);
-  const category = getProductCategory(product);
-  const shortDescription = getProductShortDescription(product);
+  if (!product) return null;
+
+  const title = product.title || product.name || 'Product';
+  const brand = product.brand?.title || product.brand?.name || product.brand || null;
+  const category = product.category?.title || product.category?.name || product.category || product.subcategory || null;
   const metaParts = [brand, category].filter(Boolean);
+
+  const firstImg = Array.isArray(product.images) ? product.images[0] : null;
+  const image = (typeof firstImg === 'string' ? firstImg : firstImg?.url) || 
+                (typeof product.image === 'string' ? product.image : product.image?.url) || 
+                '/assets/placeholder.jpg';
+
+  const minPrice = Number(product.priceRange?.minPrice ?? product.price ?? 0);
+  const maxPrice = Number(product.priceRange?.maxPrice ?? minPrice);
+  const priceLabel = maxPrice > minPrice && minPrice > 0
+    ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
+    : formatPrice(minPrice || maxPrice);
+
+  const isOutOfStock = product.stockStatus === 'out_of_stock' || 
+                      (Array.isArray(product.variants) && product.variants.length > 0 && product.variants.every(v => Number(v.stock || 0) === 0));
+  const stockLabel = isOutOfStock ? 'Out of stock' : 'In stock';
+  const stockTone = isOutOfStock ? 'danger' : 'success';
 
   return (
     <button
@@ -168,20 +98,21 @@ function AssistantProductCard({ product, onClick }) {
       <div className="relative h-[130px] w-full shrink-0 overflow-hidden bg-gradient-to-br from-slate-50 to-primary-50/30">
         <Image
           src={image}
-          alt={product?.title || 'Product'}
+          alt={title}
           fill
           sizes="(max-width: 640px) 100vw, 260px"
           className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
         />
-        {stock && (
-          <span
-            className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm ${
-              stock.tone === 'danger'
-                ? 'bg-rose-500 text-white'
-                : 'bg-emerald-500 text-white'
-            }`}
-          >
-            {stock.label}
+        <span
+          className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm ${
+            stockTone === 'danger' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
+          }`}
+        >
+          {stockLabel}
+        </span>
+        {product.productType === 'refurbished' && (
+          <span className="absolute right-2.5 top-2.5 rounded-full bg-orange-500 text-white px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm animate-pulse">
+            Refurbished
           </span>
         )}
       </div>
@@ -189,11 +120,11 @@ function AssistantProductCard({ product, onClick }) {
       <div className="flex-1 flex flex-col justify-between p-3.5">
         <div className="space-y-1.5">
           <h4 className="line-clamp-2 text-[13px] font-semibold leading-snug text-slate-900">
-            {product?.title}
+            {title}
           </h4>
-          {shortDescription && (
+          {product.shortDescription && (
             <p className="line-clamp-2 text-[11px] leading-snug text-slate-500">
-              {shortDescription}
+              {product.shortDescription}
             </p>
           )}
           {metaParts.length > 0 && (
@@ -213,9 +144,9 @@ function AssistantProductCard({ product, onClick }) {
         <div className="flex items-end justify-between gap-2 border-t border-slate-100 pt-2.5">
           <div>
             <p className="text-[10px] font-medium uppercase tracking-wider text-slate-400">Price</p>
-            <p className="text-[14px] font-bold text-primary-700">{getPriceLabel(product)}</p>
+            <p className="text-[14px] font-bold text-primary-700">{priceLabel}</p>
           </div>
-          {product?.ratings?.average ? (
+          {product.ratings?.average ? (
             <div className="flex items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700">
               <Icon icon="mdi:star" className="text-xs" />
               {Number(product.ratings.average).toFixed(1)}
@@ -229,7 +160,7 @@ function AssistantProductCard({ product, onClick }) {
 
 /* ───────────────────────── Message Bubble ───────────────────────── */
 
-function AssistantBubble({ message, onProductClick }) {
+const AssistantBubble = memo(function AssistantBubble({ message, onProductClick, onLoginClick }) {
   const isUser = message.role === 'user';
   const hasProducts = Array.isArray(message.products) && message.products.length > 0;
 
@@ -260,15 +191,25 @@ function AssistantBubble({ message, onProductClick }) {
       )}
 
       <div
-        className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${
-          isUser
+        className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${isUser
             ? 'rounded-br-md bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-md shadow-primary-200/40'
             : 'rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
-        }`}
+          }`}
       >
         <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
           {renderFormattedContent(message.content)}
         </p>
+
+        {message.showLoginButton && (
+          <button
+            type="button"
+            onClick={onLoginClick}
+            className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:bg-primary-700"
+          >
+            <Icon icon="mdi:login" className="text-sm" />
+            Login or Register
+          </button>
+        )}
 
         {hasProducts && (
           <div className="mt-3 space-y-2">
@@ -298,7 +239,17 @@ function AssistantBubble({ message, onProductClick }) {
       )}
     </motion.div>
   );
-}
+});
+
+const getOrCreateGuestId = () => {
+  if (typeof window === 'undefined') return null;
+  let gid = localStorage.getItem('cti-ai-shopping-assistant-guest-id-v1');
+  if (!gid) {
+    gid = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
+  }
+  return gid;
+};
 
 /* ───────────────────────── Main Component ───────────────────────── */
 
@@ -307,70 +258,116 @@ export default function AiShoppingAssistant() {
   const token = useSelector((state) => state.auth?.token);
   const [isOpen, setIsOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-  const [isGuestMode, setIsGuestMode] = useState(true);
   const [conversations, setConversations] = useState([createConversation('New chat')]);
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const hasToken = Boolean(token);
+  const isGuestMode = !hasToken;
 
   const activeConversation = useMemo(() => {
     return conversations.find((c) => c.id === activeConversationId) || conversations[0];
   }, [conversations, activeConversationId]);
 
-  console.log('Conversations:', conversations);
-  console.log('Active Conversation:', activeConversation);
   const messages = activeConversation?.messages || [createWelcomeMessage()];
-  console.log('Active Conversation Messages:', messages);
 
   const sessionHint = useMemo(() => {
     const count = Math.max(0, messages.length - 1);
     return count > 0 ? `${count} message${count === 1 ? '' : 's'}` : 'Fresh session';
   }, [messages.length]);
 
-  const assistantModeLabel = isGuestMode ? 'Guest mode' : hasToken ? 'Saved mode' : 'Guest mode';
+  const assistantModeLabel = isGuestMode ? 'Guest mode' : 'Saved mode';
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
     try {
-      const savedPrefs = localStorage.getItem(ASSISTANT_PREFS_KEY);
-      if (savedPrefs) {
-        const parsed = JSON.parse(savedPrefs);
-        if (typeof parsed.isGuestMode === 'boolean') setIsGuestMode(parsed.isGuestMode);
-      }
       const savedConversations = localStorage.getItem(CONVERSATIONS_KEY);
       if (savedConversations) {
-        const parsed = JSON.parse(savedConversations);
-        if (Array.isArray(parsed) && parsed.length > 0) setConversations(parsed);
+        let parsed = JSON.parse(savedConversations);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Guest User 24-hour cleanup logic
+          if (!hasToken) {
+            const firstConv = parsed[0];
+            const creationTime = firstConv?.createdAt ? new Date(firstConv.createdAt).getTime() : Date.now();
+            const oneDayMs = 24 * 60 * 60 * 1000;
+            if (Date.now() - creationTime > oneDayMs) {
+              parsed = [createConversation('New chat')];
+              localStorage.removeItem(CONVERSATIONS_KEY);
+              localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+            }
+          }
+          setConversations(parsed);
+        }
       }
       const savedActive = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
       if (savedActive) setActiveConversationId(savedActive);
-
-      const legacy = sessionStorage.getItem(STORAGE_KEY);
-      if (legacy && !savedConversations) {
-        const parsed = JSON.parse(legacy);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          const restored = createConversation('Restored chat', parsed);
-          setConversations([restored]);
-          setActiveConversationId(restored.id);
-        }
-      }
     } catch (error) {
       console.error('Failed to restore assistant session', error);
     } finally {
       setIsHydrated(true);
     }
-  }, []);
+  }, [hasToken]);
+
+  const fetchConversations = useCallback(async () => {
+    try {
+      const params = {};
+      if (!hasToken) {
+        params.guestId = getOrCreateGuestId();
+      }
+      const { data } = await axiosInstance.get('/ai/agent/conversations', { params });
+      if (data?.success && Array.isArray(data.conversations)) {
+        if (data.conversations.length > 0) {
+          const mapped = data.conversations.map((c) => ({
+            id: c._id,
+            title: c.title,
+            messages: c.messages || [],
+            createdAt: c.createdAt,
+            updatedAt: c.updatedAt
+          }));
+          setConversations(mapped);
+          if (!activeConversationId) {
+            setActiveConversationId(mapped[0].id);
+          }
+        } else {
+          setConversations([createConversation('New chat')]);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load saved chats from DB", err);
+    }
+  }, [hasToken, activeConversationId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchConversations();
+    }
+  }, [isOpen, fetchConversations]);
 
   useEffect(() => {
     if (!isHydrated || typeof window === 'undefined') return;
-    localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
-    localStorage.setItem(ACTIVE_CONVERSATION_KEY, activeConversation?.id || '');
-    localStorage.setItem(ASSISTANT_PREFS_KEY, JSON.stringify({ isGuestMode }));
-  }, [conversations, activeConversation?.id, isGuestMode, isHydrated]);
+    if (!hasToken) {
+      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
+      localStorage.setItem(ACTIVE_CONVERSATION_KEY, activeConversation?.id || '');
+    } else {
+      localStorage.removeItem(CONVERSATIONS_KEY);
+      localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
+    }
+  }, [conversations, activeConversation?.id, isHydrated, hasToken]);
+
+  const prevHasTokenRef = useRef(hasToken);
+  useEffect(() => {
+    if (isHydrated && prevHasTokenRef.current && !hasToken) {
+      // Guest users can only have one chat, reset multi-chats if they logout
+      setConversations([createConversation('New chat')]);
+      setActiveConversationId(null);
+      setIsHistoryOpen(false);
+    }
+    prevHasTokenRef.current = hasToken;
+  }, [hasToken, isHydrated]);
 
   useEffect(() => {
     if (isOpen) inputRef.current?.focus();
@@ -382,19 +379,35 @@ export default function AiShoppingAssistant() {
   }, [messages, isLoading, isOpen]);
 
   useEffect(() => {
+    // Must wait for hydration to finish first: on the very first render this
+    // effect and the hydration effect above both see the same pre-hydration
+    // placeholder conversation, and since this one runs after it (declared
+    // later), it would win and stomp the id the hydration effect just
+    // restored from localStorage with the throwaway placeholder's id —
+    // which doesn't exist in the real (hydrated) conversations array at all.
+    if (!isHydrated) return;
     if (!activeConversationId && conversations.length > 0) {
       setActiveConversationId(conversations[0].id);
     }
-  }, [activeConversationId, conversations]);
+  }, [activeConversationId, conversations, isHydrated]);
 
   const updateActiveConversation = (updater) => {
-    setConversations((current) =>
-      current.map((conversation) => {
-        if (conversation.id !== (activeConversationId || current[0]?.id)) return conversation;
+    setConversations((current) => {
+      // activeConversationId can go stale (e.g. restored from localStorage,
+      // or the conversation it pointed to was replaced) — fall back to the
+      // first conversation whenever it no longer matches anything, the same
+      // way `activeConversation` above already does. Without this check, a
+      // stale id silently fails to match any conversation below and the
+      // update (e.g. appending the user's own message) gets dropped.
+      const resolvedId = current.some((c) => c.id === activeConversationId)
+        ? activeConversationId
+        : current[0]?.id;
+      return current.map((conversation) => {
+        if (conversation.id !== resolvedId) return conversation;
         const next = typeof updater === 'function' ? updater(conversation) : updater;
         return { ...conversation, ...next, updatedAt: new Date().toISOString() };
-      })
-    );
+      });
+    });
   };
 
   const startNewChat = () => {
@@ -410,46 +423,79 @@ export default function AiShoppingAssistant() {
     setIsHistoryOpen(false);
   };
 
-  const resetChat = () => {
-    const reset = createConversation('New chat');
-    setConversations((current) =>
-      current.map((c) => (c.id === activeConversation?.id ? reset : c))
-    );
-    setActiveConversationId(reset.id);
+  const resetChat = async () => {
+    const targetId = activeConversation?.id || conversations[0]?.id;
+    if (targetId && targetId.length === 24) {
+      try {
+        const params = {};
+        if (!hasToken) {
+          params.guestId = getOrCreateGuestId();
+        }
+        await axiosInstance.delete(`/ai/agent/conversations/${targetId}`, { params });
+        const reset = createConversation('New chat');
+        setConversations((current) =>
+          current.map((c) => (c.id === targetId ? reset : c))
+        );
+        setActiveConversationId(reset.id);
+      } catch (err) {
+        console.error("Failed to clear chat in DB", err);
+      }
+    } else {
+      const reset = createConversation('New chat');
+      setConversations((current) =>
+        current.map((c) => (c.id === activeConversation?.id ? reset : c))
+      );
+      setActiveConversationId(reset.id);
+    }
     setInput('');
     inputRef.current?.focus();
   };
 
-  const handleProductClick = (product) => {
+  const handleProductClick = useCallback((product) => {
     const target = getProductRoute(product);
     if (!target) return;
     setIsOpen(false);
-    router.push(`/product/${encodeURIComponent(target)}`);
-  };
+    const basePath = product?.productType === 'refurbished' ? '/refurbish' : '/product';
+    router.push(`${basePath}/${encodeURIComponent(target)}`);
+  }, [router]);
+
+  const handleLoginClick = useCallback(() => {
+    setIsLoginModalOpen(true);
+  }, []);
 
   const sendMessage = async (event) => {
     event?.preventDefault();
     const text = input.trim();
     if (!text || isLoading) return;
 
-    if (!isShoppingQuery(text)) {
-      const nextConversation = {
-        ...activeConversation,
-        title: activeConversation?.title || getConversationTitle(messages),
-        messages: [
-          ...(messages || [createWelcomeMessage()]),
-          {
-            id: createId(),
-            role: 'assistant',
-            content: getOffTopicReply(),
-            products: [],
-            createdAt: new Date().toISOString(),
-          },
-        ],
-        updatedAt: new Date().toISOString(),
+    const userMessagesCount = messages.filter((m) => m.role === 'user').length;
+    const targetId = activeConversation?.id || conversations[0]?.id;
+
+    if (isGuestMode && userMessagesCount >= 10) {
+      const nextUserMessage = {
+        id: createId(),
+        role: 'user',
+        content: text,
+        products: [],
+        createdAt: new Date().toISOString(),
+      };
+      const assistantMessage = {
+        id: createId(),
+        role: 'assistant',
+        content: 'You have reached the maximum limit of 10 messages for guest mode. Please login or register to save your chats and get unlimited messages.',
+        showLoginButton: true,
+        products: [],
+        createdAt: new Date().toISOString(),
       };
       setConversations((current) =>
-        current.map((c) => (c.id === (activeConversation?.id || current[0]?.id) ? nextConversation : c))
+        current.map((c) => {
+          if (c.id !== targetId) return c;
+          return {
+            ...c,
+            messages: [...c.messages, nextUserMessage, assistantMessage],
+            updatedAt: new Date().toISOString(),
+          };
+        })
       );
       setInput('');
       return;
@@ -463,7 +509,6 @@ export default function AiShoppingAssistant() {
       createdAt: new Date().toISOString(),
     };
     const nextMessages = [...messages, nextUserMessage];
-    const targetId = activeConversation?.id || conversations[0]?.id;
 
     updateActiveConversation({
       title: activeConversation?.title || getConversationTitle(nextMessages),
@@ -478,9 +523,13 @@ export default function AiShoppingAssistant() {
         .map((m) => ({ role: m.role, content: m.content }))
         .slice(-12);
 
+      const dbConvId = targetId && targetId.length === 24 ? targetId : undefined;
+      const guestId = hasToken ? undefined : getOrCreateGuestId();
       const { data } = await axiosInstance.post('/ai/agent/chat', {
         message: text,
         history,
+        conversationId: dbConvId,
+        guestId,
         assistantMode: isGuestMode ? 'guest' : 'signed-in',
         instructions: {
           scope: 'shopping-only',
@@ -494,7 +543,7 @@ export default function AiShoppingAssistant() {
         id: createId(),
         role: 'assistant',
         content: data?.reply || 'I could not generate a response right now.',
-        products: normalizeProducts(data?.products),
+        products: data?.products || [],
         createdAt: new Date().toISOString(),
       };
 
@@ -503,12 +552,16 @@ export default function AiShoppingAssistant() {
           if (c.id !== targetId) return c;
           return {
             ...c,
+            id: data?.conversationId || c.id,
             messages: [...c.messages, assistantMessage],
             title: c.title || getConversationTitle(nextMessages),
             updatedAt: new Date().toISOString(),
           };
         })
       );
+      if (data?.conversationId) {
+        setActiveConversationId(data.conversationId);
+      }
     } catch (error) {
       const fallback = error?.response?.data?.message || 'I could not reach the shopping assistant right now.';
       setConversations((current) =>
@@ -550,7 +603,7 @@ export default function AiShoppingAssistant() {
             {/* ── Header ── */}
             <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-primary-700 via-primary-600 to-primary-800 px-4 pb-3.5 pt-4 text-white">
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.18),transparent_50%)]" />
-              
+
               <div className="relative flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/15 ring-1 ring-white/20">
@@ -559,28 +612,22 @@ export default function AiShoppingAssistant() {
                   <div className="min-w-0">
                     <p className="truncate text-sm font-semibold tracking-tight">AI Shopping Assistant</p>
                     <p className="truncate text-[11px] text-white/75">
-                      {assistantModeLabel} · {conversations.length} chat{conversations.length === 1 ? '' : 's'}
+                      {assistantModeLabel} {hasToken && `· ${conversations.length} chat${conversations.length === 1 ? '' : 's'}`}
                     </p>
                   </div>
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setIsGuestMode((v) => !v)}
-                    className="h-8 rounded-lg bg-white/10 px-2.5 text-[11px] font-semibold transition hover:bg-white/20"
-                    aria-label="Toggle guest mode"
-                  >
-                    {isGuestMode ? 'Guest' : 'Saved'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsHistoryOpen((v) => !v)}
-                    className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20"
-                    aria-label="Toggle history"
-                  >
-                    <Icon icon="mdi:history" className="text-lg" />
-                  </button>
+                  {hasToken && (
+                    <button
+                      type="button"
+                      onClick={() => setIsHistoryOpen((v) => !v)}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20"
+                      aria-label="Toggle history"
+                    >
+                      <Icon icon="mdi:history" className="text-lg" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={resetChat}
@@ -617,6 +664,7 @@ export default function AiShoppingAssistant() {
                         key={message.id}
                         message={message}
                         onProductClick={handleProductClick}
+                        onLoginClick={handleLoginClick}
                       />
                     ))}
                   </AnimatePresence>
@@ -676,11 +724,10 @@ export default function AiShoppingAssistant() {
                               key={c.id}
                               type="button"
                               onClick={() => selectConversation(c.id)}
-                              className={`w-full rounded-xl px-2.5 py-2 text-left transition ${
-                                isActive
+                              className={`w-full rounded-xl px-2.5 py-2 text-left transition ${isActive
                                   ? 'bg-primary-50 ring-1 ring-primary-200'
                                   : 'hover:bg-slate-50'
-                              }`}
+                                }`}
                             >
                               <p className={`line-clamp-1 text-[12px] font-semibold ${isActive ? 'text-primary-700' : 'text-slate-800'}`}>
                                 {c.title || 'New chat'}
@@ -734,22 +781,24 @@ export default function AiShoppingAssistant() {
               </div>
 
               {/* Mobile history / new chat */}
-              <div className="mt-2 flex gap-2 sm:hidden">
-                <button
-                  type="button"
-                  onClick={startNewChat}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700"
-                >
-                  New chat
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsHistoryOpen((v) => !v)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700"
-                >
-                  History
-                </button>
-              </div>
+              {hasToken && (
+                <div className="mt-2 flex gap-2 sm:hidden">
+                  <button
+                    type="button"
+                    onClick={startNewChat}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700"
+                  >
+                    New chat
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsHistoryOpen((v) => !v)}
+                    className="rounded-lg border border-slate-200 px-3 py-1.5 text-[11px] font-semibold text-slate-700"
+                  >
+                    History
+                  </button>
+                </div>
+              )}
             </form>
           </motion.div>
         ) : (
@@ -780,6 +829,13 @@ export default function AiShoppingAssistant() {
           </motion.button>
         )}
       </AnimatePresence>
+      <LoginModal
+        isOpen={isLoginModalOpen}
+        onClose={() => setIsLoginModalOpen(false)}
+        onSuccess={() => {
+          fetchConversations();
+        }}
+      />
     </div>
   );
 }
