@@ -5,14 +5,9 @@ import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import axiosInstance from '@/config/axiosInstance';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import LoginModal from '@/components/website/ai-assistant/LoginModal';
-
-const STORAGE_KEY = 'cti-ai-shopping-assistant-session-v1';
-const CONVERSATIONS_KEY = 'cti-ai-shopping-assistant-conversations-v1';
-const ACTIVE_CONVERSATION_KEY = 'cti-ai-shopping-assistant-active-v1';
-const ASSISTANT_PREFS_KEY = 'cti-ai-shopping-assistant-prefs-v1';
 
 
 function createId() {
@@ -74,9 +69,9 @@ function AssistantProductCard({ product, onClick }) {
   const metaParts = [brand, category].filter(Boolean);
 
   const firstImg = Array.isArray(product.images) ? product.images[0] : null;
-  const image = (typeof firstImg === 'string' ? firstImg : firstImg?.url) || 
-                (typeof product.image === 'string' ? product.image : product.image?.url) || 
-                '/assets/placeholder.jpg';
+  const image = (typeof firstImg === 'string' ? firstImg : firstImg?.url) ||
+    (typeof product.image === 'string' ? product.image : product.image?.url) ||
+    '/assets/placeholder.jpg';
 
   const minPrice = Number(product.priceRange?.minPrice ?? product.price ?? 0);
   const maxPrice = Number(product.priceRange?.maxPrice ?? minPrice);
@@ -84,8 +79,8 @@ function AssistantProductCard({ product, onClick }) {
     ? `${formatPrice(minPrice)} – ${formatPrice(maxPrice)}`
     : formatPrice(minPrice || maxPrice);
 
-  const isOutOfStock = product.stockStatus === 'out_of_stock' || 
-                      (Array.isArray(product.variants) && product.variants.length > 0 && product.variants.every(v => Number(v.stock || 0) === 0));
+  const isOutOfStock = product.stockStatus === 'out_of_stock' ||
+    (Array.isArray(product.variants) && product.variants.length > 0 && product.variants.every(v => Number(v.stock || 0) === 0));
   const stockLabel = isOutOfStock ? 'Out of stock' : 'In stock';
   const stockTone = isOutOfStock ? 'danger' : 'success';
 
@@ -104,9 +99,8 @@ function AssistantProductCard({ product, onClick }) {
           className="object-contain p-4 transition-transform duration-500 group-hover:scale-105"
         />
         <span
-          className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm ${
-            stockTone === 'danger' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
-          }`}
+          className={`absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[10px] font-semibold tracking-wide shadow-sm ${stockTone === 'danger' ? 'bg-rose-500 text-white' : 'bg-emerald-500 text-white'
+            }`}
         >
           {stockLabel}
         </span>
@@ -166,13 +160,45 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
 
   const renderFormattedContent = (content) => {
     if (!content) return '';
-    const parts = content.split('**');
-    return parts.map((part, index) => {
-      if (index % 2 === 1) {
-        return <strong key={index} className="font-bold text-slate-900">{part}</strong>;
-      }
-      return part;
-    });
+
+    const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+    const parts = [];
+    let lastIndex = 0;
+    let match;
+
+    const parseBold = (text, startKey) => {
+      if (!text) return [];
+      const boldParts = text.split('**');
+      return boldParts.map((part, index) => {
+        if (index % 2 === 1) {
+          return <strong key={`${startKey}-bold-${index}`} className="font-bold text-slate-900">{part}</strong>;
+        }
+        return part;
+      });
+    };
+
+    while ((match = linkRegex.exec(content)) !== null) {
+      const plainText = content.substring(lastIndex, match.index);
+      const linkText = match[1];
+      const linkUrl = match[2];
+
+      parts.push(...parseBold(plainText, `before-${match.index}`));
+
+      parts.push(
+        <Link
+          key={`link-${match.index}`}
+          href={linkUrl}
+          className="text-primary-600 hover:text-primary-700 font-bold underline transition-colors"
+        >
+          {linkText}
+        </Link>
+      );
+
+      lastIndex = linkRegex.lastIndex;
+    }
+
+    parts.push(...parseBold(content.substring(lastIndex), 'last'));
+    return parts;
   };
 
   return (
@@ -192,8 +218,8 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
 
       <div
         className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 ${isUser
-            ? 'rounded-br-md bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-md shadow-primary-200/40'
-            : 'rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
+          ? 'rounded-br-md bg-gradient-to-br from-primary-600 to-primary-700 text-white shadow-md shadow-primary-200/40'
+          : 'rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
           }`}
       >
         <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
@@ -241,12 +267,21 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
   );
 });
 
-const getOrCreateGuestId = () => {
+const getOrCreateGuestId = async () => {
   if (typeof window === 'undefined') return null;
   let gid = localStorage.getItem('cti-ai-shopping-assistant-guest-id-v1');
   if (!gid) {
-    gid = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-    localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
+    try {
+      const { data } = await axiosInstance.post('/ai/agent/guest-session');
+      if (data?.success && data.guestId) {
+        gid = data.guestId;
+        localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
+      }
+    } catch (err) {
+      console.error("Failed to generate guest session from server", err);
+      gid = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
+    }
   }
   return gid;
 };
@@ -283,40 +318,15 @@ export default function AiShoppingAssistant() {
   const assistantModeLabel = isGuestMode ? 'Guest mode' : 'Saved mode';
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const savedConversations = localStorage.getItem(CONVERSATIONS_KEY);
-      if (savedConversations) {
-        let parsed = JSON.parse(savedConversations);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          // Guest User 24-hour cleanup logic
-          if (!hasToken) {
-            const firstConv = parsed[0];
-            const creationTime = firstConv?.createdAt ? new Date(firstConv.createdAt).getTime() : Date.now();
-            const oneDayMs = 24 * 60 * 60 * 1000;
-            if (Date.now() - creationTime > oneDayMs) {
-              parsed = [createConversation('New chat')];
-              localStorage.removeItem(CONVERSATIONS_KEY);
-              localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
-            }
-          }
-          setConversations(parsed);
-        }
-      }
-      const savedActive = localStorage.getItem(ACTIVE_CONVERSATION_KEY);
-      if (savedActive) setActiveConversationId(savedActive);
-    } catch (error) {
-      console.error('Failed to restore assistant session', error);
-    } finally {
-      setIsHydrated(true);
-    }
-  }, [hasToken]);
+    setIsHydrated(true);
+  }, []);
 
   const fetchConversations = useCallback(async () => {
     try {
       const params = {};
-      if (!hasToken) {
-        params.guestId = getOrCreateGuestId();
+      const guestId = await getOrCreateGuestId();
+      if (guestId) {
+        params.guestId = guestId;
       }
       const { data } = await axiosInstance.get('/ai/agent/conversations', { params });
       if (data?.success && Array.isArray(data.conversations)) {
@@ -329,9 +339,12 @@ export default function AiShoppingAssistant() {
             updatedAt: c.updatedAt
           }));
           setConversations(mapped);
-          if (!activeConversationId) {
-            setActiveConversationId(mapped[0].id);
-          }
+          setActiveConversationId((currentActiveId) => {
+            if (!currentActiveId || !mapped.some((x) => x.id === currentActiveId)) {
+              return mapped[0].id;
+            }
+            return currentActiveId;
+          });
         } else {
           setConversations([createConversation('New chat')]);
         }
@@ -339,24 +352,13 @@ export default function AiShoppingAssistant() {
     } catch (err) {
       console.error("Failed to load saved chats from DB", err);
     }
-  }, [hasToken, activeConversationId]);
+  }, [hasToken]);
 
   useEffect(() => {
     if (isOpen) {
       fetchConversations();
     }
   }, [isOpen, fetchConversations]);
-
-  useEffect(() => {
-    if (!isHydrated || typeof window === 'undefined') return;
-    if (!hasToken) {
-      localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(conversations));
-      localStorage.setItem(ACTIVE_CONVERSATION_KEY, activeConversation?.id || '');
-    } else {
-      localStorage.removeItem(CONVERSATIONS_KEY);
-      localStorage.removeItem(ACTIVE_CONVERSATION_KEY);
-    }
-  }, [conversations, activeConversation?.id, isHydrated, hasToken]);
 
   const prevHasTokenRef = useRef(hasToken);
   useEffect(() => {
@@ -429,7 +431,7 @@ export default function AiShoppingAssistant() {
       try {
         const params = {};
         if (!hasToken) {
-          params.guestId = getOrCreateGuestId();
+          params.guestId = await getOrCreateGuestId();
         }
         await axiosInstance.delete(`/ai/agent/conversations/${targetId}`, { params });
         const reset = createConversation('New chat');
@@ -524,7 +526,7 @@ export default function AiShoppingAssistant() {
         .slice(-12);
 
       const dbConvId = targetId && targetId.length === 24 ? targetId : undefined;
-      const guestId = hasToken ? undefined : getOrCreateGuestId();
+      const guestId = hasToken ? undefined : await getOrCreateGuestId();
       const { data } = await axiosInstance.post('/ai/agent/chat', {
         message: text,
         history,
@@ -538,6 +540,30 @@ export default function AiShoppingAssistant() {
           avoidOffTopic: true,
         },
       });
+
+      if (data?.limitReached) {
+        const assistantMessage = {
+          id: createId(),
+          role: 'assistant',
+          content: data.reply,
+          showLoginButton: true,
+          products: [],
+          createdAt: new Date().toISOString(),
+        };
+        setConversations((current) =>
+          current.map((c) => {
+            if (c.id !== targetId) return c;
+            return {
+              ...c,
+              messages: [...c.messages, assistantMessage],
+              updatedAt: new Date().toISOString(),
+            };
+          })
+        );
+        setInput('');
+        setIsLoading(false);
+        return;
+      }
 
       const assistantMessage = {
         id: createId(),
@@ -725,8 +751,8 @@ export default function AiShoppingAssistant() {
                               type="button"
                               onClick={() => selectConversation(c.id)}
                               className={`w-full rounded-xl px-2.5 py-2 text-left transition ${isActive
-                                  ? 'bg-primary-50 ring-1 ring-primary-200'
-                                  : 'hover:bg-slate-50'
+                                ? 'bg-primary-50 ring-1 ring-primary-200'
+                                : 'hover:bg-slate-50'
                                 }`}
                             >
                               <p className={`line-clamp-1 text-[12px] font-semibold ${isActive ? 'text-primary-700' : 'text-slate-800'}`}>

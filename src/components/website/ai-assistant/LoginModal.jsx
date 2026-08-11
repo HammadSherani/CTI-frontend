@@ -83,6 +83,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
         userType: resData.user.role
       }));
 
+      localStorage.setItem("token", resData.token);
       dispatch(setCurrentUser(resData.user));
 
       reset();

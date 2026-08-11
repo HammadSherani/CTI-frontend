@@ -15,7 +15,15 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
   (config) => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("token");
+      let token = localStorage.getItem("token");
+      if (!token) {
+        try {
+          const authData = localStorage.getItem("auth");
+          if (authData) {
+            token = JSON.parse(authData)?.token;
+          }
+        } catch {}
+      }
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
