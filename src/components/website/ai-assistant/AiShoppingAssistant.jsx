@@ -636,7 +636,7 @@ export default function AiShoppingAssistant() {
                     <Icon icon="mdi:robot-outline" className="text-xl" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-sm font-semibold tracking-tight">AI Shopping Assistant</p>
+                    <p className="truncate text-sm font-semibold tracking-tight">CTI Assistant</p>
                     <p className="truncate text-[11px] text-white/75">
                       {assistantModeLabel} {hasToken && `· ${conversations.length} chat${conversations.length === 1 ? '' : 's'}`}
                     </p>
