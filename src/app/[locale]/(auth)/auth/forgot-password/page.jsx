@@ -207,6 +207,8 @@ function ForgotPassword() {
                 alt="Forgot Password Illustration"
                 className="w-full max-w-lg mx-auto mb-8 drop-shadow-2xl"
                 priority
+                width={400}
+                height={400} 
               />
               <div className="text-white">
                 <h2 className="text-3xl font-bold mb-4">Reset Password</h2>

@@ -994,7 +994,7 @@ console.log(currentJobs,"current jobs")
                   <Link href="/mobile-repair">
                     <Button className="mt-4 sm:mt-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
                       <Icon icon="mdi:plus" className="w-5 h-5" />
-                      New Repair Request
+                      Post Job
                     </Button>
                   </Link>
                 </div>
@@ -1002,12 +1002,13 @@ console.log(currentJobs,"current jobs")
                 {/* Tab Menu */}
                 <div className="bg-white border border-gray-200 rounded-xl mb-6 overflow-hidden">
                   <div className="border-b border-gray-200">
-                    <nav className="flex space-x-8 justify-around px-6" aria-label="Tabs">
+                  <div className="overflow-x-auto scrollbar-hide">
+                    <nav className="flex space-x-1 px-4 min-w-max" aria-label="Tabs">
                       {tabs.map((tab) => (
                         <button
                           key={tab.id}
                           onClick={() => setActiveTab(tab.id)}
-                          className={`py-4 px-1 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 ${activeTab === tab.id
+                          className={`py-4 px-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors flex items-center gap-2 flex-shrink-0 ${activeTab === tab.id
                             ? 'border-primary-500 text-primary-600'
                             : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                             }`}
@@ -1023,6 +1024,7 @@ console.log(currentJobs,"current jobs")
                         </button>
                       ))}
                     </nav>
+                  </div>
                   </div>
 
                   {/* Search Bar inside tab container */}
