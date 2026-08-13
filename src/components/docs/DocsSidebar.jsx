@@ -6,7 +6,7 @@ import { DOCS_MODULES } from '@/data/docs/registry';
 
 function ModuleSwitcher({ activeModuleKey }) {
   return (
-    <div className="grid grid-cols-3 gap-1.5 border-b border-slate-100 p-3">
+    <div className="grid grid-cols-3  gap-1.5 border-b border-slate-100 p-3">
       {DOCS_MODULES.map((module) => {
         const isActive = module.key === activeModuleKey;
         const content = (

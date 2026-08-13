@@ -21,7 +21,7 @@ function createWelcomeMessage() {
   return {
     id: 'welcome',
     role: 'assistant',
-    content: 'Hi, I can help you find products, compare options, and open product pages. Ask in English, Urdu, Roman Urdu, or Hindi.',
+    content: 'Hi, I can help you find products, compare options, and open product pages.',
     products: [],
     createdAt: new Date().toISOString(),
   };
@@ -56,6 +56,11 @@ function formatPrice(value, currency = 'USD') {
   } catch {
     return `${currency} ${amount.toLocaleString('en-US')}`;
   }
+}
+
+function getProductRoute(product) {
+  if (!product) return null;
+  return product.slug || product._id || product.id || null;
 }
 
 /* ───────────────────────── Product Card ───────────────────────── */
@@ -152,11 +157,217 @@ function AssistantProductCard({ product, onClick }) {
   );
 }
 
+/* ───────────────────────── Job Card ───────────────────────── */
+
+function AssistantJobCard({ job, onClick }) {
+  if (!job) return null;
+
+  const title = job.title || 'Repair Job';
+  const category = job.category || null;
+  const deviceBrand = job.deviceBrand || null;
+  const deviceModel = job.deviceModel || null;
+  const location = job.location?.city || job.location?.state || null;
+
+  const currency = job.budget?.currency || 'TRY';
+  const minBudget = Number(job.budget?.min ?? 0);
+  const maxBudget = Number(job.budget?.max ?? minBudget);
+
+  const budgetLabel =
+    maxBudget > minBudget && minBudget > 0
+      ? `${formatPrice(minBudget, currency)} – ${formatPrice(maxBudget, currency)}`
+      : formatPrice(minBudget || maxBudget, currency);
+
+  const urgency = job.urgency || 'medium';
+
+  const urgencyConfig = {
+    low: {
+      dot: 'bg-emerald-500',
+      badge: 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100',
+      label: 'Low',
+    },
+    medium: {
+      dot: 'bg-amber-500',
+      badge: 'bg-amber-50 text-amber-700 ring-1 ring-amber-100',
+      label: 'Medium',
+    },
+    high: {
+      dot: 'bg-orange-500',
+      badge: 'bg-orange-50 text-orange-700 ring-1 ring-orange-100',
+      label: 'High',
+    },
+    urgent: {
+      dot: 'bg-rose-500',
+      badge: 'bg-rose-50 text-rose-700 ring-1 ring-rose-100',
+      label: 'Urgent',
+    },
+  };
+
+  const config = urgencyConfig[urgency] || urgencyConfig.medium;
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="
+        group relative flex h-[280px] w-full flex-col overflow-hidden
+        rounded-2xl border border-slate-200/80 bg-white
+        text-left shadow-[0_2px_8px_rgba(15,23,42,0.04)]
+        transition-all duration-300
+        hover:-translate-y-1
+        hover:border-primary-200
+        hover:shadow-[0_12px_30px_rgba(15,23,42,0.10)]
+        focus:outline-none focus:ring-2 focus:ring-primary-500/20
+      "
+    >
+      {/* Subtle top accent */}
+      <div className="absolute inset-x-0 top-0 h-[3px] bg-gradient-to-r from-primary-500 via-primary-400 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 pt-4">
+        <span
+          className="
+            max-w-[58%] truncate rounded-lg bg-primary-50
+            px-2.5 py-1.5 text-[10px] font-bold
+            text-primary-700
+          "
+        >
+          {category || 'Repair Service'}
+        </span>
+
+        <span
+          className={`
+            inline-flex items-center gap-1.5 rounded-full
+            px-2.5 py-1 text-[9px] font-bold uppercase
+            tracking-wide ${config.badge}
+          `}
+        >
+          <span className={`h-1.5 w-1.5 rounded-full ${config.dot}`} />
+          {config.label}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div className="flex min-h-0 flex-1 flex-col px-4 pt-4">
+        {/* Title */}
+        <h4
+          className="
+            line-clamp-2 text-[15px] font-bold leading-[1.35]
+            text-slate-900 transition-colors
+            group-hover:text-primary-600
+          "
+        >
+          {title}
+        </h4>
+
+        {/* Description */}
+        {job.description && (
+          <p
+            className="
+              mt-2 line-clamp-2 text-[11.5px]
+              leading-relaxed text-slate-500
+            "
+          >
+            {job.description}
+          </p>
+        )}
+
+        {/* Meta information */}
+        <div className="mt-auto space-y-2 pb-3 pt-3">
+          {(deviceBrand || deviceModel) && (
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                <Icon
+                  icon="solar:smartphone-device-bold-duotone"
+                  className="text-[15px] text-slate-500"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[9px] font-medium uppercase tracking-wider text-slate-400">
+                  Device
+                </p>
+                <p className="truncate text-[11px] font-semibold text-slate-700">
+                  {[deviceBrand, deviceModel]
+                    .filter(Boolean)
+                    .join(' ')}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {location && (
+            <div className="flex min-w-0 items-center gap-2">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100">
+                <Icon
+                  icon="solar:map-point-bold-duotone"
+                  className="text-[15px] text-slate-500"
+                />
+              </div>
+
+              <div className="min-w-0">
+                <p className="text-[9px] font-medium uppercase tracking-wider text-slate-400">
+                  Location
+                </p>
+                <p className="truncate text-[11px] font-semibold text-slate-700">
+                  {location}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Footer */}
+      <div
+        className="
+          flex items-center justify-between
+          border-t border-slate-100 bg-slate-50/70
+          px-4 py-3
+        "
+      >
+        <div className="min-w-0">
+          <p className="text-[9px] font-semibold uppercase tracking-[0.08em] text-slate-400">
+            Estimated Budget
+          </p>
+
+          <p className="mt-0.5 truncate text-[15px] font-extrabold text-slate-900">
+            {budgetLabel}
+          </p>
+        </div>
+
+        {job.offersCount !== undefined && (
+          <div
+            className="
+              flex shrink-0 items-center gap-1.5
+              rounded-xl border border-slate-200
+              bg-white px-2.5 py-2
+              shadow-sm
+            "
+          >
+            <Icon
+              icon="solar:gavel-bold-duotone"
+              className="text-[14px] text-primary-500"
+            />
+
+            <span className="text-[10px] font-bold text-slate-700">
+              {job.offersCount}
+            </span>
+
+            <span className="text-[10px] font-medium text-slate-400">
+              bids
+            </span>
+          </div>
+        )}
+      </div>
+    </button>
+  );
+}
 /* ───────────────────────── Message Bubble ───────────────────────── */
 
-const AssistantBubble = memo(function AssistantBubble({ message, onProductClick, onLoginClick }) {
+const AssistantBubble = memo(function AssistantBubble({ message, onProductClick, onJobClick, onLoginClick }) {
   const isUser = message.role === 'user';
   const hasProducts = Array.isArray(message.products) && message.products.length > 0;
+  const hasJobs = Array.isArray(message.jobs) && message.jobs.length > 0;
 
   const renderFormattedContent = (content) => {
     if (!content) return '';
@@ -256,6 +467,26 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
             </div>
           </div>
         )}
+
+        {hasJobs && (
+          <div className="mt-3 space-y-2">
+            <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              <Icon icon="solar:widget-tools-bold-duotone" className="text-sm text-primary-500" />
+              Matching jobs
+            </div>
+            {/* Horizontal Carousel Slider */}
+            <div className="flex w-full gap-3 overflow-x-auto pb-2.5 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 snap-x snap-mandatory">
+              {message.jobs.map((job) => (
+                <div key={job.id || job._id} className="w-[210px] shrink-0 snap-start">
+                  <AssistantJobCard
+                    job={job}
+                    onClick={() => onJobClick(job)}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {isUser && (
@@ -299,8 +530,13 @@ export default function AiShoppingAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  // Tracks whether we've completed at least one history fetch this session,
+  // so reopening the panel later doesn't flash the loading state again over
+  // conversations we already have in memory.
+  const hasLoadedHistoryRef = useRef(false);
   const hasToken = Boolean(token);
   const isGuestMode = !hasToken;
 
@@ -322,6 +558,7 @@ export default function AiShoppingAssistant() {
   }, []);
 
   const fetchConversations = useCallback(async () => {
+    setIsLoadingHistory(true);
     try {
       const params = {};
       const guestId = await getOrCreateGuestId();
@@ -351,6 +588,9 @@ export default function AiShoppingAssistant() {
       }
     } catch (err) {
       console.error("Failed to load saved chats from DB", err);
+    } finally {
+      hasLoadedHistoryRef.current = true;
+      setIsLoadingHistory(false);
     }
   }, [hasToken]);
 
@@ -461,6 +701,13 @@ export default function AiShoppingAssistant() {
     router.push(`${basePath}/${encodeURIComponent(target)}`);
   }, [router]);
 
+  const handleJobClick = useCallback((job) => {
+    const jobId = job.id || job._id;
+    if (!jobId) return;
+    setIsOpen(false);
+    router.push(`/repair-man/job-board/${jobId}`);
+  }, [router]);
+
   const handleLoginClick = useCallback(() => {
     setIsLoginModalOpen(true);
   }, []);
@@ -487,6 +734,7 @@ export default function AiShoppingAssistant() {
         content: 'You have reached the maximum limit of 10 messages for guest mode. Please login or register to save your chats and get unlimited messages.',
         showLoginButton: true,
         products: [],
+        jobs: [],
         createdAt: new Date().toISOString(),
       };
       setConversations((current) =>
@@ -548,6 +796,7 @@ export default function AiShoppingAssistant() {
           content: data.reply,
           showLoginButton: true,
           products: [],
+          jobs: [],
           createdAt: new Date().toISOString(),
         };
         setConversations((current) =>
@@ -570,6 +819,7 @@ export default function AiShoppingAssistant() {
         role: 'assistant',
         content: data?.reply || 'I could not generate a response right now.',
         products: data?.products || [],
+        jobs: data?.jobs || [],
         createdAt: new Date().toISOString(),
       };
 
@@ -602,6 +852,7 @@ export default function AiShoppingAssistant() {
                 role: 'assistant',
                 content: fallback,
                 products: [],
+                jobs: [],
                 createdAt: new Date().toISOString(),
               },
             ],
@@ -683,38 +934,57 @@ export default function AiShoppingAssistant() {
                   {sessionHint} · Results from live catalog
                 </div>
 
-                <div className="space-y-3.5">
-                  <AnimatePresence initial={false}>
-                    {messages.map((message) => (
-                      <AssistantBubble
-                        key={message.id}
-                        message={message}
-                        onProductClick={handleProductClick}
-                        onLoginClick={handleLoginClick}
-                      />
+                {isLoadingHistory && !hasLoadedHistoryRef.current ? (
+                  <div className="flex flex-col gap-3.5 py-2">
+                    {[0, 1, 2].map((i) => (
+                      <div key={i} className={`flex gap-2.5 ${i === 1 ? 'justify-end' : 'justify-start'}`}>
+                        {i !== 1 && <div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-slate-200" />}
+                        <div
+                          className={`h-12 animate-pulse rounded-2xl bg-slate-200 ${i === 1 ? 'w-2/5 rounded-br-md' : 'w-3/5 rounded-bl-md'}`}
+                        />
+                        {i === 1 && <div className="h-8 w-8 shrink-0 animate-pulse rounded-xl bg-slate-200" />}
+                      </div>
                     ))}
-                  </AnimatePresence>
+                    <p className="mt-1 flex items-center justify-center gap-1.5 text-[11px] font-medium text-slate-400">
+                      <Icon icon="mdi:loading" className="animate-spin text-sm" />
+                      Loading your chat…
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    <AnimatePresence initial={false}>
+                      {messages.map((message) => (
+                        <AssistantBubble
+                          key={message.id}
+                          message={message}
+                          onProductClick={handleProductClick}
+                          onJobClick={handleJobClick}
+                          onLoginClick={handleLoginClick}
+                        />
+                      ))}
+                    </AnimatePresence>
 
-                  {isLoading && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex items-start gap-2.5"
-                    >
-                      <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white">
-                        <Icon icon="mdi:robot-outline" className="text-base" />
-                      </div>
-                      <div className="rounded-2xl rounded-bl-md bg-white px-3.5 py-3 shadow-sm ring-1 ring-slate-100">
-                        <div className="flex items-center gap-1.5">
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500 [animation-delay:-0.2s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500 [animation-delay:-0.1s]" />
-                          <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500" />
+                    {isLoading && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex items-start gap-2.5"
+                      >
+                        <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary-500 to-primary-700 text-white">
+                          <Icon icon="mdi:robot-outline" className="text-base" />
                         </div>
-                        <p className="mt-1.5 text-[11px] font-medium text-slate-500">Searching products…</p>
-                      </div>
-                    </motion.div>
-                  )}
-                </div>
+                        <div className="rounded-2xl rounded-bl-md bg-white px-3.5 py-3 shadow-sm ring-1 ring-slate-100">
+                          <div className="flex items-center gap-1.5">
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500 [animation-delay:-0.2s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500 [animation-delay:-0.1s]" />
+                            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500" />
+                          </div>
+                          <p className="mt-1.5 text-[11px] font-medium text-slate-500">Searching products…</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
                 <div ref={scrollRef} className="h-1" />
               </div>
 
@@ -835,7 +1105,10 @@ export default function AiShoppingAssistant() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 8 }}
             transition={{ duration: 0.2 }}
-            onClick={() => setIsOpen(true)}
+            onClick={() => {
+              if (!hasLoadedHistoryRef.current) setIsLoadingHistory(true);
+              setIsOpen(true);
+            }}
             className="group flex items-center gap-3 rounded-full border border-slate-200/80 bg-white pl-1.5 pr-4 py-1.5 shadow-[0_12px_40px_-8px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.28)]"
             aria-label="Open AI shopping assistant"
           >

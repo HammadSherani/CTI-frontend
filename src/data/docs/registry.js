@@ -1,5 +1,9 @@
 import { sellerNav } from './seller/nav';
 import { sellerPages } from './seller/pages';
+import { refurbishNav } from './refurbish/nav';
+import { refurbishPages } from './refurbish/pages';
+import { repairmanNav } from './repairman/nav';
+import { repairmanPages } from './repairman/pages';
 
 // ─────────────────────────────────────────────────────────
 // Central registry of documentation modules. Adding a new module
@@ -27,9 +31,9 @@ export const DOCS_MODULES = [
     description: 'Documentation for the refurbished devices marketplace.',
     icon: 'mdi:cellphone-cog',
     color: 'sky',
-    available: false,
-    nav: [],
-    pages: {},
+    available: true,
+    nav: refurbishNav,
+    pages: refurbishPages,
   },
   {
     key: 'repairman',
@@ -38,9 +42,9 @@ export const DOCS_MODULES = [
     description: 'Documentation for the repair-service marketplace.',
     icon: 'mdi:wrench-outline',
     color: 'emerald',
-    available: false,
-    nav: [],
-    pages: {},
+    available: true,
+    nav: repairmanNav,
+    pages: repairmanPages,
   },
 ];
 

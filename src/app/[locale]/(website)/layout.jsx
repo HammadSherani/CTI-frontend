@@ -1,6 +1,6 @@
 'use client'
 import Chat from '@/components/chat/GlobalChat'
-import AiShoppingAssistant from '@/components/website/ai-assistant/AiShoppingAssistant'
+import AiShoppingAssistant from '@/components/website/ai-assistant/AiAssistant'
 import Footer from '@/components/website/Footer'
 import WebsiteHeader from '@/components/website/Header'
 import SelectCountry from '@/components/website/SelectCountry'

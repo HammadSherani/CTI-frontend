@@ -12,7 +12,7 @@ export default async function ModuleOverviewPage({ params }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl">
+    <div className=" max-w-6xl">
       <span className="inline-flex items-center gap-1.5 rounded-full bg-primary-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-primary-700">
         <Icon icon={docModule.icon} className="text-sm" />
         {docModule.title} Documentation

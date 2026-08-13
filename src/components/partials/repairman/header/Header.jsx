@@ -1,7 +1,7 @@
 "use client"
 import Image from 'next/image';
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { usePathname, Link } from '@/i18n/navigation';
+import { usePathname, Link, useRouter } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
@@ -17,7 +17,7 @@ function Header() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const dispatch = useDispatch();
-
+  const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
   const { unreadCount } = useNotifications();
 
@@ -82,12 +82,16 @@ function Header() {
     setIsDropdownOpen(prev => !prev);
   }, []);
 
+  const GoToWeb = () => {
+    router.push('/');
+  }
+
   return (
     <header className="border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-[#F8FAFB]">
       <div className="flex items-center p-3 gap-2 justify-start">
 
         {/* Welcome Card */}
-        <div className="bg-white px-6 py-3 rounded-xl shadow-sm flex-shrink-0">
+        <div onClick={GoToWeb} className="bg-white px-6 py-3 rounded-xl shadow-sm flex-shrink-0">
           <h5 className="text-gray-400 text-[13px] font-medium uppercase tracking-wide leading-none mb-1">
             Welcome Back
           </h5>

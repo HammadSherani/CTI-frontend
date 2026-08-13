@@ -3,6 +3,7 @@
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import DocsSearch from './DocsSearch';
+import Image from 'next/image';
 
 export default function DocsHeader({ onMenuClick, showMenuButton = true }) {
   return (
@@ -20,14 +21,8 @@ export default function DocsHeader({ onMenuClick, showMenuButton = true }) {
         )}
 
         <Link href="/docs" className="flex shrink-0 items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-sm">
-            <Icon icon="mdi:book-open-page-variant-outline" className="text-base" />
-          </span>
-          <span className="hidden text-[15px] font-bold tracking-tight text-slate-900 sm:block">
-            CTI <span className="font-normal text-slate-400">Docs</span>
-          </span>
+            <Image src="/assets/logo.png" alt="CTI Logo" width={84} height={154} className="mr-1" />
         </Link>
-
         <div className="mx-auto w-full max-w-md">
           <DocsSearch />
         </div>
