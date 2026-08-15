@@ -1,6 +1,6 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -531,7 +531,14 @@ export default function AiShoppingAssistant() {
   const [isHydrated, setIsHydrated] = useState(false);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const abortControllerRef = useRef(null);
   const scrollRef = useRef(null);
+  const containerRef = useRef(null);
+  const isNearBottomRef = useRef(true);
+  const prevChatIdRef = useRef(null);
+  const prevIsOpenRef = useRef(false);
+  const prevHistoryLoadingRef = useRef(false);
   const inputRef = useRef(null);
   // Tracks whether we've completed at least one history fetch this session,
   // so reopening the panel later doesn't flash the loading state again over
@@ -615,11 +622,32 @@ export default function AiShoppingAssistant() {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-    scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-  }, [messages, isLoading, isOpen]);
+  useLayoutEffect(() => {
+    if (!isOpen) {
+      prevIsOpenRef.current = isOpen;
+      return;
+    }
 
+    const isInitialOpen = !prevIsOpenRef.current;
+    const isChatChanged = prevChatIdRef.current !== activeConversationId;
+    const isHistoryLoadingFinished = prevHistoryLoadingRef.current && !isLoadingHistory;
+
+    prevIsOpenRef.current = isOpen;
+    prevChatIdRef.current = activeConversationId;
+    prevHistoryLoadingRef.current = isLoadingHistory;
+
+    if (isInitialOpen || isChatChanged || isHistoryLoadingFinished) {
+      // Instant scroll to bottom on open, chat switch, or after initial history load
+      scrollRef.current?.scrollIntoView({ behavior: 'auto', block: 'end' });
+      isNearBottomRef.current = true;
+    } else {
+      // New message streaming/added -> smooth scroll ONLY if user is near bottom
+      // or if we are actively submitting a new message (isLoading is true)
+      if (isNearBottomRef.current || isLoading) {
+        scrollRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }
+    }
+  }, [messages, isLoading, isOpen, activeConversationId, isLoadingHistory]);
   useEffect(() => {
     // Must wait for hydration to finish first: on the very first render this
     // effect and the hydration effect above both see the same pre-hydration
@@ -712,6 +740,28 @@ export default function AiShoppingAssistant() {
     setIsLoginModalOpen(true);
   }, []);
 
+  const handleStopGeneration = useCallback(() => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setIsLoading(false);
+    }
+  }, []);
+
+  const handleClose = useCallback(() => {
+    if (isLoading) {
+      setShowConfirmModal(true);
+    } else {
+      setIsOpen(false);
+    }
+  }, [isLoading]);
+
+  const confirmClose = useCallback(() => {
+    handleStopGeneration();
+    setShowConfirmModal(false);
+    setIsOpen(false);
+  }, [handleStopGeneration]);
+
   const sendMessage = async (event) => {
     event?.preventDefault();
     const text = input.trim();
@@ -768,6 +818,9 @@ export default function AiShoppingAssistant() {
     setIsLoading(true);
 
     try {
+      abortControllerRef.current = new AbortController();
+      const signal = abortControllerRef.current.signal;
+
       const history = nextMessages
         .filter((m) => m.role === 'user' || m.role === 'assistant')
         .map((m) => ({ role: m.role, content: m.content }))
@@ -775,7 +828,8 @@ export default function AiShoppingAssistant() {
 
       const dbConvId = targetId && targetId.length === 24 ? targetId : undefined;
       const guestId = hasToken ? undefined : await getOrCreateGuestId();
-      const { data } = await axiosInstance.post('/ai/agent/chat', {
+
+      const payload = {
         message: text,
         history,
         conversationId: dbConvId,
@@ -787,66 +841,278 @@ export default function AiShoppingAssistant() {
           responseStyle: 'concise',
           avoidOffTopic: true,
         },
+      };
+
+      const baseURL = axiosInstance.defaults.baseURL || '';
+      const response = await fetch(`${baseURL}/ai/agent/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(hasToken ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(payload),
+        signal
       });
 
-      if (data?.limitReached) {
-        const assistantMessage = {
-          id: createId(),
-          role: 'assistant',
-          content: data.reply,
-          showLoginButton: true,
-          products: [],
-          jobs: [],
-          createdAt: new Date().toISOString(),
-        };
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        const data = await response.json();
+
+        if (data?.limitReached) {
+          setConversations((current) =>
+            current.map((c) => {
+              if (c.id !== targetId) return c;
+              return {
+                ...c,
+                messages: [...c.messages, {
+                  id: createId(),
+                  role: 'assistant',
+                  content: data.reply || 'Limit reached',
+                  showLoginButton: true,
+                  products: [],
+                  jobs: [],
+                  createdAt: new Date().toISOString(),
+                }],
+                updatedAt: new Date().toISOString(),
+              };
+            })
+          );
+          setIsLoading(false);
+          return;
+        }
+
         setConversations((current) =>
           current.map((c) => {
             if (c.id !== targetId) return c;
             return {
               ...c,
-              messages: [...c.messages, assistantMessage],
+              id: data?.conversationId || c.id,
+              messages: [...c.messages, {
+                id: createId(),
+                role: 'assistant',
+                content: data?.reply || 'I could not generate a response right now.',
+                products: data?.products || [],
+                jobs: data?.jobs || [],
+                createdAt: new Date().toISOString(),
+              }],
+              title: c.title || getConversationTitle(nextMessages),
               updatedAt: new Date().toISOString(),
             };
           })
         );
-        setInput('');
-        setIsLoading(false);
+        if (data?.conversationId) setActiveConversationId(data.conversationId);
         return;
       }
 
-      const assistantMessage = {
-        id: createId(),
-        role: 'assistant',
-        content: data?.reply || 'I could not generate a response right now.',
-        products: data?.products || [],
-        jobs: data?.jobs || [],
-        createdAt: new Date().toISOString(),
-      };
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
 
-      setConversations((current) =>
-        current.map((c) => {
-          if (c.id !== targetId) return c;
-          return {
-            ...c,
-            id: data?.conversationId || c.id,
-            messages: [...c.messages, assistantMessage],
-            title: c.title || getConversationTitle(nextMessages),
-            updatedAt: new Date().toISOString(),
-          };
-        })
-      );
-      if (data?.conversationId) {
-        setActiveConversationId(data.conversationId);
+      const assistantMessageId = createId();
+      let streamedContent = '';
+      let isDone = false;
+      let buffer = '';
+      let messageInjected = false;
+
+      while (!isDone) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        let boundary = buffer.indexOf('\n\n');
+        while (boundary !== -1) {
+          const chunk = buffer.slice(0, boundary).trim();
+          buffer = buffer.slice(boundary + 2);
+
+          if (chunk.startsWith('data: ')) {
+            const dataStr = chunk.slice(6);
+            if (dataStr === '[DONE]') {
+              isDone = true;
+              break;
+            }
+            try {
+              const data = JSON.parse(dataStr);
+              if (data.type === 'error') {
+                if (data.limitReached) {
+                  if (!messageInjected) {
+                    setConversations((current) =>
+                      current.map((c) => {
+                        if (c.id !== targetId) return c;
+                        return {
+                          ...c,
+                          messages: [
+                            ...c.messages,
+                            {
+                              id: assistantMessageId,
+                              role: 'assistant',
+                              content: data.reply || 'Limit reached',
+                              showLoginButton: true,
+                              products: [],
+                              jobs: [],
+                              createdAt: new Date().toISOString(),
+                            },
+                          ],
+                        };
+                      })
+                    );
+                  } else {
+                    setConversations((current) =>
+                      current.map((c) => {
+                        if (c.id !== targetId) return c;
+                        return {
+                          ...c,
+                          messages: c.messages.map(m => m.id === assistantMessageId ? {
+                            ...m,
+                            content: data.reply || 'Limit reached',
+                            showLoginButton: true
+                          } : m)
+                        };
+                      })
+                    );
+                  }
+                  isDone = true;
+                  break;
+                }
+
+                // For other errors, inject the error message if not injected yet
+                if (!messageInjected) {
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        messages: [
+                          ...c.messages,
+                          {
+                            id: assistantMessageId,
+                            role: 'assistant',
+                            content: data.message || data.reply || 'I could not reach the shopping assistant right now.',
+                            products: [],
+                            jobs: [],
+                            createdAt: new Date().toISOString(),
+                          },
+                        ],
+                      };
+                    })
+                  );
+                } else {
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        messages: c.messages.map(m => m.id === assistantMessageId ? {
+                          ...m,
+                          content: data.message || data.reply || 'I could not reach the shopping assistant right now.',
+                        } : m)
+                      };
+                    })
+                  );
+                }
+                isDone = true;
+                break;
+              } else if (data.type === 'text') {
+                streamedContent += data.content;
+                if (!messageInjected) {
+                  messageInjected = true;
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        messages: [
+                          ...c.messages,
+                          {
+                            id: assistantMessageId,
+                            role: 'assistant',
+                            content: streamedContent,
+                            products: [],
+                            jobs: [],
+                            createdAt: new Date().toISOString(),
+                          },
+                        ],
+                      };
+                    })
+                  );
+                } else {
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        messages: c.messages.map(m => m.id === assistantMessageId ? { ...m, content: streamedContent } : m)
+                      };
+                    })
+                  );
+                }
+              } else if (data.type === 'done') {
+                if (!messageInjected) {
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        id: data.conversationId || c.id,
+                        messages: [
+                          ...c.messages,
+                          {
+                            id: assistantMessageId,
+                            role: 'assistant',
+                            content: data.reply || streamedContent,
+                            products: data.products || [],
+                            jobs: data.jobs || [],
+                            createdAt: new Date().toISOString(),
+                          },
+                        ],
+                      };
+                    })
+                  );
+                } else {
+                  setConversations((current) =>
+                    current.map((c) => {
+                      if (c.id !== targetId) return c;
+                      return {
+                        ...c,
+                        id: data.conversationId || c.id,
+                        messages: c.messages.map(m => m.id === assistantMessageId ? {
+                          ...m,
+                          content: data.reply || streamedContent,
+                          products: data.products || [],
+                          jobs: data.jobs || []
+                        } : m)
+                      };
+                    })
+                  );
+                }
+                if (data.conversationId) {
+                  setActiveConversationId(data.conversationId);
+                }
+                isDone = true;
+              }
+            } catch (err) {
+              console.error("Error parsing SSE chunk:", err);
+            }
+          }
+          boundary = buffer.indexOf('\n\n');
+        }
       }
     } catch (error) {
-      const fallback = error?.response?.data?.message || 'I could not reach the shopping assistant right now.';
+      if (error.name === 'AbortError') {
+        console.log("Request aborted");
+        return; // Don't show fallback if deliberately stopped
+      }
+      const fallback = error?.message || 'I could not reach the shopping assistant right now.';
       setConversations((current) =>
         current.map((c) => {
           if (c.id !== targetId) return c;
           return {
             ...c,
             messages: [
-              ...c.messages,
+              ...c.messages.filter(m => m.content !== ''), // Remove empty streaming shell if it failed early
               {
                 id: createId(),
                 role: 'assistant',
@@ -862,6 +1128,7 @@ export default function AiShoppingAssistant() {
       );
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -915,7 +1182,7 @@ export default function AiShoppingAssistant() {
                   </button>
                   <button
                     type="button"
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleClose}
                     className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 transition hover:bg-white/20"
                     aria-label="Close"
                   >
@@ -929,10 +1196,17 @@ export default function AiShoppingAssistant() {
             {/* ── Body ── */}
             <div className="relative flex min-h-0 flex-1">
               {/* Messages */}
-              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/60 px-3.5 py-3.5">
-                <div className="mb-3 rounded-xl border border-primary-100/80 bg-primary-50/60 px-3 py-2 text-[11px] font-medium text-primary-800">
+              <div
+                ref={containerRef}
+                onScroll={(e) => {
+                  const { scrollTop, scrollHeight, clientHeight } = e.target;
+                  isNearBottomRef.current = scrollHeight - scrollTop - clientHeight < 150;
+                }}
+                className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-slate-50/60 px-3.5 py-3.5"
+              >
+                {/* <div className="mb-3 rounded-xl border border-primary-100/80 bg-primary-50/60 px-3 py-2 text-[11px] font-medium text-primary-800">
                   {sessionHint} · Results from live catalog
-                </div>
+                </div> */}
 
                 {isLoadingHistory && !hasLoadedHistoryRef.current ? (
                   <div className="flex flex-col gap-3.5 py-2">
@@ -1058,17 +1332,25 @@ export default function AiShoppingAssistant() {
                   placeholder="Ask about phones, prices, stock…"
                   className="max-h-28 min-h-[40px] flex-1 resize-none bg-transparent px-2.5 py-2 text-[13.5px] text-slate-900 outline-none placeholder:text-slate-400"
                 />
-                <button
-                  type="submit"
-                  disabled={isLoading || !input.trim()}
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Send"
-                >
-                  <Icon
-                    icon={isLoading ? 'mdi:loading' : 'mdi:send'}
-                    className={isLoading ? 'animate-spin text-lg' : 'text-lg'}
-                  />
-                </button>
+                {isLoading ? (
+                  <button
+                    type="button"
+                    onClick={handleStopGeneration}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-red-500 text-white transition hover:bg-red-600"
+                    aria-label="Stop Generation"
+                  >
+                    <Icon icon="mdi:stop-circle-outline" className="text-xl" />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    disabled={!input.trim()}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white transition hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Send"
+                  >
+                    <Icon icon="mdi:send" className="text-lg" />
+                  </button>
+                )}
               </div>
 
               <div className="mt-2 flex items-center justify-between text-[10px] text-slate-400">
@@ -1135,6 +1417,48 @@ export default function AiShoppingAssistant() {
           fetchConversations();
         }}
       />
+
+      <AnimatePresence>
+        {showConfirmModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-2xl"
+            >
+              <div className="px-6 pb-5 pt-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
+                  <Icon icon="mdi:alert" className="text-2xl text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-slate-900">Cancel Request?</h3>
+                <p className="mt-2 text-sm text-slate-500">
+                  An AI response is currently generating. Are you sure you want to close the assistant and cancel this request?
+                </p>
+              </div>
+              <div className="flex border-t border-slate-100 bg-slate-50/50 p-2">
+                <button
+                  onClick={() => setShowConfirmModal(false)}
+                  className="flex-1 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+                >
+                  Keep Waiting
+                </button>
+                <button
+                  onClick={confirmClose}
+                  className="flex-1 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

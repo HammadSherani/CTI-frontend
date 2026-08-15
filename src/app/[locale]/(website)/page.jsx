@@ -16,6 +16,7 @@ import OurProcess from '@/components/website/home/ourProcess';
 import BottomPromoImages from '@/components/website/home/bottomPromoImages';
 import FilterBar from '@/components/website/FilterBar';
 import OurServices from '@/components/website/home/ourServices';
+import SellGadgets from '@/components/website/home/SellGadgets';
 import TopRepairman from '@/components/website/home/TopRepairman';
 import BecomePartner from '@/components/website/home/becomePartner';
 import Testimonials from '@/components/website/home/testimonials';
@@ -78,6 +79,7 @@ function Home() {
       <Hero />
    
       <OurServices />
+      <SellGadgets />
       <VideoSection />
       {/* <SellingProducts title="Products" titleHighlight="New" /> */}
       <StaticSections />

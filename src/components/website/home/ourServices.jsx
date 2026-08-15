@@ -28,17 +28,8 @@ const cardVariants = {
   },
 };
 
-
-
 const ServiceSection = () => {
   const router = useRouter();
-  const { services, loading: servicesLoading } = useSelector((state) => state.home || {});
-
-  const activeServices = Array.isArray(services)
-    ? services.filter((s) => s.isActive !== false)
-    : [];
-
-  const displayServices = activeServices.length > 0 ? activeServices : [];
 
   // Dropdown States
   const [brands, setBrands] = useState([]);
@@ -52,99 +43,122 @@ const ServiceSection = () => {
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingColors, setLoadingColors] = useState(false);
-const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [error, setError] = useState(null);
+
+  // Categories State
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(true);
+
+  // Fetch Buy Refurbished Categories
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axiosInstance.get("/public/sell-device/header-data");
+        if (response.data?.success) {
+          setCategories(response.data.data.buyRefurbished || []);
+        }
+      } catch (error) {
+        console.error("Error fetching buy refurbished categories:", error);
+      } finally {
+        setLoadingCategories(false);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Fetch Brands
   const fetchBrands = async () => {
     try {
-      setLoadingBrands(true);
-      const { data } = await axiosInstance.get("/public/brands");
-      setBrands(data?.data?.brands || []);
+      const response = await axiosInstance.get("/services/brands");
+      if (response.data && response.data.success) {
+        setBrands(response.data.data);
+      }
     } catch (err) {
-      setError("Failed to load brands. Please try again.");
-      console.error(err);
+      console.error("Failed to fetch brands:", err);
+      setError("Failed to load brands.");
     } finally {
       setLoadingBrands(false);
     }
   };
 
+  // Fetch Models based on Brand
   const fetchModels = async (brandId) => {
-    if (!brandId) return;
+    setLoadingModels(true);
     try {
-      setLoadingModels(true);
-      setModels([]);
-      setSelectedModel(null);
-      setColors([]);
-      setSelectedColor(null);
-
-      const { data } = await axiosInstance.get(`/public/models/brand/${brandId}`);
-      setModels(data?.data?.models || []);
+      const response = await axiosInstance.get(`/services/models?brandId=${brandId}`);
+      if (response.data && response.data.success) {
+        setModels(response.data.data);
+      }
     } catch (err) {
-      console.error("Failed to load models", err);
+      console.error("Failed to fetch models:", err);
     } finally {
       setLoadingModels(false);
     }
   };
 
+  // Fetch Colors based on Model
   const fetchColors = async (modelId) => {
-    if (!modelId) return;
+    setLoadingColors(true);
     try {
-      setLoadingColors(true);
-      setColors([]);
-
-      const { data } = await axiosInstance.get(`/public/models/${modelId}/colors`);
-      setColors(data?.data?.colors || []);
+      const response = await axiosInstance.get(`/services/colors?modelId=${modelId}`);
+      if (response.data && response.data.success) {
+        setColors(response.data.data);
+      }
     } catch (err) {
-      console.error("Failed to load colors", err);
+      console.error("Failed to fetch colors:", err);
     } finally {
       setLoadingColors(false);
     }
-  };
-
-  const handleBrandChange = (brand) => {
-    setSelectedBrand(brand);
-    setSelectedModel(null);
-    setSelectedColor(null);
-    if (brand?._id) fetchModels(brand._id);
-  };
-
-  const handleModelChange = (model) => {
-    setSelectedModel(model);
-    setSelectedColor(null);
-    if (model?._id) fetchColors(model._id);
-  };
-
-  const handleColorChange = (color) => setSelectedColor(color);
-const handleFindService = () => {
-    if (!selectedBrand || !selectedModel || !selectedColor) {
-      toast.warn("Please select Brand, Model, and Color first");
-      return;
-    }
-    setShowModal(true);
-  };
-const handleSearchRepairman = () => {
-    setShowModal(false);
-    router.push("/coming");        
-  };
-  const handlePostJob = () => {
-    if (!selectedBrand || !selectedModel || !selectedColor) {
-      toast.warn("Please select Brand, Model, and Color");
-      return;
-    }
-    const brandSlug = selectedBrand.slug || selectedBrand.name.toLowerCase();
-    const modelSlug = selectedModel.slug || selectedModel.name.toLowerCase().replace(/\s+/g, "-");
-    const colorSlug = selectedColor.toLowerCase();
-    router.push(`/mobile-repair/${brandSlug}/${modelSlug}/${colorSlug}`);
   };
 
   useEffect(() => {
     fetchBrands();
   }, []);
 
-  const brandOptions = brands.map((b) => ({ value: b._id, label: b.name, data: b }));
-  const modelOptions = models.map((m) => ({ value: m._id, label: m.name, data: m }));
-  const colorOptions = colors.map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }));
+  // Handlers
+  const handleBrandChange = (brand) => {
+    setSelectedBrand(brand);
+    setSelectedModel(null);
+    setSelectedColor(null);
+    setModels([]);
+    setColors([]);
+    if (brand) fetchModels(brand._id);
+  };
+
+  const handleModelChange = (model) => {
+    setSelectedModel(model);
+    setSelectedColor(null);
+    setColors([]);
+    if (model) fetchColors(model._id);
+  };
+
+  const handleColorChange = (color) => {
+    setSelectedColor(color);
+  };
+
+  const handleFindService = () => {
+    if (!selectedBrand || !selectedModel || !selectedColor) {
+      toast.warn("Please select all options");
+      return;
+    }
+    setShowModal(true);
+  };
+
+  const handleSearchRepairman = () => {
+    setShowModal(false);
+    router.push(`/mobile-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
+  };
+
+  const handleMailInRepair = () => {
+    setShowModal(false);
+    router.push(`/mail-in-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
+  };
+
+  // Formatting Options for Dropdowns
+  const brandOptions = brands.map((b) => ({ label: b.name, value: b._id, icon: b.icon }));
+  const modelOptions = models.map((m) => ({ label: m.name, value: m._id }));
+  const colorOptions = colors.map((c) => ({ label: c, value: c }));
 
   return (
     <div className="py-16 bg-white">
@@ -164,7 +178,6 @@ const handleSearchRepairman = () => {
           {/* Filters */}
           <form className="mt-6 flex flex-wrap sm:flex-nowrap items-center gap-2 border border-gray-200 bg-white rounded-2xl shadow-md px-3 py-3" onSubmit={(e) => e.preventDefault()}>
 
-            {/* Brand */}
             <CustomDropdown
               icon="mdi:cellphone"
               label="Brand"
@@ -178,7 +191,6 @@ const handleSearchRepairman = () => {
 
             <Divider />
 
-            {/* Model */}
             <CustomDropdown
               icon="fluent:phone-key-20-regular"
               label="Model"
@@ -192,7 +204,6 @@ const handleSearchRepairman = () => {
 
             <Divider />
 
-            {/* Color */}
             <CustomDropdown
               icon="mdi:palette"
               label="Color"
@@ -206,8 +217,6 @@ const handleSearchRepairman = () => {
 
             <Divider />
 
-            {/* Buttons */}
-    {/* Single Button */}
             <div className="flex-shrink-0 px-1">
               <button
                 type="button"
@@ -222,109 +231,120 @@ const handleSearchRepairman = () => {
           </form>
         </div>
 
-        {/* Our Services */}
+        {/* Buy Refurbished */}
         <div className="text-left mb-12">
-          <SectionTag title="Our Services" />
+          <SectionTag title="Buy Refurbished" />
           <h2 className="text-xl md:text-2xl font-bold text-gray-900">
             <span className="text-primary-600">Our</span> Services
           </h2>
         </div>
 
-        {servicesLoading ? (
-          <ServicesSkeleton />
-        ) : displayServices.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">No services available right now.</div>
+        {loadingCategories ? (
+          <div className="flex flex-wrap justify-start gap-4 sm:gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center justify-start w-[100px] sm:w-[120px]">
+                <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] bg-gray-100 animate-pulse rounded-2xl mb-3"></div>
+                <div className="h-3 bg-gray-200 animate-pulse rounded w-16 sm:w-20"></div>
+              </div>
+            ))}
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-12 text-gray-500">No categories available right now.</div>
         ) : (
-          <motion.div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-5 md:gap-6">
-            {displayServices.map((service, index) => (
-              <motion.div key={service._id || index} className="rounded-2xl transition-all duration-300 overflow-hidden group cursor-pointer">
-                <div onClick={()=>router.push("/mobile-repair")} className="h-34 md:h-22 bg-[#FF690017] flex items-center justify-center">
-                  <div className="w-16 h-16 md:w-20 md:h-20 flex items-center justify-center">
+          <div className="flex flex-wrap justify-start gap-4 sm:gap-6">
+            {categories.map((category, index) => (
+              <motion.div
+                key={category._id || index}
+                whileHover={{ y: -3 }}
+                className="flex flex-col items-center justify-start group cursor-pointer w-[100px] sm:w-[120px]"
+                onClick={() => router.push(`/refurbish?category=${category.slug}`)}
+              >
+                <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] bg-[#FF69000D] rounded-2xl flex items-center justify-center p-4 mb-3 transition-colors duration-300 group-hover:bg-[#FF69001A]">
+                  <div className="relative w-full h-full">
                     <Image
-                      src={service.icon || "https://via.placeholder.com/120?text=Service"}
-                      alt={service.name}
-                      width={120}
-                      height={120}
-                      className="object-contain w-full h-full group-hover:scale-110 transition-transform duration-500"
+                      src={category.image || "https://via.placeholder.com/120?text=Category"}
+                      alt={category.name}
+                      fill
+                      sizes="100px"
+                      className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
                     />
                   </div>
                 </div>
-                <div className="p-4 text-center">
-                  <h3 className="font-semibold text-nowrap text-gray-800 group-hover:text-orange-600 transition-colors">
-                    {service.name}
-                  </h3>
-                </div>
+
+                <span className="text-[11px] sm:text-xs font-semibold text-gray-800 text-center leading-tight">
+                  {category.name}
+                </span>
               </motion.div>
             ))}
-          </motion.div>
+          </div>
         )}
 
 
 
         {/* ==================== MODAL ==================== */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[2000] p-4">
-          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
-            {/* Modal Header */}
-            <div className="px-6 py-5 border-b">
-              <h3 className="text-xl font-semibold text-gray-900 text-center">
-                What do you want to do?
-              </h3>
-              <p className="text-gray-500 text-center mt-1 text-sm">
-                {selectedBrand?.name} • {selectedModel?.name} • {selectedColor}
-              </p>
-            </div>
+        {showModal && (
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[2000] p-4">
+            <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full overflow-hidden">
+              {/* Modal Header */}
+              <div className="px-6 py-5 border-b">
+                <h3 className="text-xl font-semibold text-gray-900 text-center">
+                  What do you want to do?
+                </h3>
+                <p className="text-gray-500 text-center mt-1 text-sm">
+                  {selectedBrand?.name} • {selectedModel?.name} • {selectedColor}
+                </p>
+              </div>
 
-            {/* Options */}
-            <div className="p-6 space-y-3">
-              <button
-                onClick={handleSearchRepairman}
-                className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-blue-100 rounded-2xl flex items-center justify-center">
-                    <Icon icon="mdi:magnify" className="w-6 h-6 text-blue-600" />
+              {/* Options */}
+              <div className="p-6 space-y-3">
+                <button
+                  onClick={handleSearchRepairman}
+                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-blue-100 rounded-2xl flex items-center justify-center">
+                      <Icon icon="mdi:magnify" className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-900">Search Repairman</p>
+                      <p className="text-sm text-gray-500">Find nearby verified technicians</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="font-semibold text-gray-900">Search Repairman</p>
-                    <p className="text-sm text-gray-500">Find nearby verified technicians</p>
-                  </div>
-                </div>
-                <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
-              </button>
+                  <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                </button>
 
-              <button
-                onClick={handlePostJob}
-                className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-11 h-11 bg-orange-100 rounded-2xl flex items-center justify-center">
-                    <Icon icon="mdi:plus-circle" className="w-6 h-6 text-orange-600" />
+                <button
+                  onClick={handlePostJob}
+                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-11 h-11 bg-orange-100 rounded-2xl flex items-center justify-center">
+                      <Icon icon="mdi:plus-circle" className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="text-left">
+                      <p className="font-semibold text-gray-900">Hire a Repairman<picture>
+                        <source media="(min-width: 640px)" />
+                        <img src="" alt="" />
+                      </picture></p>
+                      <p className="text-sm text-gray-500">Let repairmen come to you</p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <p className="font-semibold text-gray-900">Hire a Repairman<picture>
-                      <source media="(min-width: 640px)"  />
-                      <img src="" alt="" />
-                    </picture></p>
-                    <p className="text-sm text-gray-500">Let repairmen come to you</p>
-                  </div>
-                </div>
-                <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
-              </button>
-            </div>
+                  <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                </button>
+              </div>
 
-            {/* Close Button */}
-            <div className="px-6 py-4 border-t">
-              <button
-                onClick={() => setShowModal(false)}
-                className="w-full py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors"
-              >
-                Cancel
-              </button>
+              {/* Close Button */}
+              <div className="px-6 py-4 border-t">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="w-full py-3 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
       </div>
     </div>
   );

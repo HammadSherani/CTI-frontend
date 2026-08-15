@@ -18,6 +18,13 @@ const saveAuthState = (state) => {
   try {
     const serializedState = JSON.stringify(state);
     localStorage.setItem("auth", serializedState);
+    
+    // Also sync the separate "token" key that axiosInstance might prioritize
+    if (state.token) {
+      localStorage.setItem("token", state.token);
+    } else {
+      localStorage.removeItem("token");
+    }
   } catch (error) {
     console.error("Error saving auth state to localStorage:", error);
   }
