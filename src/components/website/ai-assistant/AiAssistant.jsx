@@ -595,7 +595,7 @@ export default function AiShoppingAssistant() {
   }, [hasToken]);
 
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasLoadedHistoryRef.current) {
       fetchConversations();
     }
   }, [isOpen, fetchConversations]);
