@@ -533,6 +533,8 @@ function NavigationBar({ isHome, isScrolled }) {
   const [loadingProductCategories, setLoadingProductCategories] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [hoveredCategory, setHoveredCategory] = useState(null);
+  const [hoveredL1, setHoveredL1] = useState("Sell Phone");
+  const [hoveredL2, setHoveredL2] = useState(null);
   const [topBrands, setTopBrands] = useState([]);
   const [sellGadgetsData, setSellGadgetsData] = useState([]);
   const [buyRefurbishedData, setBuyRefurbishedData] = useState([]);
@@ -614,7 +616,19 @@ function NavigationBar({ isHome, isScrolled }) {
   ];
 
   const mainNav = [
-    { name: "Home", href: "/", hasDropdown: false },
+    {
+      name: "All", href: "/", hasDropdown: true,
+      dropdownItems: [
+        // sell phones
+        { name: "Sell Phone", href: "/sell-devices/phone", hasDropdown: true, dropdownItems: SELL_PHONE },
+        // sell gadgets
+        { name: "Sell Gadgets", href: "/sell-devices", hasDropdown: true, dropdownItems: SELL_GADGETS },
+        // buy refurbished devices
+        { name: "Buy Refurbished Devices", href: "/refurbish", hasDropdown: true, dropdownItems: REFURBISHED },
+        // Services
+        { name: "Services", href: "/mobile-repair", hasDropdown: true, dropdownItems: SERVICES },
+      ],
+    },
     {
       name: "Services",
       href: "/mobile-repair",
@@ -693,6 +707,8 @@ function NavigationBar({ isHome, isScrolled }) {
       if (!e.target.closest(".nav-dropdown")) {
         setOpenDropdown(null);
         setHoveredCategory(null);
+        setHoveredL1(null);
+        setHoveredL2(null);
       }
     };
     document.addEventListener("click", close);
@@ -731,6 +747,203 @@ function NavigationBar({ isHome, isScrolled }) {
           className={`absolute top-full ${item.name === "Support" ? "right-0" : "left-0"} mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-gray-100 py-4 px-4 z-50`}
         >
           <p className="text-sm text-gray-500 text-center">No data available</p>
+        </motion.div>
+      );
+    }
+
+    if (item.name === "All") {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 nav-dropdown-menu"
+          style={{ minWidth: "250px" }}
+        >
+          {item.dropdownItems.map((l1Item, idx) => {
+            const hasL2 = l1Item.dropdownItems && l1Item.dropdownItems.length > 0;
+            const isExpanded = hoveredL1 === l1Item.name;
+            const isInline = l1Item.name === "Sell Phone";
+
+            return (
+              <div
+                key={idx}
+                className="relative"
+                onMouseEnter={() => {
+                  setHoveredL1(l1Item.name);
+                  setHoveredL2(null);
+                }}
+              >
+                <div className="flex items-center justify-between px-4 py-2.5 hover:bg-orange-50 cursor-pointer transition-colors duration-150 group/l1">
+                  <Link
+                    href={l1Item.href}
+                    onClick={() => {
+                      setOpenDropdown(null);
+                      setHoveredL1(null);
+                      setHoveredL2(null);
+                    }}
+                    className="text-[13px] font-semibold text-gray-700 group-hover/l1:text-orange-600 transition-colors flex-1"
+                  >
+                    {l1Item.name}
+                  </Link>
+                  {hasL2 && (
+                    <Icon
+                      icon={isInline ? "mdi:chevron-down" : "mdi:chevron-right"}
+                      width={16}
+                      className={`text-gray-400 group-hover/l1:text-orange-500 transition-all duration-150 ml-2 ${
+                        isInline && isExpanded ? "rotate-180 text-orange-500" : ""
+                      } ${
+                        !isInline && isExpanded ? "translate-x-0.5 text-orange-500" : ""
+                      }`}
+                    />
+                  )}
+                </div>
+
+                {/* LEVEL 2 (INLINE ACCORDION FOR SELL PHONE ONLY) */}
+                {isInline && (
+                  <AnimatePresence initial={false}>
+                    {isExpanded && hasL2 && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2, ease: "easeInOut" }}
+                        className="pl-6 pr-2 overflow-hidden flex flex-col space-y-0.5 py-1 bg-gray-50/50"
+                      >
+                        {l1Item.dropdownItems.map((l2Item, l2Idx) => {
+                          const isSection = !!l2Item.sectionTitle;
+                          if (isSection) {
+                            return (
+                              <Link
+                                key={l2Idx}
+                                href={l2Item.href}
+                                onClick={() => {
+                                  setOpenDropdown(null);
+                                  setHoveredL1(null);
+                                  setHoveredL2(null);
+                                }}
+                                className="block px-2.5 py-1 text-[11px] font-bold text-gray-900 border-b border-gray-100 pb-1 mb-1 hover:text-orange-600 transition-colors"
+                              >
+                                {l2Item.sectionTitle}
+                              </Link>
+                            );
+                          }
+                          return (
+                            <Link
+                              key={l2Idx}
+                              href={l2Item.href}
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setHoveredL1(null);
+                                setHoveredL2(null);
+                              }}
+                              className="block py-1.5 px-2.5 rounded-lg hover:bg-orange-50 text-[13px] font-medium text-gray-600 hover:text-orange-600 transition-colors duration-150"
+                            >
+                              {l2Item.name}
+                            </Link>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                )}
+
+                {/* LEVEL 2 (FLYOUT TO THE RIGHT FOR OTHER CATEGORIES) */}
+                {!isInline && isExpanded && hasL2 && (
+                  <motion.div
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -5 }}
+                    transition={{ duration: 0.15 }}
+                    className="absolute left-full top-0 ml-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
+                    style={{ minWidth: "240px" }}
+                  >
+                    {l1Item.dropdownItems.map((l2Item, l2Idx) => {
+                      const isSection = !!l2Item.sectionTitle;
+                      const hasL3 = l2Item.brands && l2Item.brands.length > 0;
+
+                      if (isSection) {
+                        return (
+                          <Link
+                            key={l2Idx}
+                            href={l2Item.href}
+                            onClick={() => {
+                              setOpenDropdown(null);
+                              setHoveredL1(null);
+                              setHoveredL2(null);
+                            }}
+                            className="block px-4 py-2 text-[13px] font-bold text-gray-900 border-b border-gray-100 pb-1.5 mb-1.5 hover:text-orange-600 transition-colors"
+                          >
+                            {l2Item.sectionTitle}
+                          </Link>
+                        );
+                      }
+
+                      return (
+                        <div
+                          key={l2Idx}
+                          className="relative"
+                          onMouseEnter={() => {
+                            if (hasL3) setHoveredL2(l2Item.name);
+                            else setHoveredL2(null);
+                          }}
+                        >
+                          <div className="flex items-center justify-between px-4 py-2 hover:bg-orange-50 cursor-pointer transition-colors duration-150 group/l2">
+                            <Link
+                              href={l2Item.href}
+                              onClick={() => {
+                                setOpenDropdown(null);
+                                setHoveredL1(null);
+                                setHoveredL2(null);
+                              }}
+                              className="text-[13px] font-medium text-gray-700 group-hover/l2:text-orange-600 transition-colors flex-1"
+                            >
+                              {l2Item.name}
+                            </Link>
+                            {hasL3 && (
+                              <Icon
+                                icon="mdi:chevron-right"
+                                width={16}
+                                className="text-gray-400 group-hover/l2:translate-x-0.5 group-hover/l2:text-orange-500 transition-all duration-150 ml-2"
+                              />
+                            )}
+                          </div>
+
+                          {/* LEVEL 3 (FLYOUT FOR L2 BRAND LINKS WHERE APPLICABLE) */}
+                          {hoveredL2 === l2Item.name && hasL3 && (
+                            <motion.div
+                              initial={{ opacity: 0, x: -5 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              exit={{ opacity: 0, x: -5 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+                              style={{ minWidth: "200px" }}
+                            >
+                              {l2Item.brands.map((brand, brandIdx) => (
+                                <Link
+                                  key={brandIdx}
+                                  href={brand.href}
+                                  onClick={() => {
+                                    setOpenDropdown(null);
+                                    setHoveredL1(null);
+                                    setHoveredL2(null);
+                                  }}
+                                  className="block px-4 py-2 text-[13px] font-medium text-gray-700 hover:bg-orange-50 hover:text-orange-600 transition-colors"
+                                >
+                                  {brand.name}
+                                </Link>
+                              ))}
+                            </motion.div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </motion.div>
+                )}
+              </div>
+            );
+          })}
         </motion.div>
       );
     }
@@ -893,12 +1106,18 @@ function NavigationBar({ isHome, isScrolled }) {
               onMouseEnter={() => {
                 if (item.hasDropdown) {
                   setOpenDropdown(item.name);
+                  if (item.name === "All") {
+                    setHoveredL1("Sell Phone");
+                    setHoveredL2(null);
+                  }
                 }
               }}
               onMouseLeave={() => {
                 if (item.hasDropdown) {
                   setOpenDropdown(null);
                   setHoveredCategory(null);
+                  setHoveredL1(null);
+                  setHoveredL2(null);
                 }
               }}
             >

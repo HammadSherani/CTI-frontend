@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
+import RefurbishedReviewSection from '@/components/website/refurbish/RefurbishedReviewSection';
 
 export default function SellOldPhonePage() {
   const router = useRouter();
@@ -251,6 +252,80 @@ export default function SellOldPhonePage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Why Us Section */}
+          <div className="space-y-10 py-10 border-t border-gray-100">
+            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 text-center">Why Us</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-x-8 gap-y-10 max-w-5xl mx-auto px-4">
+              {/* Item 1 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:tag" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Best Prices</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">Objective AI-based pricing</p>
+                </div>
+              </div>
+              {/* Item 2 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:hand-coins" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Instant Payment</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">
+                    Instant Money Transfer in your preferred mode at time of pick up or store drop off
+                  </p>
+                </div>
+              </div>
+              {/* Item 3 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:sparkles" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Simple & Convenient</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">Check price, schedule pickup & get paid</p>
+                </div>
+              </div>
+              {/* Item 4 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:truck" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Free Doorstep Pickup</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">No fees for pickup across 1500 cities across India</p>
+                </div>
+              </div>
+              {/* Item 5 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:shield-check" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Factory Grade Data Wipe</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">100% Safe and Data Security Guaranteed</p>
+                </div>
+              </div>
+              {/* Item 6 */}
+              <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-primary-50/30 transition duration-300 group">
+                <div className="flex-shrink-0 w-12 h-12 rounded-xl bg-primary-50 flex items-center justify-center text-primary-600 group-hover:scale-110 transition duration-300">
+                  <Icon icon="lucide:receipt" className="text-2xl" />
+                </div>
+                <div className="space-y-1">
+                  <h4 className="text-base font-bold text-gray-800">Valid Purchase Invoice</h4>
+                  <p className="text-gray-500 text-xs leading-relaxed">Genuine Bill of Sale</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Testimonials Review Section */}
+          <div className="pt-6 pb-10 border-t border-gray-100">
+            <RefurbishedReviewSection />
           </div>
 
         </div>
