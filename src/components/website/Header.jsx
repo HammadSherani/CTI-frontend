@@ -533,7 +533,7 @@ function NavigationBar({ isHome, isScrolled }) {
   const [loadingProductCategories, setLoadingProductCategories] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [hoveredCategory, setHoveredCategory] = useState(null);
-  const [hoveredL1, setHoveredL1] = useState("Sell Phone");
+  const [hoveredL1, setHoveredL1] = useState(null);
   const [hoveredL2, setHoveredL2] = useState(null);
   const [topBrands, setTopBrands] = useState([]);
   const [sellGadgetsData, setSellGadgetsData] = useState([]);
@@ -764,7 +764,6 @@ function NavigationBar({ isHome, isScrolled }) {
           {item.dropdownItems.map((l1Item, idx) => {
             const hasL2 = l1Item.dropdownItems && l1Item.dropdownItems.length > 0;
             const isExpanded = hoveredL1 === l1Item.name;
-            const isInline = l1Item.name === "Sell Phone";
 
             return (
               <div
@@ -789,74 +788,21 @@ function NavigationBar({ isHome, isScrolled }) {
                   </Link>
                   {hasL2 && (
                     <Icon
-                      icon={isInline ? "mdi:chevron-down" : "mdi:chevron-right"}
+                      icon="mdi:chevron-right"
                       width={16}
-                      className={`text-gray-400 group-hover/l1:text-orange-500 transition-all duration-150 ml-2 ${
-                        isInline && isExpanded ? "rotate-180 text-orange-500" : ""
-                      } ${
-                        !isInline && isExpanded ? "translate-x-0.5 text-orange-500" : ""
-                      }`}
+                      className="text-gray-400 group-hover/l1:text-orange-500 transition-all duration-150 ml-2 group-hover/l1:translate-x-0.5"
                     />
                   )}
                 </div>
 
-                {/* LEVEL 2 (INLINE ACCORDION FOR SELL PHONE ONLY) */}
-                {isInline && (
-                  <AnimatePresence initial={false}>
-                    {isExpanded && hasL2 && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.2, ease: "easeInOut" }}
-                        className="pl-6 pr-2 overflow-hidden flex flex-col space-y-0.5 py-1 bg-gray-50/50"
-                      >
-                        {l1Item.dropdownItems.map((l2Item, l2Idx) => {
-                          const isSection = !!l2Item.sectionTitle;
-                          if (isSection) {
-                            return (
-                              <Link
-                                key={l2Idx}
-                                href={l2Item.href}
-                                onClick={() => {
-                                  setOpenDropdown(null);
-                                  setHoveredL1(null);
-                                  setHoveredL2(null);
-                                }}
-                                className="block px-2.5 py-1 text-[11px] font-bold text-gray-900 border-b border-gray-100 pb-1 mb-1 hover:text-orange-600 transition-colors"
-                              >
-                                {l2Item.sectionTitle}
-                              </Link>
-                            );
-                          }
-                          return (
-                            <Link
-                              key={l2Idx}
-                              href={l2Item.href}
-                              onClick={() => {
-                                setOpenDropdown(null);
-                                setHoveredL1(null);
-                                setHoveredL2(null);
-                              }}
-                              className="block py-1.5 px-2.5 rounded-lg hover:bg-orange-50 text-[13px] font-medium text-gray-600 hover:text-orange-600 transition-colors duration-150"
-                            >
-                              {l2Item.name}
-                            </Link>
-                          );
-                        })}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                )}
-
-                {/* LEVEL 2 (FLYOUT TO THE RIGHT FOR OTHER CATEGORIES) */}
-                {!isInline && isExpanded && hasL2 && (
+                {/* LEVEL 2 (FLYOUT TO THE RIGHT) */}
+                {isExpanded && hasL2 && (
                   <motion.div
                     initial={{ opacity: 0, x: -5 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -5 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute left-full top-0 ml-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
+                    className="absolute left-full top-0 ml-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[400px] overflow-y-auto"
                     style={{ minWidth: "240px" }}
                   >
                     {l1Item.dropdownItems.map((l2Item, l2Idx) => {
@@ -917,7 +863,7 @@ function NavigationBar({ isHome, isScrolled }) {
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -5 }}
                               transition={{ duration: 0.15 }}
-                              className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+                              className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-[350px] overflow-y-auto"
                               style={{ minWidth: "200px" }}
                             >
                               {l2Item.brands.map((brand, brandIdx) => (
@@ -955,7 +901,7 @@ function NavigationBar({ isHome, isScrolled }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
+          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[400px] overflow-y-auto"
           style={{ minWidth: "240px" }}
         >
           {item.dropdownItems.map((category, idx) => (
@@ -989,7 +935,7 @@ function NavigationBar({ isHome, isScrolled }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -5 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
+                  className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-[350px] overflow-y-auto"
                   style={{ minWidth: "200px" }}
                 >
                   {category.brands && category.brands.length > 0 ? (
@@ -1107,7 +1053,7 @@ function NavigationBar({ isHome, isScrolled }) {
                 if (item.hasDropdown) {
                   setOpenDropdown(item.name);
                   if (item.name === "All") {
-                    setHoveredL1("Sell Phone");
+                    setHoveredL1(null);
                     setHoveredL2(null);
                   }
                 }
