@@ -58,22 +58,22 @@ function ButtonSection() {
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef(null);
 
-   useEffect(() => {
-      const handleClickOutside = (event) => {
-        if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-          setIsDropdownOpen(false);
-        }
-        if (notificationRef.current && !notificationRef.current.contains(event.target)) {
-          setShowNotifications(false);
-        }
-      };
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+      if (notificationRef.current && !notificationRef.current.contains(event.target)) {
+        setShowNotifications(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
-     const toggleNotifications = useCallback(() => {
-        setShowNotifications(prev => !prev);
-      }, []);
+  const toggleNotifications = useCallback(() => {
+    setShowNotifications(prev => !prev);
+  }, []);
 
   const dispatch = useDispatch();
   const router = useRouter();
@@ -90,15 +90,15 @@ function ButtonSection() {
         .then(({ data }) => {
           if (data.success && data.data?.sellerId) setSellerIdDisplay(data.data.sellerId);
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, [user?.role, token]);
 
 
   console.log("unreadCount", unreadCount);
   console.log("notifications", notifications);
-  
-  
+
+
 
   const handleLogout = useCallback(() => {
     dispatch(clearAuth());
@@ -125,12 +125,12 @@ function ButtonSection() {
   const handleNotificationClick = () => router.push("/coming");
 
   const dropdownLinks = [
-    { name: "My Account",       path: "/my-account"    },
-    { name: "My Orders",        path: "/orders"        },
-    { name: "My Messages",      path: "/messages"      },
+    { name: "My Account", path: "/my-account" },
+    { name: "My Orders", path: "/orders" },
+    { name: "My Messages", path: "/messages" },
     { name: "My Sell Requests", path: "/my-sell-requests" },
-    { name: "Help & Support",   path: "/help-support"  },
-    { name: "Sign Out",         path: "/", isLogout: true },
+    { name: "Help & Support", path: "/help-support" },
+    { name: "Sign Out", path: "/", isLogout: true },
   ];
 
   if (!user) {
@@ -157,9 +157,8 @@ function ButtonSection() {
       <div className="relative" ref={notificationRef}>
         <button
           onClick={toggleNotifications}
-          className={`relative p-1.5 rounded-lg transition-all duration-200 ${
-            showNotifications ? 'text-orange-500 bg-orange-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
-          }`}
+          className={`relative p-1.5 rounded-lg transition-all duration-200 ${showNotifications ? 'text-orange-500 bg-orange-50' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'
+            }`}
           aria-label="Notifications"
         >
           <Icon icon={showNotifications ? "solar:bell-bold-duotone" : "solar:bell-linear"} className="w-5 h-5" />
@@ -204,11 +203,10 @@ function ButtonSection() {
                   key={link.name}
                   href={link.path}
                   onClick={link.isLogout ? handleLogout : () => setIsDropdownOpen(false)}
-                  className={`block px-4 py-2 text-[13px] font-medium transition-colors ${
-                    link.isLogout
+                  className={`block px-4 py-2 text-[13px] font-medium transition-colors ${link.isLogout
                       ? 'text-red-500 hover:bg-red-50'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
-                  }`}
+                    }`}
                 >
                   {link.name}
                 </Link>
@@ -304,7 +302,16 @@ function ButtonSection() {
 
   return (
     <div className="flex items-center gap-4">
-      {renderButtons ? renderButtons() : <h3>Login</h3>}
+      {renderButtons ? renderButtons() :
+        <div className="flex items-center gap-2">
+          <Link
+            href="/auth/register"
+            className="hidden sm:inline-flex items-center gap-1 bg-orange-500 hover:bg-orange-600 text-white px-3 py-1.5 rounded-lg text-[12px] font-semibold"
+          >
+            Get Started
+          </Link>
+        </div>
+      }
     </div>
   );
 }
