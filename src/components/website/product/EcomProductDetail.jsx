@@ -271,6 +271,28 @@ export default function EcomProductDetail({ params }) {
     router.push('/checkout');
   };
 
+  const handleAskSubmit = async (subject, message) => {
+    if (!token) { toast.error('Please log in to send a message'); router.push('/auth/login'); return; }
+    const sellerId = seller?.ownerId || seller?._id || productData?.sellerId;
+    if (!sellerId) { toast.error('Seller details not found'); return; }
+    setAskLoading(true);
+    try {
+      const { data } = await axiosInstance.post(
+        '/customer/queries',
+        { sellerId, queryType: 'customer', subject, message },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success("Your message has been sent to the seller!");
+        setShowAskModal(false);
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send message');
+    } finally {
+      setAskLoading(false);
+    }
+  };
+
   const handleMediaUpload = (e) => {
     const files = Array.from(e.target.files);
     const images = files.filter(f => f.type.startsWith('image/'));
@@ -787,6 +809,59 @@ export default function EcomProductDetail({ params }) {
             </div>
           </div>
         )}
+      </div>
+
+      {showAskModal && (
+        <AskSellerModal
+          onClose={() => setShowAskModal(false)}
+          onSubmit={handleAskSubmit}
+          loading={askLoading}
+          productTitle={productData?.title || ''}
+          sellerName={seller?.businessName || 'Seller'}
+        />
+      )}
+    </div>
+  );
+}
+
+function AskSellerModal({ onClose, onSubmit, loading, productTitle, sellerName }) {
+  const [subject, setSubject] = useState('');
+  const [message, setMessage] = useState('');
+  const ASK_QUICK_SUBJECTS = ['Warranty details?', 'Shipping to my city?', 'Stock availability', 'Condition details'];
+
+  const handleSubmit = () => {
+    if (!subject.trim() || !message.trim()) return;
+    onSubmit(subject.trim(), message.trim());
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+        <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
+          <div>
+            <h3 className="font-extrabold text-gray-900 text-base">Ask {sellerName}</h3>
+            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{productTitle}</p>
+          </div>
+          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+            <Icon icon="mdi:close" className="w-5 h-5 text-gray-400" />
+          </button>
+        </div>
+        <div className="px-6 py-4 space-y-4">
+          <div className="flex flex-wrap gap-1.5">
+            {ASK_QUICK_SUBJECTS.map(s => (
+              <button key={s} onClick={() => setSubject(s)} className={`text-xs px-3 py-1.5 rounded-xl border transition-all ${subject === s ? 'bg-primary-500 text-white border-primary-500' : 'bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'}`}>{s}</button>
+            ))}
+          </div>
+          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 text-sm text-gray-800" />
+          <textarea rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Message..." className="w-full px-4 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 text-sm text-gray-800 resize-none" />
+        </div>
+        <div className="px-6 pb-5 flex gap-3">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all text-sm">Cancel</button>
+          <button onClick={handleSubmit} disabled={loading} className="flex-1 py-2.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-all text-sm flex items-center justify-center gap-1.5">
+            {loading && <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />}
+            Send
+          </button>
+        </div>
       </div>
     </div>
   );
