@@ -38,8 +38,8 @@ export default function SellRequestsPage() {
     }
   }, [token, statusFilter, search]);
 
-  useEffect(() => { 
-    if (token) fetchRequests(); 
+  useEffect(() => {
+    if (token) fetchRequests();
   }, [token, statusFilter, search, fetchRequests]);
 
   const summaryCards = [
@@ -118,8 +118,8 @@ export default function SellRequestsPage() {
       key: "actions",
       header: "Actions",
       cell: (row) => (
-        <button 
-          onClick={() => router.push(`/admin/refurbished/requests/${row._id}`)} 
+        <button
+          onClick={() => router.push(`/admin/refurbished/requests/${row._id}`)}
           className="p-2 hover:bg-primary-50 rounded-xl text-primary-600"
           title="View Details"
         >

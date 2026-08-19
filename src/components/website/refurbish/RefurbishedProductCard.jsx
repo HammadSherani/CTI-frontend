@@ -181,6 +181,11 @@ export default function RefurbishedProductCard({ product }) {
           <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
             Refurbished
           </span>
+          {product.isCTIVerified && (
+            <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
+              <Icon icon="mdi:check-decagram" className="text-blue-500" /> CTI Verified
+            </span>
+          )}
           {rating !== null && (
             <span className="text-gray-700 text-[10px] font-semibold flex items-center gap-0.5 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded shrink-0">
               {Number(rating).toFixed(1)}

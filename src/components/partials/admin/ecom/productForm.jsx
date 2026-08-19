@@ -303,7 +303,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
   /* Load Categories */
   useEffect(() => {
     let url = adminMode ? "/admin/e-commerce/product/categories" : "/seller/product/categories";
-    if (type === "refurbished") url = "/admin/refurbish/categories";
+    if (type === "refurbished") url = adminMode ? "/admin/refurbish/categories" : "/seller/refurbished-products/categories";
     
     axiosInstance
       .get(url, { headers: { Authorization: `Bearer ${token}` } })
@@ -464,8 +464,11 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       return;
     }
     
-    axiosInstance
-      .get(`/admin/refurbish/brands?categoryId=${watchCategory}`, { headers: { Authorization: `Bearer ${token}` } })
+    const url = adminMode
+        ? `/admin/refurbish/brands?categoryId=${watchCategory}`
+        : `/seller/refurbished-products/brands/${watchCategory}`;
+      axiosInstance
+        .get(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(({ data }) => {
         setBrands(data.data || []);
         if (mode === "edit" && initialData) {
@@ -609,7 +612,9 @@ export default function ProductForm({ mode = "create", initialData = null, admin
         : (adminMode ? `/admin/e-commerce/product/${initialData._id}` : `/seller/product/${initialData._id}`);
 
       if (type === "refurbished") {
-         productUrl = isCreate ? "/admin/refurbish/products" : `/admin/refurbish/products/${initialData._id}`;
+         productUrl = adminMode
+           ? (isCreate ? "/admin/refurbish/products" : `/admin/refurbish/products/${initialData._id}`)
+           : (isCreate ? "/seller/refurbished-products/products" : `/seller/refurbished-products/products/${initialData._id}`);
       }
 
       const res = await axiosInstance[isCreate ? "post" : "put"](productUrl, fd, {
@@ -622,9 +627,9 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       toast.success(`Product ${isCreate ? "created" : "updated"} successfully`);
       if (type === "refurbished") {
         if (isCreate) {
-          router.push(`/admin/refurbished/products/${res.data.data._id}/variants`);
+          router.push(adminMode ? `/admin/refurbished/products/${res.data.data._id}/variants` : `/seller/refurbished/products/${res.data.data._id}/variants`);
         } else {
-          router.push("/admin/refurbished/products");
+          router.push(adminMode ? "/admin/refurbished/products" : "/seller/refurbished/products");
         }
       } else if (adminMode) {
         router.push("/admin/ecom/products");
@@ -684,7 +689,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
             <span
               className="hover:text-primary-600 cursor-pointer"
               onClick={() => {
-                if (type === "refurbished") router.push("/admin/refurbished/products");
+                if (type === "refurbished") router.push(adminMode ? "/admin/refurbished/products" : "/seller/refurbished/products");
                 else router.push(adminMode ? "/admin/ecom/products" : "/seller/product");
               }}
             >
@@ -836,7 +841,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                       type="button"
                       onClick={() => {
                         if (type === "refurbished") {
-                          router.push(`/admin/refurbished/products/${initialData._id}/variants`);
+                          router.push(adminMode ? `/admin/refurbished/products/${initialData._id}/variants` : `/seller/refurbished/products/${initialData._id}/variants`);
                         } else {
                           // Standard admin variants URL (assuming it exists or will be added if admin manages variants)
                           router.push(`/admin/ecom/products/${initialData._id}/variants`);
@@ -883,7 +888,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                       type="button"
                       onClick={() => {
                         if (type === "refurbished") {
-                          router.push(`/admin/refurbished/products/${initialData._id}/variants`);
+                          router.push(adminMode ? `/admin/refurbished/products/${initialData._id}/variants` : `/seller/refurbished/products/${initialData._id}/variants`);
                         } else {
                           router.push(`/admin/ecom/products/${initialData._id}/variants`);
                         }

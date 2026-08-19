@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import { useState, useRef, useCallback } from 'react';
 
 export default function ImageZoom({ src, alt }) {
@@ -13,6 +14,8 @@ export default function ImageZoom({ src, alt }) {
     setOrigin({ x, y });
   }, []);
 
+  console.log('ImageZoom rendered with src:', src);
+
   return (
     <div
       ref={ref}
@@ -21,9 +24,12 @@ export default function ImageZoom({ src, alt }) {
       onMouseMove={handleMouseMove}
       className="w-full h-full overflow-hidden cursor-zoom-in"
     >
-      <img
+      <Image
+        key={src}
         src={src}
         alt={alt}
+        width={800}
+        height={600}
         className="w-full h-full object-contain transition-transform duration-200 ease-out will-change-transform"
         style={{
           transform: zoom ? 'scale(2)' : 'scale(1)',

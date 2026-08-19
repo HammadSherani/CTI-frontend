@@ -54,7 +54,7 @@ export default function RefurbishedProductsPage() {
     try {
       const params = new URLSearchParams();
       if (statusFilter !== "") params.set("isActive", statusFilter);
-      const { data } = await axiosInstance.get(`/admin/refurbish/products?${params}`, {
+      const { data } = await axiosInstance.get(`/seller/refurbished-products/products?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setProducts(data.data || []);
@@ -71,7 +71,7 @@ export default function RefurbishedProductsPage() {
     const old = product.isActive;
     setProducts((p) => p.map((x) => x._id === product._id ? { ...x, isActive: !old } : x));
     try {
-      await axiosInstance.patch(`/admin/refurbish/products/toggle/${product._id}`, {}, {
+      await axiosInstance.patch(`/seller/refurbished-products/products/toggle/${product._id}`, {}, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success(`Product ${!old ? "activated" : "deactivated"}`);
@@ -83,7 +83,7 @@ export default function RefurbishedProductsPage() {
 
   const handleDelete = async (id) => {
     try {
-      await axiosInstance.delete(`/admin/refurbish/products/${id}`, {
+      await axiosInstance.delete(`/seller/refurbished-products/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       toast.success("Product deleted");
@@ -157,12 +157,7 @@ export default function RefurbishedProductsPage() {
       cell: (row) => (
         <div className="flex flex-col">
           <span className="text-sm font-semibold text-gray-800">{row.categoryId?.name || "—"}</span>
-          <span className="text-xs text-gray-500 mb-1">{row.brandId?.name || "—"}</span>
-          {row.isCTIVerified && (
-            <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1 bg-blue-50 w-fit px-1.5 py-0.5 rounded">
-              <Icon icon="mdi:check-decagram" className="text-blue-500" /> CTI Verified
-            </span>
-          )}
+          <span className="text-xs text-gray-500">{row.brandId?.name || "—"}</span>
         </div>
       ),
     },
@@ -217,13 +212,13 @@ export default function RefurbishedProductsPage() {
       header: "Actions",
       cell: (row) => (
         <div className="flex gap-1">
-          <button onClick={() => router.push(`/admin/refurbished/products/view/${row._id}`)} className="p-2 hover:bg-green-50 rounded-xl text-green-600" title="View Details">
+          <button onClick={() => router.push(`/seller/refurbished/products/view/${row._id}`)} className="p-2 hover:bg-green-50 rounded-xl text-green-600" title="View Details">
             <Icon icon="mdi:eye-outline" className="w-4 h-4" />
           </button>
-          <button onClick={() => router.push(`/admin/refurbished/products/edit/${row._id}`)} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600" title="Edit">
+          <button onClick={() => router.push(`/seller/refurbished/products/edit/${row._id}`)} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600" title="Edit">
             <Icon icon="mdi:pencil-outline" className="w-4 h-4" />
           </button>
-          <button onClick={() => router.push(`/admin/refurbished/products/${row._id}/variants`)} className="p-2 hover:bg-purple-50 rounded-xl text-purple-600" title="Manage Variants">
+          <button onClick={() => router.push(`/seller/refurbished/products/${row._id}/variants`)} className="p-2 hover:bg-purple-50 rounded-xl text-purple-600" title="Manage Variants">
             <Icon icon="mdi:layers-triple-outline" className="w-4 h-4" />
           </button>
           <button onClick={() => setConfirm({ id: row._id, label: row.title })} className="p-2 hover:bg-red-50 rounded-xl text-red-600" title="Delete">
@@ -241,7 +236,7 @@ export default function RefurbishedProductsPage() {
           <h1 className="text-3xl font-black text-gray-900">Refurbished Products</h1>
           <p className="text-gray-500 text-sm mt-1">Manage refurbished device listings</p>
         </div>
-        <Button onClick={() => router.push("/admin/refurbished/products/create")} variant="primary" className="h-11">
+        <Button onClick={() => router.push("/seller/refurbished/products/create")} variant="primary" className="h-11">
           <Icon icon="mdi:plus" className="w-5 h-5 mr-1" />
           Add Product
         </Button>

@@ -165,11 +165,16 @@ export default function EcomProductDetail({ params }) {
   const isCartLoading = cartLoadingIds.includes(currentUniqueId);
 
   /* ── Build image gallery ── */
-  const selectedVariantImages = (selectedVariant?.images || []).map(i => i.url);
+  const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
   const otherImages = variants
     .filter(v => v._id !== selectedVariantId)
-    .flatMap(v => (v.images || []).map(i => i.url));
-  let allImages = [...new Set([...selectedVariantImages, ...otherImages])];
+    .flatMap(v => (v.images || []).map(i => i?.url || i));
+  const productImages = (productData?.images || []).map(i => i?.url || i);
+
+  const uniqueVariantImages = selectedVariantImages.filter(img => !productImages.includes(img));
+  const sharedVariantImages = selectedVariantImages.filter(img => productImages.includes(img));
+
+  let allImages = [...new Set([...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
   if (!allImages.length) allImages = ['/assets/placeholder.jpg'];
 
   // Visible thumbnails
@@ -479,7 +484,7 @@ export default function EcomProductDetail({ params }) {
                       -{discountPercent}%
                     </span>
                   )}
-                  <ImageZoom src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
+                  <ImageZoom key={allImages[selectedImage] || selectedImage} src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
                 </div>
               </div>
             </div>
@@ -664,7 +669,40 @@ export default function EcomProductDetail({ params }) {
           </div>
 
           {/* Variants selection */}
-          {variants.length > 0 && (
+          {attrTypes.length > 0 ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm space-y-4">
+              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
+                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
+                Select Options
+              </h3>
+              {attrTypes.map(type => {
+                const opts = attrOptions[type] || [];
+                const currentVal = selectedAttributes[type];
+                return (
+                  <div key={type}>
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">{type}</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {opts.map(opt => {
+                        const isSelected = currentVal === opt.value;
+                        return (
+                          <button
+                            key={opt.value}
+                            onClick={() => handleAttrSelect(type, opt.value)}
+                            className={`px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all duration-200 ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-700 hover:border-primary-300'}`}
+                          >
+                            {opt.hex && (
+                              <span className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle border border-gray-300" style={{ backgroundColor: opt.hex }} />
+                            )}
+                            {opt.value}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : variants.length > 0 && !(variants.length === 1 && (variants[0].title === 'Default Variant' || variants[0].isDefault)) ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
                 <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
@@ -672,6 +710,7 @@ export default function EcomProductDetail({ params }) {
               </h3>
               <div className="flex gap-2 flex-wrap">
                 {variants.map(v => {
+                  if (v.title === 'Default Variant' && variants.length > 1) return null;
                   const isSelected = v._id === selectedVariantId;
                   return (
                     <button
@@ -685,7 +724,7 @@ export default function EcomProductDetail({ params }) {
                 })}
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
 

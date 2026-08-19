@@ -8,57 +8,6 @@ import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 
-function ApprovalDialog({ message, onConfirm, onCancel, isReject }) {
-  const [reason, setReason] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
-
-  const handleConfirm = async () => {
-    setIsProcessing(true);
-    await onConfirm(reason);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isReject ? 'bg-red-100' : 'bg-primary-100'}`}>
-            <Icon icon={isReject ? "mdi:close" : "mdi:check"} className={`w-5 h-5 ${isReject ? 'text-red-600' : 'text-primary-600'}`} />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">{isReject ? 'Reject Product' : 'Approve Product'}</h3>
-            <p className="text-sm text-gray-500">{message}</p>
-          </div>
-        </div>
-
-        {isReject && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Rejection Reason</label>
-            <textarea
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 text-sm"
-              rows={3}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Please provide a reason..."
-            />
-          </div>
-        )}
-
-        <div className="flex gap-3 justify-end mt-4">
-          <button onClick={onCancel} disabled={isProcessing} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200 disabled:opacity-50">Cancel</button>
-          <button
-            onClick={handleConfirm}
-            disabled={isProcessing}
-            className={`flex items-center gap-2 px-5 py-2 text-sm text-white rounded-xl disabled:opacity-50 ${isReject ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}
-          >
-            {isProcessing && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
-            {isReject ? 'Reject' : 'Approve'}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminViewRefurbishedProductPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -66,40 +15,20 @@ export default function AdminViewRefurbishedProductPage() {
 
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [approvalModal, setApprovalModal] = useState(null);
 
-  const fetchProduct = () => {
+  useEffect(() => {
     if (!token || !id) return;
-    setLoading(true);
     axiosInstance
-      .get(`/admin/refurbish/products/${id}`, {
+      .get(`/seller/refurbished-products/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       })
       .then(({ data }) => setProduct(data.data))
       .catch(() => {
         toast.error("Failed to load product");
-        router.push("/admin/refurbished/products");
+        router.push("/seller/refurbished/products");
       })
       .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    fetchProduct();
   }, [id, token, router]);
-
-  const handleUpdateApproval = async (status, reason = "") => {
-    try {
-      await axiosInstance.put(`/admin/refurbish/products/${id}/approval`, { status, reason }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      toast.success(`Product ${status} successfully`);
-      fetchProduct();
-    } catch {
-      toast.error("Failed to update approval status");
-    } finally {
-      setApprovalModal(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -121,43 +50,19 @@ export default function AdminViewRefurbishedProductPage() {
         >
           <Icon icon="mdi:arrow-left" className="w-5 h-5 text-gray-600" />
         </button>
-        <div className="flex-1">
+        <div>
           <div className="text-xs text-gray-400 mb-0.5 flex items-center gap-1.5">
             <span
               className="hover:text-primary-600 cursor-pointer"
-              onClick={() => router.push("/admin/refurbished/products")}
+              onClick={() => router.push("/seller/refurbished/products")}
             >
               Refurbished Products
             </span>
             <Icon icon="mdi:chevron-right" className="w-3.5 h-3.5" />
             <span className="text-gray-600">Product Details</span>
           </div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold text-gray-900">{product.title}</h1>
-            {product.isCTIVerified && (
-              <span className="text-[10px] font-bold text-blue-600 flex items-center gap-1 bg-blue-50 w-fit px-2 py-1 rounded">
-                <Icon icon="mdi:check-decagram" className="text-blue-500 w-3 h-3" /> CTI Verified
-              </span>
-            )}
-          </div>
+          <h1 className="text-xl font-bold text-gray-900">{product.title}</h1>
         </div>
-
-        {product.adminApprovalStatus === 'pending' && product.addedByRole !== 'admin' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => setApprovalModal({ action: 'approved', label: product.title })}
-              className="flex items-center gap-2 px-4 py-2 bg-primary-50 hover:bg-primary-100 text-primary-700 rounded-xl font-semibold text-sm transition-colors"
-            >
-              <Icon icon="mdi:check" className="w-4 h-4" /> Approve
-            </button>
-            <button
-              onClick={() => setApprovalModal({ action: 'rejected', label: product.title })}
-              className="flex items-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl font-semibold text-sm transition-colors"
-            >
-              <Icon icon="mdi:close" className="w-4 h-4" /> Reject
-            </button>
-          </div>
-        )}
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -201,7 +106,7 @@ export default function AdminViewRefurbishedProductPage() {
                 <p className="text-sm text-gray-700">{product.shortDescription}</p>
               </div>
             )}
-
+            
             <div className="mt-4">
               <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Description</p>
               <div className="text-sm text-gray-700 prose max-w-none" dangerouslySetInnerHTML={{ __html: product.description }} />
@@ -247,61 +152,6 @@ export default function AdminViewRefurbishedProductPage() {
         </div>
 
         <div className="space-y-5">
-          {product.addedByRole !== 'admin' && (
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-4">
-                <Icon icon="mdi:account-badge-outline" className="w-4 h-4 text-primary-500" />
-                Requested By
-              </h2>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center text-primary-600 font-bold">
-                    {product.sellerId?.name ? product.sellerId.name.charAt(0).toUpperCase() : <Icon icon="mdi:account" className="w-5 h-5" />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-gray-900 text-sm">{product.sellerId?.name || "Unknown User"}</p>
-                    <span className="text-[10px] font-bold text-primary-600 flex items-center gap-1 bg-primary-50 w-fit px-1.5 py-0.5 rounded uppercase mt-0.5">
-                      {product.addedByRole || "unknown"}
-                    </span>
-                  </div>
-                </div>
-                {product.sellerId?.email && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Icon icon="mdi:email-outline" className="w-4 h-4 text-gray-400" />
-                    <span>{product.sellerId.email}</span>
-                  </div>
-                )}
-                {product.sellerId?.phone && (
-                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                    <Icon icon="mdi:phone-outline" className="w-4 h-4 text-gray-400" />
-                    <span>{product.sellerId.phone}</span>
-                  </div>
-                )}
-
-                <div className="mt-4 pt-4 border-t border-gray-100">
-                  <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Approval Status</p>
-                  <span
-                    className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] uppercase font-bold tracking-wider ${product.adminApprovalStatus === 'pending'
-                      ? 'bg-amber-50 text-amber-600 border border-amber-200'
-                      : product.adminApprovalStatus === 'rejected'
-                        ? 'bg-red-50 text-red-600 border border-red-200'
-                        : 'bg-primary-50 text-primary-600 border border-primary-200'
-                      }`}
-                  >
-                    {product.adminApprovalStatus || 'approved'}
-                  </span>
-
-                  {product.adminApprovalStatus === 'rejected' && product.adminRejectionReason && (
-                    <div className="mt-2 bg-red-50 p-3 rounded-lg border border-red-100">
-                      <p className="text-xs font-bold text-red-700 mb-1">Rejection Reason:</p>
-                      <p className="text-xs text-red-600">{product.adminRejectionReason}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <h2 className="font-bold text-gray-800 text-sm flex items-center gap-2 mb-4">
               <Icon icon="mdi:tag-multiple-outline" className="w-4 h-4 text-primary-500" />
@@ -360,16 +210,6 @@ export default function AdminViewRefurbishedProductPage() {
           </div>
         </div>
       </div>
-      {
-        approvalModal && (
-          <ApprovalDialog
-            message={`Are you sure you want to ${approvalModal.action} "${approvalModal.label}"?`}
-            isReject={approvalModal.action === 'rejected'}
-            onConfirm={(reason) => handleUpdateApproval(approvalModal.action, reason)}
-            onCancel={() => setApprovalModal(null)}
-          />
-        )
-      }
     </div>
   );
 }

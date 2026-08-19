@@ -60,6 +60,8 @@ function RefurbishedHeader() {
           category: "Refurbished Items",
           "items": [
             { "name": "Products", "icon": "mdi:cellphone", "path": "/admin/refurbished/products" },
+            { "name": "Product Requests", "icon": "mdi:clipboard-check-outline", "path": "/admin/refurbished/product-approvals" },
+            { "name": "Refurbish Requests", "icon": "mdi:clipboard-text-clock-outline", "path": "/admin/refurbished/requests" },
             { "name": "Orders", "icon": "mdi:package-variant", "path": "/admin/refurbished/orders" },
             { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
             { "name": "Enquiries", "icon": "mdi:message-text-outline", "path": "/admin/refurbished/enquiries" },

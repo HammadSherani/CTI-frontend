@@ -16,26 +16,25 @@ import Select from 'react-select';
 
 // ── Yup Validation Schema ─────────────────────────────────────────────────────
 const checkoutSchema = yup.object().shape({
-  firstName:   yup.string().required('First Name is required'),
-  lastName:    yup.string().required('Last Name is required'),
-  email:       yup.string().email('Valid email is required').required('Email is required'),
+  firstName: yup.string().required('First Name is required'),
+  lastName: yup.string().required('Last Name is required'),
+  email: yup.string().email('Valid email is required').required('Email is required'),
   phone: yup
     .string()
     .matches(/^[0-9]+$/, 'Only numbers are allowed')
     .min(10, 'Phone number must be at least 10 digits')
     .max(15, 'Phone number must not exceed 15 digits')
     .required('Phone is required'),
-  address:     yup.string().required('Address is required'),
+  address: yup.string().required('Address is required'),
   countryCode: yup.string().required('Country is required'),
-  stateCode:   yup.string().required('State / Province is required'),
-  city:        yup.string().required('City is required'),
-  postalCode:  yup.string().matches(/^[0-9]*$/, 'Postal Code must contain only numbers').nullable(),
+  stateCode: yup.string().required('State / Province is required'),
+  city: yup.string().required('City is required'),
+  postalCode: yup.string().matches(/^[0-9]*$/, 'Postal Code must contain only numbers').nullable(),
 });
 
 // ── Select Styles Helper ──────────────────────────────────────────────────────
 const selectCls = (hasError) =>
-  `w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors appearance-none bg-white ${
-    hasError ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'
+  `w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors appearance-none bg-white ${hasError ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'
   }`;
 
 const customSelectStyles = (hasError) => ({
@@ -44,12 +43,12 @@ const customSelectStyles = (hasError) => ({
     paddingLeft: '32px',
     borderRadius: '0.75rem',
     borderWidth: '1px',
-    borderColor: hasError ? '#f87171' : state.isFocused ? '#a78bfa' : '#e5e7eb',
+    borderColor: hasError ? '#f87171' : state.isFocused ? '#ff9f32' : '#e5e7eb',
     boxShadow: 'none',
     minHeight: '44px',
     backgroundColor: state.isDisabled ? '#f9fafb' : '#ffffff',
     '&:hover': {
-      borderColor: hasError ? '#f87171' : '#a78bfa',
+      borderColor: hasError ? '#f87171' : '#ff9f32',
     }
   }),
   valueContainer: (base) => ({ ...base, padding: '2px 8px' }),
@@ -59,67 +58,67 @@ const customSelectStyles = (hasError) => ({
   menu: (base) => ({ ...base, zIndex: 9999, borderRadius: '0.75rem', overflow: 'hidden' }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isSelected ? '#8b5cf6' : state.isFocused ? '#ede9fe' : 'transparent',
+    backgroundColor: state.isSelected ? '#ff820a' : state.isFocused ? '#fff8ec' : 'transparent',
     color: state.isSelected ? 'white' : '#1f2937',
     cursor: 'pointer',
     fontSize: '14px',
-    '&:active': { backgroundColor: '#7c3aed' }
+    '&:active': { backgroundColor: '#ff6900' }
   })
 });
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function CheckoutPage() {
-  const router       = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const dispatch     = useDispatch();
+  const dispatch = useDispatch();
   const { token, isAuthenticated } = useSelector(s => s.auth);
-  const auth      = useSelector(s => s.auth);
+  const auth = useSelector(s => s.auth);
   const type = searchParams.get('type');
   const isRefurbished = type === 'refurbished';
-  
+
   const standardCartItems = useSelector(s => s.cart?.items || []);
-  const standardCartId    = useSelector(s => s.cart?.cartId);
-  
+  const standardCartId = useSelector(s => s.cart?.cartId);
+
   const refurbishedCartItems = useSelector(s => s.refurbishedCart?.items || []);
-  const refurbishedCartId    = useSelector(s => s.refurbishedCart?.cartId);
-  
+  const refurbishedCartId = useSelector(s => s.refurbishedCart?.cartId);
+
   const cartItems = isRefurbished ? refurbishedCartItems : standardCartItems;
-  const cartId    = isRefurbished ? refurbishedCartId : standardCartId;
+  const cartId = isRefurbished ? refurbishedCartId : standardCartId;
 
-  const [errors, setErrors]         = useState({});
-  const isBuyNow     = searchParams.get('buyNow') === 'true';
-  const slug         = searchParams.get('slug');
-  const queryVariantId  = searchParams.get('variantId');
-  const queryQuantity   = parseInt(searchParams.get('quantity') || '1');
+  const [errors, setErrors] = useState({});
+  const isBuyNow = searchParams.get('buyNow') === 'true';
+  const slug = searchParams.get('slug');
+  const queryVariantId = searchParams.get('variantId');
+  const queryQuantity = parseInt(searchParams.get('quantity') || '1');
 
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
-  const [items, setItems]           = useState([]);
-  const [subTotal, setSubTotal]     = useState(0);
+  const [items, setItems] = useState([]);
+  const [subTotal, setSubTotal] = useState(0);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
   const [paymentMethod, setPaymentMethod] = useState();
-  const [saveCard, setSaveCard]           = useState(false);
+  const [saveCard, setSaveCard] = useState(false);
 
   // ── Form State ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
-    firstName:   auth?.user?.firstName || auth?.user?.name || '',
-    lastName:    auth?.user?.lastName  || '',
-    email:       auth?.user?.email     || '',
-    phone:       auth?.user?.phone     || '',
-    address:     '',
+    firstName: auth?.user?.firstName || auth?.user?.name || '',
+    lastName: auth?.user?.lastName || '',
+    email: auth?.user?.email || '',
+    phone: auth?.user?.phone || '',
+    address: '',
     // Location
     countryCode: '',
-    country:     '',
-    stateCode:   '',
-    state:       '',
-    city:        '',
-    postalCode:  '',
+    country: '',
+    stateCode: '',
+    state: '',
+    city: '',
+    postalCode: '',
     // Card
     cardHolder: auth?.user?.firstName || auth?.user?.name || '',
     cardNumber: '5528790000000008',
-    expiry:     '12/30',
-    cvv:        '123',
+    expiry: '12/30',
+    cvv: '123',
   });
 
   // ── All countries list (static, from country-state-city) ────────────────────
@@ -149,12 +148,12 @@ export default function CheckoutPage() {
         setForm(f => ({
           ...f,
           ...parsed,
-          email:     auth?.user?.email     || parsed.email     || '',
+          email: auth?.user?.email || parsed.email || '',
           firstName: auth?.user?.firstName || parsed.firstName || '',
-          lastName:  auth?.user?.lastName  || parsed.lastName  || '',
-          phone:     auth?.user?.phone     || parsed.phone     || '',
+          lastName: auth?.user?.lastName || parsed.lastName || '',
+          phone: auth?.user?.phone || parsed.phone || '',
         }));
-      } catch (_) {}
+      } catch (_) { }
     }
   }, [auth?.user]);
 
@@ -165,15 +164,15 @@ export default function CheckoutPage() {
   // ── Load items (Buy Now vs Cart) ──────────────────────────────────────────────
   useEffect(() => {
     if (isBuyNow && slug) {
-      const fetchUrl = isRefurbished 
-        ? `/public/refurbished-devices/products/${slug}` 
+      const fetchUrl = isRefurbished
+        ? `/public/refurbished-devices/products/${slug}`
         : `/e-commerce/products/${slug}`;
 
       axiosInstance.get(fetchUrl)
         .then(res => {
-          const product  = isRefurbished ? res.data.data : res.data.data.product;
+          const product = isRefurbished ? res.data.data : res.data.data.product;
           const variants = isRefurbished ? (res.data.data.variants || []) : res.data.data.variants;
-          const variant  = queryVariantId ? variants.find(v => v._id === queryVariantId) : variants[0];
+          const variant = queryVariantId ? variants.find(v => v._id === queryVariantId) : variants[0];
           if (!product || !variant) {
             toast.error('Product or variant not found');
             router.push('/');
@@ -194,15 +193,15 @@ export default function CheckoutPage() {
       let currentSubTotal = 0;
       const formattedItems = cartItems.map(item => {
         const pDetails = item.productId || item;
-        const vDetails = item.variantId  || item;
-        const price    = vDetails.discountPrice || vDetails.sellingPrice || vDetails.price || pDetails.summary?.minSalePrice || 0;
+        const vDetails = item.variantId || item;
+        const price = vDetails.discountPrice || vDetails.sellingPrice || vDetails.price || pDetails.summary?.minSalePrice || 0;
         currentSubTotal += price * item.quantity;
         return {
-          productId:      pDetails._id || pDetails,
+          productId: pDetails._id || pDetails,
           productDetails: pDetails,
-          variantId:      vDetails._id || vDetails,
+          variantId: vDetails._id || vDetails,
           variantDetails: vDetails,
-          quantity:       item.quantity,
+          quantity: item.quantity,
           price,
         };
       });
@@ -219,13 +218,13 @@ export default function CheckoutPage() {
   const handleForm = (e) => {
     const { name, value } = e.target;
     if (name === 'cardNumber') {
-      const digits    = value.replace(/\D/g, '').slice(0, 16);
+      const digits = value.replace(/\D/g, '').slice(0, 16);
       const formatted = digits.replace(/(.{4})/g, '$1 ').trim();
       setForm(f => ({ ...f, cardNumber: formatted }));
       return;
     }
     if (name === 'expiry') {
-      const digits    = value.replace(/\D/g, '').slice(0, 4);
+      const digits = value.replace(/\D/g, '').slice(0, 4);
       const formatted = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
       setForm(f => ({ ...f, expiry: formatted }));
       return;
@@ -288,27 +287,27 @@ export default function CheckoutPage() {
     try {
       const payload = {
         shippingAddress: {
-          fullName:    `${form.firstName} ${form.lastName}`.trim(),
-          phone:        form.phone,
-          country:      form.country,
-          countryCode:  form.countryCode,
-          state:        form.state,
-          stateCode:    form.stateCode,
-          city:         form.city,
-          area:         form.city,
-          addressLine:  form.address,
-          postalCode:   form.postalCode || null,
+          fullName: `${form.firstName} ${form.lastName}`.trim(),
+          phone: form.phone,
+          country: form.country,
+          countryCode: form.countryCode,
+          state: form.state,
+          stateCode: form.stateCode,
+          city: form.city,
+          area: form.city,
+          addressLine: form.address,
+          postalCode: form.postalCode || null,
         },
         paymentMethod: paymentMethod,
       };
 
       if (paymentMethod === 'card') {
-        payload.cardHolder   = form.cardHolder;
-        payload.cardNumber   = form.cardNumber.replace(/\s/g, '');
-        const [month, year]  = form.expiry.split('/');
-        payload.expireMonth  = month;
-        payload.expireYear   = `20${year}`;
-        payload.cvc          = form.cvv;
+        payload.cardHolder = form.cardHolder;
+        payload.cardNumber = form.cardNumber.replace(/\s/g, '');
+        const [month, year] = form.expiry.split('/');
+        payload.expireMonth = month;
+        payload.expireYear = `20${year}`;
+        payload.cvc = form.cvv;
       }
 
       if (isBuyNow || !cartId) {
@@ -317,8 +316,8 @@ export default function CheckoutPage() {
         payload.cartId = cartId;
       }
 
-      const orderCreateUrl = isRefurbished 
-        ? '/refurbished/orders/create' 
+      const orderCreateUrl = isRefurbished
+        ? '/refurbished/orders/create'
         : '/e-commerce/orders/create';
 
       const res = await axiosInstance.post(orderCreateUrl, payload, {
@@ -328,13 +327,13 @@ export default function CheckoutPage() {
       if (res.data.success) {
         toast.success('Order placed successfully!');
         localStorage.removeItem('checkout_form_data');
-        
+
         if (isRefurbished) {
           dispatch(clearRefurbishedCart());
           if (!isBuyNow && token) {
             try {
               await axiosInstance.delete('/refurbished/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
-            } catch (_) {}
+            } catch (_) { }
           }
           router.push('/orders?type=refurbished');
         } else {
@@ -342,7 +341,7 @@ export default function CheckoutPage() {
           if (!isBuyNow && token) {
             try {
               await axiosInstance.delete('/e-commerce/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
-            } catch (_) {}
+            } catch (_) { }
           }
           router.push('/orders');
         }
@@ -394,8 +393,8 @@ export default function CheckoutPage() {
 
               {/* First + Last Name */}
               {[
-                { label: 'First Name', name: 'firstName', placeholder: 'John',  icon: 'mdi:account-outline' },
-                { label: 'Last Name',  name: 'lastName',  placeholder: 'Doe',   icon: 'mdi:account-outline' },
+                { label: 'First Name', name: 'firstName', placeholder: 'John', icon: 'mdi:account-outline' },
+                { label: 'Last Name', name: 'lastName', placeholder: 'Doe', icon: 'mdi:account-outline' },
               ].map(f => (
                 <div key={f.name}>
                   <label className="block text-xs font-semibold text-gray-600 mb-1.5">{f.label} *</label>
@@ -506,9 +505,8 @@ export default function CheckoutPage() {
                       onChange={e => { setForm(f => ({ ...f, city: e.target.value })); setErrors(p => ({ ...p, city: '' })); }}
                       placeholder={form.stateCode ? 'Enter city name…' : 'Select State first'}
                       disabled={!form.stateCode}
-                      className={`w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors ${
-                        !form.stateCode ? 'cursor-not-allowed bg-gray-50 text-gray-400' : errors.city ? 'border-red-400' : 'border-gray-200 focus:border-primary-400'
-                      }`}
+                      className={`w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors ${!form.stateCode ? 'cursor-not-allowed bg-gray-50 text-gray-400' : errors.city ? 'border-red-400' : 'border-gray-200 focus:border-primary-400'
+                        }`}
                     />
                   )}
                 </div>
@@ -537,9 +535,8 @@ export default function CheckoutPage() {
 
             <button
               onClick={() => setPaymentMethod('card')}
-              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border-2 transition-all text-left ${
-                paymentMethod === 'card' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300 bg-white'
-              }`}
+              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'card' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300 bg-white'
+                }`}
             >
               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === 'card' ? 'border-primary-500' : 'border-gray-300'}`}>
                 {paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />}

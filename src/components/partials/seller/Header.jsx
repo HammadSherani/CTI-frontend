@@ -21,6 +21,16 @@ const primaryNavLinks = [
     icon: "solar:clipboard-list-bold-duotone",
   },
   {
+    name: "Refurbished",
+    path: "#",
+    icon: "solar:smartphone-update-bold-duotone",
+    hasSubmenu: true,
+    submenu: [
+      { name: "Products", path: "/seller/refurbished/products", icon: "solar:devices-bold-duotone" },
+      { name: "Orders", path: "/seller/refurbished/orders", icon: "solar:box-bold-duotone" },
+    ],
+  },
+  {
     name: "Order Management",
     path: "#",
     icon: "solar:box-minimalistic-bold-duotone",

@@ -6,7 +6,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addRefurbishedToCart } from '@/store/refurbishedCart';
 import axiosInstance from '@/config/axiosInstance';
 import DOMPurify from 'isomorphic-dompurify';
-
+import Image from 'next/image';
 import StarRating from '../StarRating';
 import ImageZoom from '../ImageZoom';
 import ReviewCard from '../ReviewCard';
@@ -167,9 +167,14 @@ export default function RefurbishedProductDetail({ params }) {
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
 
   /* ── Build image gallery ── */
-  const selectedVariantImages = (selectedVariant?.images || []).map(i => i.url);
-  const otherImages = variants.filter(v => v._id !== selectedVariantId).flatMap(v => (v.images || []).map(i => i.url));
-  let allImages = [...new Set([...selectedVariantImages, ...otherImages])];
+  const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
+  const otherImages = variants.filter(v => v._id !== selectedVariantId).flatMap(v => (v.images || []).map(i => i?.url || i));
+  const productImages = (productData?.images || []).map(i => i?.url || i);
+
+  const uniqueVariantImages = selectedVariantImages.filter(img => !productImages.includes(img));
+  const sharedVariantImages = selectedVariantImages.filter(img => productImages.includes(img));
+
+  let allImages = [...new Set([...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
   if (!allImages.length) allImages = ['/assets/placeholder.jpg'];
 
   const visibleThumbs = allImages.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
@@ -224,6 +229,10 @@ export default function RefurbishedProductDetail({ params }) {
   };
 
   const handleAddToCart = () => {
+    if (currentUserId && (currentUserId === productData.sellerId?._id || currentUserId === productData.sellerId)) {
+      toast.error('You cannot purchase your own product');
+      return;
+    }
     if (!inStock) { toast.warn('Out of stock!'); return; }
     dispatch(addRefurbishedToCart({
       product: productData,
@@ -234,6 +243,10 @@ export default function RefurbishedProductDetail({ params }) {
   };
 
   const handleBuyNow = () => {
+    if (currentUserId && (currentUserId === productData.sellerId?._id || currentUserId === productData.sellerId)) {
+      toast.error('You cannot purchase your own product');
+      return;
+    }
     if (!inStock) return;
     if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
     router.push(`/checkout?type=refurbished&buyNow=true&slug=${productData.slug}&variantId=${selectedVariant._id}&quantity=${quantity}`);
@@ -361,7 +374,7 @@ export default function RefurbishedProductDetail({ params }) {
                         onClick={() => setSelectedImage(realIndex)}
                         className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <img src={img} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
+                        <Image src={img} width={500} height={500} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
                       </button>
                     );
                   })}
@@ -385,7 +398,7 @@ export default function RefurbishedProductDetail({ params }) {
                   <span className="absolute top-3 right-3 z-10 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
                     Refurbished
                   </span>
-                  <ImageZoom src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
+                  <ImageZoom key={allImages[selectedImage] || selectedImage} src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
                 </div>
               </div>
             </div>
@@ -494,16 +507,41 @@ export default function RefurbishedProductDetail({ params }) {
         <div className="lg:col-span-3 xl:col-span-3 space-y-4 sticky top-6">
           <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col">
             <div className="flex gap-3 items-center">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center text-amber-500 font-black text-lg bg-amber-50 flex-shrink-0">
-                <Icon icon="solar:stars-bold-duotone" className="w-7 h-7" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center flex-wrap gap-1.5">
-                  <h3 className="font-extrabold text-sm text-gray-900 leading-tight">CTI Refurbished</h3>
-                  <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
-                </div>
-                <p className="text-[10px] text-gray-400 mt-0.5">Verified & certified gadgets</p>
-              </div>
+              {productData.addedByRole === 'admin' ? (
+                <>
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-blue-600 font-black text-lg bg-blue-50 flex-shrink-0">
+                    <Icon icon="mdi:shield-check" className="w-7 h-7" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <h1 className="font-extrabold text-sm text-gray-900 leading-tight truncate">CTI Platform</h1>
+                      <Icon icon="mdi:check-decagram" className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Verified & Certified Refurbished</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {productData.sellerId?.profilePictureOrLogo ? (
+                    <img src={productData.sellerId.profilePictureOrLogo} alt={productData.sellerId.businessName || productData.sellerId.name} className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
+                      {(productData.sellerId?.businessName || productData.sellerId?.name || 'S').charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <Link href={`/store/${productData.sellerId?._id}`} className="font-extrabold text-sm text-gray-900 leading-tight truncate hover:underline">
+                        {productData.sellerId?.businessName || productData.sellerId?.name || 'Independent Seller'}
+                      </Link>
+                      {productData.isCTIVerified && <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                    </div>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      {productData.isCTIVerified ? 'CTI Verified Refurbished Seller' : 'Independent Refurbished Seller'}
+                    </p>
+                  </div>
+                </>
+              )}
             </div>
 
             <div className="border-t border-gray-100 mt-4 pt-3">
@@ -521,7 +559,8 @@ export default function RefurbishedProductDetail({ params }) {
           </div>
 
           {/* Attribute selection */}
-          {attrTypes.length > 0 && (
+          {/* Attribute selection */}
+          {attrTypes.length > 0 ? (
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
               <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
                 <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
@@ -541,8 +580,11 @@ export default function RefurbishedProductDetail({ params }) {
                             <button
                               key={opt.value}
                               onClick={() => handleAttrSelect(type, opt.value)}
-                              className={`px-3 py-1 rounded-lg border text-xs font-semibold ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
+                              className={`px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all duration-200 ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
                             >
+                              {opt.hex && (
+                                <span className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle border border-gray-300" style={{ backgroundColor: opt.hex }} />
+                              )}
                               {opt.value}
                             </button>
                           );
@@ -553,7 +595,29 @@ export default function RefurbishedProductDetail({ params }) {
                 })}
               </div>
             </div>
-          )}
+          ) : variants.length > 0 && !(variants.length === 1 && (variants[0].title === 'Default Variant' || variants[0].isDefault)) ? (
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
+                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
+                Select Options
+              </h3>
+              <div className="flex gap-2 flex-wrap">
+                {variants.map(v => {
+                  if (v.title === 'Default Variant' && variants.length > 1) return null;
+                  const isSelected = v._id === selectedVariantId;
+                  return (
+                    <button
+                      key={v._id}
+                      onClick={() => setSelectedVariantId(v._id)}
+                      className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all duration-200 ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
+                    >
+                      {v.title || 'Default'}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 

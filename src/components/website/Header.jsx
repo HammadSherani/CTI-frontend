@@ -802,7 +802,7 @@ function NavigationBar({ isHome, isScrolled }) {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -5 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute left-full top-0 ml-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[400px] overflow-y-auto"
+                    className="absolute left-full top-0 ml-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
                     style={{ minWidth: "240px" }}
                   >
                     {l1Item.dropdownItems.map((l2Item, l2Idx) => {
@@ -863,7 +863,7 @@ function NavigationBar({ isHome, isScrolled }) {
                               animate={{ opacity: 1, x: 0 }}
                               exit={{ opacity: 0, x: -5 }}
                               transition={{ duration: 0.15 }}
-                              className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-[350px] overflow-y-auto"
+                              className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
                               style={{ minWidth: "200px" }}
                             >
                               {l2Item.brands.map((brand, brandIdx) => (
@@ -901,7 +901,7 @@ function NavigationBar({ isHome, isScrolled }) {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: 6 }}
           transition={{ duration: 0.15 }}
-          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50 max-h-[400px] overflow-y-auto"
+          className="absolute top-full left-0 mt-1 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50"
           style={{ minWidth: "240px" }}
         >
           {item.dropdownItems.map((category, idx) => (
@@ -935,7 +935,7 @@ function NavigationBar({ isHome, isScrolled }) {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -5 }}
                   transition={{ duration: 0.15 }}
-                  className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 max-h-[350px] overflow-y-auto"
+                  className="absolute left-full top-0 ml-1 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50"
                   style={{ minWidth: "200px" }}
                 >
                   {category.brands && category.brands.length > 0 ? (
