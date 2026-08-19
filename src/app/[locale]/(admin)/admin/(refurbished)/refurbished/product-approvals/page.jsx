@@ -161,14 +161,14 @@ export default function ProductApprovalsPage() {
               <Icon icon="mdi:email-outline" /> {row.sellerId.email}
             </span>
           )}
-          {row.sellerId?.phone && (
+          {/* {row.sellerId?.phone && (
             <span className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
               <Icon icon="mdi:phone-outline" /> {row.sellerId.phone}
             </span>
-          )}
-          <span className="text-xs font-medium text-primary-600 flex items-center gap-1 mt-1 bg-primary-50 w-fit px-1.5 py-0.5 rounded">
+          )} */}
+          {/* <span className="text-xs font-medium text-primary-600 flex items-center gap-1 mt-1 bg-primary-50 w-fit px-1.5 py-0.5 rounded">
             <Icon icon="mdi:account-badge-outline" /> {row.addedByRole || "unknown"}
-          </span>
+          </span> */}
         </div>
       ),
     },
