@@ -13,6 +13,7 @@ import ReviewCard from '../ReviewCard';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import RefurbishedSliderSection from './RefurbishedSliderSection';
+import CategoryInfoSections from './CategoryInfoSections';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -51,6 +52,7 @@ export default function RefurbishedProductDetail({ params }) {
   const auth = useSelector(s => s.auth);
   const token = auth?.token;
   const currentUserId = auth?.user?._id || auth?.user?.id || null;
+  const userRole = auth?.userType || auth?.user?.role || null;
 
   // Ref for scrolling to order section
   const orderRef = useRef(null);
@@ -229,6 +231,11 @@ export default function RefurbishedProductDetail({ params }) {
   };
 
   const handleAddToCart = () => {
+    if (!token) { toast.error('Please log in to add to cart'); router.push('/auth/login'); return; }
+    if (userRole && userRole !== 'customer') {
+      toast.error('Only customers can place orders');
+      return;
+    }
     if (currentUserId && (currentUserId === productData.sellerId?._id || currentUserId === productData.sellerId)) {
       toast.error('You cannot purchase your own product');
       return;
@@ -243,12 +250,16 @@ export default function RefurbishedProductDetail({ params }) {
   };
 
   const handleBuyNow = () => {
+    if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
+    if (userRole && userRole !== 'customer') {
+      toast.error('Only customers can place orders');
+      return;
+    }
     if (currentUserId && (currentUserId === productData.sellerId?._id || currentUserId === productData.sellerId)) {
       toast.error('You cannot purchase your own product');
       return;
     }
     if (!inStock) return;
-    if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
     router.push(`/checkout?type=refurbished&buyNow=true&slug=${productData.slug}&variantId=${selectedVariant._id}&quantity=${quantity}`);
   };
 
@@ -409,9 +420,11 @@ export default function RefurbishedProductDetail({ params }) {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="bg-primary-50 text-primary-700 text-xs font-black uppercase px-2.5 py-0.5 rounded border border-primary-200 tracking-wide">
-                        {productData.brandId?.name}
-                      </span>
+                      {productData.brandId?.name && (
+                        <span className="bg-primary-50 text-primary-700 text-xs font-black uppercase px-2.5 py-0.5 rounded border border-primary-200 tracking-wide">
+                          {productData.brandId.name}
+                        </span>
+                      )}
                       {productData.categoryId?.name && (
                         <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded">
                           {productData.categoryId.name}
@@ -509,13 +522,13 @@ export default function RefurbishedProductDetail({ params }) {
             <div className="flex gap-3 items-center">
               {productData.addedByRole === 'admin' ? (
                 <>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-blue-600 font-black text-lg bg-blue-50 flex-shrink-0">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-primary-600 font-black text-lg bg-primary-50 flex-shrink-0">
                     <Icon icon="mdi:shield-check" className="w-7 h-7" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center flex-wrap gap-1.5">
                       <h1 className="font-extrabold text-sm text-gray-900 leading-tight truncate">CTI Platform</h1>
-                      <Icon icon="mdi:check-decagram" className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                      <Icon icon="mdi:check-decagram" className="w-4 h-4 text-primary-500 flex-shrink-0" />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-0.5">Verified & Certified Refurbished</p>
                   </div>
@@ -534,7 +547,7 @@ export default function RefurbishedProductDetail({ params }) {
                       <Link href={`/store/${productData.sellerId?._id}`} className="font-extrabold text-sm text-gray-900 leading-tight truncate hover:underline">
                         {productData.sellerId?.businessName || productData.sellerId?.name || 'Independent Seller'}
                       </Link>
-                      {productData.isCTIVerified && <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />}
+                      {productData.isCTIVerified && <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />}
                     </div>
                     <p className="text-[10px] text-gray-400 mt-0.5">
                       {productData.isCTIVerified ? 'CTI Verified Refurbished Seller' : 'Independent Refurbished Seller'}
@@ -622,6 +635,12 @@ export default function RefurbishedProductDetail({ params }) {
       </div>
 
       <div className="mb-16 space-y-16 mt-10">
+        <div className="max-w-6xl">
+          <CategoryInfoSections
+            categorySlug={productData.categoryId?.slug}
+            categoryName={productData.categoryId?.name}
+          />
+        </div>
         <PlatformGuarantees />
 
         {/* Reviews */}

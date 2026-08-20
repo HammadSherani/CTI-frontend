@@ -14,7 +14,6 @@ export default function ImageZoom({ src, alt }) {
     setOrigin({ x, y });
   }, []);
 
-  console.log('ImageZoom rendered with src:', src);
 
   return (
     <div

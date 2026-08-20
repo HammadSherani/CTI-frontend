@@ -73,6 +73,7 @@ export default function CheckoutPage() {
   const dispatch = useDispatch();
   const { token, isAuthenticated } = useSelector(s => s.auth);
   const auth = useSelector(s => s.auth);
+  const userRole = auth?.userType || auth?.user?.role || null;
   const type = searchParams.get('type');
   const isRefurbished = type === 'refurbished';
 
@@ -259,6 +260,11 @@ export default function CheckoutPage() {
 
   // ── Place Order ───────────────────────────────────────────────────────────────
   const handlePlaceOrder = async () => {
+    // Only customers can place orders
+    if (userRole && userRole !== 'customer') {
+      toast.error('Only customers can place orders');
+      return;
+    }
     try {
       await checkoutSchema.validate(form, { abortEarly: false });
     } catch (err) {
