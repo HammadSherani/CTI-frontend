@@ -35,14 +35,14 @@ export const REFURBISHED_ATTRIBUTE_OPTIONS = {
     bg: "bg-pink-50",
     border: "border-pink-200",
     presets: [
-      { label: "Black",  hex: "#111111" },
-      { label: "White",  hex: "#FFFFFF" },
+      { label: "Black", hex: "#111111" },
+      { label: "White", hex: "#FFFFFF" },
       { label: "Silver", hex: "#E5E7EB" },
       { label: "Space Gray", hex: "#4B5563" },
-      { label: "Gold",   hex: "#F59E0B" },
-      { label: "Blue",   hex: "#3B82F6" },
-      { label: "Red",    hex: "#EF4444" },
-      { label: "Green",  hex: "#22C55E" },
+      { label: "Gold", hex: "#F59E0B" },
+      { label: "Blue", hex: "#3B82F6" },
+      { label: "Red", hex: "#EF4444" },
+      { label: "Green", hex: "#22C55E" },
     ],
   },
   Storage: {
@@ -61,7 +61,7 @@ export const REFURBISHED_ATTRIBUTE_OPTIONS = {
     bg: "bg-amber-50",
     border: "border-amber-200",
     presets: [
-      { label: "4GB" }, { label: "6GB" },  { label: "8GB" },
+      { label: "4GB" }, { label: "6GB" }, { label: "8GB" },
       { label: "12GB" }, { label: "16GB" }, { label: "32GB" },
     ],
   },
@@ -75,11 +75,10 @@ function AttributeValuePicker({ type, selectedValues, onToggle, onAdd, onRemove,
         <button
           key={opt.label}
           onClick={() => onToggle(opt.label)}
-          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${
-            selectedValues?.includes(opt.label)
+          className={`px-3 py-1.5 rounded-lg border text-xs font-bold transition-all ${selectedValues?.includes(opt.label)
               ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm`
               : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
-          }`}
+            }`}
         >
           {opt.label}
         </button>
@@ -107,7 +106,7 @@ function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCus
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 text-sm font-bold transition-all ${active
                   ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm`
                   : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                }`}>
+                  }`}>
                 <Icon icon={cfg.icon} className="w-4 h-4" />
                 {type}
                 {active && <Icon icon="mdi:check-circle" className="w-4 h-4" />}

@@ -65,6 +65,7 @@ function RefurbishedHeader() {
             { "name": "Orders", "icon": "mdi:package-variant", "path": "/admin/refurbished/orders" },
             { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
             { "name": "Enquiries", "icon": "mdi:message-text-outline", "path": "/admin/refurbished/enquiries" },
+            { "name": "Flash Deals", "icon": "mdi:flash", "path": "/admin/refurbished/flash-deals" },
           ],
         },
       ],

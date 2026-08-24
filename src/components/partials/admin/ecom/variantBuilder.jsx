@@ -22,20 +22,20 @@ export const ATTRIBUTE_OPTIONS = {
     bg: "bg-pink-50",
     border: "border-pink-200",
     presets: [
-      { label: "Black",  hex: "#111111" },
-      { label: "White",  hex: "#FFFFFF" },
-      { label: "Red",    hex: "#EF4444" },
-      { label: "Blue",   hex: "#3B82F6" },
-      { label: "Navy",   hex: "#1E3A5F" },
-      { label: "Green",  hex: "#22C55E" },
+      { label: "Black", hex: "#111111" },
+      { label: "White", hex: "#FFFFFF" },
+      { label: "Red", hex: "#EF4444" },
+      { label: "Blue", hex: "#3B82F6" },
+      { label: "Navy", hex: "#1E3A5F" },
+      { label: "Green", hex: "#22C55E" },
       { label: "Yellow", hex: "#EAB308" },
       { label: "Orange", hex: "#F97316" },
       { label: "Purple", hex: "#A855F7" },
-      { label: "Pink",   hex: "#EC4899" },
-      { label: "Gray",   hex: "#6B7280" },
-      { label: "Brown",  hex: "#92400E" },
-      { label: "Beige",  hex: "#D4B896" },
-      { label: "Teal",   hex: "#14B8A6" },
+      { label: "Pink", hex: "#EC4899" },
+      { label: "Gray", hex: "#6B7280" },
+      { label: "Brown", hex: "#92400E" },
+      { label: "Beige", hex: "#D4B896" },
+      { label: "Teal", hex: "#14B8A6" },
     ],
   },
   Size: {
@@ -45,7 +45,7 @@ export const ATTRIBUTE_OPTIONS = {
     border: "border-blue-200",
     presets: [
       { label: "XS" }, { label: "S" }, { label: "M" },
-      { label: "L" },  { label: "XL" }, { label: "XXL" }, { label: "3XL" },
+      { label: "L" }, { label: "XL" }, { label: "XXL" }, { label: "3XL" },
     ],
   },
   Storage: {
@@ -64,7 +64,7 @@ export const ATTRIBUTE_OPTIONS = {
     bg: "bg-amber-50",
     border: "border-amber-200",
     presets: [
-      { label: "4GB" }, { label: "6GB" },  { label: "8GB" },
+      { label: "4GB" }, { label: "6GB" }, { label: "8GB" },
       { label: "12GB" }, { label: "16GB" }, { label: "32GB" },
     ],
   },
@@ -75,7 +75,7 @@ export const ATTRIBUTE_OPTIONS = {
     border: "border-emerald-200",
     presets: [
       { label: "Cotton" }, { label: "Polyester" }, { label: "Wool" },
-      { label: "Silk" },   { label: "Leather" },   { label: "Denim" },
+      { label: "Silk" }, { label: "Leather" }, { label: "Denim" },
     ],
   },
 };
@@ -216,7 +216,7 @@ function DefaultVariantPanel({ row, updateRow, errors, product }) {
   const allPreviews = React.useMemo(() => [
     ...(row.existingImages || []).map((i) => ({ src: i.url, isExisting: true })),
     ...(row.imageFiles || []).map((f) => ({ src: URL.createObjectURL(f), isExisting: false, file: f })),
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [row.existingImages, row.imageFiles]);
 
   const handleFiles = (files) => {
@@ -506,7 +506,7 @@ function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCus
                 className={`flex items-center gap-2 px-4 py-2.5 rounded-2xl border-2 text-sm font-bold transition-all ${active
                   ? `${cfg.bg} ${cfg.color} ${cfg.border} shadow-sm`
                   : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:bg-gray-50"
-                }`}>
+                  }`}>
                 <Icon icon={cfg.icon} className="w-4 h-4" />
                 {type}
                 {active && <Icon icon="mdi:check-circle" className="w-4 h-4" />}
@@ -561,10 +561,10 @@ function AttributePanel({ selectedAttrs, toggleAttrType, toggleAttrValue, addCus
           {activeTypes.map((type) => {
             const cfg = ATTRIBUTE_OPTIONS[type]; // may be undefined for custom types
             const isCustom = !cfg;
-            const borderCls  = isCustom ? "border-indigo-200" : cfg.border;
-            const bgCls      = isCustom ? "bg-indigo-50/40"   : `${cfg.bg}/40`;
-            const iconName   = isCustom ? "mdi:tag-edit-outline" : cfg.icon;
-            const colorCls   = isCustom ? "text-indigo-600"    : cfg.color;
+            const borderCls = isCustom ? "border-indigo-200" : cfg.border;
+            const bgCls = isCustom ? "bg-indigo-50/40" : `${cfg.bg}/40`;
+            const iconName = isCustom ? "mdi:tag-edit-outline" : cfg.icon;
+            const colorCls = isCustom ? "text-indigo-600" : cfg.color;
             return (
               <div key={type} className={`p-4 rounded-2xl border ${borderCls} ${bgCls} space-y-3`}>
                 <div className="flex items-center gap-2">
