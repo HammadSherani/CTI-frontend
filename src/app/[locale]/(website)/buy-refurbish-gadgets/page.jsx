@@ -12,6 +12,7 @@ import 'swiper/css/navigation'
 import 'swiper/css/thumbs'
 import RefurbishedSliderSection from '@/components/website/refurbish/RefurbishedSliderSection'
 import RefurbishedReviewSection from '@/components/website/refurbish/RefurbishedReviewSection'
+import RefurbishedProductCard from '@/components/website/refurbish/RefurbishedProductCard'
 import { Link } from '@/i18n/navigation'
 
 export default function Refurbish() {
@@ -25,6 +26,7 @@ export default function Refurbish() {
   const [laptops, setLaptops] = useState([]);
   const [watches, setWatches] = useState([]);
   const [gamingConsoles, setGamingConsoles] = useState([]);
+  const [flashDeals, setFlashDeals] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const mapProduct = (p) => {
@@ -48,6 +50,38 @@ export default function Refurbish() {
       rating: p.ratings?.average || 5.0,
       discount,
       mrp,
+      price,
+      href: `/refurbish/${p.slug}`,
+      isVideo,
+      videoSrc,
+      stock,
+    };
+  };
+
+  const mapFlashProduct = (p, discountPercentage) => {
+    if (!p) return null;
+    const defaultVar = p.variants?.find(v => v.isDefault) || p.variants?.[0];
+    const src = defaultVar?.images?.[0]?.url || p.images?.[0]?.url || '/assets/placeholder.jpg';
+    const storePrice = defaultVar ? (defaultVar.discountPrice || defaultVar.sellingPrice || 0) : 0;
+    const mrp = defaultVar ? (defaultVar.sellingPrice || 0) : 0;
+
+    const price = storePrice * (1 - discountPercentage / 100);
+    const discount = mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : discountPercentage;
+
+    const videoSrc = defaultVar?.videos?.[0]?.url || p.videos?.[0]?.url || null;
+    const isVideo = !!videoSrc;
+    const stock = defaultVar ? (defaultVar.stock || 0) : 0;
+
+    return {
+      id: p._id,
+      src,
+      title: p.title,
+      brand: p.brandId?.name || '',
+      categoryName: p.categoryId?.name || '',
+      shortDescription: p.shortDescription || '',
+      rating: p.ratings?.average || 5.0,
+      discount,
+      mrp: storePrice,
       price,
       href: `/refurbish/${p.slug}`,
       isVideo,
@@ -100,6 +134,13 @@ export default function Refurbish() {
         if (gamingCat) {
           const gamingRes = await axiosInstance.get(`/public/refurbished-devices/products/category/${gamingCat.slug}`);
           setGamingConsoles((gamingRes.data?.data || []).map(game => mapProduct(game)).filter(Boolean));
+        }
+
+        try {
+          const flashRes = await axiosInstance.get('/public/refurbished-devices/flash-deals');
+          setFlashDeals(flashRes.data?.data || []);
+        } catch (flashErr) {
+          console.error("Error loading flash deals:", flashErr);
         }
       } catch (err) {
         console.error("Error loading refurbished dynamic data:", err);
@@ -244,6 +285,83 @@ export default function Refurbish() {
           Shop Fast
         </Link>
       </div>
+
+      {/* Active Flash Deals Section */}
+      {flashDeals.map((deal) => {
+        const mappedProducts = (deal.products || []).map(p => mapFlashProduct(p, deal.discountPercentage)).filter(Boolean);
+        if (mappedProducts.length === 0) return null;
+
+        return (
+          <div key={deal._id} className="mt-8 mb-10 relative bg-gradient-to-b from-amber-50/20 to-transparent p-6 rounded-2xl border border-amber-100/50">
+            {/* Header with Title and Countdown */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+              <div className="flex items-center gap-3">
+                {/* <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-100/50">
+                  <Icon icon="mdi:flash" className="w-6 h-6 text-white" />
+                </div> */}
+                <div>
+                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                    {deal.title}
+                    <span className="text-xs bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full font-bold">
+                      -{deal.discountPercentage}% OFF
+                    </span>
+                  </h2>
+                  {deal.description && (
+                    <p className="text-xs text-gray-500 mt-0.5">{deal.description}</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Countdown Timer */}
+              <CountdownTimer targetDate={deal.endDate} />
+            </div>
+
+            {/* Slider */}
+            <div className="relative">
+              <Swiper
+                modules={[Navigation]}
+                spaceBetween={16}
+                slidesPerView={2}
+                navigation={{
+                  prevEl: `.prev-flash-${deal._id}`,
+                  nextEl: `.next-flash-${deal._id}`,
+                }}
+                breakpoints={{
+                  480: { slidesPerView: 2 },
+                  640: { slidesPerView: 3 },
+                  1024: { slidesPerView: 4 },
+                  1280: { slidesPerView: 5 },
+                }}
+                className="!pb-2"
+              >
+                {mappedProducts.map((product) => (
+                  <SwiperSlide key={product.id}>
+                    <RefurbishedProductCard product={product} />
+                  </SwiperSlide>
+                ))}
+              </Swiper>
+
+              {/* Navigation Buttons */}
+              <button
+                className={`prev-flash-${deal._id} absolute left-0 top-1/2 z-10 -translate-y-1/2 -translate-x-3 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden md:flex items-center justify-center hover:bg-gray-50 transition-colors`}
+                aria-label="Previous products"
+              >
+                <svg className="w-4 h-4 text-gray-650" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                className={`next-flash-${deal._id} absolute right-0 top-1/2 z-10 -translate-y-1/2 translate-x-3 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden md:flex items-center justify-center hover:bg-gray-50 transition-colors`}
+                aria-label="Next products"
+              >
+                <svg className="w-4 h-4 text-gray-650" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        );
+      })}
 
 
 
@@ -441,4 +559,65 @@ export default function Refurbish() {
     </div >
 
   )
+}
+
+function CountdownTimer({ targetDate }) {
+  const [mounted, setMounted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+    const calculateTimeLeft = () => {
+      const difference = +new Date(targetDate) - +new Date();
+      let timeLeftObj = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+      if (difference > 0) {
+        timeLeftObj = {
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        };
+      }
+      return timeLeftObj;
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (!mounted) return null;
+
+  const pad = (num) => String(num).padStart(2, '0');
+
+  return (
+    <div className="flex items-center gap-2 bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl">
+      <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-500 font-semibold mr-1">Ends In:</span>
+      <div className="flex gap-1 text-xs md:text-sm font-bold">
+        {timeLeft.days > 0 && (
+          <>
+            <span className="bg-red-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+              {pad(timeLeft.days)}
+            </span>
+            <span className="text-red-500 self-center font-bold">:</span>
+          </>
+        )}
+        <span className="bg-red-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.hours)}
+        </span>
+        <span className="text-red-500 self-center font-bold">:</span>
+        <span className="bg-red-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.minutes)}
+        </span>
+        <span className="text-red-500 self-center font-bold">:</span>
+        <span className="bg-red-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.seconds)}
+        </span>
+      </div>
+    </div>
+  );
 }

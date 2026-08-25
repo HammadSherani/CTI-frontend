@@ -434,6 +434,11 @@ export default function RefurbishedProductDetail({ params }) {
                     <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
                       {productData?.title}
                     </h1>
+                    {productData?.shortDescription && (
+                      <p className="text-xs md:text-sm text-gray-500 mt-2 font-medium leading-relaxed max-w-xl">
+                        {productData.shortDescription}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
