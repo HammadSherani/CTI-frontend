@@ -298,6 +298,57 @@ export function useVariantBuilder(initialVariants = [], product = null) {
     [rows, fallbackRow]
   );
 
+  const updateRowAttribute = useCallback((key, attrName, value, colorHex) => {
+    setRowData((prev) => {
+      const row = prev[key] || fallbackRow;
+      const currentCombo = row.combo || [];
+      const exists = currentCombo.find(c => c.name === attrName);
+
+      let newCombo;
+      if (exists) {
+        newCombo = currentCombo.map(c =>
+          c.name === attrName ? { ...c, value, colorHex: colorHex || null } : c
+        );
+      } else {
+        newCombo = [...currentCombo, { name: attrName, value, colorHex: colorHex || null }];
+      }
+
+      const newAttrs = newCombo.map(c => ({ name: c.name, label: c.value, hex: c.colorHex }));
+      const newKey = makeComboKey(newAttrs);
+
+      const next = { ...prev };
+      next[newKey] = {
+        ...row,
+        combo: newCombo
+      };
+      if (key !== newKey) {
+        delete next[key];
+      }
+      return next;
+    });
+  }, [fallbackRow]);
+
+  const removeRowAttribute = useCallback((key, attrName) => {
+    setRowData((prev) => {
+      const row = prev[key] || fallbackRow;
+      const currentCombo = row.combo || [];
+      const newCombo = currentCombo.filter(c => c.name !== attrName);
+
+      const newAttrs = newCombo.map(c => ({ name: c.name, label: c.value, hex: c.colorHex }));
+      const newKey = newCombo.length ? makeComboKey(newAttrs) : "default";
+
+      const next = { ...prev };
+      next[newKey] = {
+        ...row,
+        combo: newCombo
+      };
+      if (key !== newKey) {
+        delete next[key];
+      }
+      return next;
+    });
+  }, [fallbackRow]);
+
   /** Remove a specific combo row — adds its key to excludedKeys */
   const removeRow = useCallback((key) => {
     setExcludedKeys((prev) => {
@@ -320,6 +371,8 @@ export function useVariantBuilder(initialVariants = [], product = null) {
     addCustomValue,
     removeAttrValue,
     updateRow,
+    updateRowAttribute,
+    removeRowAttribute,
     bulkFill,
     removeRow,
     validate,

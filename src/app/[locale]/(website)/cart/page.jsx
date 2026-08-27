@@ -87,24 +87,27 @@ export default function CartPage() {
     }
   };
 
-  const getSubtotal = (cartItems) => {
+  const getSubtotal = (cartItems, isRef) => {
     return cartItems.reduce((sum, item) => {
       const product = item.productId || {};
       const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
-      const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+      let price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+      if (isRef && product.flashDeal) {
+        price = price * (1 - product.flashDeal.discountPercentage / 100);
+      }
       return sum + (price * item.quantity);
     }, 0);
   };
 
-  const standardSubtotal = getSubtotal(standardCart);
-  const refurbishedSubtotal = getSubtotal(refurbishedCart);
+  const standardSubtotal = getSubtotal(standardCart, false);
+  const refurbishedSubtotal = getSubtotal(refurbishedCart, true);
 
   const isCartEmpty = standardCart.length === 0 && refurbishedCart.length === 0;
 
   const renderCartGroup = (cartItems, isRefurbished, groupTitle, checkoutLink) => {
     if (cartItems.length === 0) return null;
 
-    const subtotal = getSubtotal(cartItems);
+    const subtotal = getSubtotal(cartItems, isRefurbished);
 
     return (
       <div className="mb-12">
@@ -128,7 +131,10 @@ export default function CartPage() {
               const product = item.productId || {};
               const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
 
-              const price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+              let price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
+              if (isRefurbished && product.flashDeal) {
+                price = price * (1 - product.flashDeal.discountPercentage / 100);
+              }
               const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
               const title = product.title;
               const variantText = variant.title ? variant.title : null;

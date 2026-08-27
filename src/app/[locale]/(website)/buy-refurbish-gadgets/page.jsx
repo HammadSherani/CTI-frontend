@@ -58,7 +58,7 @@ export default function Refurbish() {
     };
   };
 
-  const mapFlashProduct = (p, discountPercentage) => {
+  const mapFlashProduct = (p, discountPercentage, isFlashDeal = true) => {
     if (!p) return null;
     const defaultVar = p.variants?.find(v => v.isDefault) || p.variants?.[0];
     const src = defaultVar?.images?.[0]?.url || p.images?.[0]?.url || '/assets/placeholder.jpg';
@@ -87,6 +87,8 @@ export default function Refurbish() {
       isVideo,
       videoSrc,
       stock,
+      isFlashDeal,
+      flashDiscount: discountPercentage,
     };
   };
 
@@ -270,21 +272,6 @@ export default function Refurbish() {
         }
       </div>
 
-      {/* Flash Sale Strip Banner */}
-      <div className="relative mt-6 mb-10 rounded-lg overflow-hidden bg-gradient-to-r from-[#0b1229] via-[#141b3d] to-[#0b1229] h-14 flex items-center justify-center gap-4 px-6">
-        <span className="text-white font-semibold text-sm md:text-base">
-          The Clock and Stock Are Running Low!
-        </span>
-        <span className="text-primary-400 font-extrabold italic text-lg tracking-wide">
-          FLASH SALE
-        </span>
-        <Link
-          href="#"
-          className="bg-primary-500 hover:bg-primary-600 text-white text-xs md:text-sm font-semibold px-4 py-1.5 rounded-md transition-colors"
-        >
-          Shop Fast
-        </Link>
-      </div>
 
       {/* Active Flash Deals Section */}
       {flashDeals.map((deal) => {
@@ -292,32 +279,35 @@ export default function Refurbish() {
         if (mappedProducts.length === 0) return null;
 
         return (
-          <div key={deal._id} className="mt-8 mb-10 relative bg-gradient-to-b from-amber-50/20 to-transparent p-6 rounded-2xl border border-amber-100/50">
+          <div key={deal._id} className="mt-8 mb-12 relative rounded-3xl">
+
             {/* Header with Title and Countdown */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-              <div className="flex items-center gap-3">
-                {/* <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-lg shadow-orange-100/50">
-                  <Icon icon="mdi:flash" className="w-6 h-6 text-white" />
-                </div> */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 relative z-10">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
+                  <Icon icon="mdi:flash" className="w-7 h-7 text-white" />
+                </div>
                 <div>
-                  <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <h2 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2 flex-wrap">
                     {deal.title}
-                    <span className="text-xs bg-red-100 text-red-700 px-2.5 py-0.5 rounded-full font-bold">
-                      -{deal.discountPercentage}% OFF
+                    <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-600 text-white text-slate-950 px-3 py-1 rounded-full font-extrabold shadow-md uppercase tracking-wider">
+                      ⚡ {deal.discountPercentage}% OFF
                     </span>
                   </h2>
                   {deal.description && (
-                    <p className="text-xs text-gray-500 mt-0.5">{deal.description}</p>
+                    <p className="text-xs text-gray-400 mt-1 font-medium max-w-xl">{deal.description}</p>
                   )}
                 </div>
               </div>
 
               {/* Countdown Timer */}
-              <CountdownTimer targetDate={deal.endDate} />
+              <div className="shrink-0">
+                <CountdownTimer targetDate={deal.endDate} />
+              </div>
             </div>
 
             {/* Slider */}
-            <div className="relative">
+            <div className="relative z-10 px-1">
               <Swiper
                 modules={[Navigation]}
                 spaceBetween={16}

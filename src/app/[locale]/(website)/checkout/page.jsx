@@ -184,7 +184,10 @@ export default function CheckoutPage() {
             router.push('/');
             return;
           }
-          const price = variant.discountPrice || variant.sellingPrice || variant.price || 0;
+          let price = variant.discountPrice || variant.sellingPrice || variant.price || 0;
+          if (isRefurbished && product.flashDeal) {
+            price = price * (1 - product.flashDeal.discountPercentage / 100);
+          }
           setItems([{ productId: product._id, productDetails: product, variantId: variant._id, variantDetails: variant, quantity: queryQuantity, price }]);
           setSubTotal(price * queryQuantity);
           setLoading(false);
@@ -195,7 +198,10 @@ export default function CheckoutPage() {
       const formattedItems = cartItems.map(item => {
         const pDetails = item.productId || item;
         const vDetails = item.variantId || item;
-        const price = vDetails.discountPrice || vDetails.sellingPrice || vDetails.price || pDetails.summary?.minSalePrice || 0;
+        let price = vDetails.discountPrice || vDetails.sellingPrice || vDetails.price || pDetails.summary?.minSalePrice || 0;
+        if (isRefurbished && pDetails.flashDeal) {
+          price = price * (1 - pDetails.flashDeal.discountPercentage / 100);
+        }
         currentSubTotal += price * item.quantity;
         return {
           productId: pDetails._id || pDetails,

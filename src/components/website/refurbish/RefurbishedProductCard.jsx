@@ -8,32 +8,34 @@ import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import { toast } from 'react-toastify';
 
 export default function RefurbishedProductCard({ product }) {
-  const router   = useRouter();
+  const router = useRouter();
   const dispatch = useDispatch();
 
   if (!product) return null;
 
   const defaultVariant = product.variants?.find(v => v.isDefault) || product.variants?.[0];
 
-  const title        = product.title || defaultVariant?.title || '';
-  const href         = product.href || (product.slug ? `/refurbish/${product.slug}` : '#');
-  const rating       = product.rating !== undefined ? product.rating : (product.ratings?.average || null);
-  const discount     = product.discount !== undefined ? product.discount : (defaultVariant?.discountPercentage || 0);
-  const price        = product.price !== undefined ? product.price : (defaultVariant?.discountPrice || defaultVariant?.sellingPrice || 0);
-  const mrp          = product.mrp   !== undefined ? product.mrp   : (defaultVariant?.price || 0);
-  const stock        = product.stock !== undefined ? product.stock : (defaultVariant?.stock ?? null);
-  const brand             = product.brand             || product.brandId?.name    || '';
-  const categoryName      = product.categoryName      || product.categoryId?.name || '';
-  const shortDescription  = product.shortDescription  || '';
-  const showStock    = stock !== null && stock > 0 && stock <= 5;
-  const mainImage    = product.src || defaultVariant?.images?.[0]?.url || '/assets/placeholder.jpg';
-  const isVideo      = product.isVideo !== undefined ? product.isVideo : !!(defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url);
-  const videoSrc     = product.videoSrc || defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url || null;
-  const offAmount    = mrp > price ? mrp - price : 0;
+  const title = product.title || defaultVariant?.title || '';
+  const href = product.href || (product.slug ? `/refurbish/${product.slug}` : '#');
+  const rating = product.rating !== undefined ? product.rating : (product.ratings?.average || null);
+  const discount = product.discount !== undefined ? product.discount : (defaultVariant?.discountPercentage || 0);
+  const price = product.price !== undefined ? product.price : (defaultVariant?.discountPrice || defaultVariant?.sellingPrice || 0);
+  const mrp = product.mrp !== undefined ? product.mrp : (defaultVariant?.price || 0);
+  const stock = product.stock !== undefined ? product.stock : (defaultVariant?.stock ?? null);
+  const brand = product.brand || product.brandId?.name || '';
+  const categoryName = product.categoryName || product.categoryId?.name || '';
+  const shortDescription = product.shortDescription || '';
+  const showStock = stock !== null && stock > 0 && stock <= 5;
+  const mainImage = product.src || defaultVariant?.images?.[0]?.url || '/assets/placeholder.jpg';
+  const isVideo = product.isVideo !== undefined ? product.isVideo : !!(defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url);
+  const videoSrc = product.videoSrc || defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url || null;
+  const offAmount = mrp > price ? mrp - price : 0;
+  const isFlashDeal = product.isFlashDeal || false;
+  const flashDiscount = product.flashDiscount || 0;
 
   const wishlistItems = useSelector((s) => s.refurbishedWishlist?.items) || [];
-  const productIdVal  = product._id || product.id || '';
-  const isWishlisted  = wishlistItems.some(item => {
+  const productIdVal = product._id || product.id || '';
+  const isWishlisted = wishlistItems.some(item => {
     const itemProdId = item.productId?._id || item.productId?.id || item.productId;
     return itemProdId === productIdVal;
   });
@@ -70,12 +72,18 @@ export default function RefurbishedProductCard({ product }) {
       onKeyDown={handleCardKeyDown}
       role="button"
       tabIndex={0}
-      className="group relative border border-gray-200 rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:shadow-primary-100/50 hover:border-primary-300 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full"
+      className={`group relative border rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full ${isFlashDeal
+        ? 'border-amber-300 shadow-md shadow-amber-500/5 hover:shadow-amber-500/20 hover:border-amber-400'
+        : 'border-gray-200 hover:shadow-primary-100/50 hover:border-primary-300'
+        }`}
     >
       {/* ── Discount ribbon ── */}
       {discount > 0 && (
-        <div className="absolute top-3 -left-8 z-10 rotate-[-45deg] bg-red-500 text-white text-[9px] font-bold tracking-wide px-8 py-0.5 shadow-sm">
-          -{discount}%
+        <div className={`absolute top-3 -left-8 z-10 rotate-[-45deg] text-white text-[9px] font-bold tracking-wide px-8 py-0.5 shadow-sm ${isFlashDeal
+          ? 'bg-gradient-to-r from-amber-500 to-rose-600'
+          : 'bg-red-500'
+          }`}>
+          {discount}%
         </div>
       )}
 
@@ -104,11 +112,10 @@ export default function RefurbishedProductCard({ product }) {
             onClick={handleWishlist}
             aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             aria-pressed={isWishlisted}
-            className={`w-7 h-7 shrink-0 rounded-full border shadow-sm flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${
-              isWishlisted
-                ? 'bg-red-50 border-red-300 text-red-500'
-                : 'bg-white/90 border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300'
-            }`}
+            className={`w-7 h-7 shrink-0 rounded-full border shadow-sm flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 ${isWishlisted
+              ? 'bg-red-50 border-red-300 text-red-500'
+              : 'bg-white/90 border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-300'
+              }`}
           >
             <Icon
               icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'}
@@ -178,9 +185,15 @@ export default function RefurbishedProductCard({ product }) {
 
         {/* Refurbished badge + rating + savings */}
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
-            Refurbished
-          </span>
+          {isFlashDeal ? (
+            <span className="bg-gradient-to-r from-amber-500 to-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5 shadow-sm">
+              <Icon icon="mdi:flash" className="text-[10px]" /> Flash Deal
+            </span>
+          ) : (
+            <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
+              Refurbished
+            </span>
+          )}
           {product.isCTIVerified && (
             <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
               <Icon icon="mdi:check-decagram" className="text-blue-500" /> CTI Verified
@@ -198,6 +211,14 @@ export default function RefurbishedProductCard({ product }) {
             </span>
           )}
         </div>
+
+        {/* Urgency message for flash deals */}
+        {isFlashDeal && (
+          <div className="flex items-center gap-1 text-[9px] text-amber-600 font-bold tracking-tight uppercase">
+            <Icon icon="mdi:clock-alert-outline" className="text-amber-500 text-xs" />
+            <span>Limited time flash deal!</span>
+          </div>
+        )}
 
         {/* Price — pinned to bottom, never overlaps text above */}
         <div className="mt-auto flex items-center gap-1.5 flex-wrap pt-1">

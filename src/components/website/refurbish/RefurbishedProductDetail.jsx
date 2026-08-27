@@ -161,12 +161,24 @@ export default function RefurbishedProductDetail({ params }) {
   }
 
   const selectedVariant = variants.find(v => v._id === selectedVariantId) || variants[0] || {};
-  const price = selectedVariant?.discountPrice || selectedVariant?.sellingPrice || 0;
-  const oldPrice = selectedVariant?.sellingPrice || 0;
+  let price = 0;
+  let oldPrice = 0;
+  let discountPercent = null;
+  const flashDealInfo = productData.flashDeal || null;
+
+  if (flashDealInfo) {
+    const storePrice = selectedVariant?.discountPrice || selectedVariant?.sellingPrice || 0;
+    const mrp = selectedVariant?.sellingPrice || 0;
+    price = storePrice * (1 - flashDealInfo.discountPercentage / 100);
+    oldPrice = mrp || storePrice;
+    discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : flashDealInfo.discountPercentage;
+  } else {
+    price = selectedVariant?.discountPrice || selectedVariant?.sellingPrice || 0;
+    oldPrice = selectedVariant?.sellingPrice || 0;
+    discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
+  }
   const stockCount = selectedVariant?.stock ?? 0;
   const inStock = stockCount > 0;
-
-  const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
 
   /* ── Build image gallery ── */
   const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
@@ -365,6 +377,29 @@ export default function RefurbishedProductDetail({ params }) {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-12">
         {/* LEFT COLUMN */}
         <div className="lg:col-span-9 xl:col-span-9 space-y-10">
+          {/* Flash Deal Banner if active */}
+          {flashDealInfo && (
+            <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/15 border border-amber-300/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
+              {/* <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-amber-400 to-rose-500" /> */}
+              <div className="flex items-center gap-3 relative z-10">
+                <div className="w-9 h-9 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-md shadow-amber-500/20">
+                  <Icon icon="mdi:flash" className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-gray-955 tracking-tight flex items-center gap-1.5">
+                    FLASH DEAL ACTIVE
+                  </h3>
+                  <p className="text-xs text-gray-600 mt-0.5">
+                    Part of <span className="font-bold text-amber-600">{flashDealInfo.title}</span>. Extra <span className="font-extrabold text-rose-600">{flashDealInfo.discountPercentage}% discount</span> applied!
+                  </p>
+                </div>
+              </div>
+              <div className="relative z-10 shrink-0 flex items-center">
+                <CountdownTimer targetDate={flashDealInfo.endDate} />
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Gallery */}
             <div className="flex gap-3">
@@ -450,6 +485,11 @@ export default function RefurbishedProductDetail({ params }) {
                 <span className="text-2xl font-extrabold text-gray-900">{formatPrice(price)}</span>
                 {oldPrice > price && (
                   <span className="text-base text-gray-400 line-through">MRP {formatPrice(oldPrice)}</span>
+                )}
+                {flashDealInfo && (
+                  <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                    <Icon icon="mdi:flash" className="text-amber-500" /> Flash Price
+                  </span>
                 )}
                 <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-500'}`}>
                   {inStock ? `✓ In Stock (${stockCount} left)` : '✗ Out of Stock'}
@@ -801,30 +841,132 @@ function AskPlatformModal({ onClose, onSubmit, loading, productTitle }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
           <div>
-            <h3 className="font-extrabold text-gray-900 text-base">Ask the Platform</h3>
-            <p className="text-xs text-gray-400 mt-0.5 truncate max-w-xs">{productTitle}</p>
+            <h3 className="font-extrabold text-gray-950 text-base">Ask the Platform</h3>
+            <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[280px]" title={productTitle}>{productTitle}</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors">
+          <button onClick={onClose} disabled={loading} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-30">
             <Icon icon="mdi:close" className="w-5 h-5 text-gray-400" />
           </button>
         </div>
-        <div className="px-6 py-4 space-y-4">
-          <div className="flex flex-wrap gap-1.5">
-            {ASK_QUICK_SUBJECTS.map(s => (
-              <button key={s} onClick={() => setSubject(s)} className={`text-xs px-3 py-1.5 rounded-xl border transition-all ${subject === s ? 'bg-primary-500 text-white' : 'bg-gray-50 text-gray-600'}`}>{s}</button>
-            ))}
+        <div className="px-6 py-5 space-y-4">
+          <div>
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2 block">Quick Topics</label>
+            <div className="flex flex-wrap gap-2">
+              {ASK_QUICK_SUBJECTS.map(s => (
+                <button
+                  key={s}
+                  onClick={() => setSubject(s)}
+                  disabled={loading}
+                  className={`text-xs px-3 py-1.5 rounded-xl border transition-all duration-200 disabled:opacity-50 ${subject === s
+                    ? 'bg-primary-500 border-primary-500 text-black font-bold shadow-sm shadow-primary-100'
+                    : 'bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-600'
+                    }`}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
           </div>
-          <input value={subject} onChange={e => setSubject(e.target.value)} placeholder="Subject" className="w-full px-4 py-2 bg-gray-50 border rounded-xl" />
-          <textarea rows={3} value={message} onChange={e => setMessage(e.target.value)} placeholder="Message..." className="w-full px-4 py-2 bg-gray-50 border rounded-xl" />
+          <div className="space-y-3">
+            <input
+              value={subject}
+              onChange={e => setSubject(e.target.value)}
+              disabled={loading}
+              placeholder="Subject"
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white transition-all text-sm font-semibold disabled:opacity-60"
+            />
+            <textarea
+              rows={4}
+              value={message}
+              onChange={e => setMessage(e.target.value)}
+              disabled={loading}
+              placeholder="Write your message here..."
+              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:border-primary-500 focus:bg-white transition-all text-sm font-semibold resize-none disabled:opacity-60"
+            />
+          </div>
         </div>
-        <div className="px-6 pb-5 flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 rounded-xl">Cancel</button>
-          <button onClick={handleSubmit} disabled={loading} className="flex-1 py-2.5 bg-primary-600 text-white rounded-xl">Send</button>
+        <div className="px-6 pb-6 pt-2 flex gap-3">
+          <button onClick={onClose} disabled={loading} className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all disabled:opacity-50">Cancel</button>
+          <button
+            onClick={handleSubmit}
+            disabled={loading || !subject.trim() || !message.trim()}
+            className="flex-1 py-2.5 bg-primary-500 hover:bg-primary-600 disabled:bg-gray-100 disabled:text-gray-400 text-black font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-primary-100/50 disabled:shadow-none"
+          >
+            {loading ? (
+              <>
+                <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />
+                <span>Sending...</span>
+              </>
+            ) : (
+              <span>Send Message</span>
+            )}
+          </button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function CountdownTimer({ targetDate }) {
+  const [mounted, setMounted] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+
+  useEffect(() => {
+    setMounted(true);
+    const calculateTimeLeft = () => {
+      const difference = +new Date(targetDate) - +new Date();
+      let timeLeftObj = { days: 0, hours: 0, minutes: 0, seconds: 0 };
+
+      if (difference > 0) {
+        timeLeftObj = {
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        };
+      }
+      return timeLeftObj;
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const timer = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (!mounted) return null;
+
+  const pad = (num) => String(num).padStart(2, '0');
+
+  return (
+    <div className="flex items-center gap-2 bg-gray-100/70 border border-gray-200/50 px-3 py-1.5 rounded-xl shadow-sm">
+      <span className="text-[10px] md:text-xs uppercase tracking-wider text-gray-500 font-bold mr-1">Ends In:</span>
+      <div className="flex gap-1 text-xs md:text-sm font-extrabold">
+        {timeLeft.days > 0 && (
+          <>
+            <span className="bg-rose-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+              {pad(timeLeft.days)}
+            </span>
+            <span className="text-gray-400 self-center font-bold">:</span>
+          </>
+        )}
+        <span className="bg-rose-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.hours)}
+        </span>
+        <span className="text-gray-400 self-center font-bold">:</span>
+        <span className="bg-rose-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.minutes)}
+        </span>
+        <span className="text-gray-400 self-center font-bold">:</span>
+        <span className="bg-rose-500 text-white rounded px-1.5 py-0.5 min-w-[28px] text-center shadow-sm">
+          {pad(timeLeft.seconds)}
+        </span>
       </div>
     </div>
   );
