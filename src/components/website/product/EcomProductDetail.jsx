@@ -541,7 +541,7 @@ export default function EcomProductDetail({ params }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={!inStock}
-                  className={`flex-1 font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${isCartAdded ? 'bg-gray-800 hover:bg-gray-900 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-200'}`}
+                  className={`flex-1 cursor-pointer font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 ${isCartAdded ? 'bg-gray-800 hover:bg-gray-900 text-white' : 'bg-primary-500 hover:bg-primary-600 text-white shadow-lg shadow-primary-200'}`}
                 >
                   <Icon icon={isCartAdded ? 'mdi:cart-check' : 'mdi:shopping-cart'} className="w-5 h-5" />
                   {isCartAdded ? 'Remove' : 'Add to Cart'}
@@ -549,7 +549,7 @@ export default function EcomProductDetail({ params }) {
                 <button
                   onClick={handleBuyNow}
                   disabled={!inStock}
-                  className="flex-1 bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="flex-1 bg-gray-900 cursor-pointer hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
                 >
                   <Icon icon="mdi:flash" className="w-5 h-5" />
                   Buy Now
