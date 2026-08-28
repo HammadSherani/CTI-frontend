@@ -137,12 +137,12 @@ export default function RefurbishedEarningsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <EarningCard
           icon="solar:dollar-minimalistic-bold"
           label="Gross Revenue"
           value={fmt(overview?.grossRevenue)}
-          sub="From paid refurbished orders"
+          sub="Delivered orders"
           color="text-emerald-600"
           loading={loadingOv}
         />
@@ -160,6 +160,14 @@ export default function RefurbishedEarningsPage() {
           value={fmt(overview?.netEarnings)}
           sub="Revenue minus shipping"
           color="text-primary-600"
+          loading={loadingOv}
+        />
+        <EarningCard
+          icon="solar:clock-circle-bold"
+          label="On Hold"
+          value={fmt(overview?.onHoldRevenue)}
+          sub="Pending clearance"
+          color="text-purple-500"
           loading={loadingOv}
         />
         <EarningCard
