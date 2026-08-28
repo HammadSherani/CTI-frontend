@@ -136,13 +136,13 @@ export default function CartPage() {
                 price = price * (1 - product.flashDeal.discountPercentage / 100);
               }
               const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
-              const title = product.title;
-              const variantText = variant.title ? variant.title : null;
-              const detailLink = isRefurbished ? `/refurbish/${product.slug || product._id}` : `/product/${product.slug || product._id}`;
+              const title = product.title || 'Product Unavailable';
+              const variantText = variant.title && variant.title !== 'Default Variant' ? variant.title : null;
+              const detailLink = product._id ? (isRefurbished ? `/refurbish/${product.slug || product._id}` : `/product/${product.slug || product._id}`) : '#';
 
               return (
                 <div
-                  key={`${product._id}-${item.variantId?._id || item.variantId}`}
+                  key={`${product._id || idx}-${item.variantId?._id || item.variantId}`}
                   className={`grid grid-cols-12 gap-4 px-6 py-5 items-center transition-colors ${idx !== cartItems.length - 1 ? 'border-b border-gray-50' : ''} hover:bg-gray-50/50`}
                 >
                   {/* Product */}
@@ -158,9 +158,13 @@ export default function CartPage() {
                       <img src={image} alt={title} className="w-full h-full object-contain p-1" />
                     </div>
                     <div>
-                      <Link href={detailLink}>
-                        <p className="font-semibold text-gray-800 text-sm leading-tight hover:text-primary-500">{title}</p>
-                      </Link>
+                      {product._id ? (
+                        <Link href={detailLink}>
+                          <p className="font-semibold text-gray-800 text-sm leading-tight hover:text-primary-500">{title}</p>
+                        </Link>
+                      ) : (
+                        <p className="font-semibold text-gray-500 text-sm leading-tight italic">{title}</p>
+                      )}
                       {variantText ? (
                         <p className="text-gray-500 text-xs mt-0.5">{variantText}</p>
                       ) : (

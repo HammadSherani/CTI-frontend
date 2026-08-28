@@ -49,20 +49,45 @@ function InfoRow({ label, value, mono = false, icon }) {
 }
 
 /* ── Shipment Info Card ─────────────────────────────────────────── */
-function ShipmentInfoCard({ shipment }) {
+function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
+  const [refreshing, setRefreshing] = useState(false);
+
   if (!shipment || shipment.status === "not_created") return null;
+
+  const handleRefreshStatus = async () => {
+    if (!orderId || !token) return;
+    setRefreshing(true);
+    try {
+      const { data } = await axiosInstance.get(
+        `/seller/refurbished-orders/${orderId}/shipping/track`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success(data.message || "Tracking status updated!");
+        if (onStatusUpdated) onStatusUpdated(data.data.status, data.data.orderStatus);
+      } else {
+        toast.error(data.message || "Failed to update tracking");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to fetch tracking updates");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-          <Icon icon="mdi:truck-check-outline" className="w-4 h-4 text-cyan-600" />
+        <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+          <Icon icon="mdi:truck-check-outline" className="w-4 h-4 text-violet-600" />
         </div>
-        <h2 className="font-bold text-gray-900">Aras Cargo Shipment</h2>
-        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
-          shipment.status === "created" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-        }`}>
-          {shipment.status === "created" ? "Created" : "Failed"}
+        <div>
+          <h2 className="font-bold text-gray-900 leading-none text-sm">Geliver Shipment</h2>
+          <span className="text-[10px] text-gray-400 font-bold tracking-tight">{shipment.carrier || "Courier Partner"}</span>
+        </div>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${shipment.status === "created" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+          }`}>
+          {shipment.status === "created" ? "Active" : "Failed"}
         </span>
       </div>
 
@@ -70,7 +95,15 @@ function ShipmentInfoCard({ shipment }) {
         {shipment.trackingNumber && (
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-400">Tracking No.</span>
-            <span className="font-mono font-bold text-violet-700 text-xs">{shipment.trackingNumber}</span>
+            <span className="font-mono font-bold text-violet-750 text-xs">{shipment.trackingNumber}</span>
+          </div>
+        )}
+        {shipment.geliverStatus && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-gray-400">Cargo Status</span>
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+              {shipment.geliverStatus.replace(/_/g, ' ')}
+            </span>
           </div>
         )}
         {shipment.shippingCost > 0 && (
@@ -85,16 +118,28 @@ function ShipmentInfoCard({ shipment }) {
             <span className="text-xs text-gray-500">{new Date(shipment.createdAt).toLocaleString()}</span>
           </div>
         )}
-        <div className="flex flex-col gap-2 mt-2">
+        <div className="flex flex-col gap-2 mt-3">
+          <button
+            onClick={handleRefreshStatus}
+            disabled={refreshing}
+            className="w-full flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 border border-amber-200/50 shadow-sm"
+          >
+            {refreshing ? (
+              <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-amber-700" />
+            ) : (
+              <Icon icon="mdi:refresh" className="w-4 h-4" />
+            )}
+            Refresh Tracking Status ⚡
+          </button>
           {shipment.trackingUrl && (
             <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
               <Icon icon="mdi:map-search-outline" className="w-4 h-4" /> Track Shipment
             </a>
           )}
           {shipment.labelUrl && (
             <a href={shipment.labelUrl} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-750 text-xs font-bold py-2.5 rounded-xl transition-colors">
               <Icon icon="mdi:download" className="w-4 h-4" /> Download Label (PDF)
             </a>
           )}
@@ -105,7 +150,7 @@ function ShipmentInfoCard({ shipment }) {
 }
 
 /* ── Create Shipment Section ─────────────────────────────────────── */
-function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalculated }) {
+function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
   const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
   const [calculating, setCalculating] = useState(false);
@@ -123,39 +168,43 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
     if (!pkg.weight || parseFloat(pkg.weight) <= 0) { setError("Weight is required and must be greater than 0"); return; }
     setCalculating(true);
     setError("");
+    setRateResult(null);
     try {
       const { data } = await axiosInstance.post(
         `/seller/refurbished-orders/${order._id}/shipping/calculate`,
-        { weight: parseFloat(pkg.weight), width: parseFloat(pkg.width || 0), height: parseFloat(pkg.height || 0), length: parseFloat(pkg.length || 0) },
+        {
+          weight: parseFloat(pkg.weight),
+          width: parseFloat(pkg.width || 10),
+          height: parseFloat(pkg.height || 10),
+          length: parseFloat(pkg.length || 10),
+          packageCount: parseInt(pkg.packageCount || 1),
+          notes: pkg.notes
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
         setRateResult(data.data);
-        if (onRateCalculated) onRateCalculated(data.data.cost);
       } else {
-        setError(data.message || "Failed to calculate rate");
+        setError(data.message || "Failed to fetch offers");
       }
     } catch (err) {
-      setError(err?.response?.data?.message || "Failed to calculate shipping rate");
+      setError(err?.response?.data?.message || "Failed to fetch Geliver shipping offers");
     } finally {
       setCalculating(false);
     }
   };
 
-  const handleCreate = async () => {
-    if (!rateResult) { setError("Please calculate rate first"); return; }
+  const handleCreate = async (offer) => {
+    if (!rateResult) { setError("Please fetch offers first"); return; }
     setCreating(true);
     setError("");
     try {
       const { data } = await axiosInstance.post(
         `/seller/refurbished-orders/${order._id}/shipping/create`,
         {
-          weight:       parseFloat(pkg.weight),
-          width:        parseFloat(pkg.width  || 0),
-          height:       parseFloat(pkg.height || 0),
-          length:       parseFloat(pkg.length || 0),
-          packageCount: parseInt(pkg.packageCount || 1),
-          notes:        pkg.notes,
+          offerId: offer.offerId,
+          shipmentId: rateResult.shipmentId,
+          packageDetails: rateResult.packageDetails
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -171,17 +220,17 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
     }
   };
 
-  const inputCls = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-400 transition-colors bg-white";
+  const inputCls = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 transition-colors bg-white";
 
   if (creating) {
     return (
-      <div className="bg-white rounded-2xl shadow-sm border border-violet-100 p-6">
+      <div className="bg-white rounded-2xl shadow-sm border border-primary-100 p-6">
         <div className="flex flex-col items-center py-10">
-          <div className="w-16 h-16 rounded-full bg-violet-50 flex items-center justify-center mb-4">
-            <Icon icon="svg-spinners:180-ring-with-bg" className="w-8 h-8 text-violet-500" />
+          <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mb-4">
+            <Icon icon="svg-spinners:180-ring-with-bg" className="w-8 h-8 text-primary-500" />
           </div>
-          <p className="text-base font-extrabold text-gray-800">Creating Shipment…</p>
-          <p className="text-sm text-gray-400 mt-1">Booking with Aras Cargo — please wait.</p>
+          <p className="text-base font-extrabold text-gray-800">Booking Shipment…</p>
+          <p className="text-sm text-gray-400 mt-1">Creating transaction with Geliver — please wait.</p>
           <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2">
             <Icon icon="mdi:information-outline" className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <p className="text-xs text-amber-700 font-semibold">Do not close or refresh this window.</p>
@@ -195,7 +244,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center justify-between mb-5">
         <h2 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-          <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-violet-600" />
+          <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-primary-600" />
           Create Shipment
         </h2>
         <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
@@ -204,15 +253,15 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
       </div>
 
       {/* TO address */}
-      <div className="border border-violet-100 rounded-xl p-4 bg-violet-50 mb-6">
-        <p className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+      <div className="border border-primary-100 rounded-xl p-4 bg-primary-50 mb-6">
+        <p className="text-xs font-bold text-primary-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <Icon icon="mdi:account-outline" className="w-3.5 h-3.5" /> TO (Customer)
         </p>
-        <p className="font-semibold text-violet-900 text-sm">{order.shippingAddress?.fullName}</p>
-        <p className="text-violet-700 text-sm mt-1">{order.shippingAddress?.addressLine}</p>
-        <p className="text-violet-700 text-sm">{[order.shippingAddress?.city, order.shippingAddress?.state, order.shippingAddress?.country].filter(Boolean).join(", ")}</p>
-        {order.shippingAddress?.postalCode && <p className="text-violet-600 text-xs mt-1">Postal: {order.shippingAddress.postalCode}</p>}
-        {order.shippingAddress?.phone && <p className="text-violet-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
+        <p className="font-semibold text-primary-900 text-sm">{order.shippingAddress?.fullName}</p>
+        <p className="text-primary-700 text-sm mt-1">{order.shippingAddress?.addressLine}</p>
+        <p className="text-primary-700 text-sm">{[order.shippingAddress?.city, order.shippingAddress?.state, order.shippingAddress?.country].filter(Boolean).join(", ")}</p>
+        {order.shippingAddress?.postalCode && <p className="text-primary-600 text-xs mt-1">Postal: {order.shippingAddress.postalCode}</p>}
+        {order.shippingAddress?.phone && <p className="text-primary-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
       </div>
 
       {/* Package Details */}
@@ -253,48 +302,71 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
         </div>
       )}
 
-      {/* Rate result banner */}
-      {rateResult && (
-        <div className="flex items-center justify-between bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 mb-5">
-          <div>
-            <p className="text-xs font-bold text-emerald-700">Calculated Rate</p>
-            <p className="text-xl font-extrabold text-emerald-800 mt-0.5">{rateResult.cost?.toFixed(2)} {rateResult.currency}</p>
+      {/* Geliver Selectable Rate Offers List */}
+      {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
+        <div className="space-y-3 mb-5 border-t border-gray-150 pt-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer</p>
+          <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
+            {rateResult.offers.map((offer) => (
+              <div
+                key={offer.offerId}
+                className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
+                    <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
+                    <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
+                    <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
+                  </div>
+                  <button
+                    onClick={() => handleCreate(offer)}
+                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
+                  >
+                    Select & Ship
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="text-right">
-            <p className="text-xs text-emerald-600">Est. delivery</p>
-            <p className="text-sm font-bold text-emerald-700 mt-0.5">{rateResult.estimatedDays} day(s)</p>
-          </div>
-          <Icon icon="mdi:check-circle-outline" className="w-8 h-8 text-emerald-400" />
+        </div>
+      )}
+
+      {rateResult && (!rateResult.offers || rateResult.offers.length === 0) && (
+        <div className="p-4 bg-amber-50 border border-amber-100 text-xs text-amber-700 font-bold rounded-xl mb-5 flex items-center gap-2">
+          <Icon icon="mdi:alert-outline" className="w-4 h-4 text-amber-600" />
+          No shipping offers returned from Geliver. Please check dimensions or addresses.
         </div>
       )}
 
       {!rateResult && (
-        <p className="text-xs text-gray-400 mb-4 flex items-center gap-1.5">
-          <Icon icon="mdi:information-outline" className="w-3.5 h-3.5" />
-          Calculate the rate first, then confirm to create the shipment.
-        </p>
-      )}
-
-      <div className="grid grid-cols-2 gap-3">
         <button
           onClick={handleCalculate}
           disabled={calculating}
-          className="w-full bg-gray-100 hover:bg-gray-200 disabled:opacity-50 text-gray-700 font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+          className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
         >
           {calculating
-            ? <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Calculating…</>
-            : <><Icon icon="mdi:calculator-variant-outline" className="w-5 h-5" /> Calculate Rate</>
+            ? <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Fetching Offers…</>
+            : <><Icon icon="mdi:truck-fast-outline" className="w-5 h-5" /> Get Courier Offers</>
           }
         </button>
+      )}
+
+      {rateResult && (
         <button
-          onClick={handleCreate}
-          disabled={!rateResult || calculating}
-          className="w-full bg-violet-600 hover:bg-violet-700 disabled:opacity-40 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+          onClick={() => setRateResult(null)}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1 mt-2"
         >
-          <Icon icon="mdi:truck-plus-outline" className="w-5 h-5" />
-          {rateResult ? "Create Shipment" : "Calculate First"}
+          <Icon icon="mdi:refresh" className="w-4 h-4" /> Change Package Info
         </button>
-      </div>
+      )}
     </div>
   );
 }
@@ -596,10 +668,23 @@ export default function AdminRefurbishedOrderDetailPage() {
         {/* ── RIGHT sidebar ── */}
         <div className="flex flex-col gap-6">
 
-          {/* Shipment Info Card */}
-          <ShipmentInfoCard shipment={shipment} />
+          <ShipmentInfoCard 
+              shipment={shipment} 
+              orderId={order._id}
+              token={token}
+              onStatusUpdated={(status, orderStatus) => {
+                setOrder(prev => ({
+                  ...prev,
+                  orderStatus,
+                  shipment: {
+                    ...prev.shipment,
+                    geliverStatus: status
+                  }
+                }))
+              }}
+            />
 
-          {/* Order Identifiers */}
+            {/* Order Identifiers */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex items-center gap-2 mb-4">
               <Icon icon="mdi:identifier" className="w-5 h-5 text-gray-400" />

@@ -59,167 +59,269 @@ function InfoRow({ label, value, mono = false, icon }) {
 }
 
 /* ── Create Shipment Section ─────────────────────────────────────── */
-function CreateShipmentSection({ order, user, token, onCancel, onSuccess, onRateCalculated }) {
-  const [step, setStep] = useState('form');   // 'form' | 'confirming' | 'creating'
-  const [pkg, setPkg] = useState({ weight: '', width: '', height: '', length: '', packageCount: 1, notes: '', unit: 'CM' });
+function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalculated }) {
+  const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
-  const [error, setError] = useState('');
-
-  const shippingAddress = order?.shippingAddress;
-  const sellerProfile = order?.sellerProfile;
+  const [calculating, setCalculating] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
 
   const handlePkgChange = (e) => {
     const { name, value } = e.target;
-    setPkg(p => ({ ...p, [name]: value }));
-    setError('');
+    setPkg((p) => ({ ...p, [name]: value }));
+    setError("");
+    if (name === "weight") setRateResult(null);
   };
 
   const handleCalculate = async () => {
-    if (!pkg.weight || parseFloat(pkg.weight) <= 0) { setError('Weight is required and must be greater than 0'); return; }
-    setError('');
+    if (!pkg.weight || parseFloat(pkg.weight) <= 0) { setError("Weight is required and must be greater than 0"); return; }
+    setCalculating(true);
+    setError("");
+    setRateResult(null);
     try {
       const { data } = await axiosInstance.post(
         `/seller/orders/${order._id}/shipping/calculate`,
         {
           weight: parseFloat(pkg.weight),
-          width: parseFloat(pkg.width || 0),
-          height: parseFloat(pkg.height || 0),
-          length: parseFloat(pkg.length || 0),
-          unit: pkg.unit
+          width: parseFloat(pkg.width || 10),
+          height: parseFloat(pkg.height || 10),
+          length: parseFloat(pkg.length || 10),
+          packageCount: parseInt(pkg.packageCount || 1),
+          notes: pkg.notes
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
         setRateResult(data.data);
-        if (onRateCalculated) onRateCalculated(data.data.cost);
       } else {
-        setError(data.message || 'Failed to calculate rate');
+        setError(data.message || "Failed to fetch offers");
       }
     } catch (err) {
-      setError(err?.response?.data?.message || 'Failed to calculate shipping rate');
+      setError(err?.response?.data?.message || "Failed to fetch Geliver shipping offers");
+    } finally {
+      setCalculating(false);
     }
   };
 
-  const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-violet-400 transition-colors';
+  const handleCreate = async (offer) => {
+    if (!rateResult) { setError("Please fetch offers first"); return; }
+    setCreating(true);
+    setError("");
+    try {
+      const { data } = await axiosInstance.post(
+        `/seller/orders/${order._id}/shipping/create`,
+        {
+          offerId: offer.offerId,
+          shipmentId: rateResult.shipmentId,
+          packageDetails: rateResult.packageDetails,
+          paymentMethod: 'wallet',
+          estimatedCost: offer.cost
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        onSuccess(data.data);
+      } else {
+        setError(data.message || "Shipment creation failed");
+        setCreating(false);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.message || "Shipment creation failed");
+      setCreating(false);
+    }
+  };
+
+  const inputCls = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 transition-colors bg-white";
+
+  if (creating) {
+    return (
+      <div className="bg-white rounded-2xl shadow-sm border border-primary-100 p-6">
+        <div className="flex flex-col items-center py-10">
+          <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mb-4">
+            <Icon icon="svg-spinners:180-ring-with-bg" className="w-8 h-8 text-primary-500" />
+          </div>
+          <p className="text-base font-extrabold text-gray-800">Booking Shipment…</p>
+          <p className="text-sm text-gray-400 mt-1">Processing Wallet Payment & Geliver Shipment — please wait.</p>
+          <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2">
+            <Icon icon="mdi:information-outline" className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <p className="text-xs text-amber-700 font-semibold">Do not close or refresh this window.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <h2 className="font-extrabold text-gray-900 text-lg flex items-center gap-2">
-          <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-violet-600" />
-          Calculate Shipment
+          <Icon icon="mdi:truck-fast-outline" className="w-6 h-6 text-primary-600" />
+          Create Shipment
         </h2>
-        {step !== 'creating' && (
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600">
-            <Icon icon="mdi:close" className="w-5 h-5" />
-          </button>
-        )}
+        <button onClick={onCancel} className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors">
+          <Icon icon="mdi:close" className="w-5 h-5" />
+        </button>
       </div>
 
-      {/* Addresses (FROM / TO) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="border border-gray-100 rounded-xl p-4 bg-gray-50">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Icon icon="mdi:store-outline" /> FROM (Seller)</p>
-          <p className="font-semibold text-gray-800 text-sm">{sellerProfile?.businessName || sellerProfile?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}` : 'Your Store')}</p>
-          <p className="text-gray-600 text-sm mt-1">{sellerProfile?.storeAddress || user?.address || 'Your Address'}</p>
-          <p className="text-gray-600 text-sm">
-            {[sellerProfile?.city?.name || user?.city, sellerProfile?.state?.name, sellerProfile?.country?.name || user?.country].filter(Boolean).join(', ')}
-          </p>
-          <p className="text-gray-500 text-xs mt-2">{sellerProfile?.phoneNumber || user?.phone || ''}</p>
-        </div>
-        <div className="border border-violet-100 rounded-xl p-4 bg-violet-50">
-          <p className="text-xs font-bold text-violet-500 uppercase tracking-wider mb-2 flex items-center gap-1.5"><Icon icon="mdi:account-outline" /> TO (Customer)</p>
-          <p className="font-semibold text-violet-900 text-sm">{shippingAddress?.fullName}</p>
-          <p className="text-violet-700 text-sm mt-1">{shippingAddress?.addressLine}</p>
-          <p className="text-violet-700 text-sm">{[shippingAddress?.city, shippingAddress?.state, shippingAddress?.country].filter(Boolean).join(', ')}</p>
-          {shippingAddress?.postalCode && <p className="text-violet-600 text-xs mt-1">Postal: {shippingAddress.postalCode}</p>}
-          <p className="text-violet-600 text-xs mt-2">{shippingAddress?.phone}</p>
-        </div>
+      {/* TO address */}
+      <div className="border border-primary-100 rounded-xl p-4 bg-primary-50 mb-6">
+        <p className="text-xs font-bold text-primary-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+          <Icon icon="mdi:account-outline" className="w-3.5 h-3.5" /> TO (Customer)
+        </p>
+        <p className="font-semibold text-primary-900 text-sm">{order.shippingAddress?.fullName}</p>
+        <p className="text-primary-700 text-sm mt-1">{order.shippingAddress?.addressLine}</p>
+        <p className="text-primary-700 text-sm">{[order.shippingAddress?.city, order.shippingAddress?.state, order.shippingAddress?.country].filter(Boolean).join(", ")}</p>
+        {order.shippingAddress?.postalCode && <p className="text-primary-600 text-xs mt-1">Postal: {order.shippingAddress.postalCode}</p>}
+        {order.shippingAddress?.phone && <p className="text-primary-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
       </div>
 
-      {step === 'form' && (
-        <div className="grid grid-cols-1 gap-6">
-          {/* Package Details */}
-          <div>
-            <h3 className="font-bold text-gray-800 mb-4 text-sm flex items-center gap-1.5"><Icon icon="mdi:package-variant-closed" className="text-gray-400" /> Package Details</h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-              <div className="col-span-1 md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Weight (kg) *</label>
-                <input type="number" name="weight" value={pkg.weight} onChange={handlePkgChange} min="0.1" step="0.1" placeholder="e.g. 1.5" className={inputCls} />
-              </div>
-              <div className="col-span-1 md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Unit</label>
-                <select name="unit" value={pkg.unit} onChange={handlePkgChange} className={inputCls}>
-                  <option value="CM">CM</option>
-                  <option value="IN">IN</option>
-                </select>
-              </div>
-              {[{ name: 'length', label: 'Length' }, { name: 'width', label: 'Width' }, { name: 'height', label: 'Height' }].map(f => (
-                <div key={f.name} className="col-span-1 md:col-span-1">
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">{f.label} ({pkg.unit})</label>
-                  <input type="number" name={f.name} value={pkg[f.name]} onChange={handlePkgChange} min="0" step="1" placeholder="0" className={inputCls} />
-                </div>
-              ))}
-              <div className="col-span-1 md:col-span-1">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Package Count *</label>
-                <input type="number" name="packageCount" value={pkg.packageCount} onChange={handlePkgChange} min="1" step="1" className={inputCls} />
-              </div>
-              <div className="col-span-2 md:col-span-4">
-                <label className="block text-xs font-semibold text-gray-600 mb-1">Special Instructions (Optional)</label>
-                <input type="text" name="notes" value={pkg.notes} onChange={handlePkgChange} placeholder="Fragile, handle with care…" className={inputCls} />
-              </div>
-            </div>
+      {/* Package Details */}
+      <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-4">
+        <Icon icon="mdi:package-variant-closed" className="w-4 h-4 text-gray-400" /> Package Details
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Weight (kg) *</label>
+          <input type="number" name="weight" value={pkg.weight} onChange={handlePkgChange} min="0.1" step="0.1" placeholder="e.g. 1.5" className={inputCls} />
+        </div>
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Unit</label>
+          <select name="unit" value={pkg.unit} onChange={handlePkgChange} className={inputCls}>
+            <option value="CM">CM</option>
+            <option value="IN">IN</option>
+          </select>
+        </div>
+        {[{ name: "length", label: "Length" }, { name: "width", label: "Width" }, { name: "height", label: "Height" }].map((f) => (
+          <div key={f.name}>
+            <label className="block text-xs font-semibold text-gray-500 mb-1.5">{f.label} ({pkg.unit})</label>
+            <input type="number" name={f.name} value={pkg[f.name]} onChange={handlePkgChange} min="0" step="1" placeholder="0" className={inputCls} />
           </div>
+        ))}
+        <div>
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Package Count</label>
+          <input type="number" name="packageCount" value={pkg.packageCount} onChange={handlePkgChange} min="1" step="1" className={inputCls} />
+        </div>
+        <div className="col-span-2 md:col-span-4">
+          <label className="block text-xs font-semibold text-gray-500 mb-1.5">Special Instructions (Optional)</label>
+          <input type="text" name="notes" value={pkg.notes} onChange={handlePkgChange} placeholder="Fragile, handle with care…" className={inputCls} />
+        </div>
+      </div>
 
-          <div>
-            {error && (
-              <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-4 text-xs text-red-700">
-                <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />{error}
+      {error && (
+        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4 text-xs text-red-700 font-semibold">
+          <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />{error}
+        </div>
+      )}
+
+      {/* Geliver Selectable Rate Offers List */}
+      {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
+        <div className="space-y-3 mb-5 border-t border-gray-150 pt-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer (Wallet payment)</p>
+          <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
+            {rateResult.offers.map((offer) => (
+              <div
+                key={offer.offerId}
+                className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
+                    <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
+                    <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
+                    <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
+                  </div>
+                  <button
+                    onClick={() => handleCreate(offer)}
+                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
+                  >
+                    Pay & Ship
+                  </button>
+                </div>
               </div>
-            )}
-
-            {rateResult && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
-                <p className="text-xs font-bold text-green-700 mb-1">Calculated Cost</p>
-                <p className="text-2xl font-extrabold text-green-800">{rateResult.cost?.toFixed(2)} {rateResult.currency}</p>
-                <p className="text-xs text-green-600 mt-2">
-                  This is just a calculated estimate for now.
-                </p>
-              </div>
-            )}
-
-            <button onClick={handleCalculate} className="w-full bg-violet-600 hover:bg-violet-700 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm">
-              <Icon icon="mdi:calculator-variant-outline" className="w-5 h-5" /> Calculate Rate
-            </button>
+            ))}
           </div>
         </div>
       )}
 
-      {step === 'creating' && (
-        <div className="flex flex-col items-center py-12">
-          <Icon icon="svg-spinners:180-ring-with-bg" className="w-12 h-12 text-violet-500 mb-4" />
-          <p className="text-base font-bold text-gray-800">Processing Payment & Shipment…</p>
-          <p className="text-sm text-gray-500 mt-1">Please do not close this window.</p>
+      {rateResult && (!rateResult.offers || rateResult.offers.length === 0) && (
+        <div className="p-4 bg-amber-50 border border-amber-100 text-xs text-amber-700 font-bold rounded-xl mb-5 flex items-center gap-2">
+          <Icon icon="mdi:alert-outline" className="w-4 h-4 text-amber-600" />
+          No shipping offers returned from Geliver. Please check dimensions or addresses.
         </div>
+      )}
+
+      {!rateResult && (
+        <button
+          onClick={handleCalculate}
+          disabled={calculating}
+          className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 shadow-sm"
+        >
+          {calculating
+            ? <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Fetching Offers…</>
+            : <><Icon icon="mdi:truck-fast-outline" className="w-5 h-5" /> Get Courier Offers</>
+          }
+        </button>
+      )}
+
+      {rateResult && (
+        <button
+          onClick={() => setRateResult(null)}
+          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1 mt-2"
+        >
+          <Icon icon="mdi:refresh" className="w-4 h-4" /> Change Package Info
+        </button>
       )}
     </div>
   );
 }
 
 /* ── Shipment Info Card ─────────────────────────────────────────── */
-function ShipmentInfoCard({ shipment }) {
-  if (!shipment || shipment.status === 'not_created') return null;
+function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  if (!shipment || shipment.status === "not_created") return null;
+
+  const handleRefreshStatus = async () => {
+    if (!orderId || !token) return;
+    setRefreshing(true);
+    try {
+      const { data } = await axiosInstance.get(
+        `/seller/orders/${orderId}/shipping/track`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (data.success) {
+        toast.success(data.message || "Tracking status updated!");
+        if (onStatusUpdated) onStatusUpdated(data.data.status, data.data.orderStatus);
+      } else {
+        toast.error(data.message || "Failed to update tracking");
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to fetch tracking updates");
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
       <div className="flex items-center gap-2 mb-4">
-        <div className="w-8 h-8 rounded-lg bg-cyan-50 flex items-center justify-center">
-          <Icon icon="mdi:truck-check-outline" className="w-4 h-4 text-cyan-600" />
+        <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center">
+          <Icon icon="mdi:truck-check-outline" className="w-4 h-4 text-violet-600" />
         </div>
-        <h2 className="font-bold text-gray-900">Aras Cargo Shipment</h2>
-        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${shipment.status === 'created' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+        <div>
+          <h2 className="font-bold text-gray-900 leading-none text-sm">Geliver Shipment</h2>
+          <span className="text-[10px] text-gray-400 font-bold tracking-tight">{shipment.carrier || "Courier Partner"}</span>
+        </div>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${shipment.status === "created" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
           }`}>
-          {shipment.status === 'created' ? 'Created' : 'Failed'}
+          {shipment.status === "created" ? "Active" : "Failed"}
         </span>
       </div>
 
@@ -227,7 +329,15 @@ function ShipmentInfoCard({ shipment }) {
         {shipment.trackingNumber && (
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-400">Tracking No.</span>
-            <span className="font-mono font-bold text-violet-700 text-xs">{shipment.trackingNumber}</span>
+            <span className="font-mono font-bold text-violet-750 text-xs">{shipment.trackingNumber}</span>
+          </div>
+        )}
+        {shipment.geliverStatus && (
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-gray-400">Cargo Status</span>
+            <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-100">
+              {shipment.geliverStatus.replace(/_/g, ' ')}
+            </span>
           </div>
         )}
         {shipment.shippingCost > 0 && (
@@ -242,25 +352,28 @@ function ShipmentInfoCard({ shipment }) {
             <span className="text-xs text-gray-500">{new Date(shipment.createdAt).toLocaleString()}</span>
           </div>
         )}
-        {shipment.packageDetails?.weight && (
-          <div className="bg-gray-50 rounded-xl p-2.5 text-xs">
-            <p className="font-bold text-gray-500 mb-1 uppercase">Package</p>
-            <p className="text-gray-700">
-              {shipment.packageDetails.weight}kg
-              {shipment.packageDetails.width ? ` · ${shipment.packageDetails.width}×${shipment.packageDetails.height}×${shipment.packageDetails.length}cm` : ''}
-            </p>
-          </div>
-        )}
-        <div className="flex flex-col gap-2 mt-2">
+        <div className="flex flex-col gap-2 mt-3">
+          <button
+            onClick={handleRefreshStatus}
+            disabled={refreshing}
+            className="w-full flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 border border-amber-200/50 shadow-sm"
+          >
+            {refreshing ? (
+              <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-amber-700" />
+            ) : (
+              <Icon icon="mdi:refresh" className="w-4 h-4" />
+            )}
+            Refresh Tracking Status ⚡
+          </button>
           {shipment.trackingUrl && (
             <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
               <Icon icon="mdi:map-search-outline" className="w-4 h-4" /> Track Shipment
             </a>
           )}
           {shipment.labelUrl && (
             <a href={shipment.labelUrl} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-violet-50 hover:bg-violet-100 text-violet-750 text-xs font-bold py-2.5 rounded-xl transition-colors">
               <Icon icon="mdi:download" className="w-4 h-4" /> Download Label (PDF)
             </a>
           )}
@@ -741,11 +854,9 @@ export default function OrderDetailsPage() {
           {showShipmentForm && !shipmentCreated && (
             <CreateShipmentSection
               order={order}
-              user={user}
               token={token}
               onCancel={() => setShowShipmentForm(false)}
               onSuccess={(data) => { setShowShipmentForm(false); handleShipmentSuccess(data); }}
-              onRateCalculated={(cost) => setCalculatedShippingCost(cost)}
             />
           )}
 
@@ -802,8 +913,22 @@ export default function OrderDetailsPage() {
         {/* ── RIGHT: Invoice Status + Order Meta + Customer + Shipping + Payment ── */}
         <div className="flex flex-col gap-6">
 
-          {/* Aras Cargo Shipment Info Card */}
-          <ShipmentInfoCard shipment={shipment} />
+          {/* Geliver Shipment Info Card */}
+          <ShipmentInfoCard 
+            shipment={order?.shipment}
+            orderId={order?._id}
+            token={token}
+            onStatusUpdated={(status, orderStatus) => {
+              setOrder(prev => ({
+                ...prev,
+                orderStatus,
+                shipment: {
+                  ...prev.shipment,
+                  geliverStatus: status
+                }
+              }))
+            }}
+          />
 
           {/* Invoice Status Card */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">

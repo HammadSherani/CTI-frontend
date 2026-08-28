@@ -109,8 +109,8 @@ export default function CheckoutPage() {
     phone: auth?.user?.phone || '',
     address: '',
     // Location
-    countryCode: '',
-    country: '',
+    countryCode: 'TR',
+    country: 'Turkey',
     stateCode: '',
     state: '',
     city: '',
@@ -149,6 +149,8 @@ export default function CheckoutPage() {
         setForm(f => ({
           ...f,
           ...parsed,
+          countryCode: parsed.countryCode || 'TR',
+          country: parsed.country || 'Turkey',
           email: auth?.user?.email || parsed.email || '',
           firstName: auth?.user?.firstName || parsed.firstName || '',
           lastName: auth?.user?.lastName || parsed.lastName || '',
@@ -469,7 +471,7 @@ export default function CheckoutPage() {
                     onChange={handleCountryChange}
                     styles={customSelectStyles(errors.countryCode)}
                     placeholder="Search Country…"
-                    isClearable
+                    isDisabled={true}
                     className="text-sm"
                   />
                 </div>

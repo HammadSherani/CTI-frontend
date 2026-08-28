@@ -11,27 +11,27 @@ import Image from "next/image";
 import moment from "moment";
 
 const STATUS_CONFIG = {
-  pending:    { label: "Pending",    bg: "bg-blue-100",   text: "text-blue-700",   icon: "mdi:clock-outline" },
+  pending: { label: "Pending", bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:clock-outline" },
   processing: { label: "Processing", bg: "bg-indigo-100", text: "text-indigo-700", icon: "mdi:cogs" },
-  shipping:   { label: "Shipping",   bg: "bg-cyan-100",   text: "text-cyan-700",   icon: "mdi:package-variant" },
-  shipped:    { label: "Shipped",    bg: "bg-amber-100",  text: "text-amber-700",  icon: "mdi:truck-delivery-outline" },
-  delivered:  { label: "Delivered",  bg: "bg-emerald-100",text: "text-emerald-700",icon: "mdi:package-check" },
-  cancelled:  { label: "Cancelled",  bg: "bg-red-100",    text: "text-red-700",    icon: "mdi:cancel" },
+  shipping: { label: "Shipping", bg: "bg-primary-100", text: "text-primary-700", icon: "mdi:package-variant" },
+  shipped: { label: "Shipped", bg: "bg-amber-100", text: "text-amber-700", icon: "mdi:truck-delivery-outline" },
+  delivered: { label: "Delivered", bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:package-check" },
+  cancelled: { label: "Cancelled", bg: "bg-red-100", text: "text-red-700", icon: "mdi:cancel" },
 };
 
 const PAYMENT_CONFIG = {
-  PAID:    { label: "Paid",    bg: "bg-emerald-100", text: "text-emerald-700" },
-  PENDING: { label: "Pending", bg: "bg-yellow-100",  text: "text-yellow-700" },
-  FAILED:  { label: "Failed",  bg: "bg-red-100",     text: "text-red-700" },
+  PAID: { label: "Paid", bg: "bg-emerald-100", text: "text-emerald-700" },
+  PENDING: { label: "Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
+  FAILED: { label: "Failed", bg: "bg-red-100", text: "text-red-700" },
 };
 
 const ALLOWED_TRANSITIONS = {
-  pending:    ["processing", "shipping", "shipped", "cancelled"],
+  pending: ["processing", "shipping", "shipped", "cancelled"],
   processing: ["shipping", "shipped", "cancelled"],
-  shipping:   ["shipped", "cancelled"],
-  shipped:    ["delivered", "cancelled"],
-  delivered:  [],
-  cancelled:  [],
+  shipping: ["shipped", "cancelled"],
+  shipped: ["delivered", "cancelled"],
+  delivered: [],
+  cancelled: [],
 };
 
 function InfoRow({ label, value, mono = false, icon }) {
@@ -84,9 +84,8 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
           <h2 className="font-bold text-gray-900 leading-none text-sm">Geliver Shipment</h2>
           <span className="text-[10px] text-gray-400 font-bold tracking-tight">{shipment.carrier || "Courier Partner"}</span>
         </div>
-        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${
-          shipment.status === "created" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
-        }`}>
+        <span className={`ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full ${shipment.status === "created" ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"
+          }`}>
           {shipment.status === "created" ? "Active" : "Failed"}
         </span>
       </div>
@@ -119,7 +118,7 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
           </div>
         )}
         <div className="flex flex-col gap-2 mt-3">
-          <button 
+          <button
             onClick={handleRefreshStatus}
             disabled={refreshing}
             className="w-full flex items-center justify-center gap-2 bg-amber-50 hover:bg-amber-100 text-amber-700 text-xs font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50 border border-amber-200/50 shadow-sm"
@@ -133,7 +132,7 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
           </button>
           {shipment.trackingUrl && (
             <a href={shipment.trackingUrl} target="_blank" rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-cyan-50 hover:bg-cyan-100 text-cyan-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
+              className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-bold py-2.5 rounded-xl transition-colors">
               <Icon icon="mdi:map-search-outline" className="w-4 h-4" /> Track Shipment
             </a>
           )}
@@ -171,10 +170,10 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
     try {
       const { data } = await axiosInstance.post(
         `/admin/refurbish/orders/${order._id}/shipping/calculate`,
-        { 
-          weight: parseFloat(pkg.weight), 
-          width: parseFloat(pkg.width || 10), 
-          height: parseFloat(pkg.height || 10), 
+        {
+          weight: parseFloat(pkg.weight),
+          width: parseFloat(pkg.width || 10),
+          height: parseFloat(pkg.height || 10),
           length: parseFloat(pkg.length || 10),
           packageCount: parseInt(pkg.packageCount || 1),
           notes: pkg.notes
@@ -307,8 +306,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
           <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer</p>
           <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
             {rateResult.offers.map((offer) => (
-              <div 
-                key={offer.offerId} 
+              <div
+                key={offer.offerId}
                 className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
               >
                 <div className="flex items-center gap-3">
@@ -325,7 +324,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
                     <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
                     <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleCreate(offer)}
                     className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
                   >
@@ -423,15 +422,15 @@ export default function AdminRefurbishedOrderDetailPage() {
       orderStatus: "shipping",
       shippingFee: shipmentData.shippingCost,
       shipment: {
-        status:         "created",
+        status: "created",
         trackingNumber: shipmentData.trackingNumber,
-        trackingUrl:    shipmentData.trackingUrl,
-        labelUrl:       shipmentData.labelUrl,
-        carrier:        shipmentData.carrier,
-        geliverStatus:  shipmentData.status,
-        shippingCost:   shipmentData.shippingCost,
-        currency:       shipmentData.currency,
-        createdAt:      new Date().toISOString(),
+        trackingUrl: shipmentData.trackingUrl,
+        labelUrl: shipmentData.labelUrl,
+        carrier: shipmentData.carrier,
+        geliverStatus: shipmentData.status,
+        shippingCost: shipmentData.shippingCost,
+        currency: shipmentData.currency,
+        createdAt: new Date().toISOString(),
       },
     }));
     toast.success(`Shipment created! Tracking: ${shipmentData.trackingNumber}`);
@@ -452,7 +451,7 @@ export default function AdminRefurbishedOrderDetailPage() {
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           <div className="xl:col-span-2 space-y-4">
             <div className="bg-white rounded-2xl border border-gray-100 p-6 space-y-4">
-              {[1,2,3].map(i => (
+              {[1, 2, 3].map(i => (
                 <div key={i} className="flex gap-4">
                   <div className="w-20 h-20 rounded-xl bg-gray-100 animate-pulse flex-shrink-0" />
                   <div className="flex-1 space-y-2 pt-1">
@@ -465,7 +464,7 @@ export default function AdminRefurbishedOrderDetailPage() {
             </div>
           </div>
           <div className="space-y-4">
-            {[1,2,3].map(i => (
+            {[1, 2, 3].map(i => (
               <div key={i} className="bg-white rounded-2xl border border-gray-100 p-6 space-y-3">
                 <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
                 <div className="h-3 w-full bg-gray-100 rounded animate-pulse" />
@@ -481,7 +480,7 @@ export default function AdminRefurbishedOrderDetailPage() {
   if (!order) return null;
 
   const statusConf = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
-  const payConf    = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
+  const payConf = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
   const transitions = ALLOWED_TRANSITIONS[order.orderStatus] || [];
   const canChangeStatus = transitions.length > 0;
 
@@ -495,9 +494,7 @@ export default function AdminRefurbishedOrderDetailPage() {
       {/* ── Header ── */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <button
-            onClick={() => router.back()}
-            className="p-2 mt-1 bg-white rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0"
+          <button onClick={() => router.back()} className="p-2 mt-1 bg-white rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50 transition-colors flex-shrink-0"
           >
             <Icon icon="mdi:arrow-left" className="w-5 h-5 text-gray-600" />
           </button>
@@ -522,7 +519,7 @@ export default function AdminRefurbishedOrderDetailPage() {
           {canCreateShipment && !showShipmentForm && (
             <button
               onClick={() => setShowShipmentForm(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-cyan-600 hover:bg-cyan-700 text-white transition-colors shadow-sm"
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-primary-600 hover:bg-primary-700 text-white transition-colors shadow-sm"
             >
               <Icon icon="mdi:truck-plus-outline" className="w-4 h-4" />
               Create Shipment
@@ -579,8 +576,8 @@ export default function AdminRefurbishedOrderDetailPage() {
 
             <div className="divide-y divide-gray-50">
               {order.items?.map((item, idx) => {
-                const product  = item.productId  || {};
-                const variant  = item.variantId  || {};
+                const product = item.productId || {};
+                const variant = item.variantId || {};
                 const imageUrl = product.images?.[0]?.url;
 
                 return (
@@ -670,10 +667,10 @@ export default function AdminRefurbishedOrderDetailPage() {
         <div className="flex flex-col gap-6">
 
           {/* Shipment Info Card */}
-          <ShipmentInfoCard 
-            shipment={shipment} 
-            orderId={id} 
-            token={token} 
+          <ShipmentInfoCard
+            shipment={shipment}
+            orderId={id}
+            token={token}
             onStatusUpdated={(status, orderStatus) => {
               setOrder(prev => ({
                 ...prev,
@@ -693,10 +690,10 @@ export default function AdminRefurbishedOrderDetailPage() {
               <h2 className="font-bold text-gray-900">Order Info</h2>
             </div>
             <div className="space-y-3">
-              <InfoRow label="Order ID"   value={order.orderId}   mono icon="mdi:tag-outline" />
-              <InfoRow label="Order No"   value={order.orderNo}   mono icon="mdi:pound" />
-              <InfoRow label="Internal ID" value={order._id}      mono icon="mdi:database-outline" />
-              <InfoRow label="Placed On"  value={moment(order.createdAt).format("DD MMM YYYY, hh:mm A")} icon="mdi:calendar-outline" />
+              <InfoRow label="Order ID" value={order.orderId} mono icon="mdi:tag-outline" />
+              <InfoRow label="Order No" value={order.orderNo} mono icon="mdi:pound" />
+              <InfoRow label="Internal ID" value={order._id} mono icon="mdi:database-outline" />
+              <InfoRow label="Placed On" value={moment(order.createdAt).format("DD MMM YYYY, hh:mm A")} icon="mdi:calendar-outline" />
               {order.completionDate && (
                 <InfoRow label="Completed" value={moment(order.completionDate).format("DD MMM YYYY")} icon="mdi:calendar-check-outline" />
               )}
