@@ -71,8 +71,8 @@ function RefurbishedHeader() {
       ],
     },
 
+    { "name": "Transactions", "icon": "mdi:cash-register", "path": "/admin/refurbished/transactions" },
     { "name": "Earnings", "icon": "mdi:currency-usd", "path": "/admin/refurbished/earnings" },
-
   ];
 
   const dropdownLinks = [
@@ -216,7 +216,7 @@ function RefurbishedHeader() {
 
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6">
-            <Link href="/admin/refurbished/categories" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
+            <Link href="/admin/dashboard" className="flex-shrink-0 flex items-center gap-2.5 pr-6 border-r border-gray-200">
               <Image
                 src={logo}
                 alt="CTI Logo"

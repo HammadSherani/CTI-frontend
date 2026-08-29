@@ -6,11 +6,13 @@ import {Link} from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
+import { useSearchParams } from 'next/navigation';
 
 function AdminUserPage() {
+    const searchParams = useSearchParams();
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [searchTerm, setSearchTerm] = useState('');
+    const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
     const [filterStatus, setFilterStatus] = useState('all');
     const [filterRole, setFilterRole] = useState('all');
     const [submitError, setSubmitError] = useState('');

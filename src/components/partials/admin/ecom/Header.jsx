@@ -103,6 +103,7 @@ function EcomHeader() {
       path: "/admin/ecom/seller-withdrawals",
       icon: "mdi:bank-transfer-out",
     },
+    { name: 'Transactions', path: '/admin/ecom/transactions', icon: 'mdi:bank-transfer-out' }
   ];
 
   const dropdownLinks = [
@@ -283,68 +284,68 @@ function EcomHeader() {
           <div className="flex items-center gap-4">
 
             <div className="relative" ref={dropdownRef}>
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200
                 ${isDropdownOpen ? 'bg-gray-100' : 'hover:bg-gray-50'}`}
-            >
-              <div className="relative">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm ring-2 ring-white">
-                  <span className="text-xs font-bold text-white">
-                    {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
-                  </span>
+              >
+                <div className="relative">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center shadow-sm ring-2 ring-white">
+                    <span className="text-xs font-bold text-white">
+                      {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                    </span>
+                  </div>
+                  <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
                 </div>
-                <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-500 border-2 border-white rounded-full" />
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name || 'Admin User'}</p>
-                <p className="text-xs text-gray-500 leading-tight">{user?.email || 'admin@example.com'}</p>
-              </div>
-              <Icon
-                icon="mdi:chevron-down"
-                className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
-              />
-            </button>
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-medium text-gray-900 leading-tight">{user?.name || 'Admin User'}</p>
+                  <p className="text-xs text-gray-500 leading-tight">{user?.email || 'admin@example.com'}</p>
+                </div>
+                <Icon
+                  icon="mdi:chevron-down"
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
 
-            {isDropdownOpen && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-3 z-50">
-                <div className="px-4 pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
-                      <span className="text-sm font-bold text-white">
-                        {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
-                      </span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Admin User'}</p>
-                      <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
-                      <p className="text-xs text-primary-600 font-medium mt-0.5">Ecom Administrator</p>
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-gray-200 py-3 z-50">
+                  <div className="px-4 pb-3 border-b border-gray-100">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center">
+                        <span className="text-sm font-bold text-white">
+                          {user?.name ? user.name.split(' ').map(n => n[0]).join('').toUpperCase() : 'AD'}
+                        </span>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 text-sm">{user?.name || 'Admin User'}</p>
+                        <p className="text-xs text-gray-500">{user?.email || 'admin@example.com'}</p>
+                        <p className="text-xs text-primary-600 font-medium mt-0.5">Ecom Administrator</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-                <div className="py-2">
-                  {dropdownLinks.map((link) => (
-                    <div key={link.name}>
-                      {link.isLogout && <div className="my-1 border-t border-gray-100" />}
-                      <Link
-                        href={link.path}
-                        onClick={() => link.isLogout && handleLogout()}
-                        className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
+                  <div className="py-2">
+                    {dropdownLinks.map((link) => (
+                      <div key={link.name}>
+                        {link.isLogout && <div className="my-1 border-t border-gray-100" />}
+                        <Link
+                          href={link.path}
+                          onClick={() => link.isLogout && handleLogout()}
+                          className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors
                           ${link.isLogout
-                            ? 'text-red-600 hover:bg-red-50'
-                            : 'text-gray-700 hover:bg-gray-50'
-                          }`}
-                      >
-                        <Icon icon={link.icon} className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`} />
-                        <span className="font-medium">{link.name}</span>
-                      </Link>
-                    </div>
-                  ))}
+                              ? 'text-red-600 hover:bg-red-50'
+                              : 'text-gray-700 hover:bg-gray-50'
+                            }`}
+                        >
+                          <Icon icon={link.icon} className={`w-4 h-4 ${link.isLogout ? 'text-red-500' : 'text-gray-400'}`} />
+                          <span className="font-medium">{link.name}</span>
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
         </div>
       </div>
 

@@ -270,10 +270,7 @@ export default function EcomProductDetail({ params }) {
       toast.error('You cannot buy your own product');
       return;
     }
-    if (!isCartAdded) {
-      dispatch(addToCart({ product: productData, variantId: selectedVariant?._id, quantity }));
-    }
-    router.push('/checkout');
+    router.push(`/checkout?buyNow=true&slug=${productData.slug}&variantId=${selectedVariant?._id}&quantity=${quantity}`);
   };
 
   const handleAskSubmit = async (subject, message) => {

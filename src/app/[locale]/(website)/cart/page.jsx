@@ -7,15 +7,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
 import { fetchRefurbishedCart, updateRefurbishedCartItem, removeRefurbishedFromCart } from '@/store/refurbishedCart';
 
-const SHIPPING = 10.00;
-
 // ── Order Summary Sidebar Component ──
 function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
-  const total = subtotal + SHIPPING;
+  const total = subtotal;
   const rows = [
     { label: 'Items', value: subtotal, color: 'text-gray-700' },
     { label: 'Sub total', value: subtotal, color: 'text-gray-700' },
-    { label: 'Shipping', value: SHIPPING, color: 'text-gray-700' },
   ];
 
   return (
@@ -51,10 +48,10 @@ function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
 // ── Main Cart Page ──
 export default function CartPage() {
   const dispatch = useDispatch();
-  
+
   const { items: standardCart, loading: standardLoading } = useSelector(s => s.cart || { items: [], loading: false });
   const { items: refurbishedCart, loading: refurbishedLoading } = useSelector(s => s.refurbishedCart || { items: [], loading: false });
-  
+
   const loading = standardLoading || refurbishedLoading;
 
   useEffect(() => {
@@ -89,7 +86,9 @@ export default function CartPage() {
 
   const getSubtotal = (cartItems, isRef) => {
     return cartItems.reduce((sum, item) => {
-      const product = item.productId || {};
+      const product = item.productId;
+      if (!product || !product._id) return sum;
+
       const variant = item.variantId && typeof item.variantId === 'object' ? item.variantId : {};
       let price = variant.discountPrice || variant.sellingPrice || variant.price || product.summary?.minSalePrice || product.summary?.minPrice || 0;
       if (isRef && product.flashDeal) {
@@ -99,10 +98,10 @@ export default function CartPage() {
     }, 0);
   };
 
-  const standardSubtotal = getSubtotal(standardCart, false);
-  const refurbishedSubtotal = getSubtotal(refurbishedCart, true);
+  const validStandardCart = standardCart.filter(item => item.productId && item.productId._id);
+  const validRefurbishedCart = refurbishedCart.filter(item => item.productId && item.productId._id);
 
-  const isCartEmpty = standardCart.length === 0 && refurbishedCart.length === 0;
+  const isCartEmpty = validStandardCart.length === 0 && validRefurbishedCart.length === 0;
 
   const renderCartGroup = (cartItems, isRefurbished, groupTitle, checkoutLink) => {
     if (cartItems.length === 0) return null;
@@ -236,7 +235,7 @@ export default function CartPage() {
           <Icon icon="mdi:cart-off" className="text-6xl text-gray-200 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-600">Your cart is empty</h3>
           <p className="text-gray-400 text-sm mt-1 mb-6">Looks like you haven't added anything yet</p>
-          <Link href="/products">
+          <Link href="/product">
             <button className="bg-primary-500 text-white font-semibold px-6 py-2.5 rounded-xl text-sm hover:bg-primary-600 transition-colors">
               Start Shopping
             </button>
@@ -245,10 +244,10 @@ export default function CartPage() {
       ) : (
         <div>
           {/* Marketplace Group */}
-          {renderCartGroup(standardCart, false, "Marketplace Products", "/checkout")}
+          {renderCartGroup(validStandardCart, false, "Marketplace Products", "/checkout")}
 
           {/* Refurbished Group */}
-          {renderCartGroup(refurbishedCart, true, "Refurbished Devices", "/checkout?type=refurbished")}
+          {renderCartGroup(validRefurbishedCart, true, "Refurbished Devices", "/checkout?type=refurbished")}
         </div>
       )}
     </div>

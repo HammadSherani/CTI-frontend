@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import { getInitials } from '@/utils/functions';
 import axiosInstance from '@/config/axiosInstance';
+import SellerNotificationBell from './SellerNotificationBell';
 
 const primaryNavLinks = [
   {
@@ -297,6 +298,9 @@ function Header() {
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2 ml-auto flex-shrink-0">
+
+            {/* Notification Bell */}
+            <SellerNotificationBell userToken={token} />
 
             {/* Profile Dropdown */}
             <div className="relative" ref={profileDropdownRef}>
