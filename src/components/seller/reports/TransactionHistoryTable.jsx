@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 export default function TransactionHistoryTable({ groupedTransactions }) {
     const [expandedDates, setExpandedDates] = useState({});
@@ -53,7 +54,7 @@ export default function TransactionHistoryTable({ groupedTransactions }) {
                                         </span>
                                     </div>
                                     <div className="text-xs text-gray-500 font-medium">
-                                        Total: <span className="text-gray-900">${group.transactions.reduce((acc, t) => acc + t.orderAmount, 0).toFixed(2)}</span>
+                                        Total: <span className="text-gray-900">{formatCurrency(group.transactions.reduce((acc, t) => acc + t.orderAmount, 0))}</span>
                                     </div>
                                 </div>
 
@@ -80,12 +81,12 @@ export default function TransactionHistoryTable({ groupedTransactions }) {
                                                         <td className="px-5 py-3 text-gray-600 truncate max-w-[200px]" title={t.productNamesStr}>
                                                             {t.productNamesStr}
                                                         </td>
-                                                        <td className="px-5 py-3 text-right font-medium text-gray-900">${t.orderAmount.toFixed(2)}</td>
+                                                        <td className="px-5 py-3 text-right font-medium text-gray-900">{formatCurrency(t.orderAmount)}</td>
                                                         <td className="px-5 py-3 text-right font-medium text-amber-600">
-                                                            {t.holdAmount > 0 ? `$${t.holdAmount.toFixed(2)}` : '-'}
+                                                            {t.holdAmount > 0 ? formatCurrency(t.holdAmount) : '-'}
                                                         </td>
                                                         <td className="px-5 py-3 text-right font-medium text-emerald-600">
-                                                            {t.availableEarnings > 0 ? `$${t.availableEarnings.toFixed(2)}` : '-'}
+                                                            {t.availableEarnings > 0 ? formatCurrency(t.availableEarnings) : '-'}
                                                         </td>
                                                         <td className="px-5 py-3 text-center">
                                                             <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium capitalize ${getStatusStyle(t.orderStatus)}`}>

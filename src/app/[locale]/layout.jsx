@@ -3,6 +3,7 @@ import { SocketProvider } from "@/contexts/SocketProvider";
 import ReduxProvider from "@/components/website/provider/ReduxProvider";
 import AuthListener from "@/components/AuthListener";
 import { CurrencyProvider } from "@/contexts/CurrencyContext";
+import NotificationSetup from "@/components/NotificationSetup";
 
 import { NextIntlClientProvider } from "next-intl";
 import { notFound } from "next/navigation";
@@ -25,6 +26,7 @@ export default async function LocaleLayout({ children, params }) {
         <CurrencyProvider>
           <AuthListener />
           <SocketProvider>
+            <NotificationSetup />
             {children}
             <ToastContainer />
           </SocketProvider>

@@ -6,10 +6,11 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import Image from 'next/image';
+import { formatCurrency as fmt } from '@/helper/currencyFormatter';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
-const fmt    = (n)  => `Rs. ${(n || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtD   = (d)  => d ? moment(d).format('DD MMM YYYY') : '—';
 const fmtDt  = (d)  => d ? moment(d).format('DD MMM YYYY, hh:mm A') : '—';
 const daysLeft = (d) => {

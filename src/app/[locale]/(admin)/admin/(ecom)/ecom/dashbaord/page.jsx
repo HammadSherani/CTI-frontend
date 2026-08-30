@@ -16,6 +16,12 @@ export default function EcomDashboardPage() {
 
   useEffect(() => {
     const fetchDashboardData = async () => {
+      if (!token) {
+        setError('Authentication token is missing. Please login again.');
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await axiosInstance.get(ADMIN_ECOM_DASHBOARD_API, {
           headers: {

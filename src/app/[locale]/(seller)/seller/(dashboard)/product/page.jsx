@@ -11,6 +11,8 @@ import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import ProductCard from "@/components/website/product/productCard";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import Image from "next/image";
+import { formatCurrency } from "@/helper/currencyFormatter";
 
 /* ─── Delete Confirm Dialog ──────────────────────────── */
 function ConfirmDialog({ message, onConfirm, onCancel, isLoading }) {
@@ -67,7 +69,7 @@ function BarcodeModal({ barcode, barcodeImage, onClose }) {
             <Icon icon="mdi:close" className="w-4 h-4 text-gray-600" />
           </button>
         </div>
-        <img src={barcodeImage} alt={barcode} className="w-full h-auto mx-auto mb-3" />
+        <Image width={300} height={400} src={barcodeImage} alt={barcode} className="w-full h-auto mx-auto mb-3" />
         <p className="text-sm font-mono text-gray-600 bg-gray-50 rounded-lg px-3 py-2 select-all">
           {barcode}
         </p>
@@ -252,7 +254,7 @@ export default function ProductsListPage() {
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
             {row.images?.[0]?.url ? (
-              <img src={row.images[0].url} alt={row.title} className="w-full h-full object-cover" />
+              <Image width={300} height={400} src={row.images[0].url} alt={row.title} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300">
                 <Icon icon="mdi:image-outline" className="w-6 h-6" />
@@ -286,9 +288,11 @@ export default function ProductsListPage() {
               title="Click to enlarge"
               className="hover:opacity-80 transition-opacity"
             >
-              <img
+              <Image
                 src={row.barcodeImage}
                 alt={row.barcode}
+                width={300}
+                height={400}
                 className="h-8 w-auto rounded border border-gray-100"
               />
             </button>
@@ -337,9 +341,9 @@ export default function ProductsListPage() {
         const v = row.variants?.[0];
         return (
           <div>
-            <span className="font-bold text-gray-900">${v?.sellingPrice?.toFixed(2) || "0.00"}</span>
+            <span className="font-bold text-gray-900">{formatCurrency(v?.sellingPrice)}</span>
             {v?.discountPrice && (
-              <p className="text-[11px] text-emerald-600 font-medium">${v.discountPrice.toFixed(2)} discounted</p>
+              <p className="text-[11px] text-emerald-600 font-medium">{formatCurrency(v.discountPrice)} discounted</p>
             )}
           </div>
         );

@@ -8,6 +8,7 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const fmtDate = (d) => d ? moment(d).format('DD MMM YYYY') : '—';
 
@@ -128,7 +129,7 @@ export default function SellerAdsPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Spend</p>
-                <p className="text-xl font-black text-slate-900 mt-0.5">${(summary.totals?.spend || 0).toFixed(2)}</p>
+                <p className="text-xl font-black text-slate-900 mt-0.5">{formatCurrency(summary.totals?.spend)}</p>
               </div>
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
@@ -226,8 +227,8 @@ export default function SellerAdsPage() {
                         </td>
                         <td className="px-6 py-4 align-top">
                           <div className="space-y-1">
-                            <p className="text-xs font-semibold text-slate-700">Total: ${camp.totalBudget.toFixed(2)}</p>
-                            <p className="text-xs text-slate-500">Daily: ${camp.dailyBudget.toFixed(2)}</p>
+                            <p className="text-xs font-semibold text-slate-700">Total: {formatCurrency(camp.totalBudget)}</p>
+                            <p className="text-xs text-slate-500">Daily: {formatCurrency(camp.dailyBudget)}</p>
                             <span className="inline-block px-1.5 py-0.5 mt-1 bg-slate-100 text-slate-600 text-[10px] font-bold rounded">
                               {camp.biddingType}
                             </span>
@@ -237,7 +238,7 @@ export default function SellerAdsPage() {
                           <div className="text-xs space-y-1 w-32">
                             <div className="flex justify-between">
                               <span className="text-slate-500">Spent:</span>
-                              <span className="font-semibold">${camp.spentBudget?.toFixed(2) || '0.00'}</span>
+                              <span className="font-semibold">{formatCurrency(camp.spentBudget)}</span>
                             </div>
                             <div className="flex justify-between">
                               <span className="text-slate-500">Impr:</span>

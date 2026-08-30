@@ -249,7 +249,7 @@ export function UrgencyDropdown({ urgencyFilter, setUrgencyFilter }) {
 
 
 
-export function CustomDropdown({ value, onChange, options, label }) {
+export function CustomDropdown({ value, onChange, options, label, disabled }) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef();
 
@@ -272,11 +272,12 @@ export function CustomDropdown({ value, onChange, options, label }) {
       {/* Button */}
       <button
         type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className="flex items-center justify-between gap-2 px-4 py-3 w-full 
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((prev) => !prev)}
+        className={`flex items-center justify-between gap-2 px-4 py-3 w-full 
         rounded-lg border border-gray-300 bg-white shadow-sm
         hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500
-        transition-all"
+        transition-all ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       >
         <span className="text-sm font-medium text-gray-500">
           {selected?.label || label || "Select"}
@@ -302,14 +303,15 @@ export function CustomDropdown({ value, onChange, options, label }) {
           <div
             key={opt.value}
             onClick={() => {
+              if (opt.disabled) return;
               onChange(opt.value);
               setOpen(false);
             }}
-            className={`px-4 py-3 cursor-pointer text-sm flex items-center justify-between
-            hover:bg-primary-50 transition-all
-            ${value === opt.value ? "bg-primary-100" : ""}`}
+            className={`px-4 py-3 text-sm flex items-center justify-between transition-all
+            ${opt.disabled ? "opacity-50 cursor-not-allowed bg-gray-50" : "cursor-pointer hover:bg-primary-50"}
+            ${value === opt.value && !opt.disabled ? "bg-primary-100" : ""}`}
           >
-            <span className="text-gray-700">{opt.label}</span>
+            <span className={opt.disabled ? "text-gray-400" : "text-gray-700"}>{opt.label}</span>
 
             {value === opt.value && (
               <Icon

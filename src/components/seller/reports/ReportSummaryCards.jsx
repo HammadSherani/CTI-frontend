@@ -1,11 +1,12 @@
 import React from 'react';
 import { Icon } from '@iconify/react';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 export default function ReportSummaryCards({ summary }) {
     const cards = [
         {
             title: "Total Revenue",
-            value: `$${(summary?.totalRevenue || 0).toFixed(2)}`,
+            value: formatCurrency(summary?.totalRevenue),
             icon: "solar:wad-of-money-bold-duotone",
             color: "text-blue-600",
             bg: "bg-blue-50",
@@ -14,7 +15,7 @@ export default function ReportSummaryCards({ summary }) {
         },
         {
             title: "Total Earned (Available)",
-            value: `$${(summary?.totalEarned || 0).toFixed(2)}`,
+            value: formatCurrency(summary?.totalEarned),
             icon: "solar:wallet-money-bold-duotone",
             color: "text-emerald-600",
             bg: "bg-emerald-50",
@@ -23,7 +24,7 @@ export default function ReportSummaryCards({ summary }) {
         },
         {
             title: "Total Pending (Hold)",
-            value: `$${(summary?.totalPending || 0).toFixed(2)}`,
+            value: formatCurrency(summary?.totalPending),
             icon: "solar:safe-circle-bold-duotone",
             color: "text-amber-600",
             bg: "bg-amber-50",

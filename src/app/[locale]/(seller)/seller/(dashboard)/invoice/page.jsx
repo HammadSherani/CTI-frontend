@@ -7,18 +7,18 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 
 const fmtDate = (d) =>
-  d ? new Date(d).toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric', 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    }) : '—';
+  d ? new Date(d).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }) : '—';
 
 const STATUS_META = {
-  submitted: { label: 'Under Review', bg: 'bg-blue-50',     text: 'text-blue-700',    border: 'border-blue-200',    dot: '#2563eb' },
-  approved:  { label: 'Approved',     bg: 'bg-emerald-50',  text: 'text-emerald-700', border: 'border-emerald-200', dot: '#059669' },
-  rejected:  { label: 'Rejected',     bg: 'bg-red-50',      text: 'text-red-700',     border: 'border-red-200',     dot: '#dc2626' },
+  submitted: { label: 'Under Review', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: '#2563eb' },
+  approved: { label: 'Approved', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: '#059669' },
+  rejected: { label: 'Rejected', bg: 'bg-red-50', text: 'text-red-700', border: 'border-red-200', dot: '#dc2626' },
 };
 
 function StatusBadge({ status }) {
@@ -55,7 +55,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
         : '/seller/invoices/upload';
 
       const { data } = await axiosInstance.post(url, fd, {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': undefined
         },
@@ -97,15 +97,15 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
         )}
 
         <div
-          className="border-2 border-dashed border-violet-200 bg-violet-50 rounded-3xl p-10 text-center cursor-pointer hover:bg-violet-100 transition-all"
+          className="border-2 border-dashed border-primary-200 bg-primary-50 rounded-3xl p-10 text-center cursor-pointer hover:bg-primary-100 transition-all"
           onClick={() => fileRef.current?.click()}
         >
-          <Icon icon="mdi:file-pdf-box" className="w-16 h-16 text-violet-400 mx-auto mb-4" />
+          <Icon icon="mdi:file-pdf-box" className="w-16 h-16 text-primary-400 mx-auto mb-4" />
           {file ? (
-            <p className="font-semibold text-violet-700 text-lg">{file.name}</p>
+            <p className="font-semibold text-primary-700 text-lg">{file.name}</p>
           ) : (
             <>
-              <p className="font-bold text-violet-700">Click to select PDF file</p>
+              <p className="font-bold text-primary-700">Click to select PDF file</p>
               <p className="text-xs text-slate-400 mt-2">Only PDF • Max 10 MB</p>
             </>
           )}
@@ -133,7 +133,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
           <button
             onClick={handleUpload}
             disabled={loading || !file}
-            className="flex-1 py-3.5 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-3.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white font-bold rounded-2xl transition-colors flex items-center justify-center gap-2"
           >
             {loading ? (
               <>Uploading...</>
@@ -216,7 +216,7 @@ export default function InvoicePage() {
 
           {/* <button
             onClick={() => { setReuploadFor(null); setShowUpload(true); }}
-            className="flex items-center gap-2 bg-violet-600 hover:bg-violet-700 text-white font-semibold px-6 py-3 rounded-2xl transition-all shadow-sm"
+            className="flex items-center gap-2 bg-primary-600 hover:bg-primary-700 text-white font-semibold px-6 py-3 rounded-2xl transition-all shadow-sm"
           >
             <Icon icon="mdi:upload" className="w-5 h-5" />
             Upload Invoice PDF
@@ -237,11 +237,10 @@ export default function InvoicePage() {
             <button
               key={key}
               onClick={() => setFilterStatus(key)}
-              className={`px-5 py-2.5 rounded-2xl text-sm font-semibold border transition-all ${
-                filterStatus === key
-                  ? 'bg-violet-600 text-white border-violet-600'
-                  : 'bg-white border-slate-200 hover:border-violet-200 text-slate-600'
-              }`}
+              className={`px-5 py-2.5 rounded-2xl text-sm font-semibold border transition-all ${filterStatus === key
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white border-slate-200 hover:border-primary-200 text-slate-600'
+                }`}
             >
               {label} <span className="ml-1.5 text-xs opacity-75">({count})</span>
             </button>
@@ -282,8 +281,8 @@ export default function InvoicePage() {
                   </tr>
                 ) : (
                   invoices.map((inv) => (
-                    <tr key={inv._id} className="border-b hover:bg-slate-50 transition-colors">
-                      <td className="px-6 py-4 font-mono font-bold text-violet-700">{inv.invoiceNumber}</td>
+                    <tr key={inv._id} className="border-b hover:bg-primary-50 transition-colors">
+                      <td className="px-6 py-4 font-mono font-bold text-primary-700">{inv.invoiceNumber}</td>
                       <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{fmtDate(inv.createdAt)}</td>
                       <td className="px-6 py-4"><StatusBadge status={inv.status} /></td>
                       <td className="px-6 py-4 text-sm text-slate-500 max-w-xs">

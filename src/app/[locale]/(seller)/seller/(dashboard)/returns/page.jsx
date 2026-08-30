@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import moment from "moment";
+import { formatCurrency } from "@/helper/currencyFormatter";
 
 const TABS = [
   { id: "",          label: "All Returns",      icon: "mdi:package-variant-closed-remove" },
@@ -69,9 +70,9 @@ function DetailModal({ ret, onClose }) {
               ["Customer",   ret.customerName],
               ["Product",    ret.productName],
               ["Barcode",    ret.barcode || "—"],
-              ["Price",      `Rs. ${(ret.price || 0).toLocaleString()}`],
+              ["Price",      formatCurrency(ret.price)],
               ["Qty",        ret.quantity],
-              ["Seller Earnings", `Rs. ${(ret.sellerEarnings || 0).toLocaleString()}`],
+              ["Seller Earnings", formatCurrency(ret.sellerEarnings)],
               ["Created",    moment(ret.createdAt).format("DD MMM YYYY, hh:mm A")],
             ].map(([label, value]) => (
               <div key={label}>

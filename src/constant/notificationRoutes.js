@@ -18,8 +18,8 @@ const ROUTES = {
   },
   [USER_ROLES.SELLER]: {
     ecom_new_order: (d) => `/seller/order/${d.orderId}`,
-    ecom_product_query: (d) => `/seller/enquiries`,
-    ecom_order_query: (d) => `/seller/enquiries`,
+    ecom_product_query: (d) => `/seller/enquiries/${d.queryId}`,
+    ecom_order_query: (d) => `/seller/enquiries/${d.queryId}`,
   }
 };
 
@@ -30,6 +30,6 @@ export const getRedirectUrl = (role, type, data) => {
   if (!roleRoutes) return false;
 
   const routeBuilder = roleRoutes[type];
-  
+
   return routeBuilder ? routeBuilder(data) : false;
 };

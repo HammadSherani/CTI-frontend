@@ -1,111 +1,97 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { toast } from 'react-toastify';
+import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 
 export default function NotificationSetup() {
-  useEffect(() => {
-    initializeNotifications();
-  }, []);
+  const { token } = useSelector((s) => s.auth);
+  const isInitialized = useRef(false);
 
-  const initializeNotifications = async () => {
+  useEffect(() => {
+    // Only init when user is logged in and not already initialized
+    if (token && !isInitialized.current) {
+      isInitialized.current = true;
+      initializeNotifications(token);
+    }
+    // Reset if user logs out
+    if (!token) {
+      isInitialized.current = false;
+    }
+  }, [token]);
+
+  const initializeNotifications = async (authToken) => {
     if (typeof window === 'undefined') return;
+    if (!('Notification' in window)) return;
 
     try {
-      // Step 1: Service Worker register karo
+      // Step 1: Register Service Worker
       if ('serviceWorker' in navigator) {
         await navigator.serviceWorker.register('/api/firebase-sw');
-        console.log('✅ Custom SW registered');
-        
-        // Wait for service worker to be ready
         await navigator.serviceWorker.ready;
-        console.log('✅ SW is ready');
+        console.log('✅ Service Worker ready');
       }
 
-      // Step 2: Firebase dynamically import karo
+      // Step 2: Import Firebase messaging
       const { messaging } = await import('../lib/firebase');
-      console.log('✅ Firebase messaging imported');
+      if (!messaging) {
+        console.warn('⚠️ Firebase messaging not available');
+        return;
+      }
 
-      // Step 3: Permission request
-      await requestPermission(messaging);
+      // Step 3: Request permission & get FCM token
+      await requestPermissionAndSaveToken(messaging, authToken);
 
-      // Step 4: Foreground messages
+      // Step 4: Handle foreground messages (app is open)
       const { onMessage } = await import('firebase/messaging');
       onMessage(messaging, (payload) => {
-        console.log('📩 Foreground message received:', payload);
-        toast.success(`${payload.notification.title}: ${payload.notification.body}`);
+        const title = payload.notification?.title || 'New Notification';
+        const body = payload.notification?.body || '';
+        toast.info(`🔔 ${title}: ${body}`, { autoClose: 6000 });
       });
 
     } catch (error) {
-      console.error('❌ Initialization error:', error);
+      console.error('❌ NotificationSetup error:', error);
     }
   };
 
-  const requestPermission = async (messaging) => {
+  const requestPermissionAndSaveToken = async (messaging, authToken) => {
     try {
-      console.log('🔔 Current permission:', Notification.permission);
-      
-      // Manual API test first
-      console.log('🧪 Testing API connection...');
-      try {
-        const testResponse = await axiosInstance.get('/api/test'); // Create this endpoint
-        console.log('✅ API connection working:', testResponse.status);
-      } catch (apiError) {
-        console.error('❌ API connection failed:', apiError);
-      }
-
-      // Force permission reset (for testing)
       if (Notification.permission === 'denied') {
-        console.log('🚫 Permission denied. Please:');
-        console.log('1. Click lock icon in address bar');
-        console.log('2. Set Notifications to Allow');
-        console.log('3. Refresh the page');
-        toast.error('Please enable notifications in browser settings and refresh');
+        console.warn('🚫 Notification permission denied');
         return;
       }
-      
-      console.log('🔔 Requesting notification permission...');
+
       const permission = await Notification.requestPermission();
-      console.log('🔔 Permission result:', permission);
-      
-      if (permission === 'granted') {
-        console.log('🎯 Generating FCM token...');
-        
-        const { getToken } = await import('firebase/messaging');
-        const token = await getToken(messaging, {
-          vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
-        });
-        
-        console.log('📱 FCM Token generated:', token ? 'SUCCESS' : 'FAILED');
-        console.log('📱 Token preview:', token ? token.substring(0, 30) + '...' : 'NO TOKEN');
-        
-        if (token) {
-          console.log('🚀 Sending token to backend...');
-          try {
-            const response = await axiosInstance.put('/api/fcm-token', { token });
-            console.log('✅ Backend response:', response.data);
-            console.log('🎉 FCM setup complete!');
-          } catch (apiError) {
-            console.error('❌ API call failed:', apiError.response?.data || apiError.message);
-          }
-        }
-      } else {
-        console.log('❌ Notification permission denied');
+      if (permission !== 'granted') return;
+
+      console.log('✅ Notification permission granted');
+
+      const { getToken } = await import('firebase/messaging');
+      const fcmToken = await getToken(messaging, {
+        vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      });
+
+      if (!fcmToken) {
+        console.warn('⚠️ FCM token not generated');
+        return;
       }
-    } catch (error) {
-      console.error('❌ Permission/Token error:', error);
+
+      console.log('📱 FCM token generated, saving to backend...');
+
+      // Save token to backend with Authorization header
+      await axiosInstance.post(
+        '/update-fcm-token',
+        { fcmToken },
+        { headers: { Authorization: `Bearer ${authToken}` } }
+      );
+
+      console.log('🎉 FCM token saved successfully');
+    } catch (err) {
+      console.error('❌ FCM permission/token error:', err);
     }
   };
 
-  return (
-    <div style={{ position: 'fixed', top: '10px', right: '10px', zIndex: 9999 }}>
-      {/* <button 
-        onClick={() => initializeNotifications()}
-        style={{ padding: '10px', background: 'primary', color: 'white', border: 'none', cursor: 'pointer' }}
-      >
-        Test Notifications
-      </button> */}
-    </div>
-  );
+  return null;
 }

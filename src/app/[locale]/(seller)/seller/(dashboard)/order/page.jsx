@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
+import { CustomDropdown } from "@/components/dropdown";
 
 const TABS = [
   { id: "", label: "All Orders", icon: "mdi:format-list-bulleted" },
@@ -333,19 +334,19 @@ export default function SellerOrderPage() {
                 <Icon icon="solar:bill-list-bold-duotone" className="w-5 h-5" />
               </button>
             )}
-            <select
-              disabled={isL || s === "delivered" || s === "cancelled"}
+            <CustomDropdown
               value={s}
-              onChange={(e) => updateStatus(row, e.target.value)}
-              className="px-2 py-1 border border-gray-300 rounded-md text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary-500 disabled:opacity-50"
-            >
-              <option value="pending">Pending</option>
-              <option value="processing">Processing</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
-              <option value="on_hold">On Hold</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              onChange={(val) => updateStatus(row, val)}
+              options={[
+                { label: "Pending", value: "pending" },
+                { label: "Processing", value: "processing" },
+                { label: "Shipped", value: "shipped" },
+                { label: "Delivered", value: "delivered" },
+                { label: "On Hold", value: "on_hold" },
+                { label: "Cancelled", value: "cancelled" },
+              ]}
+              disabled={isL || s === "delivered" || s === "cancelled"}
+            />
           </div>
         );
       },
