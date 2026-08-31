@@ -30,7 +30,7 @@ export default function RefurbishedDashboard() {
   const [monthlyBreakdown, setMonthlyBreakdown] = useState([]);
   const [recentOrders, setRecentOrders] = useState([]);
   const [sellRequests, setSellRequests] = useState([]);
-  const [queryStats, setQueryStats] = useState({ total: 0, pending: 0, replied: 0 });
+  const [queryStats, setQueryStats] = useState({ open: 0, replied: 0, closed: 0, unread: 0 });
   const [sellRequestCount, setSellRequestCount] = useState(0);
 
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function RefurbishedDashboard() {
         axiosInstance.get(`/admin/refurbish/earnings/monthly?range=${range}`, { headers }),
         axiosInstance.get(`/admin/refurbish/earnings/orders?limit=5`, { headers }),
         axiosInstance.get(`/admin/refurbish/sell-requests?limit=5`, { headers }),
-        axiosInstance.get(`/admin/refurbish/queries/stats`, { headers }).catch(() => ({ data: { success: true, data: { total: 0, pending: 0, replied: 0 } } }))
+        axiosInstance.get(`/admin/refurbish/queries/stats`, { headers }).catch(() => ({ data: { success: true, data: { open: 0, replied: 0, closed: 0, unread: 0 } } }))
       ]);
 
       if (resOverview.data?.success) setOverview(resOverview.data.data);
@@ -56,7 +56,7 @@ export default function RefurbishedDashboard() {
         setSellRequests(resSell.data.data || []);
         setSellRequestCount(resSell.data.totalRequests || 0);
       }
-      if (resQueries.data?.success) setQueryStats(resQueries.data.data || { total: 0, pending: 0, replied: 0 });
+      if (resQueries.data?.success) setQueryStats(resQueries.data.data || { open: 0, replied: 0, closed: 0, unread: 0 });
 
       setError(null);
     } catch (err) {
@@ -209,7 +209,7 @@ export default function RefurbishedDashboard() {
             </div>
             <div className="flex items-center justify-between py-3 border-b border-gray-100/50">
               <span className="text-xs font-semibold text-gray-600">Pending Queries</span>
-              <span className="text-sm font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">{queryStats.pending}</span>
+              <span className="text-sm font-black text-amber-600 bg-amber-50 px-2.5 py-0.5 rounded-full">{queryStats.open}</span>
             </div>
             <div className="flex items-center justify-between py-3">
               <span className="text-xs font-semibold text-gray-600">Replied Queries</span>

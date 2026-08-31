@@ -6,13 +6,14 @@ import useNotifications from "@/hooks/useNotifications";
 import { useRouter, Link } from "@/i18n/navigation";
 import { formatDistanceToNow } from 'date-fns';
 
-const SellerNotificationPanel = ({ isOpen, onClose }) => {
+const AdminNotificationPanel = ({ isOpen, onClose }) => {
   const {
     notifications,
     unreadCount,
     fetchNotifications,
     markAsRead,
     deleteNotification,
+    clearAllNotifications,
     isLoading
   } = useNotifications();
 
@@ -38,9 +39,7 @@ const SellerNotificationPanel = ({ isOpen, onClose }) => {
   };
 
   const handleClearAll = async () => {
-    for (const notification of notifications) {
-      await deleteNotification(notification._id);
-    }
+    await clearAllNotifications();
   };
 
   const getNotificationIcon = (type) => {
@@ -123,7 +122,7 @@ const SellerNotificationPanel = ({ isOpen, onClose }) => {
 
       {notifications.length > 0 && (
         <div className="p-3 border-t border-gray-100 bg-gray-50/50 text-center">
-          <Link href="/seller/notifications" onClick={onClose} className="text-xs font-bold text-primary-600 hover:text-primary-700">
+          <Link href="/admin/notifications" onClick={onClose} className="text-xs font-bold text-primary-600 hover:text-primary-700">
             View All Notifications
           </Link>
         </div>
@@ -132,7 +131,7 @@ const SellerNotificationPanel = ({ isOpen, onClose }) => {
   );
 };
 
-export default function SellerNotificationBell({ userToken }) {
+export default function AdminNotificationBell({ userToken }) {
   const { unreadCount, isConnected } = useNotifications(userToken);
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -170,7 +169,7 @@ export default function SellerNotificationBell({ userToken }) {
         )}
       </button>
 
-      <SellerNotificationPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
+      <AdminNotificationPanel isOpen={isOpen} onClose={() => setIsOpen(false)} />
     </div>
   );
 }

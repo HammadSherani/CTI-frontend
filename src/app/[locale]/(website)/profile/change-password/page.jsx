@@ -22,6 +22,29 @@ function getPasswordStrength(pw) {
   return Math.min(score - 1, 4);
 }
 
+const PasswordInput = ({ label, field, showKey, icon, form, setForm, show, setShow }) => (
+  <div>
+    <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{label}</label>
+    <div className="relative">
+      <Icon icon={icon} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+      <input
+        type={show[showKey] ? "text" : "password"}
+        value={form[field]}
+        onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.value }))}
+        placeholder={`Enter ${label.toLowerCase()}`}
+        className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all bg-white"
+      />
+      <button
+        type="button"
+        onClick={() => setShow((p) => ({ ...p, [showKey]: !p[showKey] }))}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+      >
+        <Icon icon={show[showKey] ? "heroicons:eye-slash" : "heroicons:eye"} className="w-4 h-4" />
+      </button>
+    </div>
+  </div>
+);
+
 export default function CustomerChangePasswordPage() {
   const { token } = useSelector((s) => s.auth);
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -30,7 +53,8 @@ export default function CustomerChangePasswordPage() {
 
   const strength = getPasswordStrength(form.newPassword);
   const passwordsMatch = form.newPassword && form.confirmPassword && form.newPassword === form.confirmPassword;
-  const canSubmit = form.currentPassword && form.newPassword.length >= 6 && passwordsMatch && !saving;
+  const isSameAsOld = form.currentPassword && form.newPassword && form.currentPassword === form.newPassword;
+  const canSubmit = form.currentPassword && form.newPassword.length >= 6 && passwordsMatch && !isSameAsOld && !saving;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -54,28 +78,6 @@ export default function CustomerChangePasswordPage() {
     }
   };
 
-  const PasswordInput = ({ label, field, showKey, icon }) => (
-    <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{label}</label>
-      <div className="relative">
-        <Icon icon={icon} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-        <input
-          type={show[showKey] ? "text" : "password"}
-          value={form[field]}
-          onChange={(e) => setForm((p) => ({ ...p, [field]: e.target.value }))}
-          placeholder={`Enter ${label.toLowerCase()}`}
-          className="w-full pl-9 pr-10 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all bg-white"
-        />
-        <button
-          type="button"
-          onClick={() => setShow((p) => ({ ...p, [showKey]: !p[showKey] }))}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-        >
-          <Icon icon={show[showKey] ? "heroicons:eye-slash" : "heroicons:eye"} className="w-4 h-4" />
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
@@ -105,26 +107,30 @@ export default function CustomerChangePasswordPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            <PasswordInput label="Current Password" field="currentPassword" showKey="current" icon="heroicons:key" />
+            <PasswordInput label="Current Password" field="currentPassword" showKey="current" icon="heroicons:key" form={form} setForm={setForm} show={show} setShow={setShow} />
 
             <div>
-              <PasswordInput label="New Password" field="newPassword" showKey="new" icon="heroicons:lock-closed" />
-              {/* Strength Bar */}
-              {form.newPassword && (
+              <PasswordInput label="New Password" field="newPassword" showKey="new" icon="heroicons:lock-closed" form={form} setForm={setForm} show={show} setShow={setShow} />
+            {isSameAsOld && (
+              <p className="text-xs text-red-500 font-medium mt-1.5 flex items-center gap-1">
+                <Icon icon="heroicons:exclamation-circle" className="w-4 h-4" />
+                New password cannot be the same as your current password.
+              </p>
+            )}
+            {/* Strength Bar */}
+            {form.newPassword && !isSameAsOld && (
                 <div className="mt-2">
                   <div className="flex gap-1">
                     {[0, 1, 2, 3, 4].map((i) => (
                       <div
                         key={i}
-                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                          i <= strength ? strengthColors[strength] : "bg-gray-200"
-                        }`}
+                        className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength ? strengthColors[strength] : "bg-gray-200"
+                          }`}
                       />
                     ))}
                   </div>
-                  <p className={`text-xs mt-1 font-medium ${
-                    strength <= 1 ? "text-red-500" : strength <= 2 ? "text-yellow-600" : "text-green-600"
-                  }`}>
+                  <p className={`text-xs mt-1 font-medium ${strength <= 1 ? "text-red-500" : strength <= 2 ? "text-yellow-600" : "text-green-600"
+                    }`}>
                     {strengthLabels[strength] || ""}
                   </p>
                 </div>
@@ -132,7 +138,7 @@ export default function CustomerChangePasswordPage() {
             </div>
 
             <div>
-              <PasswordInput label="Confirm New Password" field="confirmPassword" showKey="confirm" icon="heroicons:shield-check" />
+              <PasswordInput label="Confirm New Password" field="confirmPassword" showKey="confirm" icon="heroicons:shield-check" form={form} setForm={setForm} show={show} setShow={setShow} />
               {form.confirmPassword && (
                 <div className="flex items-center gap-1.5 mt-1.5">
                   <Icon

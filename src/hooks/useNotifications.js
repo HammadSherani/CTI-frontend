@@ -100,6 +100,20 @@ const useNotifications = () => {
     }
   }, [dispatch, token, list]);
 
+  const clearAllNotifications = useCallback(async () => {
+    try {
+      const response = await axiosInstance.delete(
+        `/notifications/clear-all`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (response.data.success) {
+        dispatch(setNotifications([]));
+      }
+    } catch (error) {
+      console.error('Failed to clear notifications:', error);
+    }
+  }, [dispatch, token]);
+
   return {
     notifications: list,
     unreadCount,
@@ -109,6 +123,7 @@ const useNotifications = () => {
     markAsRead: markNotificationAsRead,
     markAllAsRead: markAllNotificationsAsRead,
     deleteNotification,
+    clearAllNotifications,
   };
 };
 
