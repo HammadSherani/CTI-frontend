@@ -7,6 +7,7 @@ import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
+import AdminNotificationBell from '../header/AdminNotificationBell';
 
 function RefurbishedHeader() {
   const pathname = usePathname();
@@ -19,7 +20,7 @@ function RefurbishedHeader() {
   const [isProductDropdownOpen, setIsProductDropdownOpen] = useState(false);
 
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(clearAuth());
@@ -243,6 +244,7 @@ function RefurbishedHeader() {
           {/* Right: Ecom link + User dropdown */}
           <div className="flex items-center gap-4">
 
+            <AdminNotificationBell userToken={token} />
 
             <div className="relative" ref={dropdownRef}>
               <button

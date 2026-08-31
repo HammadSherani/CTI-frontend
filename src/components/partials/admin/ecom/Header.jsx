@@ -7,6 +7,7 @@ import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
+import AdminNotificationBell from '../header/AdminNotificationBell';
 
 function EcomHeader() {
   const pathname = usePathname();
@@ -14,14 +15,14 @@ function EcomHeader() {
   const catalogDropdownRef = useRef(null);
   const ordersDropdownRef = useRef(null);
   const adsDropdownRef = useRef(null);
-
+  const walletDropdownRef = useRef(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isOrdersDropdownOpen, setIsOrdersDropdownOpen] = useState(false);
   const [isAdsDropdownOpen, setIsAdsDropdownOpen] = useState(false);
-
+  const [isWalletDropdownOpen, setIsWalletDropdownOpen] = useState(false);
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(clearAuth());
@@ -56,11 +57,6 @@ function EcomHeader() {
       ],
     },
     {
-      name: "Products",
-      path: "/admin/ecom/products",
-      icon: "mdi:package-variant-outline",
-    },
-    {
       name: "Ads",
       path: "#",
       icon: "mdi:bullhorn-outline",
@@ -82,28 +78,49 @@ function EcomHeader() {
       hasSubmenu: true,
       submenu: [
         {
-          category: "Order Management",
+          category: "Product Order Management",
           items: [
             { name: "All Orders", icon: "mdi:clipboard-list-outline", path: "/admin/ecom/orders" },
             { name: "Returns", icon: "mdi:package-variant-closed-remove", path: "/admin/ecom/returns" },
             { name: "Customer Requests", icon: "mdi:message-text-outline", path: "/admin/ecom/returns?tab=__cr__" },
             { name: "Invoices", icon: "mdi:file-document-outline", path: "/admin/ecom/invoices" },
+            {
+              name: "Products",
+              path: "/admin/ecom/products",
+              icon: "mdi:package-variant-outline",
+            },
+
+
+          ],
+        },
+      ],
+    },
+    {
+      name: "Wallet",
+      path: "#",
+      icon: "mdi:wallet-outline",
+      hasSubmenu: true,
+      submenu: [
+        {
+          category: "Order Management",
+          items: [
+            {
+              name: "Wallet",
+              path: "/admin/ecom/wallet",
+              icon: "mdi:wallet-outline",
+            },
+            {
+              name: "Withdrawals",
+              path: "/admin/ecom/seller-withdrawals",
+              icon: "mdi:bank-transfer-out",
+            },
+            { name: 'Transactions', path: '/admin/ecom/transactions', icon: 'mdi:bank-transfer-out' }
           ],
         },
       ],
     },
 
-    {
-      name: "Wallet",
-      path: "/admin/ecom/wallet",
-      icon: "mdi:wallet-outline",
-    },
-    {
-      name: "Withdrawals",
-      path: "/admin/ecom/seller-withdrawals",
-      icon: "mdi:bank-transfer-out",
-    },
-    { name: 'Transactions', path: '/admin/ecom/transactions', icon: 'mdi:bank-transfer-out' }
+
   ];
 
   const dropdownLinks = [
@@ -136,6 +153,7 @@ function EcomHeader() {
     setIsCatalogDropdownOpen(false);
     setIsOrdersDropdownOpen(false);
     setIsAdsDropdownOpen(false);
+    setIsWalletDropdownOpen(false);
   }, [pathname]);
 
   const isActiveLink = (linkPath) => {
@@ -274,6 +292,8 @@ function EcomHeader() {
                   return renderNavLink(link, isOrdersDropdownOpen, setIsOrdersDropdownOpen, ordersDropdownRef);
                 } else if (link.name === "Ads") {
                   return renderNavLink(link, isAdsDropdownOpen, setIsAdsDropdownOpen, adsDropdownRef);
+                } else if (link.name === "Wallet") {
+                  return renderNavLink(link, isWalletDropdownOpen, setIsWalletDropdownOpen, walletDropdownRef);
                 }
                 return renderNavLink(link);
               })}
@@ -282,6 +302,7 @@ function EcomHeader() {
 
           {/* Right: User dropdown */}
           <div className="flex items-center gap-4">
+            <AdminNotificationBell userToken={token} />
 
             <div className="relative" ref={dropdownRef}>
               <button

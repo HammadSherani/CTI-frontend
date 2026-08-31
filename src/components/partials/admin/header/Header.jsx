@@ -7,6 +7,7 @@ import logo from "../../../../../public/assets/logo.png";
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
+import AdminNotificationBell from './AdminNotificationBell';
 
 function Header() {
   const pathname = usePathname();
@@ -16,7 +17,7 @@ function Header() {
   const partsDropdownRef = useRef(null);
   const academyDropdownRef = useRef(null);
   const modulesDropdownRef = useRef(null);
-
+  const { token } = useSelector((state) => state.auth)
   const [isDropdownOpen, setIsDropdownOpen] = useState(false); // User profile dropdown
   const [isCatalogDropdownOpen, setIsCatalogDropdownOpen] = useState(false);
   const [isUsersDropdownOpen, setIsUsersDropdownOpen] = useState(false);
@@ -307,9 +308,13 @@ function Header() {
           </nav>
         </div>
 
-        {/* User Profile Dropdown */}
-        <div className="relative  left-2" ref={dropdownRef}>
-          <button
+        <div className="flex items-center gap-4">
+          {/* Admin Notification Bell */}
+          <AdminNotificationBell userToken={token} />
+
+          {/* User Profile Dropdown */}
+          <div className="relative left-2" ref={dropdownRef}>
+            <button
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group
               ${isDropdownOpen ? 'bg-gray-100 shadow-sm' : 'hover:bg-gray-50'}`}
@@ -373,6 +378,7 @@ function Header() {
               </div>
             </div>
           )}
+          </div>
         </div>
       </div>
 

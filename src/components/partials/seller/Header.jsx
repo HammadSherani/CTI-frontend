@@ -76,6 +76,7 @@ const primaryNavLinks = [
 
 const dropdownLinks = [
   { name: "Profile Settings", path: "/seller/profile", icon: "solar:user-id-bold-duotone" },
+  { name: "Change Password", path: "/seller/profile/change-password", icon: "solar:lock-password-bold-duotone" },
   { name: "Help & Support", path: "/help-support", icon: "solar:question-circle-bold-duotone" },
   { name: "Sign Out", path: "/auth/logout", icon: "solar:logout-3-bold-duotone", isLogout: true },
 ];

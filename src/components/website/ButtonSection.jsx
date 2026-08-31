@@ -125,10 +125,12 @@ function ButtonSection() {
   const handleNotificationClick = () => router.push("/coming");
 
   const dropdownLinks = [
+    { name: "My Profile", path: "/profile" },
     { name: "My Account", path: "/my-account" },
     { name: "My Orders", path: "/orders" },
     { name: "My Messages", path: "/messages" },
     { name: "My Sell Requests", path: "/my-sell-requests" },
+    { name: "Change Password", path: "/profile/change-password" },
     { name: "Help & Support", path: "/help-support" },
     { name: "Sign Out", path: "/", isLogout: true },
   ];
