@@ -585,7 +585,7 @@ function NavigationBar({ isHome, isScrolled }) {
 
   const SELL_PHONE = topBrands.length > 0 ? [
     { sectionTitle: "Top Brands", href: "/sell-devices/phone" },
-    ...topBrands.map(b => ({ name: b.name, href: `/sell-devices/brands/${b.slug}` }))
+    ...topBrands.map(b => ({ name: b.name, href: `/sell-devices/phone/brands/${b.slug}` }))
   ] : [];
 
   const SELL_GADGETS = sellGadgetsData.map(cat => ({
