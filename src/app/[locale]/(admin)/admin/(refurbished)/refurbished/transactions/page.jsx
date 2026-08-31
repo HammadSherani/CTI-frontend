@@ -155,7 +155,7 @@ export default function RefurbishedTransactions() {
         </div>
       </div>
 
-      <SummaryCards data={summaryCards} />
+      {/* <SummaryCards data={summaryCards} /> */}
 
       <div className="bg-white rounded-3xl border border-gray-200/60 p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
