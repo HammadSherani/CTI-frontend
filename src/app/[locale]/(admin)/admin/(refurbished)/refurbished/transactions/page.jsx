@@ -10,6 +10,7 @@ import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
+import TransactionViewModal from "@/components/partials/admin/ecom/TransactionViewModal";
 
 export default function RefurbishedTransactions() {
   const { token } = useSelector((s) => s.auth);
@@ -18,6 +19,8 @@ export default function RefurbishedTransactions() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [pagination, setPagination] = useState({ current: 1, pageSize: 50, total: 0 });
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchTransactions = useCallback(async (page = 1, searchQuery = "", type = "") => {
     if (!token) return;
@@ -144,6 +147,22 @@ export default function RefurbishedTransactions() {
         </div>
       ),
     },
+    {
+      key: "actions",
+      header: "Action",
+      cell: (row) => (
+        <button
+          onClick={() => {
+            setSelectedTransaction(row);
+            setIsModalOpen(true);
+          }}
+          className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+          title="View Details"
+        >
+          <Icon icon="mdi:eye-outline" className="w-5 h-5" />
+        </button>
+      ),
+    }
   ];
 
   return (
@@ -211,6 +230,15 @@ export default function RefurbishedTransactions() {
           </div>
         )}
       </div>
+
+      <TransactionViewModal
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setTimeout(() => setSelectedTransaction(null), 200);
+        }}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }
