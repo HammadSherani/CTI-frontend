@@ -15,6 +15,7 @@ import ImageZoom from '../ImageZoom';
 import ReviewCard from '../ReviewCard';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
+import ProductGalleryModal from './ProductGalleryModal';
 
 export default function EcomProductDetail({ params }) {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function EcomProductDetail({ params }) {
   const [reviews, setReviews] = useState([]);
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -164,7 +166,8 @@ export default function EcomProductDetail({ params }) {
   const isWishlistLoading = wishlistLoadingIds.includes(currentUniqueId);
   const isCartLoading = cartLoadingIds.includes(currentUniqueId);
 
-  /* ── Build image gallery ── */
+  /* ── Build media gallery ── */
+  const productVideos = (productData?.videos || []).map(v => v?.url || v);
   const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
   const otherImages = variants
     .filter(v => v._id !== selectedVariantId)
@@ -174,13 +177,13 @@ export default function EcomProductDetail({ params }) {
   const uniqueVariantImages = selectedVariantImages.filter(img => !productImages.includes(img));
   const sharedVariantImages = selectedVariantImages.filter(img => productImages.includes(img));
 
-  let allImages = [...new Set([...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
-  if (!allImages.length) allImages = ['/assets/placeholder.jpg'];
+  let allMedia = [...new Set([...productVideos, ...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
+  if (!allMedia.length) allMedia = ['/assets/placeholder.jpg'];
 
   // Visible thumbnails
-  const visibleThumbs = allImages.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
+  const visibleThumbs = allMedia.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
   const canScrollUp = thumbStart > 0;
-  const canScrollDown = thumbStart + THUMBS_PER_VIEW < allImages.length;
+  const canScrollDown = thumbStart + THUMBS_PER_VIEW < allMedia.length;
 
   const categoryName = productData.categoryId?.title || '';
   const brandName = productData.brandId?.title || '';
@@ -452,21 +455,35 @@ export default function EcomProductDetail({ params }) {
                   <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
                 </button>
                 <div className="flex flex-col gap-2">
-                  {visibleThumbs.map((img, i) => {
+                  {visibleThumbs.map((media, i) => {
                     const realIndex = thumbStart + i;
+                    const isVideo = typeof media === 'string' 
+                      ? media.match(/\.(mp4|webm|ogg|mov)$/i) 
+                      : media?.type?.startsWith('video');
+                    const url = typeof media === 'string' ? media : media?.url;
+
                     return (
                       <button
                         key={realIndex}
-                        onClick={() => setSelectedImage(realIndex)}
-                        className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
+                        onClick={() => {
+                          setSelectedImage(realIndex);
+                          setIsGalleryOpen(true);
+                        }}
+                        className={`relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <img src={img} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
+                        {isVideo ? (
+                          <div className="w-full h-full bg-black/80 flex items-center justify-center">
+                            <Icon icon="solar:play-circle-bold" className="w-6 h-6 text-white" />
+                          </div>
+                        ) : (
+                          <img src={url} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
+                        )}
                       </button>
                     );
                   })}
                 </div>
                 <button
-                  onClick={() => setThumbStart(p => Math.min(allImages.length - THUMBS_PER_VIEW, p + 1))}
+                  onClick={() => setThumbStart(p => Math.min(allMedia.length - THUMBS_PER_VIEW, p + 1))}
                   disabled={!canScrollDown}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
                 >
@@ -481,7 +498,59 @@ export default function EcomProductDetail({ params }) {
                       -{discountPercent}%
                     </span>
                   )}
-                  <ImageZoom key={allImages[selectedImage] || selectedImage} src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
+                  {(() => {
+                    const activeMedia = allMedia[selectedImage] || '/assets/placeholder.jpg';
+                    const isVideo = typeof activeMedia === 'string' 
+                      ? activeMedia.match(/\.(mp4|webm|ogg|mov)$/i) 
+                      : activeMedia?.type?.startsWith('video');
+                    const url = typeof activeMedia === 'string' ? activeMedia : activeMedia?.url;
+                    
+                    if (isVideo) {
+                      return (
+                        <div 
+                          className="w-full h-full relative cursor-pointer group" 
+                          onClick={() => setIsGalleryOpen(true)}
+                        >
+                          <video 
+                            src={url} 
+                            className="w-full h-full object-contain pointer-events-none"
+                          />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 flex items-center justify-center transition-colors">
+                            <Icon icon="solar:play-circle-bold" className="w-16 h-16 text-white drop-shadow-md opacity-80 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div 
+                        className="w-full h-full cursor-pointer" 
+                        onClick={() => setIsGalleryOpen(true)}
+                      >
+                        <ImageZoom key={url || selectedImage} src={url} alt={productData.title} />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Gallery Button overlay at bottom */}
+                  <div className="absolute bottom-4 left-4 right-4 z-10">
+                    <button 
+                      onClick={() => setIsGalleryOpen(true)}
+                      className="w-full flex items-center justify-between bg-primary-500/90 hover:bg-primary-600 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-lg transition-colors border border-primary-400"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                          <Icon icon={productVideos.length > 0 ? "solar:video-frame-play-bold-duotone" : "solar:gallery-bold-duotone"} className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-sm">
+                            {productVideos.length > 0 ? "See the video of this device" : "See all images"}
+                          </p>
+                          <p className="text-xs text-white/80">View the complete product gallery</p>
+                        </div>
+                      </div>
+                      <Icon icon="mdi:chevron-right" className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -856,6 +925,14 @@ export default function EcomProductDetail({ params }) {
           sellerName={seller?.businessName || 'Seller'}
         />
       )}
+
+      {/* Modals */}
+      <ProductGalleryModal 
+        isOpen={isGalleryOpen} 
+        onClose={() => setIsGalleryOpen(false)} 
+        mediaList={allMedia} 
+        initialIndex={selectedImage} 
+      />
     </div>
   );
 }

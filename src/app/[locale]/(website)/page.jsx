@@ -77,7 +77,7 @@ function Home() {
   return (
     <div className="space-y-8 ">
       <Hero />
-   
+
       <OurServices />
       <SellGadgets />
       <VideoSection />

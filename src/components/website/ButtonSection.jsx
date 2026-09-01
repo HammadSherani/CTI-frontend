@@ -132,7 +132,7 @@ function ButtonSection() {
     { name: "My Sell Requests", path: "/my-sell-requests" },
     { name: "Change Password", path: "/profile/change-password" },
     { name: "Help & Support", path: "/help-support" },
-    { name: "Sign Out", path: "/", isLogout: true },
+    { name: "Sign Out", path: "/auth/logout", isLogout: true },
   ];
 
   if (!user) {
@@ -206,8 +206,8 @@ function ButtonSection() {
                   href={link.path}
                   onClick={link.isLogout ? handleLogout : () => setIsDropdownOpen(false)}
                   className={`block px-4 py-2 text-[13px] font-medium transition-colors ${link.isLogout
-                      ? 'text-red-500 hover:bg-red-50'
-                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                    ? 'text-red-500 hover:bg-red-50'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                     }`}
                 >
                   {link.name}

@@ -28,22 +28,21 @@ const getFeatures = (deviceType) => {
 
 export default function WhatComesWithPhone({ deviceType = "phone" }) {
   const isLaptop = deviceType === "laptop";
+  const isTablet = deviceType === "tablet";
   const features = getFeatures(deviceType);
 
-  const imageUrl = isLaptop
-    ? "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?auto=format&fit=crop&w=800&q=80"
-    : "https://images.unsplash.com/photo-1592286927505-1def25115caf?auto=format&fit=crop&w=800&q=80";
+  const imageUrl = "/assets/refurbish/whatcomes.jpg";
 
   return (
-    <section className="w-full bg-neutral-50 py-16 px-6 md:px-12 rounded-3xl mt-12">
-      <h2 className="text-center text-3xl md:text-4xl font-bold text-neutral-900 mb-12">
+    <section className="w-full bg-neutral-50 py-10 px-4 md:px-8 rounded-3xl mt-8">
+      <h2 className="text-center text-2xl md:text-3xl font-bold text-neutral-900 mb-8">
         What comes with the {isLaptop ? "laptop" : "phone"}?
       </h2>
 
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
+      <div className="max-w-5xl mx-auto grid md:grid-cols-2 gap-6 items-center">
         {/* Product image */}
         <div className="flex justify-center">
-          <div className="relative w-full max-w-md aspect-square rounded-2xl overflow-hidden bg-neutral-100 shadow-sm">
+          <div className="relative w-full max-w-sm aspect-square rounded-2xl overflow-hidden bg-neutral-100 shadow-sm">
             <Image
               src={imageUrl}
               alt={`Refurbished ${isLaptop ? "laptop" : "phone"} box with accessories`}
@@ -55,21 +54,21 @@ export default function WhatComesWithPhone({ deviceType = "phone" }) {
         </div>
 
         {/* Feature cards */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-3">
           {features.map(({ icon, title, description }) => (
             <div
               key={title}
-              className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-6 hover:shadow-md transition-shadow"
+              className="bg-white rounded-2xl border border-neutral-200 shadow-sm p-4 hover:shadow-md transition-shadow"
             >
-              <div className="flex items-start gap-4">
-                <div className="shrink-0 w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center">
-                  <Icon icon={icon} className="w-5 h-5 text-teal-600" />
+              <div className="flex items-start gap-3">
+                <div className="shrink-0 w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center">
+                  <Icon icon={icon} className="w-4 h-4 text-teal-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-neutral-900 mb-1">
+                  <h3 className="text-base font-semibold text-neutral-900 mb-1">
                     {title}
                   </h3>
-                  <p className="text-sm text-neutral-600 leading-relaxed">
+                  <p className="text-xs text-neutral-600 leading-relaxed">
                     {description}
                   </p>
                 </div>
@@ -80,8 +79,8 @@ export default function WhatComesWithPhone({ deviceType = "phone" }) {
       </div>
 
       {/* CTA */}
-      <div className="flex justify-center mt-12">
-        <button className="inline-flex items-center gap-2 bg-neutral-900 text-white font-medium px-6 py-3 rounded-full hover:bg-neutral-800 transition-colors">
+      <div className="flex justify-center mt-8">
+        <button className="inline-flex items-center gap-2 bg-neutral-900 text-white font-medium px-4 py-2.5 text-sm rounded-full hover:bg-neutral-800 transition-colors">
           Find nearest store
           <Icon icon="mdi:arrow-right" className="w-4 h-4" />
         </button>

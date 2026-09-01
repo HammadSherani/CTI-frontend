@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useRouter } from "@/i18n/navigation";
 import SectionTag from "./sectoinTag";
 import { CustomDropdown } from "./customDropdown";
+import ReusableCategoryGrid from "./ReusableCategoryGrid";
 import { ServicesSkeleton } from "../skeletons/home";
 import axiosInstance from "@/config/axiosInstance";
 import { useSelector } from "react-redux";
@@ -232,52 +233,16 @@ const ServiceSection = () => {
         </div>
 
         {/* Buy Refurbished */}
-        <div className="text-left mb-12">
-          <SectionTag title="Buy Refurbished" />
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
-            <span className="text-primary-600">Our</span> Services
-          </h2>
-        </div>
-
-        {loadingCategories ? (
-          <div className="flex flex-wrap justify-start gap-4 sm:gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="flex flex-col items-center justify-start w-[100px] sm:w-[120px]">
-                <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] bg-gray-100 animate-pulse rounded-2xl mb-3"></div>
-                <div className="h-3 bg-gray-200 animate-pulse rounded w-16 sm:w-20"></div>
-              </div>
-            ))}
-          </div>
-        ) : categories.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">No categories available right now.</div>
-        ) : (
-          <div className="flex flex-wrap justify-start gap-4 sm:gap-6">
-            {categories.map((category, index) => (
-              <motion.div
-                key={category._id || index}
-                whileHover={{ y: -3 }}
-                className="flex flex-col items-center justify-start group cursor-pointer w-[100px] sm:w-[120px]"
-                onClick={() => router.push(`/refurbish?category=${category.slug}`)}
-              >
-                <div className="w-[90px] h-[90px] sm:w-[110px] sm:h-[110px] bg-[#FF69000D] rounded-2xl flex items-center justify-center p-4 mb-3 transition-colors duration-300 group-hover:bg-[#FF69001A]">
-                  <div className="relative w-full h-full">
-                    <Image
-                      src={category.image || "https://via.placeholder.com/120?text=Category"}
-                      alt={category.name}
-                      fill
-                      sizes="100px"
-                      className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
-                    />
-                  </div>
-                </div>
-
-                <span className="text-[11px] sm:text-xs font-semibold text-gray-800 text-center leading-tight">
-                  {category.name}
-                </span>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        <ReusableCategoryGrid
+          sectionTag="Buy Refurbished"
+          titleHighlight="Our"
+          title="Services"
+          loading={loadingCategories}
+          categories={categories}
+          onItemClick={(category) => router.push(`/refurbish?category=${category.slug}`)}
+          cardClassName="bg-[#FF69000D] group-hover:bg-[#FF69001A] p-2"
+          wrapperClassName="w-[100px] sm:w-[100px]"
+        />
 
 
 

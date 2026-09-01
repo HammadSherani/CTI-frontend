@@ -29,6 +29,7 @@ const primaryNavLinks = [
     submenu: [
       { name: "Products", path: "/seller/refurbished/products", icon: "solar:devices-bold-duotone" },
       { name: "Orders", path: "/seller/refurbished/orders", icon: "solar:box-bold-duotone" },
+      { name: "Returns", path: "/seller/refurbished/returns", icon: "solar:arrow-left-bold-duotone" },
     ],
   },
   {

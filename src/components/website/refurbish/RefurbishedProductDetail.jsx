@@ -14,6 +14,7 @@ import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import RefurbishedSliderSection from './RefurbishedSliderSection';
 import CategoryInfoSections from './CategoryInfoSections';
+import ProductGalleryModal from '../product/ProductGalleryModal';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -25,6 +26,7 @@ export default function RefurbishedProductDetail({ params }) {
   const [reviews, setReviews] = useState([]);
   const [submittingReview, setSubmittingReview] = useState(false);
 
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
@@ -180,7 +182,8 @@ export default function RefurbishedProductDetail({ params }) {
   const stockCount = selectedVariant?.stock ?? 0;
   const inStock = stockCount > 0;
 
-  /* ── Build image gallery ── */
+  /* ── Build media gallery ── */
+  const productVideos = (productData?.videos || []).map(v => v?.url || v);
   const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
   const otherImages = variants.filter(v => v._id !== selectedVariantId).flatMap(v => (v.images || []).map(i => i?.url || i));
   const productImages = (productData?.images || []).map(i => i?.url || i);
@@ -188,12 +191,12 @@ export default function RefurbishedProductDetail({ params }) {
   const uniqueVariantImages = selectedVariantImages.filter(img => !productImages.includes(img));
   const sharedVariantImages = selectedVariantImages.filter(img => productImages.includes(img));
 
-  let allImages = [...new Set([...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
-  if (!allImages.length) allImages = ['/assets/placeholder.jpg'];
+  let allMedia = [...new Set([...productVideos, ...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
+  if (!allMedia.length) allMedia = ['/assets/placeholder.jpg'];
 
-  const visibleThumbs = allImages.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
+  const visibleThumbs = allMedia.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
   const canScrollUp = thumbStart > 0;
-  const canScrollDown = thumbStart + THUMBS_PER_VIEW < allImages.length;
+  const canScrollDown = thumbStart + THUMBS_PER_VIEW < allMedia.length;
 
   /* ── Attribute selectors ── */
   const attrTypes = Array.from(new Set(variants.flatMap(v => (v.attributes || []).map(a => a.name))));
@@ -412,21 +415,35 @@ export default function RefurbishedProductDetail({ params }) {
                   <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
                 </button>
                 <div className="flex flex-col gap-2">
-                  {visibleThumbs.map((img, i) => {
+                  {visibleThumbs.map((media, i) => {
                     const realIndex = thumbStart + i;
+                    const isVideo = typeof media === 'string'
+                      ? media.match(/\.(mp4|webm|ogg|mov)$/i)
+                      : media?.type?.startsWith('video');
+                    const url = typeof media === 'string' ? media : media?.url;
+
                     return (
                       <button
                         key={realIndex}
-                        onClick={() => setSelectedImage(realIndex)}
-                        className={`w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
+                        onClick={() => {
+                          setSelectedImage(realIndex);
+                          setIsGalleryOpen(true);
+                        }}
+                        className={`relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
                       >
-                        <Image src={img} width={500} height={500} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
+                        {isVideo ? (
+                          <div className="w-full h-full bg-black/80 flex items-center justify-center">
+                            <Icon icon="solar:play-circle-bold" className="w-6 h-6 text-white" />
+                          </div>
+                        ) : (
+                          <img src={url} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
+                        )}
                       </button>
                     );
                   })}
                 </div>
                 <button
-                  onClick={() => setThumbStart(p => Math.min(allImages.length - THUMBS_PER_VIEW, p + 1))}
+                  onClick={() => setThumbStart(p => Math.min(allMedia.length - THUMBS_PER_VIEW, p + 1))}
                   disabled={!canScrollDown}
                   className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
                 >
@@ -444,7 +461,60 @@ export default function RefurbishedProductDetail({ params }) {
                   <span className="absolute top-3 right-3 z-10 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
                     Refurbished
                   </span>
-                  <ImageZoom key={allImages[selectedImage] || selectedImage} src={allImages[selectedImage] || '/assets/placeholder.jpg'} alt={productData.title} />
+
+                  {(() => {
+                    const activeMedia = allMedia[selectedImage] || '/assets/placeholder.jpg';
+                    const isVideo = typeof activeMedia === 'string'
+                      ? activeMedia.match(/\.(mp4|webm|ogg|mov)$/i)
+                      : activeMedia?.type?.startsWith('video');
+                    const url = typeof activeMedia === 'string' ? activeMedia : activeMedia?.url;
+
+                    if (isVideo) {
+                      return (
+                        <div
+                          className="w-full h-full relative cursor-pointer group"
+                          onClick={() => setIsGalleryOpen(true)}
+                        >
+                          <video
+                            src={url}
+                            className="w-full h-full object-contain pointer-events-none"
+                          />
+                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 flex items-center justify-center transition-colors">
+                            <Icon icon="solar:play-circle-bold" className="w-16 h-16 text-white drop-shadow-md opacity-80 group-hover:opacity-100 transition-opacity" />
+                          </div>
+                        </div>
+                      );
+                    }
+                    return (
+                      <div
+                        className="w-full h-full cursor-pointer"
+                        onClick={() => setIsGalleryOpen(true)}
+                      >
+                        <ImageZoom key={url || selectedImage} src={url} alt={productData.title} />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Gallery Button overlay at bottom */}
+                  <div className="absolute bottom-4 left-4 right-4 z-10">
+                    <button
+                      onClick={() => setIsGalleryOpen(true)}
+                      className="w-full flex items-center justify-between bg-primary-500/90 hover:bg-primary-600 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-lg transition-colors border border-primary-400"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+                          <Icon icon={productVideos.length > 0 ? "solar:video-frame-play-bold-duotone" : "solar:gallery-bold-duotone"} className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="text-left">
+                          <p className="font-bold text-sm">
+                            {productVideos.length > 0 ? "See the video of this device" : "See all images"}
+                          </p>
+                          <p className="text-xs text-white/80">View the complete product gallery</p>
+                        </div>
+                      </div>
+                      <Icon icon="mdi:chevron-right" className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -523,6 +593,34 @@ export default function RefurbishedProductDetail({ params }) {
                   <Icon icon="mdi:flash" className="w-5 h-5" />
                   Buy Now
                 </button>
+              </div>
+
+              <div className="flex items-center gap-2 pt-3 border-t border-gray-100 mt-2">
+                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Share:</span>
+                {(() => {
+                  const productUrl = typeof window !== 'undefined' ? window.location.href : '';
+                  const shareText = encodeURIComponent(productData?.title || 'Check out this product!');
+                  const shareUrl = encodeURIComponent(productUrl);
+                  const shareItems = [
+                    { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600', url: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}` },
+                    { name: 'X', icon: 'ri:twitter-x-fill', hover: 'hover:bg-black', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}` },
+                    { name: 'WhatsApp', icon: 'mdi:whatsapp', hover: 'hover:bg-green-500', url: `https://wa.me/?text=${shareText}%20${shareUrl}` },
+                  ];
+                  return (
+                    <>
+                      {shareItems.map(s => (
+                        <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.name}`}
+                          className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}>
+                          <Icon icon={s.icon} className="text-base" />
+                        </a>
+                      ))}
+                      <button onClick={() => { navigator.clipboard.writeText(productUrl); toast.success('Product link copied!'); }}
+                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-700 hover:text-white flex items-center justify-center text-gray-400 transition-all">
+                        <Icon icon="mdi:link-variant" className="text-base" />
+                      </button>
+                    </>
+                  );
+                })()}
               </div>
             </div>
           </div>
@@ -826,6 +924,14 @@ export default function RefurbishedProductDetail({ params }) {
           productTitle={productData?.title || ''}
         />
       )}
+
+      {/* Modals */}
+      <ProductGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        mediaList={allMedia}
+        initialIndex={selectedImage}
+      />
     </div>
   );
 }

@@ -426,7 +426,6 @@ export default function OrderDetailPage() {
 
   /* ── Enquiry ── */
   const handleEnquiry = async ({ subject, message }) => {
-    if (isRefurbishedMode) { toast.info('For refurbished device orders, please contact platform support.'); return; }
     const sellerId = order?.items?.[0]?.sellerId;
     if (!sellerId) { toast.error('Seller information not available'); return; }
     setEnquiryLoading(true);
@@ -687,28 +686,17 @@ export default function OrderDetailPage() {
 
           {/* Action Buttons */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 space-y-2.5">
-            {/* Contact button — seller for standard, support for refurbished */}
-            {!isRefurbishedMode && (
-              <button
-                onClick={() => {
-                  if (!token) { toast.error('Please log in first'); return; }
-                  setEnquiryModal(true);
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold rounded-xl text-sm transition-colors"
-              >
-                <Icon icon="solar:chat-round-dots-bold-duotone" className="w-4 h-4" />
-                Contact Seller
-              </button>
-            )}
-            {isRefurbishedMode && (
-              <div className="w-full flex items-center gap-3 px-4 py-3 bg-cyan-50 border border-cyan-100 rounded-xl text-sm">
-                <Icon icon="solar:shield-check-bold-duotone" className="w-5 h-5 text-cyan-600 flex-shrink-0" />
-                <div>
-                  <p className="font-bold text-cyan-800 text-xs">Platform-Sold Item</p>
-                  <p className="text-cyan-600 text-[11px]">This is sold & shipped by TRB Platform</p>
-                </div>
-              </div>
-            )}
+            {/* Contact button — seller for standard and refurbished */}
+            <button
+              onClick={() => {
+                if (!token) { toast.error('Please log in first'); return; }
+                setEnquiryModal(true);
+              }}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-primary-50 hover:bg-primary-100 text-primary-700 border border-primary-200 font-bold rounded-xl text-sm transition-colors"
+            >
+              <Icon icon="solar:chat-round-dots-bold-duotone" className="w-4 h-4" />
+              Contact Seller
+            </button>
 
             {/* View all messages */}
             <Link

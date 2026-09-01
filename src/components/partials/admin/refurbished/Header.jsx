@@ -79,7 +79,7 @@ function RefurbishedHeader() {
   const dropdownLinks = [
     { name: "My Profile", path: "/admin/profile", icon: "mdi:account-cog-outline" },
     { name: "Settings", path: "/admin/settings", icon: "mdi:cog-outline" },
-    { name: "Sign Out", path: "", icon: "mdi:logout", isLogout: true },
+    { name: "Sign Out", path: "/auth/logout", icon: "mdi:logout", isLogout: true },
   ];
 
   useEffect(() => {
