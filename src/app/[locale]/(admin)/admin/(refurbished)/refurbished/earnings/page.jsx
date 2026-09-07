@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
+import { useRouter } from "@/i18n/navigation";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import moment from "moment";
@@ -51,15 +52,30 @@ const STATUS_STYLES = {
   cancelled:  "bg-red-50 text-red-500",
 };
 
+/* ── Transaction Type Badge ── */
+function getTxTypeStyle(type) {
+  const t = (type || "").toLowerCase();
+  if (t.includes("refund") || t.includes("rejected")) {
+    return { bg: "bg-red-100", text: "text-red-700" };
+  }
+  if (t.includes("release") || t.includes("order_payment")) {
+    return { bg: "bg-emerald-100", text: "text-emerald-700" };
+  }
+  return { bg: "bg-blue-100", text: "text-blue-700" };
+}
+
 export default function RefurbishedEarningsPage() {
+  const router = useRouter();
   const { token } = useSelector((s) => s.auth);
   const [range, setRange]           = useState("all");
   const [overview, setOverview]     = useState(null);
   const [monthly, setMonthly]       = useState([]);
   const [orders, setOrders]         = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loadingOv, setLoadingOv]   = useState(true);
   const [loadingMo, setLoadingMo]   = useState(true);
   const [loadingOrd, setLoadingOrd] = useState(true);
+  const [loadingTx, setLoadingTx]   = useState(true);
   const [page, setPage]             = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -104,9 +120,22 @@ export default function RefurbishedEarningsPage() {
     finally { setLoadingOrd(false); }
   }, [token, range, page]);
 
+  const fetchTransactions = useCallback(async () => {
+    if (!token) return;
+    setLoadingTx(true);
+    try {
+      const { data } = await axiosInstance.get("/admin/transactions", {
+        params: { category: "refurbished", page: 1, limit: 5 }, headers,
+      });
+      if (data.success) setTransactions(data.data || []);
+    } catch { /* silent */ }
+    finally { setLoadingTx(false); }
+  }, [token]);
+
   useEffect(() => { setPage(1); }, [range]);
   useEffect(() => { fetchOverview(); fetchMonthly(); }, [fetchOverview, fetchMonthly]);
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
+  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -312,6 +341,76 @@ export default function RefurbishedEarningsPage() {
               </div>
             )}
           </>
+        )}
+      </div>
+
+      {/* Recent Transactions */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Icon icon="solar:bill-list-bold" className="w-4 h-4 text-gray-400" />
+            <h2 className="font-bold text-gray-800 text-sm">Recent Transactions</h2>
+          </div>
+          <button
+            onClick={() => router.push("/admin/refurbished/transactions")}
+            className="flex items-center gap-1 text-xs font-bold text-primary-600 hover:text-primary-700 transition-colors"
+          >
+            View All
+            <Icon icon="solar:arrow-right-linear" className="w-3.5 h-3.5" />
+          </button>
+        </div>
+
+        {loadingTx ? (
+          <div className="p-6 space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-10 bg-gray-100 animate-pulse rounded-xl" />
+            ))}
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="py-14 text-center">
+            <Icon icon="solar:bill-list-linear" className="w-10 h-10 text-gray-200 mx-auto mb-2" />
+            <p className="text-xs text-gray-400">No transactions yet</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100">
+                <tr>
+                  <th className="px-6 py-3">Date</th>
+                  <th className="px-6 py-3">Type</th>
+                  <th className="px-6 py-3 text-right">Amount</th>
+                  <th className="px-6 py-3">Order No</th>
+                  <th className="px-6 py-3">Description</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {transactions.map((tx) => {
+                  const cfg = getTxTypeStyle(tx.type);
+                  return (
+                    <tr key={tx._id} className="hover:bg-gray-50/40 transition-colors">
+                      <td className="px-6 py-3 text-gray-500 whitespace-nowrap">
+                        {moment(tx.createdAt).format("DD MMM YYYY, hh:mm A")}
+                      </td>
+                      <td className="px-6 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-[10px] font-black ${cfg.bg} ${cfg.text}`}>
+                          {(tx.type || "").toUpperCase().replace(/_/g, " ")}
+                        </span>
+                      </td>
+                      <td className={`px-6 py-3 text-right font-bold whitespace-nowrap ${cfg.text}`}>
+                        TRY. {(tx.amount || 0).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-3 font-mono text-[10px] text-gray-700 whitespace-nowrap">
+                        {tx.orderNo || "—"}
+                      </td>
+                      <td className="px-6 py-3 text-gray-600">
+                        <p className="line-clamp-1 max-w-xs" title={tx.description}>{tx.description}</p>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

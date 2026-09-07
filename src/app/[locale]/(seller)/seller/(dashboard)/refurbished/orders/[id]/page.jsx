@@ -150,6 +150,34 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
 }
 
 /* ── Create Shipment Section ─────────────────────────────────────── */
+// Maps Geliver's providerCode to a local logo file under /public/carriers/.
+// Add the matching image there and set its path here to show the real logo
+// instead of the generic truck icon fallback.
+const CARRIER_LOGOS = {
+  ARAS: null,
+  YURTICI: null,
+  PTT: null,
+  SURAT: null,
+  HEPSIJET: null,
+  KOLAYGELSIN: null,
+};
+
+function CarrierLogo({ providerCode }) {
+  const logo = CARRIER_LOGOS[(providerCode || "").toUpperCase()];
+  if (logo) {
+    return (
+      <div className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
+        <img src={logo} alt={providerCode} className="w-full h-full object-contain" />
+      </div>
+    );
+  }
+  return (
+    <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
+      <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
+    </div>
+  );
+}
+
 function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
   const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
@@ -170,13 +198,17 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
     setError("");
     setRateResult(null);
     try {
+      // Geliver only accepts centimeters — convert if the seller picked inches,
+      // otherwise the raw number would be sent as-is and silently misread as cm.
+      const IN_TO_CM = 2.54;
+      const toCm = (v) => (pkg.unit === "IN" ? parseFloat(v || 0) * IN_TO_CM : parseFloat(v || 0));
       const { data } = await axiosInstance.post(
         `/seller/refurbished-orders/${order._id}/shipping/calculate`,
         {
           weight: parseFloat(pkg.weight),
-          width: parseFloat(pkg.width || 10),
-          height: parseFloat(pkg.height || 10),
-          length: parseFloat(pkg.length || 10),
+          width: toCm(pkg.width || 10),
+          height: toCm(pkg.height || 10),
+          length: toCm(pkg.length || 10),
           packageCount: parseInt(pkg.packageCount || 1),
           notes: pkg.notes
         },
@@ -313,9 +345,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
                 className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
-                    <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
-                  </div>
+                  <CarrierLogo providerCode={offer.providerCode || offer.carrier} />
                   <div>
                     <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
                     <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>

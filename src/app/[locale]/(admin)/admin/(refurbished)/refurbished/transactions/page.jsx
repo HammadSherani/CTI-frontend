@@ -72,9 +72,13 @@ export default function RefurbishedTransactions() {
 
   const typeOptions = [
     { label: "All Types", value: "" },
+    { label: "Order Payment", value: "order_payment" },
+    { label: "Platform Fee", value: "platform_fee" },
+    { label: "Seller Earning Hold", value: "seller_earning_hold" },
+    { label: "Seller Earning Release", value: "seller_earning_release" },
+    { label: "Admin Earning Hold", value: "admin_earning_hold" },
+    { label: "Admin Earning Release", value: "admin_earning_release" },
     { label: "Refund", value: "refund" },
-    { label: "Hold", value: "hold" },
-    { label: "Release", value: "seller_earning_release" },
     { label: "Withdrawal", value: "withdrawal_request" },
   ];
 
