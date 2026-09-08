@@ -96,12 +96,12 @@ export default function SellVariantsPage() {
       });
   }, [brandSlug, modelSlug, categorySlug, router]);
 
-  // If no variants exist for this product, skip immediately to condition
-  useEffect(() => {
-    if (!loading && config && config.variants.length === 0) {
-      router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}/condition`);
-    }
-  }, [loading, config, categorySlug, brandSlug, modelSlug, router]);
+  // Removed auto-redirect. We want to show the 'No variants' message instead.
+  // useEffect(() => {
+  //   if (!loading && config && config.variants.length === 0) {
+  //     router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}/condition`);
+  //   }
+  // }, [loading, config, categorySlug, brandSlug, modelSlug, router]);
 
   const handleVariantSelect = (key, value) => {
     const updatedVariants = { ...selectedVariants, [key]: value };
@@ -126,7 +126,7 @@ export default function SellVariantsPage() {
     }
   };
 
-  if (loading || (config && config.variants.length === 0)) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <Icon icon="mdi:loading" className="w-8 h-8 text-primary-600 animate-spin" />
@@ -136,7 +136,8 @@ export default function SellVariantsPage() {
 
   if (!config) return null;
 
-  const currentVariant = config.variants[currentVariantIndex];
+  const hasVariants = config.variants && config.variants.length > 0;
+  const currentVariant = hasVariants ? config.variants[currentVariantIndex] : null;
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -190,45 +191,62 @@ export default function SellVariantsPage() {
         </div>
 
         {/* Dynamic Variant View */}
-        <div className="space-y-6">
-          <div>
-            <h2 className="text-3xl font-black text-gray-900 capitalize">
-              Select {currentVariant.key}
-            </h2>
-            <p className="text-gray-500 text-sm mt-1">
-              Select the {currentVariant.key} variant for your <span className="font-bold text-primary-600 uppercase">{modelName}</span>
-            </p>
+        {!hasVariants ? (
+          <div className="space-y-6 text-center max-w-lg mx-auto py-12 bg-white rounded-3xl border border-gray-100 shadow-xs p-8">
+            <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Icon icon="lucide:check-circle" className="text-3xl" />
+            </div>
+            <h2 className="text-2xl font-black text-gray-900">No Variant Selection Required</h2>
+            <p className="text-gray-500">This model does not require any variant selection. You can proceed to the next step.</p>
+            <button
+              onClick={() => router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}/condition`)}
+              className="mt-6 w-full py-3.5 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2"
+            >
+              <span>Continue to Condition</span>
+              <Icon icon="lucide:arrow-right" />
+            </button>
           </div>
+        ) : (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-3xl font-black text-gray-900 capitalize">
+                Select {currentVariant.key}
+              </h2>
+              <p className="text-gray-500 text-sm mt-1">
+                Select the {currentVariant.key} variant for your <span className="font-bold text-primary-600 uppercase">{modelName}</span>
+              </p>
+            </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-3xl">
-            {currentVariant.values.map((val, idx) => {
-              const isSelected = selectedVariants[currentVariant.key] === val;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleVariantSelect(currentVariant.key, val)}
-                  className={`group bg-white border rounded-2xl p-3 text-left transition-all duration-200 shadow-xs cursor-pointer flex items-center gap-2.5 ${
-                    isSelected 
-                      ? 'border-primary-500 ring-2 ring-primary-50 bg-primary-50/10' 
-                      : 'border-gray-200/80 hover:border-primary-500 hover:shadow-xs'
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
-                    isSelected ? 'bg-primary-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-primary-50 group-hover:text-primary-600'
-                  }`}>
-                    <Icon icon="lucide:check-circle" className="text-base" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-800 text-sm truncate">{val}</h4>
-                  </div>
-                  {isSelected && (
-                    <Icon icon="lucide:check" className="text-primary-600 text-sm font-bold ml-auto flex-shrink-0" />
-                  )}
-                </button>
-              );
-            })}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-w-3xl">
+              {currentVariant.values.map((val, idx) => {
+                const isSelected = selectedVariants[currentVariant.key] === val;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => handleVariantSelect(currentVariant.key, val)}
+                    className={`group bg-white border rounded-2xl p-3 text-left transition-all duration-200 shadow-xs cursor-pointer flex items-center gap-2.5 ${
+                      isSelected 
+                        ? 'border-primary-500 ring-2 ring-primary-50 bg-primary-50/10' 
+                        : 'border-gray-200/80 hover:border-primary-500 hover:shadow-xs'
+                    }`}
+                  >
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                      isSelected ? 'bg-primary-600 text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-primary-50 group-hover:text-primary-600'
+                    }`}>
+                      <Icon icon="lucide:check-circle" className="text-base" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-bold text-gray-800 text-sm truncate">{val}</h4>
+                    </div>
+                    {isSelected && (
+                      <Icon icon="lucide:check" className="text-primary-600 text-sm font-bold ml-auto flex-shrink-0" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
       </div>
     </div>

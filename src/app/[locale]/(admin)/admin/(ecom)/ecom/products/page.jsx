@@ -277,7 +277,10 @@ export default function AdminProductsPage() {
       key: "price",
       header: "Price",
       cell: (row) => {
-        const v = row.variants?.[0];
+        // Match the customer-facing product page: show the DEFAULT variant,
+        // not just whichever variant happens to be first in the array (array
+        // order isn't guaranteed to match isDefault).
+        const v = row.variants?.find(x => x.isDefault) || row.variants?.[0];
         return (
           <span className="font-bold text-gray-900">
             ${v?.sellingPrice?.toFixed(2) || v?.price?.toFixed(2) || "0.00"}
@@ -289,7 +292,10 @@ export default function AdminProductsPage() {
       key: "stock",
       header: "Stock",
       cell: (row) => {
-        const stock = row.variants?.[0]?.stock ?? 0;
+        // Total across ALL variants — a single variant's stock isn't a useful
+        // "how much of this product do I have" number when there's more than
+        // one variant/color.
+        const stock = (row.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
         return (
           <span
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${

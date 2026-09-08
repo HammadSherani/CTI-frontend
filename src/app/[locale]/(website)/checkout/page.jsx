@@ -86,6 +86,13 @@ export default function CheckoutPage() {
   const cartItems = isRefurbished ? refurbishedCartItems : standardCartItems;
   const cartId = isRefurbished ? refurbishedCartId : standardCartId;
 
+  // Marketplace and Refurbished items check out separately (two different
+  // backend orders/payments) — surface it clearly so a mixed cart doesn't
+  // silently leave items behind with no indication.
+  const otherCartItems = isRefurbished ? standardCartItems : refurbishedCartItems;
+  const otherCheckoutLink = isRefurbished ? '/checkout' : '/checkout?type=refurbished';
+  const otherCheckoutLabel = isRefurbished ? 'Marketplace' : 'Refurbished';
+
   const [errors, setErrors] = useState({});
   const isBuyNow = searchParams.get('buyNow') === 'true';
   const slug = searchParams.get('slug');
@@ -340,6 +347,15 @@ export default function CheckoutPage() {
 
       if (res.data.success) {
         toast.success('Order placed successfully!');
+        if (otherCartItems.length > 0) {
+          toast.info(
+            <span>
+              You still have {otherCartItems.length} item{otherCartItems.length > 1 ? 's' : ''} in your {otherCheckoutLabel} cart —{' '}
+              <Link href={otherCheckoutLink} className="underline font-semibold">checkout separately</Link> to order them.
+            </span>,
+            { autoClose: 10000 }
+          );
+        }
         localStorage.removeItem('checkout_form_data');
 
         if (isRefurbished) {
@@ -390,6 +406,17 @@ export default function CheckoutPage() {
         <Icon icon="mdi:chevron-right" />
         <span className="text-gray-700 font-medium">Checkout</span>
       </nav>
+
+      {otherCartItems.length > 0 && (
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+          <Icon icon="mdi:information-outline" className="text-amber-500 text-xl flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            This checkout only covers your <span className="font-bold">{isRefurbished ? 'Refurbished' : 'Marketplace'}</span> items.
+            You also have {otherCartItems.length} item{otherCartItems.length > 1 ? 's' : ''} in your <span className="font-bold">{otherCheckoutLabel}</span> cart —
+            {' '}<Link href={otherCheckoutLink} className="underline font-semibold">check those out separately</Link>.
+          </p>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 

@@ -230,6 +230,15 @@ export default function CartPage() {
         </Link>
       </div>
 
+      {!isCartEmpty && validStandardCart.length > 0 && validRefurbishedCart.length > 0 && (
+        <div className="mb-8 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+          <Icon icon="mdi:information-outline" className="text-amber-500 text-xl flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            <span className="font-bold">Marketplace and Refurbished items are checked out separately.</span> You'll need to complete two checkouts (and two payments) — one for each group below — to order everything in your cart.
+          </p>
+        </div>
+      )}
+
       {isCartEmpty ? (
         <div className="text-center py-24 bg-white rounded-2xl border border-gray-100 shadow-sm max-w-xl mx-auto">
           <Icon icon="mdi:cart-off" className="text-6xl text-gray-200 mx-auto mb-4" />

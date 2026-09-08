@@ -170,7 +170,7 @@ export default function ProductsListPage() {
         setSummary({
           total: data.pagination?.totalItems || 0,
           active: list.filter((p) => p.isActive).length,
-          lowStock: list.filter((p) => (p.variants?.[0]?.stock ?? 0) < 5).length,
+          lowStock: list.filter((p) => (p.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0) < 5).length,
         });
       } catch (err) {
         toast.error(err?.response?.data?.message || "Failed to fetch products");
@@ -338,7 +338,10 @@ export default function ProductsListPage() {
       key: "price",
       header: "Price",
       cell: (row) => {
-        const v = row.variants?.[0];
+        // Match the customer-facing product page: show the DEFAULT variant,
+        // not just whichever variant happens to be first in the array (array
+        // order isn't guaranteed to match isDefault).
+        const v = row.variants?.find(x => x.isDefault) || row.variants?.[0];
         return (
           <div>
             <span className="font-bold text-gray-900">{formatCurrency(v?.sellingPrice)}</span>
@@ -353,7 +356,10 @@ export default function ProductsListPage() {
       key: "stock",
       header: "Stock",
       cell: (row) => {
-        const stock = row.variants?.[0]?.stock ?? 0;
+        // Total across ALL variants — a single variant's stock isn't a useful
+        // "how much of this product do I have" number when there's more than
+        // one variant/color.
+        const stock = (row.variants || []).reduce((sum, v) => sum + (v.stock || 0), 0);
         return (
           <span
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold ${stock === 0

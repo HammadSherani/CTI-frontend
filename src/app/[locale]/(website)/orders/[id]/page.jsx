@@ -73,10 +73,28 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
 
+  // This order can hold items from more than one seller (or an admin-owned
+  // item) — build one contact option per distinct seller so the message
+  // reaches the right party instead of always going to whoever owns the
+  // first item.
+  const sellerOptions = [];
+  const seenSellerIds = new Set();
+  (order?.items || []).forEach((item) => {
+    const sid = item.sellerId?._id || item.sellerId;
+    if (!sid || seenSellerIds.has(sid)) return;
+    seenSellerIds.add(sid);
+    sellerOptions.push({
+      sellerId: sid,
+      label: item.sellerId?.name || item.sellerId?.storeName || item.productId?.title || 'Seller',
+      productLabel: item.productId?.title || item.productId?.name || null,
+    });
+  });
+  const [selectedSellerId, setSelectedSellerId] = useState(sellerOptions[0]?.sellerId || null);
+
   const handleSubmit = () => {
     if (!subject.trim()) { toast.error('Subject is required'); return; }
     if (!message.trim()) { toast.error('Message is required'); return; }
-    onSubmit({ subject: subject.trim(), message: message.trim() });
+    onSubmit({ subject: subject.trim(), message: message.trim(), sellerId: selectedSellerId });
   };
 
   return (
@@ -95,6 +113,27 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
         </div>
 
         <div className="px-6 py-4 space-y-4">
+          {/* Seller Picker — only shown when this order has more than one seller */}
+          {sellerOptions.length > 1 && (
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-wider text-gray-400 block mb-1.5">
+                Which item is this about? <span className="text-red-500">*</span>
+              </label>
+              <select
+                value={selectedSellerId || ''}
+                onChange={(e) => setSelectedSellerId(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-400 transition-all"
+              >
+                {sellerOptions.map((s) => (
+                  <option key={s.sellerId} value={s.sellerId}>
+                    {s.productLabel ? `${s.productLabel} — ${s.label}` : s.label}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">This order has items from more than one seller — pick which one your message is for.</p>
+            </div>
+          )}
+
           {/* Quick Templates */}
           <div>
             <p className="text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">Quick Select</p>
@@ -424,15 +463,18 @@ export default function OrderDetailPage() {
     }
   };
 
-  /* ── Enquiry ── */
-  const handleEnquiry = async ({ subject, message }) => {
-    const sellerId = order?.items?.[0]?.sellerId;
+  /* ── Enquiry ──
+     sellerId comes from OrderEnquiryModal's seller picker (defaults to the
+     first seller on the order when there's only one) — this order can hold
+     items from more than one seller, so it must be explicit rather than
+     silently guessed. */
+  const handleEnquiry = async ({ subject, message, sellerId }) => {
     if (!sellerId) { toast.error('Seller information not available'); return; }
     setEnquiryLoading(true);
     try {
       const { data } = await axiosInstance.post(
         '/customer/queries',
-        { orderId: id, queryType: 'order', subject, message },
+        { orderId: id, queryType: 'order', subject, message, sellerId },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
