@@ -65,7 +65,7 @@ export default function ProductApprovalsPage() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [approvalFilter, setApprovalFilter] = useState("pending");
+  const [approvalFilter, setApprovalFilter] = useState("all");
   const [approvalModal, setApprovalModal] = useState(null);
   const { token } = useSelector((s) => s.auth);
   const router = useRouter();
@@ -74,7 +74,7 @@ export default function ProductApprovalsPage() {
     setLoading(true);
     try {
       const params = new URLSearchParams();
-      if (approvalFilter !== "") params.set("adminApprovalStatus", approvalFilter);
+      if (approvalFilter) params.set("adminApprovalStatus", approvalFilter);
       const { data } = await axiosInstance.get(`/admin/refurbish/products?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -112,7 +112,7 @@ export default function ProductApprovalsPage() {
   });
 
   const approvalOptions = [
-    { label: "All Approvals", value: "" },
+    { label: "All Approvals", value: "all" },
     { label: "Pending", value: "pending" },
     { label: "Approved", value: "approved" },
     { label: "Rejected", value: "rejected" },

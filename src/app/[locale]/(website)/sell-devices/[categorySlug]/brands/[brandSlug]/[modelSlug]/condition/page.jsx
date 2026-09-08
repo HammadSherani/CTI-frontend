@@ -40,12 +40,12 @@ export default function ConditionQuestionsPage() {
         if (decodeCompare(parsed.brand, brandSlug) && decodeCompare(parsed.model, modelSlug)) {
           setDeviceInfo(parsed);
           setAnswers(parsed.answers || {});
-          
+
           axiosInstance.get(`/public/sell-device/config/${brandSlug}/${modelSlug}`)
             .then(res => {
               const fetchedQuestions = res.data.data.categoryQuestions || [];
               setQuestions(fetchedQuestions);
-              
+
               // Removed auto redirect
               // if (fetchedQuestions.length === 0) {
               //   router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}/upload-media`);
@@ -58,7 +58,7 @@ export default function ConditionQuestionsPage() {
             .finally(() => {
               setLoading(false);
             });
-            
+
         } else {
           router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}`);
         }
@@ -187,19 +187,17 @@ export default function ConditionQuestionsPage() {
                       <button
                         key={idx}
                         onClick={() => handleOptionSelect(currentQuestion.questionText, opt.value)}
-                        className={`group relative text-left p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col gap-2 ${
-                          isSelected
+                        className={`group relative text-left p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col gap-2 ${isSelected
                             ? 'border-primary-500 bg-primary-50/20 shadow-xs'
                             : 'border-gray-100 bg-white hover:border-primary-200 hover:bg-gray-50'
-                        }`}
+                          }`}
                       >
                         <div className="flex justify-between items-start w-full">
                           <span className={`font-bold ${isSelected ? 'text-primary-700' : 'text-gray-800 group-hover:text-primary-600'}`}>
                             {opt.label || opt.value}
                           </span>
-                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${
-                            isSelected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 group-hover:border-primary-300'
-                          }`}>
+                          <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-primary-500 bg-primary-500' : 'border-gray-300 group-hover:border-primary-300'
+                            }`}>
                             {isSelected && <Icon icon="lucide:check" className="text-white text-xs font-bold" />}
                           </div>
                         </div>
@@ -232,11 +230,10 @@ export default function ConditionQuestionsPage() {
                       router.push(`/sell-devices/${categorySlug}/brands/${brandSlug}/${modelSlug}/upload-media`);
                     }
                   }}
-                  className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-xs transition-all duration-200 ${
-                    answers[currentQuestion.questionText]
+                  className={`flex items-center gap-2 px-8 py-3 rounded-xl font-bold shadow-xs transition-all duration-200 ${answers[currentQuestion.questionText]
                       ? 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-md hover:-translate-y-0.5'
                       : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   <span>{currentQuestionIdx < questions.length - 1 ? 'Next Question' : 'Upload Media'}</span>
                   <Icon icon="lucide:chevron-right" />
@@ -256,9 +253,8 @@ export default function ConditionQuestionsPage() {
                     const ans = answers[q.questionText];
                     const isCurrent = idx === currentQuestionIdx;
                     return (
-                      <div key={idx} className={`relative pl-4 border-l-2 py-1 ${
-                        ans ? 'border-primary-500' : isCurrent ? 'border-gray-300' : 'border-gray-100'
-                      }`}>
+                      <div key={idx} className={`relative pl-4 border-l-2 py-1 ${ans ? 'border-primary-500' : isCurrent ? 'border-gray-300' : 'border-gray-100'
+                        }`}>
                         <p className={`text-xs font-semibold ${ans ? 'text-gray-900' : isCurrent ? 'text-gray-600' : 'text-gray-400'}`}>
                           {q.questionText}
                         </p>
@@ -280,50 +276,49 @@ export default function ConditionQuestionsPage() {
 
         {/* Device Details (Displayed always at bottom if questions exist or replaced) */}
         <div className="mt-8">
-            <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
-              <div className="flex items-center justify-between border-b border-gray-50 pb-4">
-                <h4 className="font-black text-gray-900 text-lg">Device Details</h4>
-              </div>
-
-              {/* Details List */}
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400 font-semibold">Brand</span>
-                  <span className="font-extrabold text-gray-800 capitalize">{brandSlug}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-400 font-semibold">Model</span>
-                  <span className="font-extrabold text-gray-800 capitalize">{modelName}</span>
-                </div>
-                {deviceInfo.selectedVariants?.map((v, i) => (
-                  <div key={i} className="flex justify-between items-center text-sm">
-                    <span className="text-gray-400 font-semibold">{v.key}</span>
-                    <span className="font-extrabold text-gray-800">{v.value}</span>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 space-y-6">
+            <div className="flex items-center justify-between border-b border-gray-50 pb-4">
+              <h4 className="font-black text-gray-900 text-lg">Device Details</h4>
             </div>
 
-            {/* Trust Badge */}
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-3xl p-6 shadow-md relative overflow-hidden">
-              <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
-                <Icon icon="lucide:shield-check" className="text-9xl" />
+            {/* Details List */}
+            <div className="space-y-4">
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-400 font-semibold">Brand</span>
+                <span className="font-extrabold text-gray-800 capitalize">{brandSlug}</span>
               </div>
-              <div className="relative z-10 space-y-4">
-                <div className="flex items-center gap-2">
-                  <Icon icon="lucide:shield-check" className="text-2xl" />
-                  <span className="font-extrabold text-sm uppercase tracking-wider">CTI Verified Sell</span>
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-400 font-semibold">Model</span>
+                <span className="font-extrabold text-gray-800 capitalize">{modelName}</span>
+              </div>
+              {deviceInfo.selectedVariants?.map((v, i) => (
+                <div key={i} className="flex justify-between items-center text-sm">
+                  <span className="text-gray-400 font-semibold">{v.key}</span>
+                  <span className="font-extrabold text-gray-800">{v.value}</span>
                 </div>
-                <p className="text-xs text-primary-100 leading-relaxed font-semibold">
-                  Get paid instantly at your doorstep. We guarantee 100% data security and professional device assessment through the CTI platform.
-                </p>
-              </div>
+              ))}
             </div>
           </div>
 
+          {/* Trust Badge */}
+          <div className="bg-gradient-to-br from-primary-600 to-primary-700 text-white rounded-3xl p-6 shadow-md relative overflow-hidden">
+            <div className="absolute right-0 bottom-0 translate-x-4 translate-y-4 opacity-10">
+              <Icon icon="lucide:shield-check" className="text-9xl" />
+            </div>
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-2">
+                <Icon icon="lucide:shield-check" className="text-2xl" />
+                <span className="font-extrabold text-sm uppercase tracking-wider">CTI Verified Sell</span>
+              </div>
+              <p className="text-xs text-primary-100 leading-relaxed font-semibold">
+                Get paid instantly at your doorstep. We guarantee 100% data security and professional device assessment through the CTI platform.
+              </p>
+            </div>
+          </div>
         </div>
 
       </div>
+
     </div>
   );
 }
