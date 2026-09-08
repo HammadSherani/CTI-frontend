@@ -43,6 +43,7 @@ export default function RefurbishListingPage() {
   const [selectedRams, setSelectedRams] = useState([]);
   const [selectedStorages, setSelectedStorages] = useState([]);
   const [selectedRating, setSelectedRating] = useState(0); // 0 = all ratings
+  const [selectedRoles, setSelectedRoles] = useState([]); // platform or seller
 
   // UI open/close states
   const [openSections, setOpenSections] = useState({
@@ -52,7 +53,8 @@ export default function RefurbishListingPage() {
     condition: true,
     ram: true,
     storage: true,
-    rating: true
+    rating: true,
+    source: true
   });
 
   const [products, setProducts] = useState([]);
@@ -112,6 +114,7 @@ export default function RefurbishListingPage() {
       if (selectedRams.length > 0) params.append('ram', selectedRams.join(','));
       if (selectedStorages.length > 0) params.append('storage', selectedStorages.join(','));
       if (selectedRating > 0) params.append('rating', selectedRating);
+      if (selectedRoles.length > 0) params.append('addedByRole', selectedRoles.join(','));
 
       const res = await axiosInstance.get(`/public/refurbished-devices/products?${params.toString()}`);
       if (res.data?.success) {
@@ -124,7 +127,7 @@ export default function RefurbishListingPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, sort, selectedCategory, selectedBrands, priceMin, priceMax, selectedConditions, selectedRams, selectedStorages, selectedRating, filterMetadata.priceRange.max]);
+  }, [page, sort, selectedCategory, selectedBrands, priceMin, priceMax, selectedConditions, selectedRams, selectedStorages, selectedRating, selectedRoles, filterMetadata.priceRange.max]);
 
   useEffect(() => {
     fetchProducts();
@@ -171,7 +174,9 @@ export default function RefurbishListingPage() {
     } else {
       url.searchParams.delete('category');
     }
-    router.push(url.pathname + url.search);
+    const currentPath = window.location.pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?/, '') || '/';
+    const finalPath = currentPath.startsWith('/') ? currentPath : `/${currentPath}`;
+    router.push(`${finalPath}?${url.searchParams.toString()}`);
   };
 
   const clearAllFilters = () => {
@@ -183,6 +188,7 @@ export default function RefurbishListingPage() {
     setSelectedRams([]);
     setSelectedStorages([]);
     setSelectedRating(0);
+    setSelectedRoles([]);
     setPage(1);
     router.push('/refurbish');
   };
@@ -304,6 +310,41 @@ export default function RefurbishListingPage() {
               )}
             </div>
           )}
+
+          {/* Product Source Filter */}
+          <div className="space-y-2 border-t border-gray-100 pt-4">
+            <button
+              onClick={() => toggleSection('source')}
+              className="w-full flex items-center justify-between font-black text-xs uppercase tracking-widest text-gray-450 hover:text-gray-700 transition-colors"
+            >
+              <span>Product Source</span>
+              <Icon icon={openSections.source ? 'mdi:chevron-up' : 'mdi:chevron-down'} className="w-4 h-4 text-gray-400" />
+            </button>
+            {openSections.source && (
+              <div className="pt-2 space-y-2.5 max-h-52 overflow-y-auto pr-1">
+                {[
+                  { label: 'Platform Products', value: 'platform' },
+                  { label: 'Seller Products', value: 'seller' }
+                ].map((src) => (
+                  <div
+                    key={src.value}
+                    onClick={() => {
+                      setSelectedRoles(prev => prev.includes(src.value) ? prev.filter(r => r !== src.value) : [...prev, src.value]);
+                      setPage(1);
+                    }}
+                    className="flex items-center gap-2.5 cursor-pointer group text-sm select-none"
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${selectedRoles.includes(src.value) ? 'bg-primary-500 border-primary-500' : 'border-gray-250 group-hover:border-primary-400'}`}>
+                      {selectedRoles.includes(src.value) && <Icon icon="mdi:check" className="w-3 h-3 text-white" />}
+                    </div>
+                    <span className={`text-[13px] transition-colors ${selectedRoles.includes(src.value) ? 'text-primary-750 font-black' : 'text-gray-700'}`}>
+                      {src.label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Price Range Slider */}
           <div className="space-y-2 border-t border-gray-100 pt-4">
