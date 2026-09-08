@@ -83,10 +83,14 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
     const sid = item.sellerId?._id || item.sellerId;
     if (!sid || seenSellerIds.has(sid)) return;
     seenSellerIds.add(sid);
+    const productLabel = item.productId?.title || item.productId?.name || 'Item';
+    // Only a real seller name counts here — falling back to the product name
+    // for both would just repeat it ("iPhone 11 — iPhone 11").
+    const sellerLabel = item.sellerId?.name || item.sellerId?.storeName || null;
     sellerOptions.push({
       sellerId: sid,
-      label: item.sellerId?.name || item.sellerId?.storeName || item.productId?.title || 'Seller',
-      productLabel: item.productId?.title || item.productId?.name || null,
+      productLabel,
+      sellerLabel: sellerLabel && sellerLabel !== productLabel ? sellerLabel : null,
     });
   });
   const [selectedSellerId, setSelectedSellerId] = useState(sellerOptions[0]?.sellerId || null);
@@ -126,7 +130,7 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
               >
                 {sellerOptions.map((s) => (
                   <option key={s.sellerId} value={s.sellerId}>
-                    {s.productLabel ? `${s.productLabel} — ${s.label}` : s.label}
+                    {s.sellerLabel ? `${s.productLabel} — ${s.sellerLabel}` : s.productLabel}
                   </option>
                 ))}
               </select>
@@ -591,7 +595,10 @@ export default function OrderDetailPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       {product?.slug ? (
-                        <Link href={`/product/${product.slug}`} className="font-semibold text-gray-900 hover:text-primary-600 transition-colors text-sm line-clamp-1">
+                        <Link
+                          href={isRefurbishedMode ? `/refurbish/${product.slug}` : `/product/${product.slug}`}
+                          className="font-semibold text-gray-900 hover:text-primary-600 transition-colors text-sm line-clamp-1"
+                        >
                           {product?.title || 'Unknown Product'}
                         </Link>
                       ) : (

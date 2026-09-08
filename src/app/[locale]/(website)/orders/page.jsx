@@ -710,7 +710,7 @@ export default function MyOrdersPage() {
 
                                         <div className="flex-1 min-w-0">
                                           <Link
-                                            href={`/product/${product?.slug || product?._id}`}
+                                            href={isRefurbishedMode ? `/refurbish/${product?.slug || product?._id}` : `/product/${product?.slug || product?._id}`}
                                             className="font-medium text-gray-900 hover:text-primary-600 line-clamp-1 transition-colors text-sm"
                                             onClick={(e) => e.stopPropagation()}
                                           >
