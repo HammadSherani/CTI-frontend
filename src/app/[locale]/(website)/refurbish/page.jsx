@@ -39,6 +39,9 @@ export default function RefurbishListingPage() {
   });
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(150000);
+  const [localPriceMin, setLocalPriceMin] = useState(0);
+  const [localPriceMax, setLocalPriceMax] = useState(150000);
+  
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [selectedRams, setSelectedRams] = useState([]);
   const [selectedStorages, setSelectedStorages] = useState([]);
@@ -75,6 +78,7 @@ export default function RefurbishListingPage() {
           // Set max price bound from DB dynamic range
           if (meta.priceRange) {
             setPriceMax(meta.priceRange.max);
+            setLocalPriceMax(meta.priceRange.max);
           }
         }
       } catch (err) {
@@ -82,6 +86,17 @@ export default function RefurbishListingPage() {
       }
     })();
   }, []);
+
+  // Debounce Price Slider
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      let changed = false;
+      if (localPriceMin !== priceMin) { setPriceMin(localPriceMin); changed = true; }
+      if (localPriceMax !== priceMax) { setPriceMax(localPriceMax); changed = true; }
+      if (changed) setPage(1);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localPriceMin, localPriceMax, priceMin, priceMax]);
 
   // Sync category AND brand from URL query params (used by header dropdown links)
   useEffect(() => {
@@ -176,7 +191,7 @@ export default function RefurbishListingPage() {
     }
     const currentPath = window.location.pathname.replace(/^\/[a-z]{2}(-[A-Z]{2})?/, '') || '/';
     const finalPath = currentPath.startsWith('/') ? currentPath : `/${currentPath}`;
-    router.push(`${finalPath}?${url.searchParams.toString()}`);
+    router.push(`${finalPath}?${url.searchParams.toString()}`, { scroll: false });
   };
 
   const clearAllFilters = () => {
@@ -221,10 +236,10 @@ export default function RefurbishListingPage() {
         <span className="text-gray-900 font-bold">All Gadgets</span>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col lg:flex-row gap-8 min-h-[800px]">
 
         {/* PREMIUM FILTER SIDEBAR */}
-        <aside className="w-full lg:w-72 flex-shrink-0 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-6 h-fit sticky top-24">
+        <aside className="w-full lg:w-72 flex-shrink-0 bg-white border border-gray-100 rounded-2xl p-5 shadow-sm space-y-6 h-fit lg:sticky lg:top-24 z-10 transition-all duration-300">
 
           <div className="flex items-center justify-between pb-3 border-b border-gray-100">
             <span className="text-sm font-extrabold text-gray-900 flex items-center gap-2">
@@ -361,10 +376,10 @@ export default function RefurbishListingPage() {
                   type="range"
                   min={filterMetadata.priceRange.min}
                   max={filterMetadata.priceRange.max}
-                  step="1000"
-                  value={priceMax}
-                  onChange={(e) => { setPriceMax(parseInt(e.target.value)); setPage(1); }}
-                  className="w-full accent-primary-500 cursor-pointer h-1 bg-gray-200 rounded appearance-none"
+                  step="500"
+                  value={localPriceMax}
+                  onChange={(e) => { setLocalPriceMax(parseInt(e.target.value)); }}
+                  className="w-full accent-primary-500 cursor-pointer h-2 bg-gray-200 rounded-full appearance-none transition-all"
                 />
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex-1">
@@ -373,9 +388,9 @@ export default function RefurbishListingPage() {
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
                       <input
                         type="number"
-                        value={priceMin}
-                        onChange={(e) => { setPriceMin(Number(e.target.value)); setPage(1); }}
-                        className="w-full pl-6 pr-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-450"
+                        value={localPriceMin}
+                        onChange={(e) => { setLocalPriceMin(Number(e.target.value)); }}
+                        className="w-full pl-6 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
                       />
                     </div>
                   </div>
@@ -385,9 +400,9 @@ export default function RefurbishListingPage() {
                       <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
                       <input
                         type="number"
-                        value={priceMax}
-                        onChange={(e) => { setPriceMax(Number(e.target.value)); setPage(1); }}
-                        className="w-full pl-6 pr-2 py-1 bg-gray-50 border border-gray-200 rounded text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-455"
+                        value={localPriceMax}
+                        onChange={(e) => { setLocalPriceMax(Number(e.target.value)); }}
+                        className="w-full pl-6 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
                       />
                     </div>
                   </div>
@@ -519,7 +534,7 @@ export default function RefurbishListingPage() {
           </div>
 
           {/* Product Cards Container */}
-          {loading ? (
+          {products.length === 0 && loading ? (
             <div className="space-y-4">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="animate-pulse bg-white border border-gray-100 rounded-xl p-5 flex flex-col md:flex-row gap-6 h-fit md:h-[200px]">
@@ -533,7 +548,7 @@ export default function RefurbishListingPage() {
                 </div>
               ))}
             </div>
-          ) : products.length === 0 ? (
+          ) : products.length === 0 && !loading ? (
             <div className="bg-white border border-gray-100 rounded-2xl p-16 text-center shadow-sm">
               <Icon icon="fluent:box-search-16-regular" className="w-16 h-16 text-gray-300 mx-auto mb-4" />
               <h3 className="text-base font-black text-gray-900">No matching gadgets found</h3>
@@ -546,7 +561,14 @@ export default function RefurbishListingPage() {
               </button>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className={`space-y-4 relative transition-opacity duration-300 ${loading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+              {loading && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center pt-24">
+                  <div className="sticky top-1/2 -mt-12 bg-white rounded-2xl shadow-xl p-4 flex items-center justify-center border border-gray-100">
+                    <Icon icon="line-md:loading-twotone-loop" className="w-8 h-8 text-primary-500" />
+                  </div>
+                </div>
+              )}
               {products.map((p) => {
                 const defaultVar = p.variants?.find(v => v.isDefault) || p.variants?.[0];
                 const imageSrc = defaultVar?.images?.[0]?.url || p.images?.[0]?.url || '/assets/placeholder.jpg';
