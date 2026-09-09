@@ -2,19 +2,29 @@ import React from 'react';
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import { format } from 'date-fns';
+import { useSelector } from 'react-redux';
 
 export default function TransactionViewModal({ isOpen, onClose, transaction }) {
+  const { user } = useSelector((state) => state.auth);
+  const isViewedByAdmin = user?.role === 'admin';
+
   if (!isOpen || !transaction) return null;
 
-  const getTypeStyle = (type) => {
+  const getTypeStyle = (type, isIncoming) => {
     const t = (type || "").toLowerCase();
-    if (t.includes("refund") || t.includes("rejected")) {
-      return { bg: "bg-red-100", text: "text-red-700", icon: "mdi:arrow-up-circle-outline" };
+    const incomingTypes = isViewedByAdmin
+      ? ["platform_fee", "admin_earning_hold", "admin_earning_release", "withdrawal_rejected"]
+      : ["seller_earning_hold", "seller_earning_release", "withdrawal_rejected"];
+    const outgoingTypes = isViewedByAdmin
+      ? ["seller_earning_hold", "seller_earning_release", "shipping_fee", "refund", "withdrawal_request", "withdrawal_success"]
+      : ["platform_fee", "shipping_fee", "refund", "withdrawal_request", "withdrawal_success"];
+    if (incomingTypes.includes(t) || (!outgoingTypes.includes(t) && isIncoming)) {
+      return { bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline", prefix: "+" };
     }
-    if (t.includes("success") || t.includes("release") || t.includes("order_payment")) {
-      return { bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline" };
+    if (outgoingTypes.includes(t) || !isIncoming) {
+      return { bg: "bg-red-100", text: "text-red-700", icon: "mdi:arrow-up-circle-outline", prefix: "-" };
     }
-    return { bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:information-outline" };
+    return { bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:information-outline", prefix: "" };
   };
 
   const getStatusStyle = (status) => {
@@ -26,7 +36,10 @@ export default function TransactionViewModal({ isOpen, onClose, transaction }) {
     }
   };
 
-  const typeConfig = getTypeStyle(transaction.type);
+  const isIncoming = isViewedByAdmin
+    ? transaction.toUserId?.role === 'admin' || transaction.toUserId?._id === user?._id || transaction.toUserId === user?._id
+    : transaction.toUserId?._id === user?._id || transaction.toUserId === user?._id;
+  const typeConfig = getTypeStyle(transaction.type, isIncoming);
   const statusClass = getStatusStyle(transaction.status);
 
   // Helper to render user blocks
@@ -61,13 +74,15 @@ export default function TransactionViewModal({ isOpen, onClose, transaction }) {
           </span>
         </div>
         
-        <Link 
-          href={linkHref} 
-          className="inline-flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group-hover:underline"
-        >
-          View Profile
-          <Icon icon="mdi:arrow-right" />
-        </Link>
+        {isViewedByAdmin && (
+          <Link 
+            href={linkHref} 
+            className="inline-flex items-center gap-1 text-sm font-bold text-primary-600 hover:text-primary-700 group-hover:underline"
+          >
+            View Profile
+            <Icon icon="mdi:arrow-right" />
+          </Link>
+        )}
       </div>
     );
   };
@@ -105,7 +120,7 @@ export default function TransactionViewModal({ isOpen, onClose, transaction }) {
             <div>
               <p className="text-xs text-gray-500 mb-1">Amount</p>
               <p className={`text-xl font-black ${typeConfig.text}`}>
-                TRY. {(transaction.amount || 0).toLocaleString()}
+                {typeConfig.prefix}TRY. {(transaction.amount || 0).toLocaleString()}
               </p>
             </div>
             <div>
@@ -162,7 +177,10 @@ export default function TransactionViewModal({ isOpen, onClose, transaction }) {
                     </div>
                   </div>
                   <Link 
-                    href={`/admin/ecom/orders/${transaction.orderId || transaction.orderNo}`}
+                    href={isViewedByAdmin 
+                      ? (transaction.category === 'refurbished' ? `/admin/refurbished/orders/${transaction.orderId || transaction.orderNo}` : `/admin/ecom/orders/${transaction.orderId || transaction.orderNo}`)
+                      : (transaction.category === 'refurbished' ? `/seller/refurbished/orders/${transaction.orderId || transaction.orderNo}` : `/seller/order/${transaction.orderId || transaction.orderNo}`)
+                    }
                     className="px-4 py-2 bg-white border border-gray-200 text-gray-700 text-sm font-bold rounded-lg hover:bg-gray-50 transition-colors shadow-sm"
                   >
                     View Order

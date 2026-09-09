@@ -10,11 +10,11 @@ import Image from "next/image";
 import moment from "moment";
 
 const STATUS_CONFIG = {
-  pending:    { label: "Pending",    bg: "bg-blue-100",    text: "text-blue-700",    icon: "mdi:clock-outline" },
+  pending:    { label: "Pending",    bg: "bg-primary-100",    text: "text-primary-700",    icon: "mdi:clock-outline" },
   processing: { label: "Processing", bg: "bg-indigo-100",  text: "text-indigo-700",  icon: "mdi:cogs" },
+  shipping:   { label: "Shipping",   bg: "bg-cyan-100",    text: "text-cyan-700",    icon: "mdi:package-variant" },
   shipped:    { label: "Shipped",    bg: "bg-amber-100",   text: "text-amber-700",   icon: "mdi:truck-delivery-outline" },
   delivered:  { label: "Delivered",  bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:package-check" },
-  on_hold:    { label: "On Hold",    bg: "bg-orange-100",  text: "text-orange-700",  icon: "mdi:pause-circle-outline" },
   cancelled:  { label: "Cancelled",  bg: "bg-red-100",     text: "text-red-700",     icon: "mdi:cancel" },
 };
 
@@ -31,10 +31,10 @@ const CANCELLED_BY_LABEL = {
 };
 
 const ALLOWED_TRANSITIONS = {
-  pending:    ["processing", "on_hold", "cancelled"],
-  processing: ["shipped", "on_hold", "cancelled"],
-  shipped:    ["delivered", "on_hold", "cancelled"],
-  on_hold:    ["processing", "cancelled"],
+  pending:    ["processing", "cancelled"],
+  processing: ["shipping", "cancelled"],
+  shipping:   ["shipped", "cancelled"],
+  shipped:    ["delivered", "cancelled"],
   delivered:  [],
   cancelled:  [],
 };

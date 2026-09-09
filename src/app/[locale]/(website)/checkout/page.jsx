@@ -7,7 +7,7 @@ import { useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
-import { removeFromCart, clearCart } from '@/store/cart';
+import { removeFromCart, clearCart, fetchCart } from '@/store/cart';
 import { clearRefurbishedCart } from '@/store/refurbishedCart';
 import * as yup from 'yup';
 import { Country, State, City } from 'country-state-city';
@@ -51,6 +51,11 @@ const customSelectStyles = (hasError) => ({
       borderColor: hasError ? '#f87171' : '#ff9f32',
     }
   }),
+  singleValue: (base) => ({
+    ...base,
+    color: '#1f2937',
+    fontWeight: '500'
+  }),
   valueContainer: (base) => ({ ...base, padding: '2px 8px' }),
   input: (base) => ({ ...base, margin: 0, padding: 0 }),
   indicatorSeparator: () => ({ display: 'none' }),
@@ -58,8 +63,8 @@ const customSelectStyles = (hasError) => ({
   menu: (base) => ({ ...base, zIndex: 9999, borderRadius: '0.75rem', overflow: 'hidden' }),
   option: (base, state) => ({
     ...base,
-    backgroundColor: state.isSelected ? '#ff820a' : state.isFocused ? '#fff8ec' : 'transparent',
-    color: state.isSelected ? 'white' : '#1f2937',
+    backgroundColor: state.isSelected ? '#ff820a' : state.isFocused ? '#ff9f32' : 'transparent',
+    color: (state.isSelected || state.isFocused) ? 'white' : '#1f2937',
     cursor: 'pointer',
     fontSize: '14px',
     '&:active': { backgroundColor: '#ff6900' }
@@ -76,6 +81,10 @@ export default function CheckoutPage() {
   const userRole = auth?.userType || auth?.user?.role || null;
   const type = searchParams.get('type');
   const isRefurbished = type === 'refurbished';
+  // An order can only ever belong to one seller (enforced backend-side too) —
+  // the cart page always links here with a sellerId for a normal-ecom
+  // checkout; only Buy Now / direct-items skip this.
+  const sellerId = searchParams.get('sellerId');
 
   const standardCartItems = useSelector(s => s.cart?.items || []);
   const standardCartId = useSelector(s => s.cart?.cartId);
@@ -83,12 +92,22 @@ export default function CheckoutPage() {
   const refurbishedCartItems = useSelector(s => s.refurbishedCart?.items || []);
   const refurbishedCartId = useSelector(s => s.refurbishedCart?.cartId);
 
-  const cartItems = isRefurbished ? refurbishedCartItems : standardCartItems;
+  const resolveId = (v) => (v && typeof v === 'object') ? v._id : v;
+
+  const allCartItems = isRefurbished ? refurbishedCartItems : standardCartItems;
+  // Only this seller's items go into this checkout — the rest stay in the
+  // cart for a separate checkout.
+  const cartItems = (!isRefurbished && sellerId)
+    ? allCartItems.filter(item => resolveId(item.productId?.sellerId) === sellerId)
+    : allCartItems;
   const cartId = isRefurbished ? refurbishedCartId : standardCartId;
 
-  // Marketplace and Refurbished items check out separately (two different
-  // backend orders/payments) — surface it clearly so a mixed cart doesn't
-  // silently leave items behind with no indication.
+  // Anything NOT covered by this checkout — other sellers in the same cart,
+  // plus the other cart type entirely — surfaced so nothing silently gets
+  // left behind with no indication.
+  const otherSellerItemsCount = (!isRefurbished && sellerId)
+    ? allCartItems.length - cartItems.length
+    : 0;
   const otherCartItems = isRefurbished ? standardCartItems : refurbishedCartItems;
   const otherCheckoutLink = isRefurbished ? '/checkout' : '/checkout?type=refurbished';
   const otherCheckoutLabel = isRefurbished ? 'Marketplace' : 'Refurbished';
@@ -335,6 +354,7 @@ export default function CheckoutPage() {
         payload.items = items.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }));
       } else {
         payload.cartId = cartId;
+        if (!isRefurbished && sellerId) payload.sellerId = sellerId;
       }
 
       const orderCreateUrl = isRefurbished
@@ -347,7 +367,15 @@ export default function CheckoutPage() {
 
       if (res.data.success) {
         toast.success('Order placed successfully!');
-        if (otherCartItems.length > 0) {
+        if (otherSellerItemsCount > 0) {
+          toast.info(
+            <span>
+              You still have {otherSellerItemsCount} item{otherSellerItemsCount > 1 ? 's' : ''} from other sellers in your cart —{' '}
+              <Link href="/cart" className="underline font-semibold">checkout separately</Link> to order them.
+            </span>,
+            { autoClose: 10000 }
+          );
+        } else if (otherCartItems.length > 0) {
           toast.info(
             <span>
               You still have {otherCartItems.length} item{otherCartItems.length > 1 ? 's' : ''} in your {otherCheckoutLabel} cart —{' '}
@@ -365,7 +393,11 @@ export default function CheckoutPage() {
               await axiosInstance.delete('/refurbished/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
             } catch (_) { }
           }
-          router.push('/orders?type=refurbished');
+        } else if (otherSellerItemsCount > 0) {
+          // Only this seller's items were ordered — the backend already
+          // removed just those from the cart, so refresh instead of clearing
+          // everything (other sellers' items must stay).
+          if (token) dispatch(fetchCart());
         } else {
           dispatch(clearCart());
           if (!isBuyNow && token) {
@@ -373,7 +405,13 @@ export default function CheckoutPage() {
               await axiosInstance.delete('/e-commerce/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
             } catch (_) { }
           }
-          router.push('/orders');
+        }
+
+        // Navigation Logic: If there are items left in either cart, go to /cart, else /orders
+        if (otherSellerItemsCount > 0 || otherCartItems.length > 0) {
+          router.push('/cart');
+        } else {
+          router.push(isRefurbished ? '/orders?type=refurbished' : '/orders');
         }
       } else {
         toast.error(res.data.message || 'Failed to place order');
@@ -406,6 +444,16 @@ export default function CheckoutPage() {
         <Icon icon="mdi:chevron-right" />
         <span className="text-gray-700 font-medium">Checkout</span>
       </nav>
+      {/* 
+      {otherSellerItemsCount > 0 && (
+        <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
+          <Icon icon="mdi:information-outline" className="text-amber-500 text-xl flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-amber-800">
+            This checkout only covers this seller's items. You also have {otherSellerItemsCount} item{otherSellerItemsCount > 1 ? 's' : ''} from other sellers in your cart —
+            {' '}<Link href="/cart" className="underline font-semibold">check those out separately</Link>.
+          </p>
+        </div>
+      )}
 
       {otherCartItems.length > 0 && (
         <div className="mb-6 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
@@ -416,7 +464,7 @@ export default function CheckoutPage() {
             {' '}<Link href={otherCheckoutLink} className="underline font-semibold">check those out separately</Link>.
           </p>
         </div>
-      )}
+      )} */}
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 

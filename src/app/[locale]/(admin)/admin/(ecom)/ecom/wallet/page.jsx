@@ -6,6 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import { Icon } from "@iconify/react";
 import moment from "moment";
+import { formatCurrency } from "@/helper/currencyFormatter";
 
 const TYPE_CONFIG = {
   credit:  { label: "Credit",  bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline" },
@@ -16,18 +17,18 @@ const TYPE_CONFIG = {
 
 function StatCard({ label, value, icon, iconBg, iconColor, accent }) {
   return (
-    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 relative overflow-hidden">
-      <div className="absolute top-0 right-0 p-4 opacity-5">
-        <Icon icon={icon} className={`text-8xl ${iconColor}`} />
+    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 relative overflow-hidden min-w-0">
+      <div className="absolute top-0 right-0 p-3 opacity-5">
+        <Icon icon={icon} className={`text-7xl ${iconColor}`} />
       </div>
-      <div className="flex items-center gap-4 relative z-10">
-        <div className={`w-12 h-12 ${iconBg} rounded-xl flex items-center justify-center shadow-inner`}>
-          <Icon icon={icon} className={`text-2xl ${iconColor}`} />
+      <div className="flex items-center gap-3 relative z-10 min-w-0">
+        <div className={`w-10 h-10 ${iconBg} rounded-xl flex items-center justify-center shadow-inner flex-shrink-0`}>
+          <Icon icon={icon} className={`text-xl ${iconColor}`} />
         </div>
-        <div>
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</p>
-          <p className={`text-2xl font-extrabold mt-0.5 ${accent || "text-gray-900"}`}>
-            Rs. {(value || 0).toLocaleString()}
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide leading-tight">{label}</p>
+          <p className={`text-xl font-extrabold mt-0.5 truncate ${accent || "text-gray-900"}`}>
+            {formatCurrency(value)}
           </p>
         </div>
       </div>
@@ -72,7 +73,7 @@ export default function AdminWalletPage() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFB] p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Admin Wallet</h1>
@@ -80,7 +81,7 @@ export default function AdminWalletPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-4 sm:grid-cols-3 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 mb-8">
           <StatCard
             label="Available Balance"
             value={wallet?.balance}
@@ -103,6 +104,14 @@ export default function AdminWalletPage() {
             iconBg="bg-emerald-100"
             iconColor="text-emerald-600"
             accent="text-emerald-700"
+          />
+          <StatCard
+            label="Shipping Fees"
+            value={wallet?.totalShippingFees}
+            icon="mdi:truck-fast-outline"
+            iconBg="bg-orange-100"
+            iconColor="text-orange-600"
+            accent="text-orange-700"
           />
           {/* <StatCard
             label="Platform Fees Collected"
@@ -165,7 +174,7 @@ export default function AdminWalletPage() {
                         </td>
                         <td className="px-6 py-4">
                           <span className={`font-bold ${isPositive ? "text-emerald-700" : "text-red-600"}`}>
-                            {isPositive ? "+" : "-"}Rs. {(entry.amount || 0).toLocaleString()}
+                            {isPositive ? "+" : "-"}{formatCurrency(entry.amount)}
                           </span>
                         </td>
                         <td className="px-6 py-4">

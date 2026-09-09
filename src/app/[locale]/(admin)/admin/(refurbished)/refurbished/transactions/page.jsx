@@ -55,13 +55,15 @@ export default function RefurbishedTransactions() {
 
   const getTypeStyle = (type) => {
     const t = (type || "").toLowerCase();
-    if (t.includes("refund") || t.includes("rejected")) {
-      return { bg: "bg-red-100", text: "text-red-700", icon: "mdi:arrow-up-circle-outline" };
+    const incomingTypes = ["platform_fee", "admin_earning_hold", "admin_earning_release", "withdrawal_rejected"];
+    const outgoingTypes = ["seller_earning_hold", "seller_earning_release", "shipping_fee", "refund", "withdrawal_request", "withdrawal_success"];
+    if (incomingTypes.includes(t)) {
+      return { bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline", prefix: "+" };
     }
-    if (t.includes("success") || t.includes("release") || t.includes("order_payment")) {
-      return { bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline" };
+    if (outgoingTypes.includes(t)) {
+      return { bg: "bg-red-100", text: "text-red-700", icon: "mdi:arrow-up-circle-outline", prefix: "-" };
     }
-    return { bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:information-outline" };
+    return { bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:information-outline", prefix: "" };
   };
 
   const summaryCards = [
@@ -112,7 +114,7 @@ export default function RefurbishedTransactions() {
         const cfg = getTypeStyle(row.type);
         return (
           <span className={`font-bold ${cfg.text} whitespace-nowrap`}>
-            TRY. {(row.amount || 0).toLocaleString()}
+            {cfg.prefix}TRY. {(row.amount || 0).toLocaleString()}
           </span>
         );
       },

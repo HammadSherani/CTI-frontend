@@ -214,7 +214,15 @@ function OrderEnquiryModal({ order, onClose, onSubmit, loading }) {
 function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   const isRefurbished = order?.orderNo?.startsWith('REF-') || order?.orderId?.startsWith('REF-');
   const [reason, setReason] = useState('');
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   const [selectedItems, setSelectedItems] = useState({});
+
+  useEffect(() => {
+    const previews = images.map(image => ({ file: image, url: URL.createObjectURL(image) }));
+    setImagePreviews(previews);
+    return () => previews.forEach(preview => URL.revokeObjectURL(preview.url));
+  }, [images]);
 
   useEffect(() => {
     if (order && isRefurbished) {
@@ -253,11 +261,17 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
       return;
     }
 
-    onSubmit({ items: itemsToReturn });
+    const formData = new FormData();
+    formData.append('items', JSON.stringify(itemsToReturn));
+    images.forEach(image => formData.append('images', image));
+    onSubmit(formData);
   };
 
   const handleStandardSubmit = () => {
-    onSubmit({ reason });
+    const formData = new FormData();
+    formData.append('reason', reason.trim());
+    images.forEach(image => formData.append('images', image));
+    onSubmit(formData);
   };
 
   return (
@@ -335,13 +349,68 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
               })}
             </div>
           ) : (
-            <textarea
-              rows={4}
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Describe why you want to return this order..."
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
-            />
+            <div>
+              <textarea
+                rows={4}
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                placeholder="Describe why you want to return this order..."
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
+              />
+              <div className="mt-3">
+                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                  Product Images <span className="font-normal normal-case text-gray-400">(optional, up to 5)</span>
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 5))}
+                  className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 file:font-semibold hover:file:bg-primary-100"
+                />
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2 mt-2">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={`${preview.file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setImages(current => current.filter((_, imageIndex) => imageIndex !== index))}
+                          aria-label={`Remove ${preview.file.name}`}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600"
+                        >
+                          <Icon icon="mdi:close" className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isRefurbished && (
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                Product Images <span className="font-normal normal-case text-gray-400">(optional, up to 5)</span>
+              </label>
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+                onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 5))}
+                className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 file:font-semibold hover:file:bg-primary-100" />
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-5 gap-2 mt-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={`${preview.file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                      <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setImages(current => current.filter((_, imageIndex) => imageIndex !== index))}
+                        aria-label={`Remove ${preview.file.name}`} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600">
+                        <Icon icon="mdi:close" className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           )}
 
           <div className="flex gap-3 pt-2">
@@ -381,6 +450,7 @@ export default function OrderDetailPage() {
   const [returnLoading, setReturnLoading] = useState(false);
   const [existingReturn, setExistingReturn] = useState(null);
   const [cancelling, setCancelling]     = useState(false);
+  const [reviewPrompt, setReviewPrompt] = useState(null);
 
   const fetchOrder = useCallback(async () => {
     if (!token || !id) return;
@@ -393,7 +463,20 @@ export default function OrderDetailPage() {
       const { data } = await axiosInstance.get(getUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) setOrder(data.order || data.orders || data.data);
+      if (data.success) {
+        const loadedOrder = data.order || data.orders || data.data;
+        setOrder(loadedOrder);
+
+        const reviewItem = loadedOrder?.items?.find(item => item.productId?.slug);
+        const promptKey = `review-prompt-shown-${loadedOrder?._id || id}`;
+        if (!isRefurbishedMode && loadedOrder?.orderStatus === 'delivered' && reviewItem?.productId?.slug && !localStorage.getItem(promptKey)) {
+          setReviewPrompt({
+            productSlug: reviewItem.productId.slug,
+            productTitle: reviewItem.productId.title || 'your purchased product',
+            promptKey,
+          });
+        }
+      }
       else { toast.error('Order not found'); router.push('/orders'); }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load order');
@@ -452,7 +535,10 @@ export default function OrderDetailPage() {
         : `/e-commerce/orders/${id}/return`;
 
       const { data } = await axiosInstance.post(returnUrl, returnPayload, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       });
       if (data.success) {
         toast.success('Return request submitted');
@@ -764,10 +850,10 @@ export default function OrderDetailPage() {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 disabled:opacity-50 text-red-600 border border-red-100 font-semibold rounded-xl text-sm transition-colors"
               >
                 {cancelling
-                  ? <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" />
+                  ? <><Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> Cancelling...</>
                   : <Icon icon="solar:close-circle-bold-duotone" className="w-4 h-4" />
                 }
-                Cancel Order
+                {!cancelling && 'Cancel Order'}
               </button>
             )}
 
@@ -830,6 +916,40 @@ export default function OrderDetailPage() {
           onSubmit={handleReturn}
           loading={returnLoading}
         />
+      )}
+
+      {reviewPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-3xl bg-white shadow-2xl p-6 text-center">
+            <div className="mx-auto mb-4 w-14 h-14 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center">
+              <Icon icon="solar:star-bold-duotone" className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-extrabold text-gray-900">How was your order?</h2>
+            <p className="mt-2 text-sm text-gray-500">Your order is delivered. Share your experience with {reviewPrompt.productTitle}.</p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(reviewPrompt.promptKey, 'true');
+                  setReviewPrompt(null);
+                }}
+                className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-600 hover:bg-gray-50"
+              >
+                Later
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  localStorage.setItem(reviewPrompt.promptKey, 'true');
+                  router.push(`/product/${reviewPrompt.productSlug}`);
+                }}
+                className="flex-1 rounded-xl bg-primary-600 py-3 text-sm font-bold text-white hover:bg-primary-700"
+              >
+                Review Now
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -4,7 +4,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
-import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import SearchInput from "@/components/partials/admin/ecom/SearchInput";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import { useSelector } from "react-redux";
@@ -12,8 +11,8 @@ import { toast } from "react-toastify";
 import { format } from "date-fns";
 import TransactionViewModal from "@/components/partials/admin/ecom/TransactionViewModal";
 
-export default function EcomTransactions() {
-  const { token } = useSelector((s) => s.auth);
+export default function SellerTransactions() {
+  const { token, user } = useSelector((s) => s.auth);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -26,10 +25,10 @@ export default function EcomTransactions() {
     if (!token) return;
     try {
       setLoading(true);
-      const params = { category: "ecommerce", page, limit: pagination.pageSize, search: searchQuery };
+      const params = { page, limit: pagination.pageSize, search: searchQuery };
       if (type) params.type = type;
 
-      const res = await axiosInstance.get("/admin/transactions", {
+      const res = await axiosInstance.get("/seller/transactions", {
         params,
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -53,24 +52,19 @@ export default function EcomTransactions() {
     fetchTransactions(1, search, typeFilter);
   }, [token, search, typeFilter, fetchTransactions]);
 
-  const getTypeStyle = (type) => {
+  const getTypeStyle = (type, isIncoming) => {
     const t = (type || "").toLowerCase();
-    const incomingTypes = ["platform_fee", "admin_earning_hold", "admin_earning_release", "withdrawal_rejected"];
-    const outgoingTypes = ["seller_earning_hold", "seller_earning_release", "shipping_fee", "refund", "withdrawal_request", "withdrawal_success"];
-    if (incomingTypes.includes(t)) {
+    const incomingTypes = ["seller_earning_hold", "seller_earning_release", "withdrawal_rejected"];
+    const outgoingTypes = ["platform_fee", "shipping_fee", "refund", "withdrawal_request", "withdrawal_success"];
+    const incoming = incomingTypes.includes(t) || (!outgoingTypes.includes(t) && isIncoming);
+    if (incoming) {
       return { bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:arrow-down-circle-outline", prefix: "+" };
     }
-    if (outgoingTypes.includes(t)) {
+    if (outgoingTypes.includes(t) || !isIncoming) {
       return { bg: "bg-red-100", text: "text-red-700", icon: "mdi:arrow-up-circle-outline", prefix: "-" };
     }
     return { bg: "bg-blue-100", text: "text-blue-700", icon: "mdi:information-outline", prefix: "" };
   };
-
-  const summaryCards = [
-    { label: "Total Records", value: pagination.total, icon: "mdi:cash-register", color: "#6366f1" },
-    { label: "Total Amount (Page)", value: `TRY. ${transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0).toLocaleString()}`, icon: "mdi:currency-usd", color: "#10b981" },
-    { label: "Showing on Page", value: transactions.length, icon: "mdi:file-document-outline", color: "#f59e0b" },
-  ];
 
   const typeOptions = [
     { label: "All Types", value: "" },
@@ -78,6 +72,7 @@ export default function EcomTransactions() {
     { label: "Hold", value: "hold" },
     { label: "Release", value: "seller_earning_release" },
     { label: "Withdrawal", value: "withdrawal_request" },
+    { label: "Shipping Fee", value: "shipping_fee" },
   ];
 
   const columns = [
@@ -94,7 +89,8 @@ export default function EcomTransactions() {
       key: "type",
       header: "Type",
       cell: (row) => {
-        const cfg = getTypeStyle(row.type);
+        const isIncoming = row.toUserId?._id === user?._id || row.toUserId === user?._id;
+        const cfg = getTypeStyle(row.type, isIncoming);
         return (
           <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${cfg.bg} ${cfg.text}`}>
             <Icon icon={cfg.icon} className="w-3.5 h-3.5" />
@@ -107,7 +103,8 @@ export default function EcomTransactions() {
       key: "amount",
       header: "Amount",
       cell: (row) => {
-        const cfg = getTypeStyle(row.type);
+        const isIncoming = row.toUserId?._id === user?._id || row.toUserId === user?._id;
+        const cfg = getTypeStyle(row.type, isIncoming);
         return (
           <span className={`font-bold ${cfg.text} whitespace-nowrap`}>
             {cfg.prefix}TRY. {(row.amount || 0).toLocaleString()}
@@ -171,12 +168,10 @@ export default function EcomTransactions() {
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-gray-50/50 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900">E-Commerce Transactions</h1>
-          <p className="text-gray-500 text-sm mt-1">Manage and track all financial ledger records</p>
+          <h1 className="text-3xl font-black text-gray-900">Transactions Ledger</h1>
+          <p className="text-gray-500 text-sm mt-1">Manage and track all your financial records</p>
         </div>
       </div>
-
-      {/* <SummaryCards data={summaryCards} /> */}
 
       <div className="bg-white rounded-3xl border border-gray-200/60 p-6 shadow-sm space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
@@ -207,9 +202,6 @@ export default function EcomTransactions() {
           emptyDescription="Try adjusting your filters or search"
         />
 
-        {/* Pagination Controls could be added here if DataTable doesn't handle it natively.
-            Assuming DataTable handles passing down data but if not, we can build custom pagination here 
-            like we did before, or rely on the DataTable. Given products fetches all, we might need basic pagination buttons. */}
         {transactions.length > 0 && pagination.total > pagination.pageSize && (
           <div className="flex justify-end mt-4">
             <div className="flex items-center gap-2">

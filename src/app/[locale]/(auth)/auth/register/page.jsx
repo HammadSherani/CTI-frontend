@@ -304,7 +304,7 @@ const onSubmit = async (data) => {
                         name="role"
                         control={control}
                         render={({ field }) => (
-                          <div className="relative">
+                          <div className="relative z-50">
                             <button
                               type="button"
                               onClick={() => setIsDropdownOpen(!isDropdownOpen)}

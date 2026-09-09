@@ -10,15 +10,14 @@ import Image from "next/image";
 import moment from "moment";
 import { CustomDropdown } from "@/components/dropdown";
 import { formatCurrency } from "@/helper/currencyFormatter";
+import Select from "react-select";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", bg: "bg-primary-100", text: "text-primary-700", icon: "mdi:clock-outline" },
   processing: { label: "Processing", bg: "bg-indigo-100", text: "text-indigo-700", icon: "mdi:cogs" },
   shipping: { label: "Shipping", bg: "bg-cyan-100", text: "text-cyan-700", icon: "mdi:package-variant" },
-  shipment_created: { label: "Shipment Created", bg: "bg-primary-100", text: "text-primary-700", icon: "mdi:truck-check-outline" },
   shipped: { label: "Shipped", bg: "bg-amber-100", text: "text-amber-700", icon: "mdi:truck-delivery-outline" },
   delivered: { label: "Delivered", bg: "bg-emerald-100", text: "text-emerald-700", icon: "mdi:package-check" },
-  on_hold: { label: "On Hold", bg: "bg-orange-100", text: "text-orange-700", icon: "mdi:pause-circle-outline" },
   cancelled: { label: "Cancelled", bg: "bg-red-100", text: "text-red-700", icon: "mdi:cancel" },
 };
 
@@ -26,6 +25,16 @@ const PAYMENT_CONFIG = {
   PAID: { label: "Paid", bg: "bg-emerald-100", text: "text-emerald-700" },
   PENDING: { label: "Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
   FAILED: { label: "Failed", bg: "bg-red-100", text: "text-red-700" },
+};
+
+// Mirrors the backend's allowedTransitions map exactly
+const ALLOWED_TRANSITIONS = {
+  pending: ["processing", "cancelled"],
+  processing: ["shipping", "cancelled"],
+  shipping: ["shipped", "cancelled"],
+  shipped: ["delivered", "cancelled"],
+  delivered: [],
+  cancelled: [],
 };
 
 const INVOICE_STATUS_META = {
@@ -655,7 +664,8 @@ export default function OrderDetailsPage() {
 
   const totalSellerEarnings = order.items?.reduce((a, i) => a + (i.sellerEarnings || 0), 0) || 0;
   const totalPlatformFee = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
-  const canChangeStatus = !["delivered", "cancelled"].includes(order.orderStatus);
+  const transitions = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  const canChangeStatus = transitions.length > 0;
   const canUploadInvoice = order.orderStatus !== 'cancelled';
   const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
 
@@ -741,25 +751,49 @@ export default function OrderDetailsPage() {
             {statusConf.label}
           </div>
           {canChangeStatus && (
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm min-w-[200px]">
-              <Icon icon="mdi:swap-horizontal" className="w-4 h-4 text-gray-400 shrink-0" />
-              <CustomDropdown
-                value={order.orderStatus}
-                onChange={(val) => updateStatus(val)}
+            <div className="flex items-center gap-3">
+              <Select
+                value={[
+                  { label: statusConf.label, value: order.orderStatus, disabled: true },
+                  ...transitions.map((t) => ({
+                    label: `${STATUS_CONFIG[t]?.label || t}${['shipped', 'delivered'].includes(t) && !shipmentCreated ? ' (create shipment first)' : ''}`,
+                    value: t,
+                    isDisabled: ['shipped', 'delivered'].includes(t) && !shipmentCreated,
+                  }))
+                ].find(o => o.value === order.orderStatus)}
+                onChange={(opt) => updateStatus(opt.value)}
                 options={[
-                  { label: "Pending", value: "pending" },
-                  { label: "Processing", value: "processing" },
-                  { label: `Shipping ${!shipmentCreated ? '(create shipment first)' : ''}`, value: "shipping", disabled: !shipmentCreated },
-                  { label: `Shipment Created ${!shipmentCreated ? '(create shipment first)' : ''}`, value: "shipment_created", disabled: !shipmentCreated },
-                  { label: `Shipped ${!shipmentCreated ? '(create shipment first)' : ''}`, value: "shipped", disabled: !shipmentCreated },
-                  { label: `Delivered ${!shipmentCreated ? '(create shipment first)' : ''}`, value: "delivered", disabled: !shipmentCreated },
-                  { label: "On Hold", value: "on_hold" },
-                  { label: "Cancelled", value: "cancelled" },
+                  { label: statusConf.label, value: order.orderStatus, isDisabled: true },
+                  ...transitions.map((t) => ({
+                    label: `${STATUS_CONFIG[t]?.label || t}${['shipped', 'delivered'].includes(t) && !shipmentCreated ? ' (create shipment first)' : ''}`,
+                    value: t,
+                    isDisabled: ['shipped', 'delivered'].includes(t) && !shipmentCreated,
+                  }))
                 ]}
-                disabled={statusUpdateLoading}
+                isDisabled={statusUpdateLoading}
+                styles={{
+                  control: (base) => ({
+                    ...base,
+                    minHeight: '42px',
+                    borderRadius: '0.75rem',
+                    borderColor: '#e5e7eb',
+                    fontSize: '0.875rem',
+                    minWidth: '220px',
+                    boxShadow: 'none',
+                    '&:hover': { borderColor: '#d1d5db' }
+                  }),
+                  option: (base, state) => ({
+                    ...base,
+                    fontSize: '0.875rem',
+                    backgroundColor: state.isSelected ? '#ff820a' : state.isFocused ? '#fff8ec' : 'transparent',
+                    color: state.isSelected ? 'white' : state.isDisabled ? '#9ca3af' : '#374151',
+                    cursor: state.isDisabled ? 'not-allowed' : 'pointer',
+                    '&:active': { backgroundColor: state.isDisabled ? 'transparent' : '#ff6900' }
+                  })
+                }}
               />
               {statusUpdateLoading && (
-                <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-primary-500" />
+                <Icon icon="mdi:loading" className="w-5 h-5 animate-spin text-primary-500" />
               )}
             </div>
           )}

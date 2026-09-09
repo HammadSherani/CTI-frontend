@@ -22,10 +22,18 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   const isRefurbished = order?.orderNo?.startsWith('REF-');
   
   const [reason, setReason] = useState('');
+  const [images, setImages] = useState([]);
+  const [imagePreviews, setImagePreviews] = useState([]);
   
   // Refurbished items state
   // Stores { [itemKey]: { selected: boolean, quantity: number, reason: string } }
   const [selectedItems, setSelectedItems] = useState({});
+
+  useEffect(() => {
+    const previews = images.map(image => ({ file: image, url: URL.createObjectURL(image) }));
+    setImagePreviews(previews);
+    return () => previews.forEach(preview => URL.revokeObjectURL(preview.url));
+  }, [images]);
 
   useEffect(() => {
     if (order && isRefurbished) {
@@ -64,11 +72,17 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
       return;
     }
 
-    onSubmit(order._id, { items: itemsToReturn });
+    const formData = new FormData();
+    formData.append('items', JSON.stringify(itemsToReturn));
+    images.forEach(image => formData.append('images', image));
+    onSubmit(order._id, formData);
   };
 
   const handleStandardSubmit = () => {
-    onSubmit(order._id, { reason });
+    const formData = new FormData();
+    formData.append('reason', reason.trim());
+    images.forEach(image => formData.append('images', image));
+    onSubmit(order._id, formData);
   };
 
   return (
@@ -163,6 +177,59 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                 placeholder="Describe why you want to return this order..."
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
               />
+              <div className="mt-3">
+                <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                  Product Images <span className="font-normal normal-case text-gray-400">(optional, up to 5)</span>
+                </label>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 5))}
+                  className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 file:font-semibold hover:file:bg-primary-100"
+                />
+                {imagePreviews.length > 0 && (
+                  <div className="grid grid-cols-5 gap-2 mt-2">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={`${preview.file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                        <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => setImages(current => current.filter((_, imageIndex) => imageIndex !== index))}
+                          aria-label={`Remove ${preview.file.name}`}
+                          className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600"
+                        >
+                          <Icon icon="mdi:close" className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {isRefurbished && (
+            <div>
+              <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
+                Product Images <span className="font-normal normal-case text-gray-400">(optional, up to 5)</span>
+              </label>
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+                onChange={(e) => setImages(Array.from(e.target.files || []).slice(0, 5))}
+                className="block w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 file:font-semibold hover:file:bg-primary-100" />
+              {imagePreviews.length > 0 && (
+                <div className="grid grid-cols-5 gap-2 mt-2">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={`${preview.file.name}-${index}`} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+                      <img src={preview.url} alt={preview.file.name} className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => setImages(current => current.filter((_, imageIndex) => imageIndex !== index))}
+                        aria-label={`Remove ${preview.file.name}`} className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-red-600">
+                        <Icon icon="mdi:close" className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -203,6 +270,7 @@ export default function MyOrdersPage() {
 
   const [returnModal, setReturnModal]       = useState(null);
   const [returnLoading, setReturnLoading]   = useState(false);
+  const [cancellingOrderId, setCancellingOrderId] = useState(null);
   const [existingReturns, setExistingReturns] = useState({});
   const [returnsList, setReturnsList]       = useState([]);
   const [activeTab, setActiveTab]           = useState('orders');
@@ -279,7 +347,10 @@ export default function MyOrdersPage() {
         : `/e-commerce/orders/${orderId}/return`;
 
       const res = await axiosInstance.post(returnUrl, returnPayload, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data',
+        },
       });
       if (res.data.success) {
         toast.success('Return request submitted successfully');
@@ -335,6 +406,7 @@ export default function MyOrdersPage() {
 
   const handleCancelOrder = async (orderId) => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    setCancellingOrderId(orderId);
     try {
       const cancelUrl = isRefurbishedMode
         ? `/refurbished/orders/${orderId}/cancel`
@@ -352,6 +424,8 @@ export default function MyOrdersPage() {
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setCancellingOrderId(null);
     }
   };
 
@@ -826,10 +900,20 @@ export default function MyOrdersPage() {
                                       {order.orderStatus === 'pending' && (
                                         <button
                                           onClick={(e) => { e.stopPropagation(); handleCancelOrder(order._id); }}
-                                          className="w-full bg-red-50 text-red-600 hover:bg-red-100 font-medium py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+                                          disabled={cancellingOrderId === order._id}
+                                          className="w-full bg-red-50 text-red-600 hover:bg-red-100 disabled:opacity-60 disabled:cursor-not-allowed font-medium py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
                                         >
-                                          <Icon icon="mdi:cancel" className="w-4 h-4" />
-                                          Cancel Order
+                                          {cancellingOrderId === order._id ? (
+                                            <>
+                                              <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" />
+                                              Cancelling...
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Icon icon="mdi:cancel" className="w-4 h-4" />
+                                              Cancel Order
+                                            </>
+                                          )}
                                         </button>
                                       )}
                                       {order.orderStatus === 'delivered' && (() => {

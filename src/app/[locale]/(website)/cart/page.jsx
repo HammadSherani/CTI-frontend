@@ -103,13 +103,31 @@ export default function CartPage() {
 
   const isCartEmpty = validStandardCart.length === 0 && validRefurbishedCart.length === 0;
 
+  // An order can only ever belong to ONE seller (enforced at checkout) — so a
+  // cart with products from multiple sellers is split into one group PER
+  // SELLER here, each with its own subtotal and its own separate checkout.
+  const groupBySeller = (cartItems) => {
+    const groups = new Map();
+    for (const item of cartItems) {
+      const seller = item.productId?.sellerId;
+      const sellerId = (seller && typeof seller === 'object') ? seller._id : seller;
+      const sellerName = (seller && typeof seller === 'object') ? seller.name : null;
+      const key = sellerId || 'unknown';
+      if (!groups.has(key)) groups.set(key, { sellerId: key, sellerName, items: [] });
+      groups.get(key).items.push(item);
+    }
+    return Array.from(groups.values());
+  };
+
+  const sellerGroups = groupBySeller(validStandardCart);
+
   const renderCartGroup = (cartItems, isRefurbished, groupTitle, checkoutLink) => {
     if (cartItems.length === 0) return null;
 
     const subtotal = getSubtotal(cartItems, isRefurbished);
 
     return (
-      <div className="mb-12">
+      <div className="mb-12" key={checkoutLink}>
         <h2 className="text-lg font-bold text-gray-800 mb-4 border-b border-gray-100 pb-2 flex items-center gap-2">
           <Icon icon={isRefurbished ? "mdi:cellphone-link" : "mdi:shopping"} className={isRefurbished ? "text-amber-500" : "text-primary-500"} />
           {groupTitle}
@@ -230,11 +248,11 @@ export default function CartPage() {
         </Link>
       </div>
 
-      {!isCartEmpty && validStandardCart.length > 0 && validRefurbishedCart.length > 0 && (
+      {!isCartEmpty && (sellerGroups.length + (validRefurbishedCart.length > 0 ? 1 : 0)) > 1 && (
         <div className="mb-8 flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4">
           <Icon icon="mdi:information-outline" className="text-amber-500 text-xl flex-shrink-0 mt-0.5" />
           <p className="text-sm text-amber-800">
-            <span className="font-bold">Marketplace and Refurbished items are checked out separately.</span> You'll need to complete two checkouts (and two payments) — one for each group below — to order everything in your cart.
+            <span className="font-bold">Each seller is checked out separately.</span> You'll need to complete a separate checkout (and payment) for each group below to order everything in your cart.
           </p>
         </div>
       )}
@@ -252,8 +270,15 @@ export default function CartPage() {
         </div>
       ) : (
         <div>
-          {/* Marketplace Group */}
-          {renderCartGroup(validStandardCart, false, "Marketplace Products", "/checkout")}
+          {/* Marketplace Groups — one per seller */}
+          {sellerGroups.map(group => renderCartGroup(
+            group.items,
+            false,
+            sellerGroups.length > 1
+              ? `Marketplace — ${group.sellerName || 'Seller'}`
+              : "Marketplace Products",
+            `/checkout?sellerId=${group.sellerId}`
+          ))}
 
           {/* Refurbished Group */}
           {renderCartGroup(validRefurbishedCart, true, "Refurbished Devices", "/checkout?type=refurbished")}

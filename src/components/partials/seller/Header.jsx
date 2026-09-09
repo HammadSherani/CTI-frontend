@@ -49,6 +49,11 @@ const primaryNavLinks = [
     icon: "solar:wallet-money-bold-duotone",
   },
   {
+    name: "Transactions",
+    path: "/seller/transactions",
+    icon: "solar:transfer-horizontal-bold-duotone",
+  },
+  {
     name: "Ads",
     path: "/seller/ads",
     icon: "solar:ads-bold-duotone",

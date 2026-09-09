@@ -1,6 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "@/config/axiosInstance";
-import { toast } from "react-toastify";
 
 const resolveId = (val) => {
   if (!val) return null;
@@ -38,14 +37,12 @@ export const fetchRefurbishedCart = createAsyncThunk(
 
 export const addRefurbishedToCart = createAsyncThunk(
   "refurbishedCart/add",
-  async ({ product, variantId, quantity = 1 }, { getState, rejectWithValue }) => {
-    const { auth, cart } = getState();
-    // A cart can only ever hold one type of item — see cart.js's addToCart for
-    // the matching guard on the other side.
-    if (cart?.items?.length > 0) {
-      toast.error("Your cart has Marketplace items in it. Checkout or clear that cart first before adding Refurbished items.");
-      return rejectWithValue("mixed_cart_blocked");
-    }
+  async ({ product, variantId, quantity = 1 }, { getState }) => {
+    const { auth } = getState();
+    // Marketplace and Refurbished carts (and, within Marketplace, different
+    // sellers) are already kept structurally separate and checked out
+    // separately (see cart page) — no need to block adding both to the cart
+    // at the same time.
     const vId = resolveId(variantId);
     const pId = resolveId(product);
     if (auth.token) {

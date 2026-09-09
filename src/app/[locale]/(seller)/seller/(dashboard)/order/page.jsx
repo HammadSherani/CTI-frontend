@@ -10,6 +10,7 @@ import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import { useRouter } from "@/i18n/navigation";
 import { Link } from "@/i18n/navigation";
 import { CustomDropdown } from "@/components/dropdown";
+import Select from "react-select";
 
 const TABS = [
   { id: "", label: "All Orders", icon: "mdi:format-list-bulleted" },
@@ -334,9 +335,16 @@ export default function SellerOrderPage() {
                 <Icon icon="solar:bill-list-bold-duotone" className="w-5 h-5" />
               </button>
             )}
-            <CustomDropdown
-              value={s}
-              onChange={(val) => updateStatus(row, val)}
+            <Select
+              value={[
+                { label: "Pending", value: "pending" },
+                { label: "Processing", value: "processing" },
+                { label: "Shipped", value: "shipped" },
+                { label: "Delivered", value: "delivered" },
+                { label: "On Hold", value: "on_hold" },
+                { label: "Cancelled", value: "cancelled" },
+              ].find((o) => o.value === s)}
+              onChange={(opt) => updateStatus(row, opt.value)}
               options={[
                 { label: "Pending", value: "pending" },
                 { label: "Processing", value: "processing" },
@@ -345,7 +353,30 @@ export default function SellerOrderPage() {
                 { label: "On Hold", value: "on_hold" },
                 { label: "Cancelled", value: "cancelled" },
               ]}
-              disabled={isL || s === "delivered" || s === "cancelled"}
+              isDisabled={isL || s === "delivered" || s === "cancelled"}
+              menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+              menuPosition="fixed"
+              styles={{
+                control: (base) => ({
+                  ...base,
+                  minHeight: '38px',
+                  borderRadius: '0.5rem',
+                  borderColor: '#e5e7eb',
+                  fontSize: '0.875rem',
+                  width: '130px',
+                  boxShadow: 'none',
+                  '&:hover': { borderColor: '#d1d5db' }
+                }),
+                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                option: (base, state) => ({
+                  ...base,
+                  fontSize: '0.875rem',
+                  backgroundColor: state.isSelected ? '#ff820a' : state.isFocused ? '#fff8ec' : 'transparent',
+                  color: state.isSelected ? 'white' : '#374151',
+                  cursor: 'pointer',
+                  '&:active': { backgroundColor: '#ff6900' }
+                })
+              }}
             />
           </div>
         );

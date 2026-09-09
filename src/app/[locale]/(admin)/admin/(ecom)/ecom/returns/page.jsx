@@ -8,6 +8,7 @@ import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import moment from "moment";
+import Image from "next/image";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -204,6 +205,18 @@ function ReturnDetailModal({ ret, onClose }) {
               <div className="col-span-2">
                 <p className="text-xs font-bold text-red-400 uppercase">Rejection Reason</p>
                 <p className="text-red-600 mt-0.5">{ret.rejectionReason}</p>
+              </div>
+            )}
+            {ret.images && ret.images.length > 0 && (
+              <div className="col-span-2">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Images</p>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {ret.images.map((img, i) => (
+                    <a key={i} href={img} target="_blank" rel="noreferrer" className="block relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                      <Image src={img} alt={`Return image ${i+1}`} fill className="object-cover" />
+                    </a>
+                  ))}
+                </div>
               </div>
             )}
           </div>

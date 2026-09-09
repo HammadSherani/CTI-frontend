@@ -26,6 +26,7 @@ export default function EcomProductDetail({ params }) {
   const [seller, setSeller] = useState(null);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
+  const [canReview, setCanReview] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -80,6 +81,24 @@ export default function EcomProductDetail({ params }) {
   const auth = useSelector(s => s.auth);
   const token = auth?.token;
   const currentUserId = auth?.user?._id || auth?.user?.id || null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!token) {
+      setCanReview(false);
+      return undefined;
+    }
+
+    axiosInstance.get(`/e-commerce/products/${params.slug}/review-eligibility`, {
+      headers: { Authorization: `Bearer ${token}` },
+    }).then(({ data }) => {
+      if (!cancelled) setCanReview(Boolean(data.success && data.canReview));
+    }).catch(() => {
+      if (!cancelled) setCanReview(false);
+    });
+
+    return () => { cancelled = true; };
+  }, [params.slug, token]);
 
   useEffect(() => {
     async function loadData() {
@@ -590,6 +609,24 @@ export default function EcomProductDetail({ params }) {
                 </span>
               </div>
 
+              <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden w-fit">
+                <button
+                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  aria-label="Decrease quantity"
+                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500"
+                >
+                  <Icon icon="mdi:minus" className="w-4 h-4" />
+                </button>
+                <span className="px-4 text-sm font-bold text-gray-800">{quantity}</span>
+                <button
+                  onClick={() => setQuantity(q => Math.min(stockCount, q + 1))}
+                  aria-label="Increase quantity"
+                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500"
+                >
+                  <Icon icon="mdi:plus" className="w-4 h-4" />
+                </button>
+              </div>
+
               {productData?.warranty?.type === 'yes' && (
                 <div className="flex items-center gap-2.5 px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 w-fit">
                   <Icon icon="mdi:shield-check" className="w-5 h-5 text-emerald-600 flex-shrink-0" />
@@ -825,7 +862,7 @@ export default function EcomProductDetail({ params }) {
                 </div>
               </div>
 
-              {!userReview && (
+              {!userReview && canReview && (
                 <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
                   <h4 className="text-xs font-bold text-gray-800 mb-1">Write a Review</h4>
                   <p className="text-gray-400 text-[10px] mb-3">Share your experience with other customers</p>

@@ -9,6 +9,7 @@ import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import moment from "moment";
+import Image from "next/image";
 import { formatCurrency } from "@/helper/currencyFormatter";
 
 const TABS = [
@@ -72,7 +73,7 @@ function DetailModal({ ret, onClose }) {
               ["Barcode",    ret.barcode || "—"],
               ["Price",      formatCurrency(ret.price)],
               ["Qty",        ret.quantity],
-              ["Seller Earnings", formatCurrency(ret.sellerEarnings)],
+              ["Seller Earnings", formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)))],
               ["Created",    moment(ret.createdAt).format("DD MMM YYYY, hh:mm A")],
             ].map(([label, value]) => (
               <div key={label}>
@@ -88,6 +89,18 @@ function DetailModal({ ret, onClose }) {
               <p className="text-xs font-bold text-gray-400 uppercase">Reason</p>
               <p className="text-gray-700 mt-0.5">{ret.reason}</p>
             </div>
+            {ret.images && ret.images.length > 0 && (
+              <div className="col-span-2">
+                <p className="text-xs font-bold text-gray-400 uppercase mb-2">Images</p>
+                <div className="flex gap-3 overflow-x-auto pb-2">
+                  {ret.images.map((img, i) => (
+                    <a key={i} href={img} target="_blank" rel="noreferrer" className="block relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 shrink-0">
+                      <Image src={img} alt={`Return image ${i+1}`} fill className="object-cover" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
             {ret.adminNotes && (
               <div className="col-span-2">
                 <p className="text-xs font-bold text-gray-400 uppercase">Notes</p>
@@ -108,7 +121,7 @@ function DetailModal({ ret, onClose }) {
               <div className="text-sm text-amber-800">
                 <p className="font-bold">Payment Deducted</p>
                 <p className="mt-0.5">
-                  Rs. {(ret.sellerEarnings || ret.price || 0).toLocaleString()} has been cut from your wallet
+                  Rs. {(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0))).toLocaleString()} has been cut from your wallet
                   and moved to admin hold for customer refund.
                 </p>
               </div>

@@ -3,26 +3,16 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
+import { useRouter } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
-import Image from 'next/image';
 import { formatCurrency as fmt } from '@/helper/currencyFormatter';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const fmtD   = (d)  => d ? moment(d).format('DD MMM YYYY') : '—';
 const fmtDt  = (d)  => d ? moment(d).format('DD MMM YYYY, hh:mm A') : '—';
-const daysLeft = (d) => {
-  const diff = moment(d).diff(moment(), 'days');
-  return diff > 0 ? diff : 0;
-};
-
-const STATUS_CONFIG = {
-  pending_release: { label: 'On Hold',    bg: 'bg-amber-50',   text: 'text-amber-700',   border: 'border-amber-200',  icon: 'mdi:clock-outline' },
-  available:       { label: 'Available',  bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', icon: 'mdi:check-circle-outline' },
-  withdrawn:       { label: 'Withdrawn',  bg: 'bg-slate-50',   text: 'text-slate-500',   border: 'border-slate-200',   icon: 'mdi:bank-transfer-out' },
-};
 
 const WITHDRAW_STATUS = {
   pending:    { label: 'Pending',    bg: 'bg-amber-50',   text: 'text-amber-700',   icon: 'mdi:clock-outline' },
@@ -35,13 +25,13 @@ const WITHDRAW_STATUS = {
 
 function StatCard({ label, value, icon, iconBg, iconColor, sub }) {
   return (
-    <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-start gap-4">
-      <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
-        <Icon icon={icon} className={`w-6 h-6 ${iconColor}`} />
+    <div className="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm flex items-start gap-3 min-w-0">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+        <Icon icon={icon} className={`w-5 h-5 ${iconColor}`} />
       </div>
       <div className="min-w-0">
         <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide">{label}</p>
-        <p className="text-2xl font-black text-slate-900 mt-0.5 truncate">{value}</p>
+        <p className="text-xl font-black text-slate-900 mt-0.5 truncate">{value}</p>
         {sub && <p className="text-[11px] text-slate-400 mt-0.5">{sub}</p>}
       </div>
     </div>
@@ -103,7 +93,6 @@ function WithdrawModal({ available, onClose, onSuccess }) {
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">Withdrawal Amount</label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">Rs.</span>
               <input
                 type="number"
                 min="1"
@@ -112,7 +101,7 @@ function WithdrawModal({ available, onClose, onSuccess }) {
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 required
               />
             </div>
@@ -147,22 +136,17 @@ function WithdrawModal({ available, onClose, onSuccess }) {
 // ─── main page ──────────────────────────────────────────────────────────────
 
 export default function SellerWalletPage() {
-  const { token } = useSelector(s => s.auth);
+  const router = useRouter();
+  const { token, user } = useSelector(s => s.auth);
 
   const [overview, setOverview]       = useState(null);
-  const [earnings, setEarnings]       = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [requests, setRequests]       = useState([]);
   const [loadingOv, setLoadingOv]     = useState(true);
-  const [loadingEr, setLoadingEr]     = useState(false);
+  const [loadingTx, setLoadingTx]     = useState(false);
   const [loadingRq, setLoadingRq]     = useState(false);
-  const [activeTab, setActiveTab]     = useState('earnings');
+  const [activeTab, setActiveTab]     = useState('transactions');
   const [showModal, setShowModal]     = useState(false);
-
-  // Earnings filter state
-  const [erSearch, setErSearch]       = useState('');
-  const [erStatus, setErStatus]       = useState('');
-  const [erPage, setErPage]           = useState(1);
-  const [erTotal, setErTotal]         = useState({ pages: 1, items: 0 });
 
   // Requests pagination
   const [rqPage, setRqPage]           = useState(1);
@@ -180,21 +164,18 @@ export default function SellerWalletPage() {
     finally { setLoadingOv(false); }
   }, [token]);
 
-  const fetchEarnings = useCallback(async () => {
+  const fetchTransactions = useCallback(async () => {
     if (!token) return;
-    setLoadingEr(true);
+    setLoadingTx(true);
     try {
-      const params = new URLSearchParams({ page: erPage, limit: 10 });
-      if (erSearch) params.set('search', erSearch);
-      if (erStatus) params.set('status', erStatus);
-      const { data } = await axiosInstance.get(`/seller/wallet/earnings?${params}`, { headers });
-      if (data.success) {
-        setEarnings(data.data);
-        setErTotal({ pages: data.pagination.totalPages, items: data.pagination.totalItems });
-      }
-    } catch { toast.error('Failed to load earnings'); }
-    finally { setLoadingEr(false); }
-  }, [token, erPage, erSearch, erStatus]);
+      const { data } = await axiosInstance.get('/seller/transactions', {
+        params: { page: 1, limit: 5 },
+        headers,
+      });
+      if (data.success) setTransactions(data.data || []);
+    } catch { toast.error('Failed to load transactions'); }
+    finally { setLoadingTx(false); }
+  }, [token]);
 
   const fetchRequests = useCallback(async () => {
     if (!token) return;
@@ -219,7 +200,7 @@ export default function SellerWalletPage() {
   };
 
   useEffect(() => { fetchOverview(); }, [fetchOverview]);
-  useEffect(() => { if (activeTab === 'earnings')  fetchEarnings(); }, [fetchEarnings, activeTab]);
+  useEffect(() => { if (activeTab === 'transactions') fetchTransactions(); }, [fetchTransactions, activeTab]);
   useEffect(() => { if (activeTab === 'withdrawals') fetchRequests(); }, [fetchRequests, activeTab]);
 
   if (loadingOv) {
@@ -277,7 +258,7 @@ export default function SellerWalletPage() {
         )}
 
         {/* ── Stat Cards ── */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
           <StatCard
             label="Available Balance"
             value={fmt(w.availableBalance)}
@@ -292,7 +273,11 @@ export default function SellerWalletPage() {
             icon="mdi:clock-outline"
             iconBg="bg-amber-100"
             iconColor="text-amber-600"
-            sub="Releases after 20 days"
+            sub={overview?.holdDays === 0
+              ? 'Releases instantly in test mode'
+              : overview?.nextReleaseAt
+                ? `Next release ${fmtD(overview.nextReleaseAt)}`
+                : `Releases after ${overview?.holdDays ?? 20} days`}
           />
           <StatCard
             label="Total Earned"
@@ -309,6 +294,14 @@ export default function SellerWalletPage() {
             iconBg="bg-purple-100"
             iconColor="text-purple-600"
             sub="Successfully transferred"
+          />
+          <StatCard
+            label="Shipping Fees Paid"
+            value={fmt(w.totalShippingFees)}
+            icon="mdi:truck-fast-outline"
+            iconBg="bg-orange-100"
+            iconColor="text-orange-600"
+            sub="Deducted from earnings"
           />
         </div>
 
@@ -330,7 +323,7 @@ export default function SellerWalletPage() {
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
           <Icon icon="mdi:information-outline" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-blue-700">
-            <span className="font-bold">How earnings work:</span> Once an order is delivered, your earnings are held for <strong>20 days</strong> to cover any returns or disputes. After 20 days the amount becomes available for withdrawal. Platform commission ({fmt(w.totalPlatformFees)} lifetime) is deducted before crediting your balance.
+            <span className="font-bold">How earnings work:</span> Once an order is delivered, your earnings are held for <strong>{overview?.holdDays ?? 20} days</strong>. After that, earnings move to Available Balance only when the invoice is approved and there is no active return. Platform commission ({fmt(w.totalPlatformFees)} lifetime) is deducted before crediting your balance.
           </p>
         </div>
 
@@ -338,7 +331,7 @@ export default function SellerWalletPage() {
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
           <div className="flex border-b border-slate-100">
             {[
-              { key: 'earnings',    label: 'Payment Summary', icon: 'mdi:receipt-text-outline' },
+              { key: 'transactions', label: 'Recent Transactions', icon: 'mdi:transfer' },
               { key: 'withdrawals', label: 'Withdrawal Requests', icon: 'mdi:bank-transfer-out' },
             ].map(t => (
               <button
@@ -356,103 +349,73 @@ export default function SellerWalletPage() {
             ))}
           </div>
 
-          {/* ── Earnings Tab ── */}
-          {activeTab === 'earnings' && (
+          {/* ── Recent Transactions Tab ── */}
+          {activeTab === 'transactions' && (
             <div>
-              {/* Filter bar */}
-              <div className="flex flex-col sm:flex-row gap-3 p-4 border-b border-slate-50">
-                <div className="relative flex-1">
-                  <Icon icon="mdi:magnify" className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    type="text"
-                    placeholder="Filter by order number (e.g. TRB-123456)"
-                    value={erSearch}
-                    onChange={e => { setErSearch(e.target.value); setErPage(1); }}
-                    className="w-full pl-9 pr-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                </div>
-                <select
-                  value={erStatus}
-                  onChange={e => { setErStatus(e.target.value); setErPage(1); }}
-                  className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+              <div className="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-50">
+                <p className="text-sm font-semibold text-slate-600">Latest 5 transactions</p>
+                <button
+                  onClick={() => router.push('/seller/transactions')}
+                  className="inline-flex items-center gap-1.5 text-sm font-bold text-primary-600 hover:text-primary-700 transition-colors"
                 >
-                  <option value="">All Statuses</option>
-                  <option value="pending_release">On Hold</option>
-                  <option value="available">Available</option>
-                  <option value="withdrawn">Withdrawn</option>
-                </select>
+                  View All
+                  <Icon icon="mdi:arrow-right" className="w-4 h-4" />
+                </button>
               </div>
 
-              {loadingEr ? (
+              {loadingTx ? (
                 <div className="flex items-center justify-center py-16">
                   <Icon icon="svg-spinners:3-dots-fade" className="w-8 h-8 text-primary-500" />
                 </div>
-              ) : earnings.length === 0 ? (
+              ) : transactions.length === 0 ? (
                 <div className="py-16 text-center text-slate-400">
-                  <Icon icon="mdi:receipt-text-outline" className="w-12 h-12 mx-auto mb-3 opacity-30" />
-                  <p className="text-sm">No earnings found</p>
+                  <Icon icon="mdi:transfer" className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                  <p className="text-sm">No transactions found</p>
                 </div>
               ) : (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead>
-                        <tr className="border-b border-slate-50 bg-slate-50/50">
-                          <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Order</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Gross</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Platform Fee</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Net Earned</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Status</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Delivered</th>
-                          <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Available At</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50">
-                        {earnings.map(e => {
-                          const cfg = STATUS_CONFIG[e.status] || {};
-                          return (
-                            <tr key={e._id} className="hover:bg-slate-50/50 transition-colors">
-                              <td className="px-6 py-4">
-                                <p className="font-bold text-slate-900">{e.orderNo || e.orderId?.orderNo || '—'}</p>
-                                <p className="text-xs text-slate-400">{fmtD(e.createdAt)}</p>
-                              </td>
-                              <td className="px-4 py-4 text-slate-700 font-semibold">{fmt(e.grossAmount)}</td>
-                              <td className="px-4 py-4 text-red-500 font-semibold">−{fmt(e.platformFee)}</td>
-                              <td className="px-4 py-4 font-black text-slate-900">{fmt(e.amount)}</td>
-                              <td className="px-4 py-4">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${cfg.bg} ${cfg.text} ${cfg.border}`}>
-                                  <Icon icon={cfg.icon} className="w-3 h-3" />
-                                  {cfg.label}
-                                  {e.status === 'pending_release' && ` (${daysLeft(e.availableAt)}d left)`}
-                                </span>
-                              </td>
-                              <td className="px-4 py-4 text-slate-600 text-xs">{fmtD(e.deliveredAt)}</td>
-                              <td className="px-4 py-4 text-slate-600 text-xs">{fmtD(e.availableAt)}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Pagination */}
-                  {erTotal.pages > 1 && (
-                    <div className="flex items-center justify-between px-6 py-4 border-t border-slate-50">
-                      <p className="text-xs text-slate-500">{erTotal.items} total earnings</p>
-                      <div className="flex gap-2">
-                        <button onClick={() => setErPage(p => Math.max(1, p - 1))} disabled={erPage === 1}
-                          className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 transition-colors">
-                          <Icon icon="mdi:chevron-left" className="w-4 h-4" />
-                        </button>
-                        <span className="text-xs text-slate-600 self-center px-2">{erPage} / {erTotal.pages}</span>
-                        <button onClick={() => setErPage(p => Math.min(erTotal.pages, p + 1))} disabled={erPage === erTotal.pages}
-                          className="w-8 h-8 rounded-lg border border-slate-200 flex items-center justify-center hover:bg-slate-50 disabled:opacity-40 transition-colors">
-                          <Icon icon="mdi:chevron-right" className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-50 bg-slate-50/50">
+                        <th className="text-left px-6 py-3 text-xs font-bold text-slate-500 uppercase">Date</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Type</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Amount</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Order No</th>
+                        <th className="text-left px-4 py-3 text-xs font-bold text-slate-500 uppercase">Description</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {transactions.map(transaction => {
+                        const isIncoming = transaction.toUserId?._id === user?._id || transaction.toUserId === user?._id;
+                        const type = (transaction.type || '').toLowerCase();
+                        const incomingTypes = ['seller_earning_hold', 'seller_earning_release', 'withdrawal_rejected'];
+                        const outgoingTypes = ['platform_fee', 'shipping_fee', 'refund', 'withdrawal_request', 'withdrawal_success'];
+                        const isIncomingPayment = incomingTypes.includes(type) || (!outgoingTypes.includes(type) && isIncoming);
+                        const isOutgoingPayment = outgoingTypes.includes(type) || !isIncoming;
+                        const color = isIncomingPayment ? 'text-emerald-600' : isOutgoingPayment ? 'text-red-600' : 'text-blue-600';
+                        const badge = isIncomingPayment
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : isOutgoingPayment ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700';
+                        const icon = isIncomingPayment ? 'mdi:arrow-down-circle-outline' : isOutgoingPayment ? 'mdi:arrow-up-circle-outline' : 'mdi:information-outline';
+                        const prefix = isIncomingPayment ? '+' : isOutgoingPayment ? '-' : '';
+                        return (
+                          <tr key={transaction._id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-6 py-4 text-xs text-slate-500 whitespace-nowrap">{fmtDt(transaction.createdAt)}</td>
+                            <td className="px-4 py-4">
+                              <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold ${badge}`}>
+                                <Icon icon={icon} className="w-3 h-3" />
+                                {(transaction.type || '—').toUpperCase().replace(/_/g, ' ')}
+                              </span>
+                            </td>
+                            <td className={`px-4 py-4 font-bold whitespace-nowrap ${color}`}>{prefix}{fmt(transaction.amount)}</td>
+                            <td className="px-4 py-4 text-xs font-mono text-slate-700 whitespace-nowrap">{transaction.orderNo || '—'}</td>
+                            <td className="px-4 py-4 text-xs text-slate-600 max-w-xs truncate" title={transaction.description}>{transaction.description || '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           )}
