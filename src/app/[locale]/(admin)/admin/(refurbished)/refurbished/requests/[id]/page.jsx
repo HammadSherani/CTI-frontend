@@ -10,6 +10,7 @@ import { useParams } from 'next/navigation';
 import moment from "moment";
 import Button from "@/components/partials/admin/ecom/myButton";
 import { useChat } from "@/hooks/useChat";
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 
 // ─── Image Lightbox ────────────────────────────────────────────────────────
 function ImageLightbox({ images, initialIndex, onClose }) {
@@ -581,11 +582,11 @@ export default function SellRequestDetailsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-xs font-bold text-gray-400 uppercase">Offer Price</p>
-                      <p className="text-base font-black text-orange-500">TRY {offer.offerPrice.toLocaleString()}</p>
+                      <p className="text-base font-black text-orange-500">{fmt(offer.offerPrice)}</p>
                     </div>
                     <div>
                       <p className="text-xs font-bold text-gray-400 uppercase">Est. Value</p>
-                      <p className="text-base font-black text-gray-700">TRY {offer.estimatedValue.toLocaleString()}</p>
+                      <p className="text-base font-black text-gray-700">{fmt(offer.estimatedValue)}</p>
                     </div>
                   </div>
                   <div>

@@ -9,6 +9,7 @@ import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import moment from "moment";
 import Image from "next/image";
+import { formatCurrency } from "@/helper/currencyFormatter";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -174,7 +175,7 @@ function ReturnDetailModal({ ret, onClose }) {
               ["Customer",     ret.customerName],
               ["Product",      ret.productName],
               ["Barcode",      ret.barcode || "—"],
-              ["Price",        `Rs. ${(ret.price || 0).toLocaleString()}`],
+              ["Price",        formatCurrency(ret.price || 0)],
               ["Qty",          ret.quantity],
               ["Tracking",     ret.trackingNumber || "—"],
               ["Payment",      ret.paymentStatus],
@@ -465,7 +466,7 @@ function CreateReturnModal({ open, onClose, onSubmit, loading }) {
           { key: "customerName", label: "Customer Name",  req: true,  type: "text" },
           { key: "productName",  label: "Product Name",   req: true,  type: "text" },
           { key: "barcode",      label: "Barcode",        req: false, type: "text" },
-          { key: "price",        label: "Price (Rs.)",    req: true,  type: "number" },
+          { key: "price",        label: "Price",    req: true,  type: "number" },
           { key: "quantity",     label: "Quantity",       req: false, type: "number" },
         ].map(({ key, label, req, type }) => (
           <div key={key}>
@@ -722,7 +723,7 @@ export default function AdminReturnsPage() {
     {
       header: "Price",
       cell: (row) => (
-        <span className="font-bold text-gray-900 text-sm">Rs. {(row.price || 0).toLocaleString()}</span>
+        <span className="font-bold text-gray-900 text-sm">{formatCurrency(row.price || 0)}</span>
       ),
     },
     {

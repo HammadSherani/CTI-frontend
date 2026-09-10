@@ -8,6 +8,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
 import { Link, useRouter } from '@/i18n/navigation';
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 
 function ViewAdvertisement() {
     const router = useRouter();
@@ -204,8 +205,7 @@ function ViewAdvertisement() {
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-2xl font-bold text-primary-600">
-                                                        {getCurrencySymbol(service.pricing?.currency || ad.currency)}
-                                                        {service.pricing?.total?.toLocaleString()}
+                                                        {fmt(service.pricing?.total || 0)}
                                                     </div>
                                                     <div className="text-xs text-gray-500">Total Price</div>
                                                 </div>
@@ -255,31 +255,27 @@ function ViewAdvertisement() {
                                                             <div className="flex justify-between text-gray-700">
                                                                 <span>Base Price:</span>
                                                                 <span className="font-medium">
-                                                                    {getCurrencySymbol(service.pricing.currency || ad.currency)}
-                                                                    {service.pricing.basePrice?.toLocaleString()}
+                                                                    {fmt(service.pricing.basePrice || 0)}
                                                                 </span>
                                                             </div>
                                                             <div className="flex justify-between text-gray-700">
                                                                 <span>Parts Price:</span>
                                                                 <span className="font-medium">
-                                                                    {getCurrencySymbol(service.pricing.currency || ad.currency)}
-                                                                    {service.pricing.partsPrice?.toLocaleString()}
+                                                                    {fmt(service.pricing.partsPrice || 0)}
                                                                 </span>
                                                             </div>
                                                             {service.pricing.serviceCharges > 0 && (
                                                                 <div className="flex justify-between text-gray-700">
                                                                     <span>Service Charges:</span>
                                                                     <span className="font-medium">
-                                                                        {getCurrencySymbol(service.pricing.currency || ad.currency)}
-                                                                        {service.pricing.serviceCharges?.toLocaleString()}
+                                                                        {fmt(service.pricing.serviceCharges || 0)}
                                                                     </span>
                                                                 </div>
                                                             )}
                                                             <div className="flex justify-between text-gray-900 font-bold pt-1 border-t border-green-200">
                                                                 <span>Total:</span>
                                                                 <span>
-                                                                    {getCurrencySymbol(service.pricing.currency || ad.currency)}
-                                                                    {service.pricing.total?.toLocaleString()}
+                                                                    {fmt(service.pricing.total || 0)}
                                                                 </span>
                                                             </div>
                                                         </div>

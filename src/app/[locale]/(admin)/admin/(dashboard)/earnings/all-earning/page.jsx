@@ -7,7 +7,7 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
 import { Link } from "@/i18n/navigation";
-
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 function AdminAllEarning() {
   const [earnings, setEarnings] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -131,7 +131,7 @@ function AdminAllEarning() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Total Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.totalAmount?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.totalAmount)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -141,7 +141,7 @@ function AdminAllEarning() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Total Commission</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.totalCommission?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.totalCommission)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -151,7 +151,7 @@ function AdminAllEarning() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Net Earnings</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.totalNetEarning?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.totalNetEarning)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -161,7 +161,7 @@ function AdminAllEarning() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Average Earning</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.averageEarning?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.averageEarning)}</p>
             </div>
           </div>
         )}
@@ -326,9 +326,9 @@ function AdminAllEarning() {
                       </td>
                       <td className="px-4 py-4">
                         <div className="text-sm">
-                          <p className="font-semibold text-gray-900">₺{earning.amounts?.total?.toLocaleString() || 0}</p>
-                          <p className="text-xs text-gray-500">Commission: ₺{earning.amounts?.commission?.toLocaleString() || 0}</p>
-                          <p className="text-xs text-green-600 font-medium">Net: ₺{earning.amounts?.netEarning?.toLocaleString() || 0}</p>
+                          <p className="font-semibold text-gray-900">{fmt(earning.amounts?.total || 0)}</p>
+                          <p className="text-xs text-gray-500">Commission: {fmt(earning.amounts?.commission || 0)}</p>
+                          <p className="text-xs text-green-600 font-medium">Net: {fmt(earning.amounts?.netEarning || 0)}</p>
                         </div>
                       </td>
                       <td className="px-4 py-4">

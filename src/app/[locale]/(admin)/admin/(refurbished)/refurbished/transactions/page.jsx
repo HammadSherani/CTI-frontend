@@ -10,6 +10,7 @@ import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { format } from "date-fns";
+import { formatCurrency } from "@/helper/currencyFormatter";
 import TransactionViewModal from "@/components/partials/admin/ecom/TransactionViewModal";
 
 export default function RefurbishedTransactions() {
@@ -68,7 +69,7 @@ export default function RefurbishedTransactions() {
 
   const summaryCards = [
     { label: "Total Records", value: pagination.total, icon: "mdi:cash-register", color: "#6366f1" },
-    { label: "Total Amount (Page)", value: `TRY ${transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0).toLocaleString()}`, icon: "mdi:currency-usd", color: "#10b981" },
+    { label: "Total Amount (Page)", value: formatCurrency(transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0)), icon: "mdi:currency-usd", color: "#10b981" },
     { label: "Showing on Page", value: transactions.length, icon: "mdi:file-document-outline", color: "#f59e0b" },
   ];
 
@@ -114,7 +115,7 @@ export default function RefurbishedTransactions() {
         const cfg = getTypeStyle(row.type);
         return (
           <span className={`font-bold ${cfg.text} whitespace-nowrap`}>
-            {cfg.prefix}TRY. {(row.amount || 0).toLocaleString()}
+            {cfg.prefix} {formatCurrency(row.amount || 0)}
           </span>
         );
       },

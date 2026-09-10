@@ -7,7 +7,7 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
 import {useRouter} from '@/i18n/navigation';
-
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 function GetAllWithdrawRequest() {
   const [withdrawals, setWithdrawals] = useState([]);
   const [pagination, setPagination] = useState(null);
@@ -143,7 +143,7 @@ function GetAllWithdrawRequest() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Total Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.totalAmount?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.totalAmount)}</p>
               <p className="text-xs text-gray-500 mt-1">{summary.count} requests</p>
             </div>
 
@@ -154,7 +154,7 @@ function GetAllWithdrawRequest() {
                 </div>
                 <p className="text-sm font-medium text-gray-600">Average Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">₺{summary.averageAmount?.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(summary.averageAmount)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -165,7 +165,7 @@ function GetAllWithdrawRequest() {
                 <p className="text-sm font-medium text-gray-600">Requested</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">{summary.byStatus?.requested?.count || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">₺{summary.byStatus?.requested?.amount?.toLocaleString() || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">{fmt(summary.byStatus?.requested?.amount || 0)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -176,7 +176,7 @@ function GetAllWithdrawRequest() {
                 <p className="text-sm font-medium text-gray-600">Completed</p>
               </div>
               <p className="text-2xl font-bold text-gray-900">{summary.byStatus?.completed?.count || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">₺{summary.byStatus?.completed?.amount?.toLocaleString() || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">{fmt(summary.byStatus?.completed?.amount || 0)}</p>
             </div>
           </div>
         )}
@@ -368,7 +368,7 @@ function GetAllWithdrawRequest() {
                         </div>
                       </td>
                       <td className="px-4 py-4">
-                        <p className="text-lg font-bold text-gray-900">₺{request.amount?.toLocaleString()}</p>
+                        <p className="text-lg font-bold text-gray-900">{fmt(request.amount)}</p>
                         {request.timeMetrics?.isOverdue && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
                             Overdue
@@ -378,9 +378,9 @@ function GetAllWithdrawRequest() {
                       <td className="px-4 py-4">
                         <div className="text-xs">
                           <p className="text-gray-600">Jobs: <span className="font-medium text-gray-900">{request.earningsSummary?.jobsCount || 0}</span></p>
-                          <p className="text-gray-600">Gross: <span className="font-medium">₺{request.earningsSummary?.totalGross?.toLocaleString() || 0}</span></p>
-                          <p className="text-gray-600">Commission: <span className="font-medium">₺{request.earningsSummary?.totalCommission?.toLocaleString() || 0}</span></p>
-                          <p className="text-green-600">Net: <span className="font-semibold">₺{request.earningsSummary?.totalNet?.toLocaleString() || 0}</span></p>
+                          <p className="text-gray-600">Gross: <span className="font-medium">{fmt(request.earningsSummary?.totalGross || 0)}</span></p>
+                          <p className="text-gray-600">Commission: <span className="font-medium">{fmt(request.earningsSummary?.totalCommission || 0)}</span></p>
+                          <p className="text-green-600">Net: <span className="font-semibold">{fmt(request.earningsSummary?.totalNet || 0)}</span></p>
                         </div>
                       </td>
                       <td className="px-4 py-4">

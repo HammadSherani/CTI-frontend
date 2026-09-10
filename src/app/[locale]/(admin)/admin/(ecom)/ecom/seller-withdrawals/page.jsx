@@ -6,8 +6,8 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { useSelector } from 'react-redux';
+import { formatCurrency as fmt } from '@/helper/currencyFormatter';
 
-const fmt    = (n) => `Rs. ${(n || 0).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const fmtDt  = (d) => d ? moment(d).format('DD MMM YYYY, hh:mm A') : '—';
 const fmtD   = (d) => d ? moment(d).format('DD MMM YYYY') : '—';
 

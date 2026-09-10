@@ -8,7 +8,7 @@ import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
 import {link} from '@/i18n/navigation';
 import { useParams } from "next/navigation";
-
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 export default function WithdrawDetails() {
   const { id } = useParams();
   const { token } = useSelector((state) => state.auth);
@@ -136,7 +136,7 @@ export default function WithdrawDetails() {
                 <div>
                   <p className="font-semibold text-yellow-900">Amount Mismatch</p>
                   <p className="text-sm text-yellow-700">
-                    Withdrawal amount (₺{data.amount?.toLocaleString()}) doesn't match total net earnings (₺{data.earningsSummary?.totalNet?.toLocaleString()})
+                    Withdrawal amount ({fmt(data.amount)}) doesn't match total net earnings ({fmt(data.earningsSummary?.totalNet)})
                   </p>
                 </div>
               </div>
@@ -162,7 +162,7 @@ export default function WithdrawDetails() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Withdrawal Amount</p>
-                <p className="text-2xl font-bold text-gray-900">₺{data.amount?.toLocaleString()}</p>
+                <p className="text-2xl font-bold text-gray-900">{fmt(data.amount)}</p>
               </div>
             </div>
           </div>
@@ -292,19 +292,19 @@ export default function WithdrawDetails() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <p className="text-xs text-gray-600 mb-1">Total Gross</p>
-                  <p className="text-xl font-bold text-gray-900">₺{data.earningsSummary?.totalGross?.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-gray-900">{fmt(data.earningsSummary?.totalGross)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <p className="text-xs text-gray-600 mb-1">Commission</p>
-                  <p className="text-xl font-bold text-gray-900">₺{data.earningsSummary?.totalCommission?.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-gray-900">{fmt(data.earningsSummary?.totalCommission)}</p>
                 </div>
                 <div className="bg-green-50 rounded-lg p-4 border border-green-100">
                   <p className="text-xs text-green-700 mb-1">Net Earnings</p>
-                  <p className="text-xl font-bold text-green-700">₺{data.earningsSummary?.totalNet?.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-green-700">{fmt(data.earningsSummary?.totalNet)}</p>
                 </div>
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                   <p className="text-xs text-gray-600 mb-1">Average Per Job</p>
-                  <p className="text-xl font-bold text-gray-900">₺{data.earningsSummary?.averagePerJob?.toLocaleString()}</p>
+                  <p className="text-xl font-bold text-gray-900">{fmt(data.earningsSummary?.averagePerJob)}</p>
                 </div>
               </div>
             </div>
@@ -340,15 +340,15 @@ export default function WithdrawDetails() {
                     <div className="grid grid-cols-3 gap-2 text-sm">
                       <div>
                         <p className="text-gray-500 text-xs">Total</p>
-                        <p className="font-medium text-gray-900">₺{earning.amounts?.total?.toLocaleString()}</p>
+                        <p className="font-medium text-gray-900">{fmt(earning.amounts?.total)}</p>
                       </div>
                       <div>
                         <p className="text-gray-500 text-xs">Commission</p>
-                        <p className="font-medium text-gray-900">₺{earning.amounts?.commission?.toLocaleString()}</p>
+                        <p className="font-medium text-gray-900">{fmt(earning.amounts?.commission)}</p>
                       </div>
                       <div>
                         <p className="text-green-600 text-xs">Net Earning</p>
-                        <p className="font-semibold text-green-600">₺{earning.amounts?.netEarning?.toLocaleString()}</p>
+                        <p className="font-semibold text-green-600">{fmt(earning.amounts?.netEarning)}</p>
                       </div>
                     </div>
                   </div>
@@ -397,15 +397,15 @@ export default function WithdrawDetails() {
               <div className="space-y-3">
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600 text-sm">Locked:</span>
-                  <span className="font-bold text-yellow-600">₺{data.walletImpact?.lockedAmount?.toLocaleString()}</span>
+                  <span className="font-bold text-yellow-600">{fmt(data.walletImpact?.lockedAmount)}</span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-100">
                   <span className="text-gray-600 text-sm">Will Withdraw:</span>
-                  <span className="font-bold text-blue-600">₺{data.walletImpact?.willBeWithdrawn?.toLocaleString()}</span>
+                  <span className="font-bold text-blue-600">{fmt(data.walletImpact?.willBeWithdrawn)}</span>
                 </div>
                 <div className="flex justify-between py-2">
                   <span className="text-gray-600 text-sm">Will Release:</span>
-                  <span className="font-bold text-green-600">₺{data.walletImpact?.willBeReleased?.toLocaleString()}</span>
+                  <span className="font-bold text-green-600">{fmt(data.walletImpact?.willBeReleased)}</span>
                 </div>
               </div>
             </div>

@@ -16,11 +16,7 @@ const RANGE_OPTIONS = [
 ];
 
 const MONTH_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-function fmt(n) {
-  if (!n) return "₺0";
-  return `₺${Number(n).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 
 /* ── Summary Card ── */
 function EarningCard({ icon, label, value, sub, color, loading }) {
@@ -396,7 +392,7 @@ export default function RefurbishedEarningsPage() {
                         </span>
                       </td>
                       <td className={`px-6 py-3 text-right font-bold whitespace-nowrap ${cfg.text}`}>
-                        TRY. {(tx.amount || 0).toLocaleString()}
+                        {fmt(tx.amount || 0)}
                       </td>
                       <td className="px-6 py-3 font-mono text-[10px] text-gray-700 whitespace-nowrap">
                         {tx.orderNo || "—"}

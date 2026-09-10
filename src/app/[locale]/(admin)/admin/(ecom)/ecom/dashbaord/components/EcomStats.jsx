@@ -1,7 +1,7 @@
 "use client";
 import React from 'react';
 import { Icon } from '@iconify/react';
-
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 function StatCard({ title, value, icon, colorClass, bgColorClass }) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 flex items-center gap-4 transition-all hover:shadow-md">
@@ -46,7 +46,7 @@ export default function EcomStats({ data }) {
       />
       <StatCard 
         title="E-commerce Revenue" 
-        value={`$${(stats.totalRevenue || 0).toLocaleString()}`} 
+        value={fmt(stats.totalRevenue || 0)}
         icon="ph:currency-circle-dollar-duotone" 
         colorClass="text-amber-600"
         bgColorClass="bg-amber-50"

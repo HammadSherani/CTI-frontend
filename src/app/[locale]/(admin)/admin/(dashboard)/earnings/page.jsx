@@ -7,6 +7,7 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
 import { Link } from "@/i18n/navigation";
+import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 
 function AdminEarningPage() {
   const [data, setData] = useState(null);
@@ -121,7 +122,7 @@ function AdminEarningPage() {
               </div>
             </div>
             <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">Total Revenue</p>
-            <p className="text-2xl font-bold text-gray-900">Rs. {data.revenue.total.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">{fmt(data.revenue.total)}</p>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -131,7 +132,7 @@ function AdminEarningPage() {
               </div>
             </div>
             <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">Platform Commission</p>
-            <p className="text-2xl font-bold text-gray-900">Rs. {data.revenue.platformCommission.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">{fmt(data.revenue.platformCommission)}</p>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -141,7 +142,7 @@ function AdminEarningPage() {
               </div>
             </div>
             <p className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-1">Repairman Share</p>
-            <p className="text-2xl font-bold text-gray-900">Rs. {data.revenue.repairmanShare.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-gray-900">{fmt(data.revenue.repairmanShare)}</p>
           </div>
 
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -172,7 +173,7 @@ function AdminEarningPage() {
                 </Link>
               </div>
               <h3 className="text-sm font-medium text-gray-600 mb-1">Pending Earnings</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">Rs. {data.earnings.pending.amount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{fmt(data.earnings.pending.amount)}</p>
               <p className="text-sm text-gray-500">{data.earnings.pending.count} transactions</p>
             </div>
 
@@ -189,7 +190,7 @@ function AdminEarningPage() {
                 </Link>
               </div>
               <h3 className="text-sm font-medium text-gray-600 mb-1">Released Earnings</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">Rs. {data.earnings.released.amount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{fmt(data.earnings.released.amount)}</p>
               <p className="text-sm text-gray-500">{data.earnings.released.count} transactions</p>
             </div>
 
@@ -206,7 +207,7 @@ function AdminEarningPage() {
                 </Link>
               </div>
               <h3 className="text-sm font-medium text-gray-600 mb-1">Withdrawn Earnings</h3>
-              <p className="text-2xl font-bold text-gray-900 mb-1">Rs. {data.earnings.withdrawn.amount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900 mb-1">{fmt(data.earnings.withdrawn.amount)}</p>
               <p className="text-sm text-gray-500">{data.earnings.withdrawn.count} transactions</p>
             </div>
           </div>
@@ -286,7 +287,7 @@ function AdminEarningPage() {
                 <Icon icon="solar:money-bag-bold" className="text-2xl text-primary-600" />
                 <p className="text-sm font-medium text-gray-600">Total Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">Rs. {data.withdrawals.totalAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(data.withdrawals.totalAmount)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -294,7 +295,7 @@ function AdminEarningPage() {
                 <Icon icon="solar:wallet-money-bold" className="text-2xl text-green-600" />
                 <p className="text-sm font-medium text-gray-600">Completed Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">Rs. {data.withdrawals.completedAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(data.withdrawals.completedAmount)}</p>
             </div>
 
             <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -302,7 +303,7 @@ function AdminEarningPage() {
                 <Icon icon="solar:hourglass-bold" className="text-2xl text-yellow-600" />
                 <p className="text-sm font-medium text-gray-600">Pending Amount</p>
               </div>
-              <p className="text-2xl font-bold text-gray-900">Rs. {data.withdrawals.pendingAmount.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-gray-900">{fmt(data.withdrawals.pendingAmount)}</p>
             </div>
           </div>
         </div>
