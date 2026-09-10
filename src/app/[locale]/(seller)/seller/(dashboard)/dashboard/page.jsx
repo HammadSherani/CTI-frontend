@@ -105,7 +105,7 @@ function SalesPerformance({ data, loading }) {
           : statCards.map((c, i) => (
             <div key={i} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 relative overflow-hidden group hover:shadow-md transition-all duration-200">
               {/* accent bar */}
-              <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${c.gradient} rounded-t-2xl`} />
+              {/* <div className={`absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r ${c.gradient} rounded-t-2xl`} /> */}
               <div className="flex items-start justify-between mb-4">
                 <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${c.lightBg}`}>
                   <Icon icon={c.icon} className={`w-6 h-6 ${c.textClr}`} />

@@ -73,7 +73,7 @@ function RefurbishedHeader() {
     },
 
     { "name": "Transactions", "icon": "mdi:cash-register", "path": "/admin/refurbished/transactions" },
-    { "name": "Earnings", "icon": "mdi:currency-usd", "path": "/admin/refurbished/earnings" },
+    { "name": "Wallet", "icon": "mdi:wallet", "path": "/admin/refurbished/wallet" },
   ];
 
   const dropdownLinks = [

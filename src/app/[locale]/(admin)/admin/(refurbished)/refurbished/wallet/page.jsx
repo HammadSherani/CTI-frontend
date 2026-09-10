@@ -9,10 +9,10 @@ import { toast } from "react-toastify";
 import moment from "moment";
 
 const RANGE_OPTIONS = [
-  { label: "This Month",   value: "month"   },
-  { label: "Last 3 Months",value: "3months" },
-  { label: "Last 6 Months",value: "6months" },
-  { label: "All Time",     value: "all"     },
+  { label: "This Month", value: "month" },
+  { label: "Last 3 Months", value: "3months" },
+  { label: "Last 6 Months", value: "6months" },
+  { label: "All Time", value: "all" },
 ];
 
 const MONTH_NAMES = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -44,12 +44,12 @@ function EarningCard({ icon, label, value, sub, color, loading }) {
 
 /* ── Order Status Badge ── */
 const STATUS_STYLES = {
-  pending:    "bg-gray-100 text-gray-600",
+  pending: "bg-gray-100 text-gray-600",
   processing: "bg-blue-50 text-blue-600",
-  shipping:   "bg-violet-50 text-violet-600",
-  shipped:    "bg-amber-50 text-amber-600",
-  delivered:  "bg-emerald-50 text-emerald-700",
-  cancelled:  "bg-red-50 text-red-500",
+  shipping: "bg-violet-50 text-violet-600",
+  shipped: "bg-amber-50 text-amber-600",
+  delivered: "bg-emerald-50 text-emerald-700",
+  cancelled: "bg-red-50 text-red-500",
 };
 
 /* ── Transaction Type Badge ── */
@@ -67,16 +67,16 @@ function getTxTypeStyle(type) {
 export default function RefurbishedEarningsPage() {
   const router = useRouter();
   const { token } = useSelector((s) => s.auth);
-  const [range, setRange]           = useState("all");
-  const [overview, setOverview]     = useState(null);
-  const [monthly, setMonthly]       = useState([]);
-  const [orders, setOrders]         = useState([]);
+  const [range, setRange] = useState("all");
+  const [overview, setOverview] = useState(null);
+  const [monthly, setMonthly] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [loadingOv, setLoadingOv]   = useState(true);
-  const [loadingMo, setLoadingMo]   = useState(true);
+  const [loadingOv, setLoadingOv] = useState(true);
+  const [loadingMo, setLoadingMo] = useState(true);
   const [loadingOrd, setLoadingOrd] = useState(true);
-  const [loadingTx, setLoadingTx]   = useState(true);
-  const [page, setPage]             = useState(1);
+  const [loadingTx, setLoadingTx] = useState(true);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
   const headers = { Authorization: `Bearer ${token}` };
@@ -143,7 +143,7 @@ export default function RefurbishedEarningsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-gray-800">Refurbished Earnings</h1>
+          <h1 className="text-2xl font-black text-gray-800">Refurbished Wallet</h1>
           <p className="text-xs text-gray-400 mt-1">Revenue overview for all platform-owned refurbished device sales</p>
         </div>
 
@@ -153,11 +153,10 @@ export default function RefurbishedEarningsPage() {
             <button
               key={opt.value}
               onClick={() => setRange(opt.value)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                range === opt.value
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${range === opt.value
                   ? "bg-white text-gray-800 shadow-sm"
                   : "text-gray-500 hover:text-gray-700"
-              }`}
+                }`}
             >
               {opt.label}
             </button>
