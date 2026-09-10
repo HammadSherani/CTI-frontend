@@ -73,7 +73,9 @@ function DetailModal({ ret, onClose }) {
               ["Barcode",    ret.barcode || "—"],
               ["Price",      formatCurrency(ret.price)],
               ["Qty",        ret.quantity],
-              ["Seller Earnings", formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)))],
+              ["Platform Fee", formatCurrency(ret.platformFee || 0)],
+              ["Net Earnings Deduction", formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)))],
+              ["Customer Refund", formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)) + (ret.platformFee || 0))],
               ["Created",    moment(ret.createdAt).format("DD MMM YYYY, hh:mm A")],
             ].map(([label, value]) => (
               <div key={label}>
@@ -119,10 +121,10 @@ function DetailModal({ ret, onClose }) {
             <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
               <Icon icon="mdi:alert-circle-outline" className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
               <div className="text-sm text-amber-800">
-                <p className="font-bold">Payment Deducted</p>
+                <p className="font-bold">Payment Deducted & Refunded</p>
                 <p className="mt-0.5">
-                  Rs. {(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0))).toLocaleString()} has been cut from your wallet
-                  and moved to admin hold for customer refund.
+                  {formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)))} has been cut from your wallet.
+                  The customer has been refunded a total of {formatCurrency(Math.max(0, ret.sellerEarnings - (ret.shippingDeduction || 0)) + (ret.platformFee || 0))}.
                 </p>
               </div>
             </div>
@@ -164,7 +166,10 @@ function DetailModal({ ret, onClose }) {
 
 function ApproveModal({ ret, onClose, onConfirm, loading }) {
   const [notes, setNotes] = useState("");
-  const amountToCut = ret?.sellerEarnings || ret?.price || 0;
+  const amountToCut = Math.max(0, ret?.sellerEarnings - (ret?.shippingDeduction || 0));
+  const platformFee = ret?.platformFee || 0;
+  const totalRefund = amountToCut + platformFee;
+
   return (
     <Modal open={!!ret} onClose={onClose} title="Approve Return">
       {ret && (
@@ -175,8 +180,8 @@ function ApproveModal({ ret, onClose, onConfirm, loading }) {
               Payment will be deducted
             </p>
             <p className="mt-1">
-              Approving this return will deduct <strong>Rs. {amountToCut.toLocaleString()}</strong> from
-              your wallet balance and move it to admin hold for customer refund.
+              Approving this return will deduct <strong>{formatCurrency(amountToCut)}</strong> from
+              your wallet balance. The total customer refund will be <strong>{formatCurrency(totalRefund)}</strong> (including {formatCurrency(platformFee)} platform fee from admin).
             </p>
           </div>
           <div>
