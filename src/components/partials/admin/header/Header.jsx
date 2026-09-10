@@ -135,7 +135,7 @@ function Header() {
           category: "Other Modules",
           items: [
             { name: "Ecommerce", icon: "mdi:store", path: "/admin/ecom/dashbaord" },
-            { name: "Refurbished", icon: "mdi:cellphone-link", path: "/admin/refurbished/categories" },
+            { name: "Refurbished", icon: "mdi:cellphone-link", path: "/admin/refurbished/dashbaord" },
           ]
         }
       ]
@@ -218,7 +218,7 @@ function Header() {
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            <div className="absolute top-full right-0 mt-1 w-80 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]">
               {link.submenu.map((group, groupIndex) => (
                 <div key={group.category}>
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -273,7 +273,7 @@ function Header() {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95">
+    <header className="bg-white border-b border-gray-200 sticky top-0 z-50 backdrop-blur-sm bg-white/95 overflow-visible">
       <div className="px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link href="/admin/dashboard" className="flex-shrink-0">

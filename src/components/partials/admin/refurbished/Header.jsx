@@ -120,10 +120,10 @@ function RefurbishedHeader() {
         <div key={link.name} className="relative" ref={ref}>
           <button
             onClick={() => setDropdownOpen(!dropdownOpen)}
-            className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2
+            className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 group
               ${(isSubmenuActive(link.submenu) || dropdownOpen)
-                ? 'text-primary-600'
-                : 'text-gray-600 hover:text-primary-600'
+                ? 'text-primary-600 bg-primary-50'
+                : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
               }`}
           >
             <Icon icon={link.icon} className="w-4 h-4" />
@@ -133,12 +133,12 @@ function RefurbishedHeader() {
               className={`w-4 h-4 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`}
             />
             {isSubmenuActive(link.submenu) && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />
+              <div className="absolute -bottom-1 left-3 right-3 h-0.5 bg-primary-600 rounded-full" />
             )}
           </button>
 
           {dropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+            <div className="absolute top-full left-0 mt-1 w-72 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-[9999]">
               {link.submenu.map((group, groupIndex) => (
                 <div key={group.category}>
                   <div className="px-4 py-2 border-b border-gray-100">
@@ -177,23 +177,23 @@ function RefurbishedHeader() {
       <Link
         key={link.name}
         href={link.path}
-        className={`relative px-4 py-5 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2
+        className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 group
           ${isActiveLink(link.path)
-            ? 'text-primary-600'
-            : 'text-gray-600 hover:text-primary-600'
+            ? 'text-primary-600 bg-primary-50'
+            : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
           }`}
       >
         <Icon icon={link.icon} className="w-4 h-4" />
         {link.name}
         {isActiveLink(link.path) && (
-          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary-600 rounded-full" />
+          <div className="absolute -bottom-1 left-3 right-3 h-0.5 bg-primary-600 rounded-full" />
         )}
       </Link>
     );
   };
 
   return (
-    <header className="bg-white sticky top-0 z-50 shadow-sm">
+    <header className="bg-white sticky top-0 z-50 shadow-sm overflow-visible">
 
       {/* Top breadcrumb bar */}
       <div className="bg-primary-600 px-6 py-1.5 flex items-center gap-2">
