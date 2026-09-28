@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { useRouter } from '@/i18n/navigation';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const router = useRouter();
@@ -206,12 +207,12 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
           <div className="flex items-baseline gap-1.5">
             <span className="text-xl font-bold text-orange-600">
-              ${displayPrice.toFixed(2)}
+              {formatCurrency(displayPrice)}
             </span>
 
             {hasDiscount && originalPrice > displayPrice && (
               <span className="text-xs text-gray-400 line-through">
-                ${originalPrice.toFixed(2)}
+                {formatCurrency(originalPrice)}
               </span>
             )}
           </div>

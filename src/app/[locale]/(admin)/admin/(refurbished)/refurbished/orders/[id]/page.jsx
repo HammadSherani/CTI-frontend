@@ -204,11 +204,13 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
         `/admin/refurbish/orders/${order._id}/shipping/calculate`,
         {
           weight: parseFloat(pkg.weight),
-          width: toCm(pkg.width || 10),
-          height: toCm(pkg.height || 10),
-          length: toCm(pkg.length || 10),
+          width: toCm(pkg.width),
+          height: toCm(pkg.height),
+          length: toCm(pkg.length),
           packageCount: parseInt(pkg.packageCount || 1),
-          notes: pkg.notes
+          notes: pkg.notes,
+          unit: "CM",
+          massUnit: "KG"
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );

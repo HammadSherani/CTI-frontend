@@ -4,6 +4,7 @@ import { Link, useRouter } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
 import { useDispatch, useSelector } from 'react-redux';
 import { addRefurbishedToCart } from '@/store/refurbishedCart';
+import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import axiosInstance from '@/config/axiosInstance';
 import DOMPurify from 'isomorphic-dompurify';
 import Image from 'next/image';
@@ -15,6 +16,8 @@ import Breadcrumbs from '../Breadcrumbs';
 import RefurbishedSliderSection from './RefurbishedSliderSection';
 import CategoryInfoSections from './CategoryInfoSections';
 import ProductGalleryModal from '../product/ProductGalleryModal';
+import { formatCurrency } from '@/helper/currencyFormatter';
+import { useSocket } from '@/contexts/SocketProvider';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -55,6 +58,33 @@ export default function RefurbishedProductDetail({ params }) {
   const token = auth?.token;
   const currentUserId = auth?.user?._id || auth?.user?.id || null;
   const userRole = auth?.userType || auth?.user?.role || null;
+
+  const wishlistItems = useSelector(s => s.refurbishedWishlist?.items || []);
+  const isWishlistLoading = useSelector(s => s.refurbishedWishlist?.loadingIds?.includes(selectedVariantId) || false);
+  const isWishlisted = wishlistItems.some(i => i.product?._id === productData?._id && i.variant?._id === selectedVariantId);
+
+  const { socket } = useSocket() || {};
+  const [isSellerOnline, setIsSellerOnline] = useState(false);
+
+  useEffect(() => {
+    if (productData?.sellerId?.isOnline !== undefined) {
+      setIsSellerOnline(productData.sellerId.isOnline);
+    }
+  }, [productData]);
+
+  useEffect(() => {
+    const sId = productData?.sellerId?.userId || productData?.sellerId?._id;
+    if (!socket || !sId) return;
+
+    const handleStatusChanged = (data) => {
+      if (data.userId === sId.toString()) {
+        setIsSellerOnline(data.status === 'online');
+      }
+    };
+
+    socket.on('user_status_changed', handleStatusChanged);
+    return () => socket.off('user_status_changed', handleStatusChanged);
+  }, [socket, productData]);
 
   // Ref for scrolling to order section
   const orderRef = useRef(null);
@@ -264,6 +294,22 @@ export default function RefurbishedProductDetail({ params }) {
     toast.success(`${productData.title} added to cart!`);
   };
 
+  const handleToggleWishlist = () => {
+    if (!token) { toast.error('Please log in to add to wishlist'); router.push('/auth/login'); return; }
+    if (userRole && userRole !== 'customer') {
+      toast.error('Only customers can manage wishlist');
+      return;
+    }
+    if (currentUserId && (currentUserId === productData.sellerId?._id || currentUserId === productData.sellerId)) {
+      toast.error('You cannot add your own product to wishlist');
+      return;
+    }
+    if (isWishlistLoading) return;
+    dispatch(toggleRefurbishedWishlistItem({ product: productData, variantId: selectedVariant?._id }));
+    if (isWishlisted) toast.info('Removed from wishlist');
+    else toast.success('Added to wishlist!');
+  };
+
   const handleBuyNow = () => {
     if (!token) { toast.error('Please log in to purchase'); router.push('/auth/login'); return; }
     if (userRole && userRole !== 'customer') {
@@ -366,7 +412,7 @@ export default function RefurbishedProductDetail({ params }) {
   }
 
   const userReview = currentUserId ? reviews.find(r => (r.userId?._id || r.userId)?.toString() === currentUserId.toString()) : null;
-  const formatPrice = (num) => `$${Number(num).toFixed(2)}`;
+  const currentUniqueId = selectedVariant?._id ? `${productData._id}-${selectedVariant._id}` : productData._id;
 
   return (
     <div className="max-w-7xl mx-auto px-10 py-8">
@@ -524,21 +570,33 @@ export default function RefurbishedProductDetail({ params }) {
               <div>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      {productData.brandId?.name && (
-                        <span className="bg-primary-50 text-primary-700 text-xs font-black uppercase px-2.5 py-0.5 rounded border border-primary-200 tracking-wide">
-                          {productData.brandId.name}
-                        </span>
-                      )}
-                      {productData.categoryId?.name && (
-                        <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded">
-                          {productData.categoryId.name}
-                        </span>
-                      )}
+                    <div className="flex items-start justify-between gap-3 w-full">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-2">
+                          {productData.brandId?.name && (
+                            <span className="bg-primary-50 text-primary-700 text-xs font-black uppercase px-2.5 py-0.5 rounded border border-primary-200 tracking-wide">
+                              {productData.brandId.name}
+                            </span>
+                          )}
+                          {productData.categoryId?.name && (
+                            <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded">
+                              {productData.categoryId.name}
+                            </span>
+                          )}
+                        </div>
+                        <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
+                          {productData?.title}
+                        </h1>
+                      </div>
+                      <button
+                        onClick={handleToggleWishlist}
+                        disabled={isWishlistLoading}
+                        aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
+                        className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 ml-50 flex items-center justify-center transition-all ${isWishlisted ? 'border-red-400 bg-red-50 text-red-500' : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'} disabled:opacity-50`}
+                      >
+                        <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
+                      </button>
                     </div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
-                      {productData?.title}
-                    </h1>
                     {productData?.shortDescription && (
                       <p className="text-xs md:text-sm text-gray-500 mt-2 font-medium leading-relaxed max-w-xl">
                         {productData.shortDescription}
@@ -552,9 +610,9 @@ export default function RefurbishedProductDetail({ params }) {
                 {discountPercent && (
                   <span className="text-lg font-bold text-red-500">-{discountPercent}%</span>
                 )}
-                <span className="text-2xl font-extrabold text-gray-900">{formatPrice(price)}</span>
+                <span className="text-2xl font-extrabold text-gray-900">{formatCurrency(price)}</span>
                 {oldPrice > price && (
-                  <span className="text-base text-gray-400 line-through">MRP {formatPrice(oldPrice)}</span>
+                  <span className="text-base text-gray-400 line-through">MRP {formatCurrency(oldPrice)}</span>
                 )}
                 {flashDealInfo && (
                   <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
@@ -580,7 +638,7 @@ export default function RefurbishedProductDetail({ params }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={!inStock}
-                  className="flex-1 cursor-pointer font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 bg-primary-500 hover:bg-primary-600 text-black shadow-lg shadow-primary-200"
+                  className="flex-1 cursor-pointer text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 bg-primary-500 hover:bg-primary-600 text-black shadow-lg shadow-primary-200"
                 >
                   <Icon icon="solar:cart-large-minimalistic-bold" className="w-5 h-5" />
                   Add to Cart
@@ -661,7 +719,7 @@ export default function RefurbishedProductDetail({ params }) {
 
         {/* RIGHT COLUMN */}
         <div className="lg:col-span-3 xl:col-span-3 space-y-4 sticky top-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col">
+          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col gap-4">
             <div className="flex gap-3 items-center">
               {productData.addedByRole === 'admin' ? (
                 <>
@@ -671,36 +729,50 @@ export default function RefurbishedProductDetail({ params }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center flex-wrap gap-1.5">
                       <h1 className="font-extrabold text-sm text-gray-900 leading-tight truncate">CTI Platform</h1>
-                      <Icon icon="mdi:check-decagram" className="w-4 h-4 text-primary-500 flex-shrink-0" />
+                      <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
                     </div>
                     <p className="text-[10px] text-gray-400 mt-0.5">Verified & Certified Refurbished</p>
                   </div>
                 </>
               ) : (
                 <>
-                  {productData.sellerId?.profilePictureOrLogo ? (
-                    <img src={productData.sellerId.profilePictureOrLogo} alt={productData.sellerId.businessName || productData.sellerId.name} className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
-                      {(productData.sellerId?.businessName || productData.sellerId?.name || 'S').charAt(0).toUpperCase()}
-                    </div>
-                  )}
+                  <div className="relative">
+                    {productData.sellerId?.profilePictureOrLogo ? (
+                      <img src={productData.sellerId.profilePictureOrLogo} alt={productData.sellerId.businessName || productData.sellerId.name} className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
+                    ) : (
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
+                        {(productData.sellerId?.businessName || productData.sellerId?.name || 'S').charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    {isSellerOnline && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>}
+                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center flex-wrap gap-1.5">
-                      <Link href={`/store/${productData.sellerId?._id}`} className="font-extrabold text-sm text-gray-900 leading-tight truncate hover:underline">
+                      <Link href={`/store/${productData.sellerId?._id || productData.sellerId}`} className="font-extrabold text-sm text-gray-900 leading-tight truncate hover:underline">
                         {productData.sellerId?.businessName || productData.sellerId?.name || 'Independent Seller'}
                       </Link>
-                      {productData.isCTIVerified && <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-primary-500 flex-shrink-0" />}
+                      {productData.sellerId?.isApproved && <Icon icon="mdi:check-decagram" className="w-4 h-4 text-emerald-500 flex-shrink-0" title="Verified Seller" />}
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      {productData.isCTIVerified ? 'CTI Verified Refurbished Seller' : 'Independent Refurbished Seller'}
+                    <div className="flex items-center flex-wrap gap-1.5 mt-1.5 mb-1">
+                      {isSellerOnline ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span> Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-50 text-gray-500 text-[9px] font-bold uppercase tracking-wider border border-gray-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-gray-400">
+                      {productData.isCTIVerified ? 'CTI Verified Refurbished Seller' : 'E-commerce Seller'}
                     </p>
                   </div>
                 </>
               )}
             </div>
 
-            <div className="border-t border-gray-100 mt-4 pt-3">
+            <div className="border-t border-gray-100 pt-3">
               <button
                 onClick={() => {
                   if (!token) { toast.error('Please log in to ask a question'); router.push('/auth/login'); return; }
@@ -709,7 +781,7 @@ export default function RefurbishedProductDetail({ params }) {
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-300 rounded-xl transition-all text-sm font-semibold text-gray-700 hover:text-primary-700"
               >
                 <Icon icon="solar:chat-round-dots-bold" className="w-4 h-4 text-primary-500" />
-                Ask Platform
+                {productData.addedByRole === 'admin' ? 'Ask Platform' : 'Ask Seller'}
               </button>
             </div>
           </div>
@@ -814,57 +886,7 @@ export default function RefurbishedProductDetail({ params }) {
                 </div>
               </div>
 
-              {!userReview && (
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <h4 className="text-xs font-bold text-gray-800 mb-1">Write a Review</h4>
-                  <p className="text-gray-400 text-[10px] mb-3">Share your experience with other customers</p>
-                  <div className="mb-2.5">
-                    <p className="text-[11px] text-gray-600 mb-1">Your Rating</p>
-                    <StarRating rating={reviewRating} size="md" interactive onChange={setReviewRating} />
-                  </div>
-                  <textarea
-                    value={reviewText}
-                    onChange={e => setReviewText(e.target.value)}
-                    placeholder="Write your review…"
-                    rows={3}
-                    className="w-full border border-gray-200 rounded-xl p-2.5 text-xs text-gray-700 resize-none focus:outline-none focus:border-primary-400 transition-colors mb-2"
-                  />
-                  <div className="flex items-center gap-3 mb-3">
-                    <label className="cursor-pointer flex items-center gap-1.5 text-[10px] font-semibold text-gray-500 hover:text-primary-500 transition-colors bg-gray-50 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-primary-200">
-                      <Icon icon="mdi:folder-multiple-image" className="w-4 h-4" />
-                      Add Media (Photos/Video)
-                      <input type="file" multiple accept="image/*,video/*" onChange={handleMediaUpload} className="hidden" />
-                    </label>
-                  </div>
 
-                  {reviewImages.length > 0 && (
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {reviewImages.map((file, idx) => (
-                        <div key={idx} className="relative w-12 h-12 rounded-lg border border-gray-200 overflow-hidden">
-                          <img src={URL.createObjectURL(file)} alt="" className="w-full h-full object-cover" />
-                          <button onClick={() => setReviewImages(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5">
-                            <Icon icon="mdi:close" className="w-3 h-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {reviewVideo && (
-                    <div className="flex items-center gap-2 mb-3 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                      <Icon icon="mdi:video" className="w-4 h-4 text-gray-500" />
-                      <span className="text-[10px] text-gray-600 truncate flex-1">{reviewVideo.name}</span>
-                      <button onClick={() => setReviewVideo(null)}>
-                        <Icon icon="mdi:close" className="w-3.5 h-3.5 text-red-500" />
-                      </button>
-                    </div>
-                  )}
-
-                  <button onClick={handleAddReview} disabled={submittingReview} className="mt-2.5 w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-2.5 rounded-xl text-xs transition-all disabled:opacity-75 flex items-center justify-center gap-2">
-                    {submittingReview && <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />}
-                    {submittingReview ? 'Submitting Review...' : 'Submit Review'}
-                  </button>
-                </div>
-              )}
             </div>
 
             <div className="lg:col-span-3 space-y-3">
@@ -917,11 +939,12 @@ export default function RefurbishedProductDetail({ params }) {
       </div>
 
       {showAskModal && (
-        <AskPlatformModal
+        <AskModal
           onClose={() => setShowAskModal(false)}
           onSubmit={handleAskSubmit}
           loading={askLoading}
           productTitle={productData?.title || ''}
+          sellerName={productData?.addedByRole === 'admin' ? 'the Platform' : (productData?.sellerId?.businessName || productData?.sellerId?.name || 'Seller')}
         />
       )}
 
@@ -936,7 +959,7 @@ export default function RefurbishedProductDetail({ params }) {
   );
 }
 
-function AskPlatformModal({ onClose, onSubmit, loading, productTitle }) {
+function AskModal({ onClose, onSubmit, loading, productTitle, sellerName }) {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const ASK_QUICK_SUBJECTS = ['Warranty details?', 'Shipping to my city?', 'Stock availability', 'Condition details'];
@@ -951,7 +974,7 @@ function AskPlatformModal({ onClose, onSubmit, loading, productTitle }) {
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between px-6 py-5 border-b border-gray-100">
           <div>
-            <h3 className="font-extrabold text-gray-950 text-base">Ask the Platform</h3>
+            <h3 className="font-extrabold text-gray-950 text-base">Ask {sellerName}</h3>
             <p className="text-[11px] text-gray-400 mt-0.5 truncate max-w-[280px]" title={productTitle}>{productTitle}</p>
           </div>
           <button onClick={onClose} disabled={loading} className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors disabled:opacity-30">

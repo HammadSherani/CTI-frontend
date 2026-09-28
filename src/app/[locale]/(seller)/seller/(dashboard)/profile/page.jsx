@@ -6,24 +6,25 @@ import { useSelector } from "react-redux";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
+import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 
 const SOCIAL_LINKS = [
-  { key: "facebook",  label: "Facebook",    icon: "ri:facebook-fill",   color: "#1877F2", placeholder: "https://facebook.com/yourpage" },
-  { key: "instagram", label: "Instagram",   icon: "ri:instagram-fill",  color: "#E4405F", placeholder: "https://instagram.com/yourprofile" },
-  { key: "twitter",   label: "X (Twitter)", icon: "ri:twitter-x-fill",  color: "#000000", placeholder: "https://x.com/yourhandle" },
-  { key: "linkedin",  label: "LinkedIn",    icon: "ri:linkedin-fill",   color: "#0A66C2", placeholder: "https://linkedin.com/in/yourprofile" },
-  { key: "whatsapp",  label: "WhatsApp",    icon: "ri:whatsapp-fill",   color: "#25D366", placeholder: "https://wa.me/923001234567" },
-  { key: "youtube",   label: "YouTube",     icon: "ri:youtube-fill",    color: "#FF0000", placeholder: "https://youtube.com/@yourchannel" },
-  { key: "tiktok",    label: "TikTok",      icon: "ri:tiktok-fill",     color: "#010101", placeholder: "https://tiktok.com/@yourhandle" },
-  { key: "website",   label: "Website",     icon: "heroicons:globe-alt", color: "#6366F1", placeholder: "https://yourwebsite.com" },
+  { key: "facebook", label: "Facebook", icon: "ri:facebook-fill", color: "#1877F2", placeholder: "https://facebook.com/yourpage" },
+  { key: "instagram", label: "Instagram", icon: "ri:instagram-fill", color: "#E4405F", placeholder: "https://instagram.com/yourprofile" },
+  { key: "twitter", label: "X (Twitter)", icon: "ri:twitter-x-fill", color: "#000000", placeholder: "https://x.com/yourhandle" },
+  { key: "linkedin", label: "LinkedIn", icon: "ri:linkedin-fill", color: "#0A66C2", placeholder: "https://linkedin.com/in/yourprofile" },
+  { key: "whatsapp", label: "WhatsApp", icon: "ri:whatsapp-fill", color: "#25D366", placeholder: "https://wa.me/923001234567" },
+  { key: "youtube", label: "YouTube", icon: "ri:youtube-fill", color: "#FF0000", placeholder: "https://youtube.com/@yourchannel" },
+  { key: "tiktok", label: "TikTok", icon: "ri:tiktok-fill", color: "#010101", placeholder: "https://tiktok.com/@yourhandle" },
+  { key: "website", label: "Website", icon: "heroicons:globe-alt", color: "#6366F1", placeholder: "https://yourwebsite.com" },
 ];
 
 const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 const KYC_META = {
-  pending:  { label: "Under Review",   icon: "heroicons:clock",               badge: "bg-yellow-100 text-yellow-700 border-yellow-200", bar: "border-yellow-400 bg-yellow-50", text: "text-yellow-700" },
-  approved: { label: "Approved",       icon: "heroicons:shield-check",        badge: "bg-green-100 text-green-700 border-green-200",   bar: "border-green-400 bg-green-50",   text: "text-green-700"  },
-  rejected: { label: "Rejected",       icon: "heroicons:x-circle",            badge: "bg-red-100 text-red-700 border-red-200",         bar: "border-red-400 bg-red-50",       text: "text-red-700"    },
+  pending: { label: "Under Review", icon: "heroicons:clock", badge: "bg-yellow-100 text-yellow-700 border-yellow-200", bar: "border-yellow-400 bg-yellow-50", text: "text-yellow-700" },
+  approved: { label: "Approved", icon: "heroicons:shield-check", badge: "bg-green-100 text-green-700 border-green-200", bar: "border-green-400 bg-green-50", text: "text-green-700" },
+  rejected: { label: "Rejected", icon: "heroicons:x-circle", badge: "bg-red-100 text-red-700 border-red-200", bar: "border-red-400 bg-red-50", text: "text-red-700" },
   revision: { label: "Needs Revision", icon: "heroicons:exclamation-triangle", badge: "bg-orange-100 text-orange-700 border-orange-200", bar: "border-orange-400 bg-orange-50", text: "text-orange-700" },
 };
 
@@ -106,21 +107,74 @@ function SaveBar({ onSave, onCancel, saving }) {
 
 export default function SellerProfilePage() {
   const { token } = useSelector((s) => s.auth);
-  const [seller, setSeller]       = useState(null);
-  const [loading, setLoading]     = useState(true);
-  const [editSection, setEdit]    = useState(null);
-  const [saving, setSaving]       = useState(false);
+  const [seller, setSeller] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [editSection, setEdit] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const [infoForm, setInfoForm]     = useState({});
+  const [infoForm, setInfoForm] = useState({});
   const [socialForm, setSocialForm] = useState({});
-  const [schedForm, setSchedForm]   = useState({ workingDays: [], workingHours: { start: "", end: "" } });
-  const [logoFile, setLogoFile]     = useState(null);
+  const [bankForm, setBankForm] = useState({ accountTitle: "", accountNumber: "", bankName: "", branchName: "", iban: "" });
+  const [schedForm, setSchedForm] = useState({ workingDays: [], workingHours: { start: "", end: "" } });
+  const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState(null);
   const logoRef = useRef(null);
 
-  const [coverPhotoFile, setCoverPhotoFile]     = useState(null);
+  const [coverPhotoFile, setCoverPhotoFile] = useState(null);
   const [coverPhotoPreview, setCoverPhotoPreview] = useState(null);
   const coverPhotoRef = useRef(null);
+
+  // -- Location States --
+  const [countries, setCountries] = useState([]);
+  const [states, setStates] = useState([]);
+  const [cities, setCities] = useState([]);
+
+  // Fetch countries on mount
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const res = await axiosInstance.get("/public/countries");
+        setCountries(res.data?.data || []);
+      } catch (error) {
+        console.error("Error fetching countries:", error);
+      }
+    };
+    fetchCountries();
+  }, []);
+
+  // Fetch states when country changes
+  useEffect(() => {
+    const fetchStates = async () => {
+      if (!infoForm.country) {
+        setStates([]);
+        return;
+      }
+      try {
+        const res = await axiosInstance.get(`/public/states/country/${infoForm.country}`);
+        setStates(res.data?.data || []);
+      } catch (error) {
+        console.error("Error fetching states:", error);
+      }
+    };
+    fetchStates();
+  }, [infoForm.country]);
+
+  // Fetch cities when state changes
+  useEffect(() => {
+    const fetchCities = async () => {
+      if (!infoForm.state) {
+        setCities([]);
+        return;
+      }
+      try {
+        const res = await axiosInstance.get(`/public/cities/state/${infoForm.state}`);
+        setCities(res.data?.data || []);
+      } catch (error) {
+        console.error("Error fetching cities:", error);
+      }
+    };
+    fetchCities();
+  }, [infoForm.state]);
 
   const fetchSeller = async () => {
     try {
@@ -141,26 +195,36 @@ export default function SellerProfilePage() {
 
   const seedForms = (s) => {
     setInfoForm({
-      fullName:         s.fullName         || "",
-      phoneNumber:      s.phoneNumber      || "",
-      emailAddress:     s.emailAddress     || "",
-      storeAddress:     s.storeAddress     || "",
-      zipCode:          s.zipCode          || "",
-      businessName:     s.businessName     || "",
+      fullName: s.fullName || "",
+      phoneNumber: s.phoneNumber || "",
+      emailAddress: s.emailAddress || s.userId?.email || "",
+      storeAddress: s.storeAddress || "",
+      country: s.country?._id || s.country || "",
+      state: s.state?._id || s.state || "",
+      city: s.city?._id || s.city || "",
+      zipCode: s.zipCode || "",
+      businessName: s.businessName || "",
       storeDescription: s.storeDescription || "",
     });
     setSocialForm({
-      facebook:  s.socialLinks?.facebook  || "",
+      facebook: s.socialLinks?.facebook || "",
       instagram: s.socialLinks?.instagram || "",
-      twitter:   s.socialLinks?.twitter   || "",
-      linkedin:  s.socialLinks?.linkedin  || "",
-      whatsapp:  s.socialLinks?.whatsapp  || "",
-      youtube:   s.socialLinks?.youtube   || "",
-      tiktok:    s.socialLinks?.tiktok    || "",
-      website:   s.socialLinks?.website   || "",
+      twitter: s.socialLinks?.twitter || "",
+      linkedin: s.socialLinks?.linkedin || "",
+      whatsapp: s.socialLinks?.whatsapp || "",
+      youtube: s.socialLinks?.youtube || "",
+      tiktok: s.socialLinks?.tiktok || "",
+      website: s.socialLinks?.website || "",
+    });
+    setBankForm({
+      accountTitle: s.bankDetails?.accountTitle || "",
+      accountNumber: s.bankDetails?.accountNumber || "",
+      bankName: s.bankDetails?.bankName || "",
+      branchName: s.bankDetails?.branchName || "",
+      iban: s.bankDetails?.iban || "",
     });
     setSchedForm({
-      workingDays:  s.workingDays  || [],
+      workingDays: s.workingDays || [],
       workingHours: s.workingHours || { start: "", end: "" },
     });
     setLogoPreview(s.profilePictureOrLogo || null);
@@ -175,10 +239,11 @@ export default function SellerProfilePage() {
     setSaving(true);
     try {
       const payload = {};
-      if (section === "info")     Object.assign(payload, infoForm);
-      if (section === "social")   payload.socialLinks = socialForm;
+      if (section === "info") Object.assign(payload, infoForm);
+      if (section === "social") payload.socialLinks = socialForm;
+      if (section === "bank") payload.bankDetails = bankForm;
       if (section === "schedule") {
-        payload.workingDays  = schedForm.workingDays;
+        payload.workingDays = schedForm.workingDays;
         payload.workingHours = schedForm.workingHours;
       }
 
@@ -205,8 +270,8 @@ export default function SellerProfilePage() {
   };
 
   const cancelEdit = () => { seedForms(seller); setEdit(null); };
-  const startEdit  = (section) => { seedForms(seller); setEdit(section); };
-  const toggleDay  = (day) =>
+  const startEdit = (section) => { seedForms(seller); setEdit(section); };
+  const toggleDay = (day) =>
     setSchedForm((p) => ({
       ...p,
       workingDays: p.workingDays.includes(day)
@@ -247,20 +312,22 @@ export default function SellerProfilePage() {
 
       {/* ── Banner + Logo ────────────────────────────────────────────────── */}
       <div className="bg-white border-b border-gray-100">
-        <div
-          className="h-32 md:h-40 relative overflow-hidden group cursor-pointer"
-          style={coverPhotoPreview ? { background: `url(${coverPhotoPreview}) center/cover no-repeat` } : { background: "linear-gradient(135deg, #f97316 0%, #ef4444 45%, #6366f1 100%)" }}
-          onClick={() => coverPhotoRef.current?.click()}
-          title="Click to change cover photo"
-        >
-          {!coverPhotoPreview && (
-            <div className="absolute inset-0 opacity-10"
-              style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
-          )}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
-            <div className="flex flex-col items-center text-white">
-              <Icon icon="heroicons:camera" className="w-8 h-8 mb-1" />
-              <span className="text-sm font-semibold">Change Cover Photo</span>
+        <div className="max-w-5xl mx-auto md:px-8">
+          <div
+            className="h-48 md:h-72 relative overflow-hidden group cursor-pointer rounded-b-2xl shadow-sm"
+            style={coverPhotoPreview ? { background: `url(${coverPhotoPreview}) center/cover no-repeat` } : { background: "linear-gradient(135deg, #f97316 0%, #ef4444 45%, #6366f1 100%)" }}
+            onClick={() => coverPhotoRef.current?.click()}
+            title="Click to change cover photo"
+          >
+            {!coverPhotoPreview && (
+              <div className="absolute inset-0 opacity-10"
+                style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
+            )}
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+              <div className="flex flex-col items-center text-white">
+                <Icon icon="heroicons:camera" className="w-8 h-8 mb-1" />
+                <span className="text-sm font-semibold">Change Cover Photo</span>
+              </div>
             </div>
           </div>
         </div>
@@ -274,18 +341,16 @@ export default function SellerProfilePage() {
             {/* Logo */}
             <div className="relative flex-shrink-0">
               <div
-                className="w-20 h-20 md:w-28 md:h-28 rounded-2xl border-4 border-white shadow-xl bg-primary-100 overflow-hidden cursor-pointer group"
+                className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden cursor-pointer group flex items-center justify-center relative"
                 onClick={() => logoRef.current?.click()}
-                title="Click to change logo"
+                title="Click to change profile photo"
               >
                 {logoPreview ? (
                   <img src={logoPreview} alt="Store logo" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Icon icon="heroicons:building-storefront" className="w-8 h-8 text-primary-400" />
-                  </div>
+                  <Icon icon="heroicons:building-storefront" className="w-12 h-12 text-gray-300" />
                 )}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-xl">
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
                   <Icon icon="heroicons:camera" className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -334,7 +399,7 @@ export default function SellerProfilePage() {
             <div>
               <p className={`font-semibold text-sm ${kyc.text}`}>{kyc.label}</p>
               <p className="text-xs text-gray-600 mt-0.5">
-                {seller.kycStatus === "pending"  && "Your profile is under admin review. You'll be notified once approved."}
+                {seller.kycStatus === "pending" && "Your profile is under admin review. You'll be notified once approved."}
                 {seller.kycStatus === "revision" && (seller.kycReason || "Your profile needs revision. Please update the required information.")}
                 {seller.kycStatus === "rejected" && (seller.kycReason || "Your profile was rejected. Please contact support.")}
               </p>
@@ -359,32 +424,115 @@ export default function SellerProfilePage() {
               {editSection === "info" ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Full Name"           value={infoForm.fullName}     onChange={(v) => setInfoForm((p) => ({ ...p, fullName: v }))}     placeholder="Your full name"   icon="heroicons:user" />
-                    <InputField label="Business / Store Name" value={infoForm.businessName} onChange={(v) => setInfoForm((p) => ({ ...p, businessName: v }))} placeholder="Store name"       icon="heroicons:building-storefront" />
+                    <InputField label="Full Name" value={infoForm.fullName} onChange={(v) => setInfoForm((p) => ({ ...p, fullName: v }))} placeholder="Your full name" icon="heroicons:user" />
+                    <InputField label="Business / Store Name" value={infoForm.businessName} onChange={(v) => setInfoForm((p) => ({ ...p, businessName: v }))} placeholder="Store name" icon="heroicons:building-storefront" />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Phone Number"  value={infoForm.phoneNumber}   onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: v }))}   placeholder="+92 300 0000000"  icon="heroicons:phone" />
-                    <InputField label="Email Address" type="email" value={infoForm.emailAddress} onChange={(v) => setInfoForm((p) => ({ ...p, emailAddress: v }))} placeholder="store@email.com" icon="heroicons:envelope" />
+                    <InputField label="Phone Number" value={infoForm.phoneNumber} onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: v }))} placeholder="+92 300 0000000" icon="heroicons:phone" />
+                    <div className="opacity-70 cursor-not-allowed">
+                      <InputField label="Email Address (Not Editable)" type="email" value={infoForm.emailAddress} onChange={() => { }} placeholder="store@email.com" icon="heroicons:envelope" disabled={true} />
+                    </div>
                   </div>
                   <InputField label="Store Address" value={infoForm.storeAddress} onChange={(v) => setInfoForm((p) => ({ ...p, storeAddress: v }))} placeholder="Full store address" icon="heroicons:map-pin" />
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                      <CustomDropdown
+                        icon="heroicons:globe-alt"
+                        value={infoForm.country || ""}
+                        onChange={(val) => setInfoForm((p) => ({ ...p, country: val, state: "", city: "" }))}
+                        placeholder="Select Country"
+                        searchable={true}
+                        options={countries.map((c) => ({
+                          label: c.name,
+                          value: c._id || c.id,
+                        }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">State (Province)</label>
+                      <CustomDropdown
+                        icon="heroicons:map"
+                        value={infoForm.state || ""}
+                        onChange={(val) => setInfoForm((p) => ({ ...p, state: val, city: "" }))}
+                        disabled={!infoForm.country}
+                        placeholder={!infoForm.country ? "Select Country first" : "Select State"}
+                        searchable={true}
+                        options={states.map((s) => ({
+                          label: s.name,
+                          value: s._id || s.id,
+                        }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">City (District)</label>
+                      <CustomDropdown
+                        icon="heroicons:building-office"
+                        value={infoForm.city || ""}
+                        onChange={(val) => setInfoForm((p) => ({ ...p, city: val }))}
+                        disabled={!infoForm.state}
+                        placeholder={!infoForm.state ? "Select State first" : "Select City"}
+                        searchable={true}
+                        options={cities.map((c) => ({
+                          label: c.name,
+                          value: c._id || c.id,
+                        }))}
+                      />
+                    </div>
+                  </div>
+
                   <InputField label="ZIP / Postal Code" value={infoForm.zipCode} onChange={(v) => setInfoForm((p) => ({ ...p, zipCode: v }))} placeholder="Postal code" icon="heroicons:hashtag" />
                   <InputField label="Store Description" multiline value={infoForm.storeDescription} onChange={(v) => setInfoForm((p) => ({ ...p, storeDescription: v }))} placeholder="Describe your store…" rows={4} />
                   <SaveBar onSave={() => save("info")} onCancel={cancelEdit} saving={saving} />
                 </div>
               ) : (
                 <div>
-                  <InfoRow icon="heroicons:user"                label="Full Name"     value={seller.fullName} />
+                  <InfoRow icon="heroicons:user" label="Full Name" value={seller.fullName} />
                   <InfoRow icon="heroicons:building-storefront" label="Business Name" value={seller.businessName} />
-                  <InfoRow icon="heroicons:phone"               label="Phone"         value={seller.phoneNumber} />
-                  <InfoRow icon="heroicons:envelope"            label="Email"         value={seller.emailAddress} />
-                  <InfoRow icon="heroicons:map-pin"             label="Store Address" value={seller.storeAddress} />
-                  <InfoRow icon="heroicons:hashtag"             label="ZIP Code"      value={seller.zipCode} />
+                  <InfoRow icon="heroicons:phone" label="Phone" value={seller.phoneNumber} />
+                  <InfoRow icon="heroicons:envelope" label="Email" value={seller.emailAddress || seller.userId?.email} />
+                  <InfoRow icon="heroicons:map-pin" label="Store Address" value={seller.storeAddress} />
+                  <InfoRow icon="heroicons:globe-alt" label="Country" value={seller.country?.name || "Not set"} />
+                  <InfoRow icon="heroicons:map" label="State" value={seller.state?.name || "Not set"} />
+                  <InfoRow icon="heroicons:building-office" label="City" value={seller.city?.name || "Not set"} />
+                  <InfoRow icon="heroicons:hashtag" label="ZIP Code" value={seller.zipCode} />
                   {seller.storeDescription && (
                     <div className="mt-4 p-4 bg-gray-50 rounded-xl">
                       <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-1">About the Store</p>
                       <p className="text-sm text-gray-700 leading-relaxed">{seller.storeDescription}</p>
                     </div>
                   )}
+                </div>
+              )}
+            </SectionCard>
+
+            {/* Bank Details */}
+            <SectionCard
+              title="Bank Details"
+              icon="heroicons:banknotes"
+              action={editSection !== "bank" && <EditBtn onClick={() => startEdit("bank")} />}
+            >
+              {editSection === "bank" ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="Account Title" value={bankForm.accountTitle} onChange={(v) => setBankForm((p) => ({ ...p, accountTitle: v }))} placeholder="Account Title" icon="heroicons:user" />
+                    <InputField label="Account Number" value={bankForm.accountNumber} onChange={(v) => setBankForm((p) => ({ ...p, accountNumber: v }))} placeholder="Account Number" icon="heroicons:hashtag" />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <InputField label="Bank Name" value={bankForm.bankName} onChange={(v) => setBankForm((p) => ({ ...p, bankName: v }))} placeholder="Bank Name" icon="heroicons:building-library" />
+                    <InputField label="Branch Name" value={bankForm.branchName} onChange={(v) => setBankForm((p) => ({ ...p, branchName: v }))} placeholder="Branch Name" icon="heroicons:map-pin" />
+                  </div>
+                  <InputField label="IBAN" value={bankForm.iban} onChange={(v) => setBankForm((p) => ({ ...p, iban: v }))} placeholder="IBAN" icon="heroicons:credit-card" />
+                  <SaveBar onSave={() => save("bank")} onCancel={cancelEdit} saving={saving} />
+                </div>
+              ) : (
+                <div className="space-y-0 divide-y divide-gray-50">
+                  <InfoRow icon="heroicons:user" label="Account Title" value={seller.bankDetails?.accountTitle} />
+                  <InfoRow icon="heroicons:hashtag" label="Account Number" value={seller.bankDetails?.accountNumber} />
+                  <InfoRow icon="heroicons:building-library" label="Bank Name" value={seller.bankDetails?.bankName} />
+                  <InfoRow icon="heroicons:map-pin" label="Branch Name" value={seller.bankDetails?.branchName} />
+                  <InfoRow icon="heroicons:credit-card" label="IBAN" value={seller.bankDetails?.iban} />
                 </div>
               )}
             </SectionCard>
@@ -463,11 +611,10 @@ export default function SellerProfilePage() {
                     <div className="flex flex-wrap gap-2">
                       {DAYS.map((day) => (
                         <button key={day} type="button" onClick={() => toggleDay(day)}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${
-                            schedForm.workingDays.includes(day)
-                              ? "bg-primary-600 border-primary-600 text-white shadow-sm"
-                              : "bg-white border-gray-200 text-gray-600 hover:border-primary-400"
-                          }`}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all ${schedForm.workingDays.includes(day)
+                            ? "bg-primary-600 border-primary-600 text-white shadow-sm"
+                            : "bg-white border-gray-200 text-gray-600 hover:border-primary-400"
+                            }`}
                         >
                           {day.slice(0, 3)}
                         </button>
@@ -499,11 +646,10 @@ export default function SellerProfilePage() {
                       <p className="text-xs text-gray-400 font-semibold uppercase tracking-wide mb-2">Working Days</p>
                       <div className="flex flex-wrap gap-1.5">
                         {DAYS.map((day) => (
-                          <span key={day} className={`px-3 py-1 rounded-xl text-xs font-semibold ${
-                            seller.workingDays.includes(day)
-                              ? "bg-primary-100 text-primary-700 border border-primary-200"
-                              : "bg-gray-100 text-gray-400 border border-gray-100"
-                          }`}>
+                          <span key={day} className={`px-3 py-1 rounded-xl text-xs font-semibold ${seller.workingDays.includes(day)
+                            ? "bg-primary-100 text-primary-700 border border-primary-200"
+                            : "bg-gray-100 text-gray-400 border border-gray-100"
+                            }`}>
                             {day.slice(0, 3)}
                           </span>
                         ))}
@@ -572,8 +718,8 @@ export default function SellerProfilePage() {
                 <div className="space-y-2">
                   {[
                     { label: "Account Title", val: seller.bankDetails.accountTitle },
-                    { label: "Bank",          val: seller.bankDetails.bankName },
-                    { label: "Branch",        val: seller.bankDetails.branchName },
+                    { label: "Bank", val: seller.bankDetails.bankName },
+                    { label: "Branch", val: seller.bankDetails.branchName },
                     {
                       label: "Account No.",
                       val: seller.bankDetails.accountNumber
@@ -605,9 +751,9 @@ export default function SellerProfilePage() {
             <SectionCard title="KYC Documents" icon="heroicons:document-check">
               <div className="space-y-2">
                 {[
-                  { label: "Profile Photo",    url: seller.profilePictureOrLogo },
-                  { label: "National ID",      url: seller.nationalIdOrPassport },
-                  { label: "Shop License",     url: seller.shopLicenseOrTaxCertificate },
+                  { label: "Profile Photo", url: seller.profilePictureOrLogo },
+                  { label: "National ID", url: seller.nationalIdOrPassport },
+                  { label: "Shop License", url: seller.shopLicenseOrTaxCertificate },
                   { label: "Proof of Address", url: seller.proofOfAddress },
                 ].map(({ label, url }) => (
                   <div key={label} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">

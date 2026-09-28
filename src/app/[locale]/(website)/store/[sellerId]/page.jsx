@@ -199,40 +199,42 @@ export default function SellerStorePage() {
       <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-sm mb-10">
         {/* Banner */}
         <div
-          className="relative h-44 flex items-end"
-          style={seller.coverPhoto ? { background: `url(${seller.coverPhoto}) center/cover no-repeat` } : { background: 'linear-gradient(135deg, #1e293b 0%, #334155 50%, #475569 100%)' }}
+          className="relative h-48 md:h-80 w-full bg-gray-100 flex items-end"
         >
-          <div className="absolute inset-0 opacity-10"
-            style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, #6366f1 0%, transparent 60%), radial-gradient(circle at 80% 20%, #8b5cf6 0%, transparent 50%)' }}
+          <img 
+            src={seller.coverPhoto || "https://placehold.co/1200x400/e2e8f0/94a3b8?text=Store+Cover+Photo"} 
+            alt="Store Cover"
+            className="absolute inset-0 w-full h-full object-cover"
           />
+          <div className="absolute inset-0 bg-black/10"></div>
+
           {seller.isApproved && (
-            <span className="absolute top-4 right-4 flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg">
+            <span className="absolute top-4 right-4 flex items-center gap-1.5 bg-emerald-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-lg z-10">
               <Icon icon="mdi:check-decagram" className="w-4 h-4" />
               Verified Seller
             </span>
           )}
           {/* Avatar */}
-          <div className="absolute -bottom-8 left-6">
-            {seller.profilePictureOrLogo ? (
-              <img
-                src={seller.profilePictureOrLogo}
-                alt={seller.businessName}
-                className="w-20 h-20 rounded-2xl object-cover shadow-xl"
-                style={{ border: '3px solid white' }}
-              />
-            ) : (
-              <div
-                className="w-20 h-20 rounded-2xl flex items-center justify-center text-white font-black text-3xl shadow-xl"
-                style={{ background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', border: '3px solid white' }}
-              >
-                {initials}
-              </div>
-            )}
+          <div className="absolute -bottom-10 left-6 sm:left-10 z-10">
+            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-2xl shadow-xl overflow-hidden bg-white" style={{ border: '4px solid white' }}>
+              {seller.profilePictureOrLogo ? (
+                <img
+                  src={seller.profilePictureOrLogo}
+                  alt={seller.businessName}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center bg-gray-50 text-gray-400">
+                  <Icon icon="mdi:storefront-outline" className="w-10 h-10 sm:w-12 sm:h-12 mb-1" />
+                  <span className="text-[10px] sm:text-xs font-medium uppercase">No Logo</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Info row */}
-        <div className="bg-white pt-12 pb-6 px-6">
+        <div className="bg-white pt-16 pb-6 px-6 sm:px-10">
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div>
               <div className="flex flex-wrap items-center gap-3 mb-1">

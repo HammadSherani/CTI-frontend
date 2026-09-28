@@ -103,15 +103,21 @@ function Header() {
   const { user, token } = useSelector((state) => state.auth);
   const [enquiryUnread, setEnquiryUnread] = useState(0);
   const [sellerIdDisplay, setSellerIdDisplay] = useState(null);
+  const [sellerProfile, setSellerProfile] = useState(null);
 
   useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!token) return;
     axiosInstance.get('/seller/profile/me-seller', { headers: { Authorization: `Bearer ${token}` } })
-      .then(({ data }) => { if (data.success && data.data?.sellerId) setSellerIdDisplay(data.data.sellerId); })
+      .then(({ data }) => { 
+        if (data.success && data.data) {
+          setSellerIdDisplay(data.data.sellerId); 
+          setSellerProfile(data.data);
+        }
+      })
       .catch(() => { });
-  }, [token]);
+  }, [token, pathname]);
 
   const handleLogout = useCallback(() => dispatch(clearAuth()), [dispatch]);
 
@@ -291,7 +297,7 @@ function Header() {
             Welcome Back
           </h5>
           <h1 className="text-primary-600 font-semibold text-[17px] text-nowrap capitalize leading-none">
-            {user?.name}
+            {sellerProfile?.businessName || sellerProfile?.fullName || user?.name}
           </h1>
         </div>
 
@@ -318,14 +324,20 @@ function Header() {
                 aria-label="Profile menu"
               >
                 <div className="relative flex-shrink-0">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm">
-                    <span className="text-xs font-bold text-white">{getInitials(user?.name)}</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-sm overflow-hidden">
+                    {sellerProfile?.profilePictureOrLogo ? (
+                      <img src={sellerProfile.profilePictureOrLogo} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-xs font-bold text-white">{getInitials(sellerProfile?.businessName || sellerProfile?.fullName || user?.name)}</span>
+                    )}
                   </div>
                   <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 border-2 border-white rounded-full" />
                 </div>
 
                 <div className="hidden md:block text-left min-w-0">
-                  <p className="text-xs font-semibold text-gray-800 capitalize truncate max-w-[100px]">{user?.name}</p>
+                  <p className="text-xs font-semibold text-gray-800 capitalize truncate max-w-[100px]">
+                    {sellerProfile?.businessName || sellerProfile?.fullName || user?.name}
+                  </p>
                   <p className="text-[10px] text-gray-400 capitalize">{user?.role}</p>
                 </div>
 
@@ -340,12 +352,20 @@ function Header() {
                   {/* User info */}
                   <div className="px-4 py-3 border-b border-gray-100">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md">
-                        <span className="text-sm font-bold text-white">{getInitials(user?.name)}</span>
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center flex-shrink-0 shadow-md overflow-hidden">
+                        {sellerProfile?.profilePictureOrLogo ? (
+                          <img src={sellerProfile.profilePictureOrLogo} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-sm font-bold text-white">{getInitials(sellerProfile?.businessName || sellerProfile?.fullName || user?.name)}</span>
+                        )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-gray-900 truncate text-sm capitalize">{user?.name}</p>
-                        <p className="text-xs text-gray-400 truncate">{user?.email}</p>
+                        <p className="font-semibold text-gray-900 truncate text-sm capitalize">
+                          {sellerProfile?.businessName || sellerProfile?.fullName || user?.name}
+                        </p>
+                        <p className="text-xs text-gray-400 truncate">
+                          {sellerProfile?.emailAddress || user?.email}
+                        </p>
                       </div>
                     </div>
                     {/* Seller ID badge */}

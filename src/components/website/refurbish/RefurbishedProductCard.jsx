@@ -6,6 +6,7 @@ import { useRouter } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import { toast } from 'react-toastify';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 export default function RefurbishedProductCard({ product }) {
   const router = useRouter();
@@ -39,9 +40,6 @@ export default function RefurbishedProductCard({ product }) {
     const itemProdId = item.productId?._id || item.productId?.id || item.productId;
     return itemProdId === productIdVal;
   });
-
-  const formatPrice = (value) =>
-    new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
 
   const handleCardClick = (e) => {
     if (typeof product.onCardClick === 'function') product.onCardClick(e);
@@ -207,7 +205,7 @@ export default function RefurbishedProductCard({ product }) {
           )}
           {offAmount > 0 && (
             <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-semibold truncate">
-              Save {formatPrice(offAmount)}
+              Save {formatCurrency(offAmount)}
             </span>
           )}
         </div>
@@ -222,9 +220,9 @@ export default function RefurbishedProductCard({ product }) {
 
         {/* Price — pinned to bottom, never overlaps text above */}
         <div className="mt-auto flex items-center gap-1.5 flex-wrap pt-1">
-          <span className="text-base font-bold text-gray-900 tracking-tight">{formatPrice(price)}</span>
+          <span className="text-base font-bold text-gray-900 tracking-tight">{formatCurrency(price)}</span>
           {mrp > price && (
-            <span className="text-[11px] text-gray-400 line-through">{formatPrice(mrp)}</span>
+            <span className="text-[11px] text-gray-400 line-through">{formatCurrency(mrp)}</span>
           )}
         </div>
       </div>

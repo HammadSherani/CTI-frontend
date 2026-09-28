@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
@@ -618,6 +619,7 @@ export default function OrderDetailPage() {
         <div className="flex items-center gap-2 flex-wrap">
           <OrderStatusBadge status={order.orderStatus} />
           <PaymentBadge status={order.paymentStatus} />
+          <InvoiceGenerator order={order} />
         </div>
       </div>
 

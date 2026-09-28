@@ -5,21 +5,24 @@ import { formatDistanceToNow } from 'date-fns';
 import useNotifications from '@/hooks/useNotifications';
 import { useRouter,Link } from '@/i18n/navigation';
 import { getRedirectUrl } from '@/constant/notificationRoutes';
+import { useSelector } from 'react-redux';
 
 
 
 const NotificationPanel = ({ isOpen, onClose }) => {
-  const { 
-    notifications, 
-    unreadCount, 
+  const {
+    notifications,
+    unreadCount,
     isLoading,
     fetchNotifications,
-    markAsRead, 
-    markAllAsRead, 
-    deleteNotification 
+    markAsRead,
+    markAllAsRead,
+    clearAllNotifications
   } = useNotifications();
 
   const router = useRouter();
+  const auth = useSelector((state) => state.auth);
+  const userRole = auth?.userType || auth?.user?.role;
 
   useEffect(() => {
     if (isOpen) {
@@ -32,16 +35,14 @@ const NotificationPanel = ({ isOpen, onClose }) => {
       markAsRead(notification._id);
     }
     
-    const url = getRedirectUrl(user.role, notification.type, notification.data);
+    const url = getRedirectUrl(userRole, notification.type, notification.data);
     router.push(url);
     
     onClose();
   };
 
   const handleClearAll = async () => {
-    for (const notification of notifications) {
-      await deleteNotification(notification._id);
-    }
+    await clearAllNotifications();
   };
 
   const getNotificationIcon = (type) => {

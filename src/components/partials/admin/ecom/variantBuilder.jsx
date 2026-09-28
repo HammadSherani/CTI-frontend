@@ -100,8 +100,18 @@ const isDark = (hex = "#000") => {
 };
 
 const calcFinalPrice = (price, pct) => {
-  if (!price || !pct || pct <= 0 || pct >= 100) return null;
-  return Number((Number(price) - (Number(price) * Number(pct)) / 100).toFixed(2));
+  if (!price) return null;
+  const baseNum = Number(price) || 0;
+  const platformFee = Math.round((baseNum * 10) / 100);
+  const sellingPrice = baseNum + platformFee;
+  
+  const discNum = Number(pct) || 0;
+  if (discNum <= 0 || discNum >= 100) {
+    return sellingPrice;
+  }
+  
+  const savings = Math.round((sellingPrice * discNum) / 100);
+  return sellingPrice - savings;
 };
 
 /* ══════════════════════════════════════════════════════════
@@ -940,7 +950,7 @@ function VariantCardItem({
           />
         </div>
         <div>
-          <label className="block text-[9px] font-black text-gray-400 uppercase tracking-tight mb-0.5">Sale Price</label>
+          <label className="block text-[9px] font-black text-gray-400 uppercase tracking-tight mb-0.5">Final Customer Price</label>
           <div className="h-8 flex items-center">
             {salePrice ? (
               <span className="font-extrabold text-emerald-600 text-xs">${salePrice}</span>
@@ -1009,7 +1019,7 @@ function VariantTable({
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Price ($)</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Stock</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Disc %</th>
-              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Sale Price</th>
+              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Final Price</th>
               <th className="px-4 py-3.5 w-10"></th>
             </tr>
           </thead>

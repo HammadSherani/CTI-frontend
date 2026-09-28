@@ -21,9 +21,7 @@ const checkoutSchema = yup.object().shape({
   email: yup.string().email('Valid email is required').required('Email is required'),
   phone: yup
     .string()
-    .matches(/^[0-9]+$/, 'Only numbers are allowed')
-    .min(10, 'Phone number must be at least 10 digits')
-    .max(15, 'Phone number must not exceed 15 digits')
+    .matches(/^5[0-9]{9}$/, 'Phone number must be exactly 10 digits and start with 5 (e.g., 5551234567)')
     .required('Phone is required'),
   address: yup.string().required('Address is required'),
   countryCode: yup.string().required('Country is required'),
@@ -511,17 +509,21 @@ export default function CheckoutPage() {
 
               {/* Phone */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone (Turkish Only) *</label>
                 <div className="relative">
                   <Icon icon="mdi:phone-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
                   <input
                     type="text" name="phone" value={form.phone}
                     onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setForm(f => ({ ...f, phone: v })); setErrors(p => ({ ...p, phone: '' })); }}
-                    inputMode="numeric" maxLength={15} placeholder="03000000000"
+                    inputMode="numeric" maxLength={10} placeholder="e.g. 5551234567 (10 digits without zero)"
                     className={`w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors ${errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'}`}
                   />
                 </div>
-                {errors.phone && <p className="mt-1 text-xs text-red-500">{errors.phone}</p>}
+                {errors.phone ? (
+                  <p className="mt-1 text-xs text-red-500">{errors.phone}</p>
+                ) : (
+                  <p className="mt-1 text-[10px] text-gray-400">Must start with 5 and be exactly 10 digits.</p>
+                )}
               </div>
 
               {/* Address Line — full width */}

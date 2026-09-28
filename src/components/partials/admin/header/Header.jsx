@@ -28,6 +28,15 @@ function Header() {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
+  const toggleDropdown = (name) => {
+    setIsDropdownOpen(name === 'profile' ? !isDropdownOpen : false);
+    setIsCatalogDropdownOpen(name === 'catalog' ? !isCatalogDropdownOpen : false);
+    setIsUsersDropdownOpen(name === 'users' ? !isUsersDropdownOpen : false);
+    setIsPartsDropdownOpen(name === 'parts' ? !isPartsDropdownOpen : false);
+    setIsAcademyDropdownOpen(name === 'academy' ? !isAcademyDropdownOpen : false);
+    setIsModulesDropdownOpen(name === 'modules' ? !isModulesDropdownOpen : false);
+  };
+
   const handleLogout = () => {
     dispatch(clearAuth());
   };
@@ -194,12 +203,12 @@ function Header() {
     );
   };
 
-  const renderNavLink = (link, dropdownOpen, setDropdownOpen, dropdownRef) => {
+  const renderNavLink = (link, dropdownOpen, toggleFn, dropdownRef) => {
     if (link.hasSubmenu) {
       return (
         <div key={link.name} className="relative" ref={dropdownRef}>
           <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
+            onClick={toggleFn}
             className={`relative px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-1.5 group
               ${(isSubmenuActive(link.submenu) || dropdownOpen)
                 ? 'text-primary-600 bg-primary-50'
@@ -290,15 +299,15 @@ function Header() {
           <nav className="hidden lg:flex items-center text-nowrap gap-1">
             {primaryNavLinks.map((link) => {
               if (link.name === "Catalog") {
-                return renderNavLink(link, isCatalogDropdownOpen, setIsCatalogDropdownOpen, catalogDropdownRef);
+                return renderNavLink(link, isCatalogDropdownOpen, () => toggleDropdown('catalog'), catalogDropdownRef);
               } else if (link.name === "Academy") {
-                return renderNavLink(link, isAcademyDropdownOpen, setIsAcademyDropdownOpen, academyDropdownRef);
+                return renderNavLink(link, isAcademyDropdownOpen, () => toggleDropdown('academy'), academyDropdownRef);
               } else if (link.name === "Users") {
-                return renderNavLink(link, isUsersDropdownOpen, setIsUsersDropdownOpen, usersDropdownRef);
+                return renderNavLink(link, isUsersDropdownOpen, () => toggleDropdown('users'), usersDropdownRef);
               } else if (link.name === "Parts Management") {
-                return renderNavLink(link, isPartsDropdownOpen, setIsPartsDropdownOpen, partsDropdownRef);
+                return renderNavLink(link, isPartsDropdownOpen, () => toggleDropdown('parts'), partsDropdownRef);
               } else if (link.name === "Modules") {
-                return renderNavLink(link, isModulesDropdownOpen, setIsModulesDropdownOpen, modulesDropdownRef);
+                return renderNavLink(link, isModulesDropdownOpen, () => toggleDropdown('modules'), modulesDropdownRef);
               }
               return renderNavLink(link);
             })}
@@ -312,7 +321,7 @@ function Header() {
           {/* User Profile Dropdown */}
           <div className="relative left-2" ref={dropdownRef}>
             <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              onClick={() => toggleDropdown('profile')}
               className={`flex items-center gap-3 px-3 py-2 rounded-xl transition-all duration-200 group
               ${isDropdownOpen ? 'bg-gray-100 shadow-sm' : 'hover:bg-gray-50'}`}
             >

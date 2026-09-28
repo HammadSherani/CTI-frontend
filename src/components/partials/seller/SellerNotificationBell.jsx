@@ -7,12 +7,12 @@ import { useRouter, Link } from "@/i18n/navigation";
 import { formatDistanceToNow } from 'date-fns';
 
 const SellerNotificationPanel = ({ isOpen, onClose }) => {
-  const { 
-    notifications, 
-    unreadCount, 
+  const {
+    notifications,
+    unreadCount,
     fetchNotifications,
-    markAsRead, 
-    deleteNotification,
+    markAsRead,
+    clearAllNotifications,
     isLoading
   } = useNotifications();
 
@@ -38,9 +38,7 @@ const SellerNotificationPanel = ({ isOpen, onClose }) => {
   };
 
   const handleClearAll = async () => {
-    for (const notification of notifications) {
-      await deleteNotification(notification._id);
-    }
+    await clearAllNotifications();
   };
 
   const getNotificationIcon = (type) => {

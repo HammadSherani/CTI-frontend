@@ -98,7 +98,9 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
           height: parseFloat(pkg.height || 10),
           length: parseFloat(pkg.length || 10),
           packageCount: parseInt(pkg.packageCount || 1),
-          notes: pkg.notes
+          notes: pkg.notes,
+          unit: "CM",
+          massUnit: "KG"
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
