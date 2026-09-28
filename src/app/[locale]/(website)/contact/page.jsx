@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
-import { subtitles } from '@cloudinary/url-gen/qualifiers/source';
+
 
 function ContactUs() {
   const [formData, setFormData] = useState({
@@ -63,47 +63,6 @@ function ContactUs() {
     }
   ];
 
-  const reachesUs = [
-    {
-      title: "Live Chat Support",
-      description: "Connect with our support team instantly. Get real-time answers to your questions 24/7.",
-      icon: "mdi:chat-processing",
-      color: "bg-blue-50 border-blue-200"
-    },
-    {
-      title: "Knowledge Base",
-      description: "Explore our comprehensive library of guides, tutorials, and FAQs for quick solutions.",
-      icon: "mdi:book-open-variant",
-      color: "bg-green-50 border-green-200"
-    },
-    {
-      title: "Community Forum",
-      description: "Join thousands of users sharing experiences and helping each other succeed.",
-      icon: "mdi:account-group",
-      color: "bg-purple-50 border-purple-200"
-    },
-    {
-      title: "Video Tutorials",
-      description: "Watch step-by-step video guides to master our platform and features.",
-      icon: "mdi:video-box",
-      color: "bg-pink-50 border-pink-200"
-    },
-    {
-      title: "Schedule a Call",
-      description: "Book a personalized consultation with our experts at your convenience.",
-      icon: "mdi:calendar-clock",
-      color: "bg-orange-50 border-orange-200"
-    },
-    {
-      title: "Social Media",
-      description: "Follow us on social platforms for updates, tips, and community engagement.",
-      icon: "mdi:share-variant",
-      color: "bg-indigo-50 border-indigo-200"
-    }
-  ];
-
- 
-
   const socialLinks = [
     { icon: "mdi:facebook", url: "#", color: "hover:text-blue-600" },
     { icon: "mdi:twitter", url: "#", color: "hover:text-sky-500" },
@@ -111,27 +70,6 @@ function ContactUs() {
     { icon: "mdi:instagram", url: "#", color: "hover:text-pink-600" },
     { icon: "mdi:youtube", url: "#", color: "hover:text-red-600" }
   ];
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        duration: 0.5
-      }
-    }
-  };
 
   return (
     <div className="bg-gradient-to-b from-gray-50 to-white">
@@ -279,58 +217,6 @@ function ContactUs() {
 
 
 
-      {/* Alternative Contact Methods */}
-      <section className="py-20 px-4 sm:px-8 lg:px-20 mt-4 mb-4 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="text-center mb-16"
-          >
-            <h2 className="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">
-              More Ways to <span className="text-primary-600">Connect</span>
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Choose the communication channel that works best for you
-            </p>
-          </motion.div>
-
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true }}
-            className="grid sm:grid-cols-2 lg:grid-cols-2 gap-8"
-          >
-            {reachesUs.map((method, index) => (
-              <motion.div
-                key={index}
-                variants={itemVariants}
-                whileHover={{ y: -8, scale: 1.02 }}
-                className={`${method.color} border-2 flex gap-6  rounded-2xl p-4 hover:shadow-xl transition-all duration-300 cursor-pointer group`}
-              >
-                <div className="w-16 h-16 p-4 bg-white rounded-xl flex items-center justify-center mb-6 shadow-md group-hover:shadow-lg group-hover:scale-110 transition-all">
-                  <Icon icon={method.icon} className="text-4xl text-primary-600" />
-                </div>
-                <div>
-
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{method.title}</h3>
-                <p className="text-gray-600 mb-6 leading-relaxed">{method.description}</p>
-                <button className="flex items-center gap-2 text-primary-600 font-semibold group-hover:gap-3 transition-all">
-                  Learn More
-                  <Icon icon="mdi:arrow-right" className="text-xl" />
-                </button>
-                </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
-
-      
-     
 
       {/* Call to Action */}
       <section className="py-10 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-primary-600 via-primary-700 to-primary-400 text-white relative overflow-hidden">

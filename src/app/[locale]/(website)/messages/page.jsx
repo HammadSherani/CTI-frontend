@@ -135,7 +135,7 @@ export default function MessagesPage() {
   const searchRef = useRef(null);
 
   const fetchQueries = useCallback(async () => {
-    if (!token) { router.push('/login'); return; }
+    if (!token) { router.push('/auth/login'); return; }
     setLoading(true);
     try {
       const params = new URLSearchParams({ queryType: tab, page, limit: 20 });
