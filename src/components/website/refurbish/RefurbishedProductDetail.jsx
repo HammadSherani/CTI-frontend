@@ -638,18 +638,18 @@ export default function RefurbishedProductDetail({ params }) {
                 <button
                   onClick={handleAddToCart}
                   disabled={!inStock}
-                  className="flex-1 cursor-pointer text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 bg-primary-500 hover:bg-primary-600 text-black shadow-lg shadow-primary-200"
+                  className="flex-1 cursor-pointer text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed bg-primary-500 hover:bg-primary-600 text-black shadow-lg shadow-primary-200"
                 >
                   <Icon icon="solar:cart-large-minimalistic-bold" className="w-5 h-5" />
-                  Add to Cart
+                  {inStock ? 'Add to Cart' : 'Out of Stock'}
                 </button>
                 <button
                   onClick={handleBuyNow}
                   disabled={!inStock}
-                  className="flex-1 cursor-pointer bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50"
+                  className="flex-1 cursor-pointer bg-gray-900 hover:bg-black text-white font-bold py-3 rounded-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Icon icon="mdi:flash" className="w-5 h-5" />
-                  Buy Now
+                  {inStock ? 'Buy Now' : 'Out of Stock'}
                 </button>
               </div>
 

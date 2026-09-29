@@ -69,13 +69,70 @@ function InfoRow({ label, value, mono = false, icon }) {
   );
 }
 
+/* ── Standard Package Presets ───────────────────────────────────── */
+const PACKAGE_PRESETS = [
+  { id: "envelope",  label: "Envelope",    icon: "mdi:email-outline",             weight: "0.5", length: "35", width: "25", height: "3",  desc: "35×25×3 cm · 0.5 kg" },
+  { id: "small",     label: "Small Box",   icon: "mdi:package-variant-closed",    weight: "1",   length: "30", width: "20", height: "15", desc: "30×20×15 cm · 1 kg" },
+  { id: "medium",    label: "Medium Box",  icon: "mdi:package-variant",           weight: "3",   length: "40", width: "30", height: "20", desc: "40×30×20 cm · 3 kg" },
+  { id: "large",     label: "Large Box",   icon: "mdi:package",                   weight: "5",   length: "60", width: "40", height: "30", desc: "60×40×30 cm · 5 kg" },
+  { id: "xlarge",    label: "Extra Large", icon: "mdi:archive-outline",           weight: "10",  length: "80", width: "50", height: "40", desc: "80×50×40 cm · 10 kg" },
+  { id: "custom",    label: "Custom",      icon: "mdi:pencil-ruler-outline",      weight: "",    length: "",   width: "",   height: "",   desc: "Enter custom size" },
+];
+
+/* ── Courier Logo / Brand Map ───────────────────────────────────── */
+const COURIER_BRANDS = {
+  // Turkish carriers (match Geliver providerCode / providerServiceCode strings)
+  ARAS:         { name: "Aras Kargo",     color: "#E31E24", bg: "#FFF0F0", icon: "mdi:truck-delivery" },
+  ARASFAST:     { name: "Aras Kargo",     color: "#E31E24", bg: "#FFF0F0", icon: "mdi:truck-delivery" },
+  YURTICI:      { name: "Yurtiçi Kargo",  color: "#F7A900", bg: "#FFFBEE", icon: "mdi:truck-fast-outline" },
+  YURTICICARGO: { name: "Yurtiçi Kargo",  color: "#F7A900", bg: "#FFFBEE", icon: "mdi:truck-fast-outline" },
+  MNG:          { name: "MNG Kargo",      color: "#003087", bg: "#EEF3FF", icon: "mdi:package-variant-closed-check" },
+  MNGKARGO:     { name: "MNG Kargo",      color: "#003087", bg: "#EEF3FF", icon: "mdi:package-variant-closed-check" },
+  PTT:          { name: "PTT Kargo",      color: "#F9A825", bg: "#FFFDE7", icon: "mdi:mailbox-outline" },
+  PTTKARGO:     { name: "PTT Kargo",      color: "#F9A825", bg: "#FFFDE7", icon: "mdi:mailbox-outline" },
+  SURAT:        { name: "Sürat Kargo",    color: "#1565C0", bg: "#E8F4FD", icon: "mdi:lightning-bolt" },
+  SURATKARGO:   { name: "Sürat Kargo",    color: "#1565C0", bg: "#E8F4FD", icon: "mdi:lightning-bolt" },
+  SENDEO:       { name: "Sendeo",         color: "#E91E8C", bg: "#FDE8F3", icon: "mdi:send" },
+  HEPSIJET:     { name: "Hepsijet",       color: "#FF6900", bg: "#FFF3E8", icon: "mdi:flash-outline" },
+  HB:           { name: "Hepsijet",       color: "#FF6900", bg: "#FFF3E8", icon: "mdi:flash-outline" },
+  TRENDYOL:     { name: "Trendyol Expr.", color: "#FF6600", bg: "#FFF2E8", icon: "mdi:shopping-outline" },
+  KARGOIST:     { name: "Kargoist",       color: "#4CAF50", bg: "#E8F5E9", icon: "mdi:package-check" },
+  GELIVER:      { name: "Geliver",        color: "#6C47FF", bg: "#F0EEFF", icon: "mdi:truck-cargo-container" },
+  // International
+  UPS:          { name: "UPS",            color: "#351C15", bg: "#FFF8E1", icon: "mdi:truck" },
+  DHL:          { name: "DHL",            color: "#FFCC00", bg: "#FFFDE7", icon: "mdi:airplane-takeoff" },
+  FEDEX:        { name: "FedEx",          color: "#4D148C", bg: "#F5EEFF", icon: "mdi:package-variant-remove" },
+  TNT:          { name: "TNT",            color: "#FF6600", bg: "#FFF2E8", icon: "mdi:truck-outline" },
+};
+
+function getCourierBrand(carrierCode) {
+  if (!carrierCode) return null;
+  const key = carrierCode.toUpperCase().replace(/[-_\s]/g, "");
+  // Try exact match first, then prefix match
+  if (COURIER_BRANDS[key]) return COURIER_BRANDS[key];
+  const found = Object.keys(COURIER_BRANDS).find(k => key.startsWith(k) || k.startsWith(key));
+  return found ? COURIER_BRANDS[found] : null;
+}
+
 /* ── Create Shipment Section ─────────────────────────────────────── */
 function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalculated }) {
+  const [selectedPreset, setSelectedPreset] = useState(null);
   const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+
+  const handlePresetSelect = (preset) => {
+    setSelectedPreset(preset.id);
+    setRateResult(null);
+    setError("");
+    if (preset.id === "custom") {
+      setPkg(p => ({ ...p, weight: "", length: "", width: "", height: "" }));
+    } else {
+      setPkg(p => ({ ...p, weight: preset.weight, length: preset.length, width: preset.width, height: preset.height }));
+    }
+  };
 
   const handlePkgChange = (e) => {
     const { name, value } = e.target;
@@ -188,9 +245,42 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
         {order.shippingAddress?.phone && <p className="text-primary-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
       </div>
 
-      {/* Package Details */}
-      <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-4">
-        <Icon icon="mdi:package-variant-closed" className="w-4 h-4 text-gray-400" /> Package Details
+      {/* ── Package Size Presets ── */}
+      <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-3">
+        <Icon icon="mdi:package-variant-closed" className="w-4 h-4 text-gray-400" /> Select Package Size
+      </p>
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 mb-5">
+        {PACKAGE_PRESETS.map((preset) => {
+          const isSelected = selectedPreset === preset.id;
+          return (
+            <button
+              key={preset.id}
+              onClick={() => handlePresetSelect(preset)}
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 text-center transition-all duration-150 ${
+                isSelected
+                  ? "border-primary-500 bg-primary-50 shadow-sm"
+                  : "border-gray-100 bg-gray-50 hover:border-primary-200 hover:bg-primary-50/30"
+              }`}
+            >
+              <Icon
+                icon={preset.icon}
+                className={`w-5 h-5 ${isSelected ? "text-primary-600" : "text-gray-400"}`}
+              />
+              <span className={`text-[11px] font-bold leading-tight ${isSelected ? "text-primary-700" : "text-gray-700"}`}>
+                {preset.label}
+              </span>
+              <span className="text-[9px] text-gray-400 leading-tight">{preset.desc}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Package Details inputs — always visible so user can fine-tune */}
+      <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-3">
+        <Icon icon="mdi:ruler-square" className="w-4 h-4 text-gray-400" /> Package Details
+        {selectedPreset && selectedPreset !== "custom" && (
+          <span className="text-[10px] font-normal text-gray-400 ml-1">(Preset — you can edit)</span>
+        )}
       </p>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
         <div>
@@ -221,44 +311,84 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4 text-xs text-red-700 font-semibold">
-          <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0" />{error}
+        <div className="flex flex-col gap-1 bg-red-50 border border-red-100 rounded-xl px-3 py-3 mb-4">
+          <div className="flex items-start gap-2 text-xs text-red-700 font-semibold">
+            <Icon icon="mdi:alert-circle-outline" className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+          {(error.toLowerCase().includes("contract") || error.toLowerCase().includes("sözle")) && (
+            <a
+              href="https://app.geliver.io"
+              target="_blank"
+              rel="noreferrer"
+              className="ml-6 text-[10px] text-red-600 underline font-bold hover:text-red-800"
+            >
+              → Go to Geliver dashboard (app.geliver.io) and sign the contract in the Contracts section
+            </a>
+          )}
         </div>
       )}
 
-      {/* Geliver Selectable Rate Offers List */}
+      {/* ── Courier Offer Cards ── */}
       {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
-        <div className="space-y-3 mb-5 border-t border-gray-150 pt-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer (Wallet payment)</p>
+        <div className="space-y-3 mb-5 border-t border-gray-100 pt-5">
+          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+            <Icon icon="mdi:truck-outline" className="w-3.5 h-3.5" />
+            Select Shipping Carrier Offer
+            <span className="normal-case font-normal text-gray-400 ml-1">— Paid via Wallet</span>
+          </p>
           <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
-            {rateResult.offers.map((offer) => (
-              <div
-                key={offer.offerId}
-                className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
-                    <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
+            {rateResult.offers.map((offer) => {
+              const brand = getCourierBrand(offer.carrier);
+              return (
+                <div
+                  key={offer.offerId}
+                  className="flex items-center justify-between p-3.5 bg-white border border-gray-100 rounded-xl hover:border-primary-300 hover:shadow-sm transition-all duration-200"
+                >
+                  <div className="flex items-center gap-3">
+                    {/* Courier logo / icon */}
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                      style={{ background: brand?.bg || "#F3F4F6" }}
+                    >
+                      <Icon
+                        icon={brand?.icon || "mdi:truck-delivery-outline"}
+                        className="w-5 h-5"
+                        style={{ color: brand?.color || "#6B7280" }}
+                      />
+                    </div>
+                    <div>
+                      <p className="font-extrabold text-gray-900 text-xs">{brand?.name || offer.carrier}</p>
+                      {offer.carrier !== (brand?.name || offer.carrier) && (
+                        <p className="text-[9px] text-gray-400 font-mono">{offer.carrier}</p>
+                      )}
+                      <p className="text-[10px] text-gray-400 font-bold mt-0.5">
+                        {offer.estimatedDays
+                          ? `~${offer.estimatedDays} days`
+                          : "Time not specified"}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
-                    <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>
+                  <div className="flex items-center gap-3">
+                    <div className="text-right">
+                      <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
+                      <p className="font-black text-gray-900 text-sm mt-0.5">
+                        {offer.cost.toFixed(2)}{" "}
+                        <span className="text-[10px] font-bold text-gray-500">{offer.currency}</span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => handleCreate(offer)}
+                      className="px-3.5 py-2 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
+                      style={{ background: brand?.color || "#2563EB" }}
+                    >
+                      <Icon icon="mdi:send-check-outline" className="w-3.5 h-3.5" />
+                      Ship
+                    </button>
                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
-                    <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
-                  </div>
-                  <button
-                    onClick={() => handleCreate(offer)}
-                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
-                  >
-                    Pay & Ship
-                  </button>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -285,7 +415,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
 
       {rateResult && (
         <button
-          onClick={() => setRateResult(null)}
+          onClick={() => { setRateResult(null); setError(""); }}
           className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold py-2 rounded-xl text-xs transition-colors flex items-center justify-center gap-1 mt-2"
         >
           <Icon icon="mdi:refresh" className="w-4 h-4" /> Change Package Info
