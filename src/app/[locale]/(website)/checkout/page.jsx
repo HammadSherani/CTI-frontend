@@ -13,6 +13,7 @@ import * as yup from 'yup';
 import { Country, State, City } from 'country-state-city';
 import LoginModal from './LoginModal';
 import Select from 'react-select';
+import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 
 // ── Yup Validation Schema ─────────────────────────────────────────────────────
 const checkoutSchema = yup.object().shape({
@@ -21,10 +22,10 @@ const checkoutSchema = yup.object().shape({
   email: yup.string().email('Valid email is required').required('Email is required'),
   phone: yup
     .string()
-    .matches(/^5[0-9]{9}$/, 'Phone number must be exactly 10 digits and start with 5 (e.g., 5551234567)')
+    .matches(/^5[0-9]{9}$/, 'Phone must be a valid Turkish number starting with 5 (e.g. 5XXXXXXXXX)')
     .required('Phone is required'),
   address: yup.string().required('Address is required'),
-  countryCode: yup.string().required('Country is required'),
+  countryCode: yup.string().oneOf(['TR'], 'Only Turkey is supported currently').required('Country is required'),
   stateCode: yup.string().required('State / Province is required'),
   city: yup.string().required('City is required'),
   postalCode: yup.string().matches(/^[0-9]*$/, 'Postal Code must contain only numbers').nullable(),
@@ -121,6 +122,7 @@ export default function CheckoutPage() {
   const [items, setItems] = useState([]);
   const [subTotal, setSubTotal] = useState(0);
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(null);
 
   const [paymentMethod, setPaymentMethod] = useState();
   const [saveCard, setSaveCard] = useState(false);
@@ -405,11 +407,19 @@ export default function CheckoutPage() {
           }
         }
 
-        // Navigation Logic: If there are items left in either cart, go to /cart, else /orders
-        if (otherSellerItemsCount > 0 || otherCartItems.length > 0) {
-          router.push('/cart');
+        // Navigation: Redirect to specific order detail page
+        const orderId = res.data.order?._id;
+        if (orderId) {
+          setOrderSuccess({
+            ...res.data.order,
+            hasOtherItems: (otherSellerItemsCount > 0 || otherCartItems.length > 0)
+          });
         } else {
-          router.push(isRefurbished ? '/orders?type=refurbished' : '/orders');
+          if (otherSellerItemsCount > 0 || otherCartItems.length > 0) {
+            router.push('/cart');
+          } else {
+            router.push(isRefurbished ? '/orders?type=refurbished' : '/orders');
+          }
         }
       } else {
         toast.error(res.data.message || 'Failed to place order');
@@ -427,6 +437,53 @@ export default function CheckoutPage() {
         <div className="flex flex-col items-center gap-3">
           <Icon icon="mdi:loading" className="animate-spin text-4xl text-primary-500" />
           <p className="text-sm text-gray-400">Loading checkout…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (orderSuccess) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white max-w-lg w-full rounded-3xl shadow-xl overflow-hidden border border-gray-100 p-8 text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <Icon icon="mdi:check-circle" className="text-5xl text-green-500" />
+          </div>
+          <h2 className="text-3xl font-black text-gray-900 mb-2">Order Successful!</h2>
+          <p className="text-gray-500 mb-6">Your order #{orderSuccess.orderNo || orderSuccess._id} has been placed.</p>
+
+          <div className="bg-gray-50 rounded-2xl p-6 mb-8 border border-gray-100 text-left">
+            <h3 className="font-bold text-gray-800 mb-4 border-b pb-2">Order Summary</h3>
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-500">Total Amount:</span>
+              <span className="font-bold text-primary-600">
+                {new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(orderSuccess.totalPrice || orderSuccess.totalAmount || TOTAL)}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-gray-500">Payment Status:</span>
+              <span className="font-semibold text-green-600 capitalize">{orderSuccess.paymentStatus?.toLowerCase() || 'Paid'}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            <InvoiceGenerator order={orderSuccess} className="w-full justify-center py-3 text-base" />
+            <button
+              onClick={() => {
+                if (orderSuccess.hasOtherItems) {
+                  router.push('/cart');
+                } else {
+                  router.push(isRefurbished ? `/orders/${orderSuccess._id}?type=refurbished` : `/orders/${orderSuccess._id}`);
+                }
+              }}
+              className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              {orderSuccess.hasOtherItems ? 'Continue to Cart' : 'View Order Details'}
+            </button>
+            <Link href="/" className="w-full py-3 text-primary-600 font-bold hover:underline transition-all">
+              Continue Shopping
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -509,20 +566,25 @@ export default function CheckoutPage() {
 
               {/* Phone */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone (Turkish Only) *</label>
-                <div className="relative">
-                  <Icon icon="mdi:phone-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                  Phone Number (Turkey Only) *
+                </label>
+                <div className="relative flex">
+                  {/* +90 prefix badge */}
+                  <span className="inline-flex items-center gap-1 px-3 border border-r-0 border-gray-200 rounded-l-xl bg-gray-50 text-sm text-gray-600 font-medium select-none whitespace-nowrap">
+                    🇹🇷 +90
+                  </span>
                   <input
                     type="text" name="phone" value={form.phone}
-                    onChange={e => { const v = e.target.value.replace(/[^0-9]/g, ''); setForm(f => ({ ...f, phone: v })); setErrors(p => ({ ...p, phone: '' })); }}
-                    inputMode="numeric" maxLength={10} placeholder="e.g. 5551234567 (10 digits without zero)"
-                    className={`w-full pl-9 pr-4 py-2.5 text-sm border rounded-xl focus:outline-none transition-colors ${errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'}`}
+                    onChange={e => { const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 10); setForm(f => ({ ...f, phone: v })); setErrors(p => ({ ...p, phone: '' })); }}
+                    inputMode="numeric" maxLength={10} placeholder="5XXXXXXXXX"
+                    className={`flex-1 pr-4 px-3 py-2.5 text-sm border rounded-r-xl focus:outline-none transition-colors ${errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'}`}
                   />
                 </div>
                 {errors.phone ? (
                   <p className="mt-1 text-xs text-red-500">{errors.phone}</p>
                 ) : (
-                  <p className="mt-1 text-[10px] text-gray-400">Must start with 5 and be exactly 10 digits.</p>
+                  <p className="mt-1 text-[10px] text-gray-400">Must start with 5 and be 10 digits long (e.g. 5551234567)</p>
                 )}
               </div>
 
@@ -576,7 +638,7 @@ export default function CheckoutPage() {
 
               {/* ── City Dropdown ── */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">City *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">City / District (İlçe) *</label>
                 <div className="relative">
                   <Icon icon="mdi:city-variant-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base z-10 pointer-events-none" />
                   {cityList.length > 0 ? (
