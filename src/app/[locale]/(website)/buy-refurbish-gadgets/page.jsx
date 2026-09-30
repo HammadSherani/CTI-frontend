@@ -154,9 +154,9 @@ export default function Refurbish() {
 
 
   const banners = [
-    { id: 1, src: '/assets/refurbish/banners/1.avif', alt: 'Refurbished Gadgets 1', href: '#' },
-    { id: 2, src: '/assets/refurbish/banners/2.avif', alt: 'Refurbished Gadgets 2', href: '#' },
-    { id: 3, src: '/assets/refurbish/banners/3.avif', alt: 'Refurbished Gadgets 3', href: '#' },
+    { id: 1, src: '/assets/refurbish/banners/65.png', alt: 'Refurbished Gadgets 1', href: '#' },
+    { id: 2, src: '/assets/refurbish/banners/22.png', alt: 'Refurbished Gadgets 2', href: '#' },
+    { id: 3, src: '/assets/refurbish/banners/3.png', alt: 'Refurbished Gadgets 3', href: '#' },
     { id: 4, src: '/assets/refurbish/banners/4.avif', alt: 'Refurbished Gadgets 4', href: '#' },
     { id: 5, src: '/assets/refurbish/banners/5.avif', alt: 'Refurbished Gadgets 5', href: '#' },
     { id: 6, src: '/assets/refurbish/banners/6.avif', alt: 'Refurbished Gadgets 6', href: '#' },
@@ -241,7 +241,7 @@ export default function Refurbish() {
       </div>
 
       {/* Categories Grid with Images */}
-      <div className="grid grid-cols-2 mt-10 mb-10 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-8 xl:grid-cols-6 gap-4 pb-2">
+      <div className="grid grid-cols-2 mt-10 mb-10 sm:grid-cols-3 md:grid-cols-8 lg:grid-cols-8 gap-4 pb-2">
         {loading
           ? Array.from({ length: 6 }).map((_, idx) => (
             <div key={`cat-sk-${idx}`} className="animate-pulse bg-gray-100/50 border border-gray-100 rounded-2xl px-1 py-3 text-center h-24 flex flex-col items-center justify-center gap-3">
@@ -253,19 +253,23 @@ export default function Refurbish() {
             <Link
               key={category.id}
               href={category.href}
-              className={`${category.bgColor} rounded-2xl px-1 py-3 text-center hover:shadow-xl transition-all duration-300 hover:-translate-y-1.5 group border border-transparent hover:border-primary-200 flex flex-col items-center gap-3`}
+              className="flex flex-col items-center justify-start w-full h-full gap-2 group transition-all duration-300 hover:-translate-y-1"
             >
-              <span className="text-[10px] font-semibold text-gray-800 group-hover:text-primary-500 transition-colors text-center leading-snug  flex items-center">
-                {category.name}
-              </span>
-              <div className="w-12 h-10 flex items-center justify-center overflow-hidden rounded-lg">
-                <Image
-                  src={category.image}
-                  alt={category.name}
-                  width={64}
-                  height={64}
-                  className="w-12 h-10 object-cover rounded-md group-hover:scale-110 transition-transform duration-300"
-                />
+              <div className="w-full pb-[75%] relative bg-[#eff8f6] rounded-[20px] hover:shadow-md transition-shadow border border-transparent hover:border-primary-100 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center p-3">
+                  <Image
+                    src={category.image}
+                    alt={category.name}
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-300 drop-shadow-sm"
+                  />
+                </div>
+              </div>
+              <div className="w-full flex justify-center h-10 mt-1">
+                <span className="text-[11px] sm:text-[13px] font-medium text-gray-800 group-hover:text-primary-600 transition-colors text-center px-1 leading-snug line-clamp-2">
+                  {category.name}
+                </span>
               </div>
             </Link>
           ))

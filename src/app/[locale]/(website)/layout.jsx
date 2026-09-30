@@ -81,7 +81,7 @@ function Layout({ children }) {
   }, [token, dispatch]);
 
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'auto' });
   }, [pathname]);
 
   useEffect(() => {

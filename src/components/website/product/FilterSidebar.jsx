@@ -120,6 +120,8 @@ export default function FilterSidebar({
   const [selectedStockStatuses, setSelectedStockStatuses] = useState([]);
   const [selectedWarrantyTypes, setSelectedWarrantyTypes] = useState([]);
   const [rating, setRating] = useState(0);
+  const [localPriceMin, setLocalPriceMin] = useState(MIN_PRICE);
+  const [localPriceMax, setLocalPriceMax] = useState(MAX_PRICE);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
   const [priceMax, setPriceMax] = useState(MAX_PRICE);
 
@@ -138,9 +140,17 @@ export default function FilterSidebar({
   }, [initKey]);
 
   /* ── Price slider ── */
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPriceMin(localPriceMin);
+      setPriceMax(localPriceMax);
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [localPriceMin, localPriceMax]);
+
   const trackRef = useRef(null);
-  const minPct = ((priceMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
-  const maxPct = ((priceMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
+  const minPct = ((localPriceMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
+  const maxPct = ((localPriceMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100;
 
   /* ── 1. Load categories + colors on mount ── */
   useEffect(() => {
@@ -296,6 +306,8 @@ export default function FilterSidebar({
     setSelectedStockStatuses([]);
     setSelectedWarrantyTypes([]);
     setRating(0);
+    setLocalPriceMin(MIN_PRICE);
+    setLocalPriceMax(MAX_PRICE);
     setPriceMin(MIN_PRICE);
     setPriceMax(MAX_PRICE);
   };
@@ -517,13 +529,13 @@ export default function FilterSidebar({
                   style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
                 />
               </div>
-              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMin}
-                onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
+              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMin}
+                onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
                 className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-                style={{ zIndex: priceMin > MAX_PRICE - 100 ? 5 : 3 }}
+                style={{ zIndex: localPriceMin > MAX_PRICE - 100 ? 5 : 3 }}
               />
-              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={priceMax}
-                onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
+              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMax}
+                onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
                 className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
                 style={{ zIndex: 4 }}
               />
@@ -531,16 +543,16 @@ export default function FilterSidebar({
             <div className="flex items-center gap-2 mt-4">
               <div className="flex-1 relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input type="number" min={MIN_PRICE} max={priceMax - 10} value={priceMin}
-                  onChange={e => setPriceMin(Math.min(Number(e.target.value), priceMax - 10))}
+                <input type="number" min={MIN_PRICE} max={localPriceMax - 10} value={localPriceMin}
+                  onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
                   className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
                 />
               </div>
               <span className="text-gray-400 text-sm font-medium">–</span>
               <div className="flex-1 relative">
                 <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input type="number" min={priceMin + 10} max={MAX_PRICE} value={priceMax}
-                  onChange={e => setPriceMax(Math.max(Number(e.target.value), priceMin + 10))}
+                <input type="number" min={localPriceMin + 10} max={MAX_PRICE} value={localPriceMax}
+                  onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
                   className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
                 />
               </div>

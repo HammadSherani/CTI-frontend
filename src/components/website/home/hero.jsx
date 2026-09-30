@@ -66,11 +66,11 @@ if(loading){
     {/* <div className="sticky top-[16%] z-50 left-0">
 <NavigationHeader/>
     </div> */}
-<section className="relative min-h-[300px]  text-white overflow-hidden z-10 bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
+<section className="relative min-h-[250px]  text-white overflow-hidden z-10 bg-[linear-gradient(87.19deg,rgba(247,151,87,0.92)_1.48%,#F64B00_92.88%)]">      {/* Background decorative dots */}
     
-      <div className="relative max-w-7xl mx-auto pt-14 px-2 py- z-10 l4">
+      <div className="relative max-w-7xl mx-auto pt-4 md:pt-6 px-2 z-10">
         {slides.length === 0 ? (
-          <div className="h-96 flex items-center justify-center">
+          <div className="h-64 flex items-center justify-center">
             <div className="animate-pulse flex flex-col items-center gap-6">
               <div className="w-16 h-16 rounded-full bg-white/20" />
               <div className="h-10 w-64 bg-white/20 rounded" />
@@ -92,10 +92,10 @@ if(loading){
           >
             {slides.map((slide, idx) => (
               <SwiperSlide key={slide._id || slide.id || idx}>
-                <div className="grid md:grid-cols-2 gap-12 items-center px-10 py-20  z-10">
+                <div className="grid md:grid-cols-2 gap-8 items-center px-6 md:px-10 py-10 md:py-12 z-10">
                   {/* Left - Text Content */}
                   <motion.div
-                    className="space-y-6 md:space-y-4"
+                    className="space-y-5 md:space-y-4"
                     variants={textVariants}
                     initial="hidden"
                     animate={activeIndex === idx ? "visible" : "hidden"}
@@ -132,58 +132,44 @@ if(loading){
      <div className="relative flex items-center justify-center">
 
   {/* 🔴 Background Vector */}
-  <motion.div
-    className="absolute z-0"
-    animate={{ scale: [1, 1.05, 1] }}
-    transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-  >
-    <Image 
-      src='/assets/home/line.png'
-      width={500}
-      height={500}
-      alt="line"
-      className="w-[260px] sm:w-[320px] md:w-[400px] lg:w-[480px] opacity-90"
-    />
-  </motion.div>
+
 
   {/* ✨ Ellipses (BEHIND IMAGE) */}
   <motion.div
-    className="absolute z-10 flex items-center justify-center"
+    className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none"
     animate={{ rotate: 360 }}
-    transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
+    transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
   >
-    <div className="relative w-[260px] md:w-[360px] h-[260px] md:h-[360px]">
-
-      <div className="absolute top-0 left-30">
-        <Image src="/assets/home/ellipse1.png" width={60} height={60} alt="ellipse 1" />
+    <div className="relative w-[300px] h-[300px] md:w-[450px] md:h-[450px]">
+      <div className="absolute top-[10%] left-[20%] md:top-[5%] md:left-[15%]">
+        <Image src="/assets/home/ellipse1.png" width={50} height={50} alt="ellipse 1" />
       </div>
-
-      <div className="absolute top-[35%] -left-[20%]">
-        <Image src="/assets/home/ellipse2.png" width={70} height={60} alt="ellipse 2" />
+      <div className="absolute top-[40%] -left-[10%] md:-left-[5%]">
+        <Image src="/assets/home/ellipse2.png" width={60} height={60} alt="ellipse 2" />
       </div>
-
-      <div className="absolute top-[45%] right-[0%]">
-        <Image src="/assets/home/ellipse3.png" width={80} height={60} alt="ellipse 3" />
+      <div className="absolute bottom-[20%] right-[0%] md:bottom-[15%] md:right-[5%]">
+        <Image src="/assets/home/ellipse3.png" width={70} height={70} alt="ellipse 3" />
       </div>
-
     </div>
   </motion.div>
 
   {/* 🟠 MAIN IMAGE (TOP MOST) */}
   <motion.div
-    className="relative z-20 flex justify-center items-center"
-    animate={{ y: [0, -18, 0], scale: [1, 1.04, 1] }}
-    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+    className="relative z-20 flex justify-center items-center pointer-events-none"
+    animate={{ y: [0, -15, 0] }}
+    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
   >
-    <Image
-      src={slide.image}
-      alt="hero"
-      width={600}
-      height={600}
-      className="w-[220px] md:w-[320px] lg:w-[360px] object-contain"
-    />
+    <div className="w-[260px] h-[260px] sm:w-[320px] sm:h-[320px] md:w-[380px] md:h-[380px] lg:w-[440px] lg:h-[440px] flex items-center justify-center">
+      <Image
+        src={slide.image}
+        alt="hero banner"
+        fill
+        sizes="(max-width: 768px) 100vw, 50vw"
+        className="object-contain drop-shadow-2xl"
+        priority={idx === 0}
+      />
+    </div>
   </motion.div>
-
 </div>
                 </div>
               </SwiperSlide>

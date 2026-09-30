@@ -124,13 +124,13 @@ function BrandModal({ mode, initial, subCategories, onClose, onSuccess }) {
           {/* Parent SubCategory */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Parent SubCategory *</label>
-            <SelectOptions 
-              isSearch={true} 
-              label="Parent SubCategory" 
-              icon="mdi:shape" 
-              options={subCategories.map(c => ({ _id: c._id, name: c.title }))} 
-              value={form.productSubCategoryId} 
-              onChange={(val) => setForm(p => ({ ...p, productSubCategoryId: val }))} 
+            <SelectOptions
+              isSearch={true}
+              label="Parent SubCategory"
+              icon="mdi:shape"
+              options={subCategories.map(c => ({ _id: c._id, name: c.title }))}
+              value={form.productSubCategoryId}
+              onChange={(val) => setForm(p => ({ ...p, productSubCategoryId: val }))}
             />
             {errors.productSubCategoryId && <p className="text-red-500 text-sm mt-1">{errors.productSubCategoryId}</p>}
           </div>

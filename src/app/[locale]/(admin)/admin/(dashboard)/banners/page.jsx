@@ -79,7 +79,7 @@ function AdminBannersPage() {
     const toggleActive = async (bannerId) => {
         try {
             const banner = banners.find(b => b._id === bannerId);
-            const res = await axiosInstance.put(`/admin/banners/${bannerId}`, 
+            const res = await axiosInstance.patch(`/admin/banners/${bannerId}/toggle-status`, 
                 { isActive: !banner.isActive },
                 {
                     headers: {

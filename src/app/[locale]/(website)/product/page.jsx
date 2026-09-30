@@ -198,34 +198,43 @@ export default function ProductListingPage() {
             />
           </div>
 
-          {loading ? (
+          {loading && products.length === 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {Array.from({ length: PAGE_SIZE }).map((_, i) => (
                 <div key={i} className="rounded-2xl bg-gray-100 animate-pulse h-72" />
               ))}
             </div>
-          ) : products.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {products.map(p => (
-                <ProductCard
-                  key={p._id}
-                  product={p}
-                  isWishlisted={wishlistItems.some(w => (w.productId?._id || w.productId) === p._id)}
-                  onWishlist={() => {
-                    if (auth?.user && (auth.user._id === p.sellerId || auth.user.id === p.sellerId)) {
-                      toast.error('You cannot add your own product to wishlist');
-                      return;
-                    }
-                    dispatch(toggleWishlistItem({ product: p, variantId: null }));
-                  }}
-                />
-              ))}
-            </div>
-          ) : (
+          ) : products.length === 0 && !loading ? (
             <div className="text-center py-24 bg-white rounded-2xl border border-gray-200">
               <Icon icon="mdi:package-variant-remove" className="w-16 h-16 text-gray-200 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-gray-700">No products found</h3>
               <p className="text-gray-400 mt-1 text-sm">Try adjusting your filters</p>
+            </div>
+          ) : (
+            <div className={`relative transition-opacity duration-300 ${loading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
+              {loading && (
+                <div className="absolute inset-0 z-50 flex items-start justify-center pt-24">
+                  <div className="sticky top-1/2 -mt-12 bg-white rounded-2xl shadow-xl p-4 flex items-center justify-center border border-gray-100">
+                    <Icon icon="line-md:loading-twotone-loop" className="w-8 h-8 text-primary-500" />
+                  </div>
+                </div>
+              )}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {products.map(p => (
+                  <ProductCard
+                    key={p._id}
+                    product={p}
+                    isWishlisted={wishlistItems.some(w => (w.productId?._id || w.productId) === p._id)}
+                    onWishlist={() => {
+                      if (auth?.user && (auth.user._id === p.sellerId || auth.user.id === p.sellerId)) {
+                        toast.error('You cannot add your own product to wishlist');
+                        return;
+                      }
+                      dispatch(toggleWishlistItem({ product: p, variantId: null }));
+                    }}
+                  />
+                ))}
+              </div>
             </div>
           )}
 

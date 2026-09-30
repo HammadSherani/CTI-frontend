@@ -332,11 +332,24 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
       {/* ── Courier Offer Cards ── */}
       {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
         <div className="space-y-3 mb-5 border-t border-gray-100 pt-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-            <Icon icon="mdi:truck-outline" className="w-3.5 h-3.5" />
-            Select Shipping Carrier Offer
-            <span className="normal-case font-normal text-gray-400 ml-1">— Paid via Wallet</span>
-          </p>
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+              <Icon icon="mdi:truck-outline" className="w-3.5 h-3.5" />
+              Select Shipping Carrier Offer
+              <span className="normal-case font-normal text-gray-400 ml-1">— Paid via Wallet</span>
+            </p>
+          </div>
+          
+          <div className="bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold px-3 py-2 rounded-xl mb-3 flex items-start gap-2">
+            <Icon icon="mdi:information-outline" className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600" />
+            <div>
+              <p className="font-bold">🧪 Test Mode Active</p>
+              <p className="font-medium opacity-90 leading-tight mt-0.5">
+                Geliver test shipments are being used. Offers below are simulated — real courier billing rates will be available in production mode.
+              </p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
             {rateResult.offers.map((offer) => {
               const brand = getCourierBrand(offer.carrier);
