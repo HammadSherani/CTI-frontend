@@ -54,8 +54,8 @@ const { token } = useSelector((state) => state.auth);
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6">
+    <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/40 p-4">
+      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl p-6 relative">
         <div className="flex items-center justify-between mb-5">
           <h3 className={`text-lg font-black ${isApprove ? 'text-emerald-700' : 'text-red-700'}`}>
             {isApprove ? 'Approve Withdrawal' : 'Reject Withdrawal'}
@@ -129,9 +129,9 @@ function DetailPanel({ request, onClose, onAction }) {
   const cfg = STATUS_CONFIG[request.status] || STATUS_CONFIG.pending;
 
   return (
-    <div className="fixed inset-0 z-40 flex">
-      <div className="flex-1 bg-black/30" onClick={onClose} />
-      <div className="w-full max-w-lg bg-white shadow-2xl overflow-y-auto flex flex-col">
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white shadow-2xl overflow-y-auto flex flex-col h-full transform transition-transform duration-300">
         <div className="flex items-center justify-between px-6 py-5 border-b border-slate-100">
           <h3 className="text-base font-black text-slate-900">Withdrawal Details</h3>
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">

@@ -459,8 +459,11 @@ export default function FilterSidebar({
                   return (
                     <button key={c.name} title={c.name}
                       onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${active ? 'border-primary-500 scale-110 shadow-md' : 'border-transparent hover:scale-105'
-                        }`}
+                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${
+                        active 
+                          ? 'border-primary-500 scale-110 shadow-md' 
+                          : 'border-gray-200 hover:border-gray-300 hover:scale-105'
+                      }`}
                       style={{ backgroundColor: c.hex }}
                     >
                       {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
