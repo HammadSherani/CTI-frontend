@@ -11,12 +11,35 @@ const MAX_PRICE = 2000;
 
 /* ── Color Map — uses hex from API if available, falls back to this ── */
 const FALLBACK_COLORS = {
-  Black: '#18181b', White: '#f5f5f5', Gray: '#6b7280',
-  Blue: '#3b82f6', Pink: '#ec4899', Green: '#22c55e',
-  Gold: '#d4a017', Red: '#ef4444', Navy: '#1e3a5f',
-  Purple: '#a855f7', Orange: '#f97316', Brown: '#92400e',
-  Teal: '#14b8a6', Yellow: '#eab308', Beige: '#d4b896',
+  black: '#18181b', white: '#f5f5f5', gray: '#6b7280', grey: '#6b7280',
+  blue: '#3b82f6', pink: '#ec4899', green: '#22c55e',
+  gold: '#d4a017', red: '#ef4444', navy: '#1e3a5f',
+  purple: '#a855f7', orange: '#f97316', brown: '#92400e',
+  teal: '#14b8a6', yellow: '#eab308', beige: '#d4b896',
+  silver: '#c0c0c0', platinum: '#e5e4e2', obsidian: '#0b0b0b',
+  midnight: '#191970', starlight: '#f8f9fa', graphite: '#41424c',
+  emerald: '#10b981', lilac: '#d8b4e2', iceblue: '#bae6fd',
+  bay: '#60a5fa', floral: '#fbcfe8', natural: '#99958f'
 };
+
+function getFallbackColor(name) {
+  if (!name) return '#ccc';
+  const lowerName = name.toLowerCase();
+
+  if (FALLBACK_COLORS[lowerName]) return FALLBACK_COLORS[lowerName];
+
+  for (const [key, hex] of Object.entries(FALLBACK_COLORS)) {
+    if (lowerName.includes(key)) return hex;
+  }
+
+  // Consistent hash for unknown colors
+  let hash = 0;
+  for (let i = 0; i < lowerName.length; i++) {
+    hash = lowerName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+  return '#' + '00000'.substring(0, 6 - c.length) + c;
+}
 
 /* ── Small Helpers ── */
 function Section({ title, badge, children, collapsible = true }) {
@@ -162,13 +185,20 @@ export default function FilterSidebar({
         const { data } = await axiosInstance.get(`/e-commerce/products/filters?${p.toString()}`);
         if (data.success) {
           setCategories(data.data.categories || []);
-          setAvailableColors(
-            (data.data.colors || []).map(c => ({
-              name: c.name,
-              hex: c.hex || FALLBACK_COLORS[c.name] || '#ccc',
-              isLight: c.name === 'White' || c.name === 'Beige',
-            }))
-          );
+          const uniqueColorsMap = new Map();
+          (data.data.colors || []).forEach(c => {
+            if (!c.name) return;
+            const normalizedName = c.name.trim();
+            const normalizedKey = normalizedName.toLowerCase();
+            if (!uniqueColorsMap.has(normalizedKey)) {
+              uniqueColorsMap.set(normalizedKey, {
+                name: normalizedName,
+                hex: c.hex || getFallbackColor(normalizedName),
+                isLight: normalizedKey === 'white' || normalizedKey === 'beige' || normalizedKey.includes('white') || normalizedKey.includes('silver'),
+              });
+            }
+          });
+          setAvailableColors(Array.from(uniqueColorsMap.values()));
           const allDynamic = data.data.dynamicAttributes || [];
           const typeAttr = allDynamic.find(a => /^(type|product\s*type)$/i.test(a.name));
           setProductTypeAttr(typeAttr || null);
@@ -320,7 +350,7 @@ export default function FilterSidebar({
 
   return (
     <>
-    <style>{`
+      <style>{`
       /* ── Inner section scrollbars — hidden ── */
       .fs-inner-scroll::-webkit-scrollbar { display: none; }
       .fs-inner-scroll { scrollbar-width: none; -ms-overflow-style: none; }
@@ -346,239 +376,237 @@ export default function FilterSidebar({
         opacity: 1 !important;
       }
     `}</style>
-    <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col ">
-      {/* Header */}
-      <div className="flex items-center justify-between  px-4 py-3 border-b border-gray-100 flex-shrink-0">
-        <div className="flex items-center gap-2">
-          <Icon icon="mdi:filter-variant" className="w-4 h-4 text-primary-500" />
-          <h2 className="text-sm font-black text-gray-900">Filters</h2>
+      <div className="w-full bg-white rounded-2xl border border-gray-200 shadow-sm flex flex-col min-h-[500px]">
+        {/* Header */}
+        <div className="flex items-center justify-between  px-4 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Icon icon="mdi:filter-variant" className="w-4 h-4 text-primary-500" />
+            <h2 className="text-sm font-black text-gray-900">Filters</h2>
+            {activeCount > 0 && (
+              <span className="bg-primary-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
+                {activeCount}
+              </span>
+            )}
+          </div>
           {activeCount > 0 && (
-            <span className="bg-primary-500 text-white text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">
-              {activeCount}
-            </span>
+            <button onClick={clearAll} className="text-[10px] text-primary-600 font-bold hover:underline flex items-center gap-1">
+              <Icon icon="mdi:close" className="w-3 h-3" />
+              Clear All
+            </button>
           )}
         </div>
-        {activeCount > 0 && (
-          <button onClick={clearAll} className="text-[10px] text-primary-600 font-bold hover:underline flex items-center gap-1">
-            <Icon icon="mdi:close" className="w-3 h-3" />
-            Clear All
-          </button>
-        )}
-      </div>
-      <SimpleBar className="flex-1 fs-main-scroll" style={{ maxHeight: 'calc(100vh - 120px)' }}>
-        <div className="p-4 space-y-3  flex-1 ">
-          {/* ── Product Type ── */}
-          {productTypeAttr && (
-            <Section title="Product Type" badge={selectedProductType ? 1 : null}>
-              <div className="flex flex-wrap gap-1.5">
-                {productTypeAttr.values.map(val => (
-                  <button
-                    key={val}
-                    type="button"
-                    onClick={() => setSelectedProductType(prev => prev === val ? null : val)}
-                    className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-all ${
-                      selectedProductType === val
+        <SimpleBar className="flex-1 fs-main-scroll" style={{ maxHeight: 'calc(100vh - 120px)' }}>
+          <div className="p-4 space-y-3  flex-1 ">
+            {/* ── Product Type ── */}
+            {productTypeAttr && (
+              <Section title="Product Type" badge={selectedProductType ? 1 : null}>
+                <div className="flex flex-wrap gap-1.5">
+                  {productTypeAttr.values.map(val => (
+                    <button
+                      key={val}
+                      type="button"
+                      onClick={() => setSelectedProductType(prev => prev === val ? null : val)}
+                      className={`px-3 py-1 rounded-full text-[12px] font-semibold border transition-all ${selectedProductType === val
                         ? 'bg-primary-500 border-primary-500 text-white shadow-sm'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-primary-400 hover:text-primary-600'
-                    }`}
-                  >
-                    {val}
+                        }`}
+                    >
+                      {val}
+                    </button>
+                  ))}
+                </div>
+              </Section>
+            )}
+
+            {/* ── Category ── */}
+            <Section title="Category" badge={selectedCategoryIds.length || null}>
+              {loadingCats ? (
+                <LoadingSkeleton />
+              ) : categories.length === 0 ? (
+                <p className="text-xs text-gray-400">No categories available</p>
+              ) : (
+                categories.map(c => (
+                  <CheckItem
+                    key={c._id}
+                    label={c.title}
+                    count={c.count}
+                    checked={selectedCategoryIds.includes(String(c._id))}
+                    onChange={() => toggleId(selectedCategoryIds, setSelectedCategoryIds, String(c._id))}
+                  />
+                ))
+              )}
+            </Section>
+
+            {/* ── Subcategory (cascading) ── */}
+            {(selectedCategoryIds.length > 0 || subcategories.length > 0) && (
+              <Section title="Sub-Category" badge={selectedSubIds.length || null}>
+                {loadingSubs ? (
+                  <LoadingSkeleton lines={3} />
+                ) : subcategories.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">No subcategories for selected categories</p>
+                ) : (
+                  subcategories.map(s => (
+                    <CheckItem
+                      key={s._id}
+                      label={s.title}
+                      count={s.count}
+                      checked={selectedSubIds.includes(String(s._id))}
+                      onChange={() => toggleId(selectedSubIds, setSelectedSubIds, String(s._id))}
+                    />
+                  ))
+                )}
+              </Section>
+            )}
+
+            {/* ── Brand (cascading) ── */}
+            {(selectedCategoryIds.length > 0 || brands.length > 0) && (
+              <Section title="Brand" badge={selectedBrandIds.length || null}>
+                {loadingBrands ? (
+                  <LoadingSkeleton lines={3} />
+                ) : brands.length === 0 ? (
+                  <p className="text-xs text-gray-400 italic">No brands available</p>
+                ) : (
+                  brands.map(b => (
+                    <CheckItem
+                      key={b._id}
+                      label={b.title}
+                      count={b.count}
+                      checked={selectedBrandIds.includes(String(b._id))}
+                      onChange={() => toggleId(selectedBrandIds, setSelectedBrandIds, String(b._id))}
+                    />
+                  ))
+                )}
+              </Section>
+            )}
+
+            {/* ── Colors ── */}
+            {availableColors.length > 0 && (
+              <Section title="Colors" badge={selectedColors.length || null}>
+                <div className="flex flex-wrap gap-2">
+                  {availableColors.map(c => {
+                    const active = selectedColors.includes(c.name);
+                    return (
+                      <button key={c.name} title={c.name}
+                        onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
+                        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${active
+                          ? 'border-primary-500 scale-110 shadow-md'
+                          : 'border-gray-200 hover:border-gray-300 hover:scale-105'
+                          }`}
+                        style={{ backgroundColor: c.hex }}
+                      >
+                        {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
+                      </button>
+                    );
+                  })}
+                </div>
+              </Section>
+            )}
+
+            {/* ── Stock Status ── */}
+            <Section title="Stock Status" badge={selectedStockStatuses.length || null}>
+              <CheckItem
+                label="In Stock"
+                count={stockStatusData.inStock}
+                checked={selectedStockStatuses.includes('in_stock')}
+                onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'in_stock')}
+              />
+              <CheckItem
+                label="Out of Stock"
+                count={stockStatusData.outOfStock}
+                checked={selectedStockStatuses.includes('out_of_stock')}
+                onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'out_of_stock')}
+              />
+            </Section>
+
+            {/* ── Warranty ── */}
+            {/* Backend warranty.type is "yes" | "no" — use w.type as the unique filter key
+              w.label is display only ("With Warranty" / "No Warranty") */}
+            {warrantyOptions.length > 0 && (
+              <Section title="Warranty" badge={selectedWarrantyTypes.length || null}>
+                {warrantyOptions.map(w => (
+                  <CheckItem
+                    key={w.type}
+                    label={w.label}
+                    count={w.count}
+                    checked={selectedWarrantyTypes.includes(w.type)}
+                    onChange={() => toggleId(selectedWarrantyTypes, setSelectedWarrantyTypes, w.type)}
+                  />
+                ))}
+              </Section>
+            )}
+
+            {/* ── Dynamic Attributes (Storage, Screen Size, Battery, etc.) ── */}
+            {dynamicAttributes.map(attr => (
+              <Section key={attr.name} title={attr.name} badge={selectedDynamicFilters[attr.name]?.length || null}>
+                <div className="space-y-1">
+                  {attr.values.map(val => (
+                    <CheckItem
+                      key={val}
+                      label={val}
+                      checked={(selectedDynamicFilters[attr.name] || []).includes(val)}
+                      onChange={() => toggleDynamicFilter(attr.name, val)}
+                    />
+                  ))}
+                </div>
+              </Section>
+            ))}
+
+            {/* ── Price Range ── */}
+            <Section title="Price Range" collapsible>
+              <div className="relative mt-3 mb-1" ref={trackRef}>
+                <div className="relative h-1.5 rounded-full bg-gray-200">
+                  <div
+                    className="absolute h-full rounded-full bg-primary-500"
+                    style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
+                  />
+                </div>
+                <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMin}
+                  onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
+                  className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+                  style={{ zIndex: localPriceMin > MAX_PRICE - 100 ? 5 : 3 }}
+                />
+                <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMax}
+                  onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
+                  className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
+                  style={{ zIndex: 4 }}
+                />
+              </div>
+              <div className="flex items-center gap-2 mt-4">
+                <div className="flex-1 relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input type="number" min={MIN_PRICE} max={localPriceMax - 10} value={localPriceMin}
+                    onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
+                    className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                  />
+                </div>
+                <span className="text-gray-400 text-sm font-medium">–</span>
+                <div className="flex-1 relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
+                  <input type="number" min={localPriceMin + 10} max={MAX_PRICE} value={localPriceMax}
+                    onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
+                    className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                  />
+                </div>
+              </div>
+            </Section>
+
+            {/* ── Rating ── */}
+            <Section title="Min Rating" collapsible>
+              <div className="flex gap-1 mt-1">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <button key={s} onClick={() => setRating(rating === s ? 0 : s)}
+                    className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
+                    ★
                   </button>
                 ))}
               </div>
+              {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
             </Section>
-          )}
 
-          {/* ── Category ── */}
-          <Section title="Category" badge={selectedCategoryIds.length || null}>
-            {loadingCats ? (
-              <LoadingSkeleton />
-            ) : categories.length === 0 ? (
-              <p className="text-xs text-gray-400">No categories available</p>
-            ) : (
-              categories.map(c => (
-                <CheckItem
-                  key={c._id}
-                  label={c.title}
-                  count={c.count}
-                  checked={selectedCategoryIds.includes(String(c._id))}
-                  onChange={() => toggleId(selectedCategoryIds, setSelectedCategoryIds, String(c._id))}
-                />
-              ))
-            )}
-          </Section>
+          </div>
+        </SimpleBar>
 
-          {/* ── Subcategory (cascading) ── */}
-          {(selectedCategoryIds.length > 0 || subcategories.length > 0) && (
-            <Section title="Sub-Category" badge={selectedSubIds.length || null}>
-              {loadingSubs ? (
-                <LoadingSkeleton lines={3} />
-              ) : subcategories.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No subcategories for selected categories</p>
-              ) : (
-                subcategories.map(s => (
-                  <CheckItem
-                    key={s._id}
-                    label={s.title}
-                    count={s.count}
-                    checked={selectedSubIds.includes(String(s._id))}
-                    onChange={() => toggleId(selectedSubIds, setSelectedSubIds, String(s._id))}
-                  />
-                ))
-              )}
-            </Section>
-          )}
-
-          {/* ── Brand (cascading) ── */}
-          {(selectedCategoryIds.length > 0 || brands.length > 0) && (
-            <Section title="Brand" badge={selectedBrandIds.length || null}>
-              {loadingBrands ? (
-                <LoadingSkeleton lines={3} />
-              ) : brands.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No brands available</p>
-              ) : (
-                brands.map(b => (
-                  <CheckItem
-                    key={b._id}
-                    label={b.title}
-                    count={b.count}
-                    checked={selectedBrandIds.includes(String(b._id))}
-                    onChange={() => toggleId(selectedBrandIds, setSelectedBrandIds, String(b._id))}
-                  />
-                ))
-              )}
-            </Section>
-          )}
-
-          {/* ── Colors ── */}
-          {availableColors.length > 0 && (
-            <Section title="Colors" badge={selectedColors.length || null}>
-              <div className="flex flex-wrap gap-2">
-                {availableColors.map(c => {
-                  const active = selectedColors.includes(c.name);
-                  return (
-                    <button key={c.name} title={c.name}
-                      onClick={() => toggleId(selectedColors, setSelectedColors, c.name)}
-                      className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-transform ${
-                        active 
-                          ? 'border-primary-500 scale-110 shadow-md' 
-                          : 'border-gray-200 hover:border-gray-300 hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: c.hex }}
-                    >
-                      {active && <Icon icon="mdi:check" className={`w-3.5 h-3.5 ${c.isLight ? 'text-gray-800' : 'text-white'}`} />}
-                    </button>
-                  );
-                })}
-              </div>
-            </Section>
-          )}
-
-          {/* ── Stock Status ── */}
-          <Section title="Stock Status" badge={selectedStockStatuses.length || null}>
-            <CheckItem
-              label="In Stock"
-              count={stockStatusData.inStock}
-              checked={selectedStockStatuses.includes('in_stock')}
-              onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'in_stock')}
-            />
-            <CheckItem
-              label="Out of Stock"
-              count={stockStatusData.outOfStock}
-              checked={selectedStockStatuses.includes('out_of_stock')}
-              onChange={() => toggleId(selectedStockStatuses, setSelectedStockStatuses, 'out_of_stock')}
-            />
-          </Section>
-
-          {/* ── Warranty ── */}
-          {/* Backend warranty.type is "yes" | "no" — use w.type as the unique filter key
-              w.label is display only ("With Warranty" / "No Warranty") */}
-          {warrantyOptions.length > 0 && (
-            <Section title="Warranty" badge={selectedWarrantyTypes.length || null}>
-              {warrantyOptions.map(w => (
-                <CheckItem
-                  key={w.type}
-                  label={w.label}
-                  count={w.count}
-                  checked={selectedWarrantyTypes.includes(w.type)}
-                  onChange={() => toggleId(selectedWarrantyTypes, setSelectedWarrantyTypes, w.type)}
-                />
-              ))}
-            </Section>
-          )}
-
-          {/* ── Dynamic Attributes (Storage, Screen Size, Battery, etc.) ── */}
-          {dynamicAttributes.map(attr => (
-            <Section key={attr.name} title={attr.name} badge={selectedDynamicFilters[attr.name]?.length || null}>
-              <div className="space-y-1">
-                {attr.values.map(val => (
-                  <CheckItem
-                    key={val}
-                    label={val}
-                    checked={(selectedDynamicFilters[attr.name] || []).includes(val)}
-                    onChange={() => toggleDynamicFilter(attr.name, val)}
-                  />
-                ))}
-              </div>
-            </Section>
-          ))}
-
-          {/* ── Price Range ── */}
-          <Section title="Price Range" collapsible>
-            <div className="relative mt-3 mb-1" ref={trackRef}>
-              <div className="relative h-1.5 rounded-full bg-gray-200">
-                <div
-                  className="absolute h-full rounded-full bg-primary-500"
-                  style={{ left: `${minPct}%`, right: `${100 - maxPct}%` }}
-                />
-              </div>
-              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMin}
-                onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
-                className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-                style={{ zIndex: localPriceMin > MAX_PRICE - 100 ? 5 : 3 }}
-              />
-              <input type="range" min={MIN_PRICE} max={MAX_PRICE} step={10} value={localPriceMax}
-                onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
-                className="dual-range absolute top-0 w-full h-1.5 appearance-none bg-transparent cursor-pointer"
-                style={{ zIndex: 4 }}
-              />
-            </div>
-            <div className="flex items-center gap-2 mt-4">
-              <div className="flex-1 relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input type="number" min={MIN_PRICE} max={localPriceMax - 10} value={localPriceMin}
-                  onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
-                  className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
-                />
-              </div>
-              <span className="text-gray-400 text-sm font-medium">–</span>
-              <div className="flex-1 relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">$</span>
-                <input type="number" min={localPriceMin + 10} max={MAX_PRICE} value={localPriceMax}
-                  onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
-                  className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
-                />
-              </div>
-            </div>
-          </Section>
-
-          {/* ── Rating ── */}
-          <Section title="Min Rating" collapsible>
-            <div className="flex gap-1 mt-1">
-              {[1, 2, 3, 4, 5].map(s => (
-                <button key={s} onClick={() => setRating(rating === s ? 0 : s)}
-                  className={`text-2xl transition-colors ${s <= rating ? 'text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`}>
-                  ★
-                </button>
-              ))}
-            </div>
-            {rating > 0 && <p className="text-xs text-gray-400 mt-1">≥ {rating} stars</p>}
-          </Section>
-
-        </div>
-      </SimpleBar>
-
-    </div>
+      </div>
     </>
   );
 }

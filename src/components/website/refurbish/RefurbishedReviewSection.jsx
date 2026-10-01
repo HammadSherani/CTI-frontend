@@ -132,7 +132,7 @@ export default function RefurbishedReviewSection() {
         <ReviewModal review={activeReview} onClose={() => setActiveReview(null)} />
       )}
 
-      <div className="bg-[#121212] -mx-[12.5%] px-[12.5%] py-12 md:py-16 mt-12 mb-12 rounded-xl">
+      <div className="bg-[#121212] px-6 md:px-12 py-12 md:py-16 mt-12 mb-12 rounded-3xl overflow-hidden">
         {/* Title */}
         <h2 className="text-white text-xl md:text-2xl lg:text-3xl font-bold text-center mb-10 leading-tight">
           10+ lakh Happy heroes of Earth trust us to buy refurbished phones

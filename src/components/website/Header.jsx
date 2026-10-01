@@ -82,8 +82,13 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
                   onMouseDown={() => onSelect({ type: "product", value: item.title, slug: item.slug })}
                   className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
                 >
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
-                    <Icon icon="mdi:cellphone" className="w-4 h-4 text-blue-500" />
+                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center overflow-hidden border border-gray-100">
+                    <img
+                      src={item.image || 'https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image'}
+                      alt={item.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image'; }}
+                    />
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] font-medium text-gray-800 leading-tight block truncate">

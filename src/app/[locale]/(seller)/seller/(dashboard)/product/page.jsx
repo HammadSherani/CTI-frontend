@@ -254,7 +254,16 @@ export default function ProductsListPage() {
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden flex-shrink-0">
             {row.images?.[0]?.url ? (
-              <Image width={300} height={400} src={row.images[0].url} alt={row.title} className="w-full h-full object-cover" />
+              <Image 
+                width={300} height={400} 
+                src={row.images[0].url} 
+                alt={row.title} 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.srcset = '/assets/placeholder.jpg';
+                  e.target.src = '/assets/placeholder.jpg';
+                }}
+              />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-gray-300">
                 <Icon icon="mdi:image-outline" className="w-6 h-6" />

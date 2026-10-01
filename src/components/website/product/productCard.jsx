@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { useRouter } from '@/i18n/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
@@ -39,10 +40,17 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const isOutOfStock = Number(stock) === 0;
   const isLowStock = Number(stock) > 0 && Number(stock) <= 5;
 
-  const mainImage =
+  const initialImage =
     defaultVariant.images?.[0]?.url ||
     images?.[0]?.url ||
     '/assets/placeholder.jpg';
+
+  const [imgSrc, setImgSrc] = useState(initialImage);
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgSrc(initialImage);
+  }, [initialImage]);
 
   const displayPrice = Number(discountPrice || sellingPrice || price || 0);
   const originalPrice = Number(sellingPrice || price || 0);
@@ -119,13 +127,21 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
       {/* Image */}
       <div className="relative w-full h-40 flex items-center justify-center overflow-hidden bg-gray-50">
-        <Image
-          src={mainImage}
-          alt={title || 'product'}
-          width={280}
-          height={280}
-          className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
-        />
+        {imgError || !imgSrc ? (
+          <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
+            <Icon icon="mdi:image-outline" className="w-12 h-12 mb-2 text-gray-200" />
+            <span className="text-[10px] uppercase font-semibold">No Image</span>
+          </div>
+        ) : (
+          <Image
+            src={imgSrc}
+            alt={title || 'product'}
+            width={280}
+            height={280}
+            className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgError(true)}
+          />
+        )}
 
         {/* Stock status banner overlay on image */}
         {isOutOfStock && (

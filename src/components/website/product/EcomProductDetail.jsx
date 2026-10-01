@@ -54,7 +54,7 @@ export default function EcomProductDetail({ params }) {
   }, [seller]);
 
   useEffect(() => {
-    const sId = seller?.userId?._id || seller?.userId || seller?._id;
+    const sId = seller?.owner?._id || seller?.ownerId || seller?.userId?._id || seller?.userId || seller?._id;
     if (!socket || !sId) return;
 
     const handleStatusChanged = (data) => {
@@ -476,8 +476,8 @@ export default function EcomProductDetail({ params }) {
                 <div className="flex flex-col gap-2">
                   {visibleThumbs.map((media, i) => {
                     const realIndex = thumbStart + i;
-                    const isVideo = typeof media === 'string' 
-                      ? media.match(/\.(mp4|webm|ogg|mov)$/i) 
+                    const isVideo = typeof media === 'string'
+                      ? media.match(/\.(mp4|webm|ogg|mov)$/i)
                       : media?.type?.startsWith('video');
                     const url = typeof media === 'string' ? media : media?.url;
 
@@ -519,19 +519,19 @@ export default function EcomProductDetail({ params }) {
                   )}
                   {(() => {
                     const activeMedia = allMedia[selectedImage] || '/assets/placeholder.jpg';
-                    const isVideo = typeof activeMedia === 'string' 
-                      ? activeMedia.match(/\.(mp4|webm|ogg|mov)$/i) 
+                    const isVideo = typeof activeMedia === 'string'
+                      ? activeMedia.match(/\.(mp4|webm|ogg|mov)$/i)
                       : activeMedia?.type?.startsWith('video');
                     const url = typeof activeMedia === 'string' ? activeMedia : activeMedia?.url;
-                    
+
                     if (isVideo) {
                       return (
-                        <div 
-                          className="w-full h-full relative cursor-pointer group" 
+                        <div
+                          className="w-full h-full relative cursor-pointer group"
                           onClick={() => setIsGalleryOpen(true)}
                         >
-                          <video 
-                            src={url} 
+                          <video
+                            src={url}
                             className="w-full h-full object-contain pointer-events-none"
                           />
                           <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 flex items-center justify-center transition-colors">
@@ -541,8 +541,8 @@ export default function EcomProductDetail({ params }) {
                       );
                     }
                     return (
-                      <div 
-                        className="w-full h-full cursor-pointer" 
+                      <div
+                        className="w-full h-full cursor-pointer"
                         onClick={() => setIsGalleryOpen(true)}
                       >
                         <ImageZoom key={url || selectedImage} src={url} alt={productData.title} />
@@ -552,7 +552,7 @@ export default function EcomProductDetail({ params }) {
 
                   {/* Gallery Button overlay at bottom */}
                   <div className="absolute bottom-4 left-4 right-4 z-10">
-                    <button 
+                    <button
                       onClick={() => setIsGalleryOpen(true)}
                       className="w-full flex items-center justify-between bg-primary-500/90 hover:bg-primary-600 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-lg transition-colors border border-primary-400"
                     >
@@ -936,11 +936,11 @@ export default function EcomProductDetail({ params }) {
       )}
 
       {/* Modals */}
-      <ProductGalleryModal 
-        isOpen={isGalleryOpen} 
-        onClose={() => setIsGalleryOpen(false)} 
-        mediaList={allMedia} 
-        initialIndex={selectedImage} 
+      <ProductGalleryModal
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        mediaList={allMedia}
+        initialIndex={selectedImage}
       />
     </div>
   );

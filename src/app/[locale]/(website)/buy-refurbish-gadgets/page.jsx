@@ -154,14 +154,11 @@ export default function Refurbish() {
 
 
   const banners = [
-    { id: 1, src: '/assets/refurbish/banners/65.png', alt: 'Refurbished Gadgets 1', href: '#' },
-    { id: 2, src: '/assets/refurbish/banners/22.png', alt: 'Refurbished Gadgets 2', href: '#' },
+    { id: 1, src: '/assets/refurbish/banners/1.png', alt: 'Refurbished Gadgets 1', href: '#' },
+    { id: 2, src: '/assets/refurbish/banners/2.png', alt: 'Refurbished Gadgets 2', href: '#' },
     { id: 3, src: '/assets/refurbish/banners/3.png', alt: 'Refurbished Gadgets 3', href: '#' },
-    { id: 4, src: '/assets/refurbish/banners/4.avif', alt: 'Refurbished Gadgets 4', href: '#' },
-    { id: 5, src: '/assets/refurbish/banners/5.avif', alt: 'Refurbished Gadgets 5', href: '#' },
-    { id: 6, src: '/assets/refurbish/banners/6.avif', alt: 'Refurbished Gadgets 6', href: '#' },
-    { id: 7, src: '/assets/refurbish/banners/7.avif', alt: 'Refurbished Gadgets 7', href: '#' },
-    { id: 8, src: '/assets/refurbish/banners/8.avif', alt: 'Refurbished Gadgets 8', href: '#' },
+    { id: 4, src: '/assets/refurbish/banners/4.png', alt: 'Refurbished Gadgets 4', href: '#' },
+    { id: 5, src: '/assets/refurbish/banners/5.png', alt: 'Refurbished Gadgets 5', href: '#' },
   ]
 
   // Replace src paths with your actual product image paths
@@ -184,7 +181,7 @@ export default function Refurbish() {
 
   return (
 
-    <div className="w-[80%] mx-auto relative">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
       {/* Main Slider */}
       <div className="relative mt-5">
         <Swiper
