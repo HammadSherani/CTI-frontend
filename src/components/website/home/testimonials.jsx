@@ -100,33 +100,47 @@ const staticTestimonials = [
 ];
 
 function Testimonials() {
-    const { reviews } = useSelector((state) => state.home || {});
+  const { reviews } = useSelector((state) => state.home || {});
 
-    // Use static data if reviews is empty or undefined, otherwise use dynamic data
-    const items = React.useMemo(() => {
-      // For testing: Uncomment the line below to always use static data
+  // Use static data if reviews is empty or undefined, otherwise use dynamic data
+  const items = React.useMemo(() => {
+    // For testing: Uncomment the line below to always use static data
+    return staticTestimonials;
+
+    // For production: Use dynamic data from Redux if available, otherwise fallback to static
+    if (!reviews || (Array.isArray(reviews) && reviews.length === 0)) {
+      console.log('Using static test data');
       return staticTestimonials;
-      
-      // For production: Use dynamic data from Redux if available, otherwise fallback to static
-      if (!reviews || (Array.isArray(reviews) && reviews.length === 0)) {
-        console.log('Using static test data');
-        return staticTestimonials;
-      }
-      
-      const list = Array.isArray(reviews) ? reviews : [reviews];
-      const filtered = list.filter((r) => r.isPublic !== false && (r.moderationStatus || '').toLowerCase() === 'approved');
-      
-      // If no approved reviews, fallback to static data
-      if (filtered.length === 0) {
-        console.log('No approved reviews found, using static test data');
-        return staticTestimonials;
-      }
-      
-      return filtered;
-    }, [reviews]);
+    }
 
-    console.log(items, 'visible reviews');
-    
+    const list = Array.isArray(reviews) ? reviews : [reviews];
+    const filtered = list.filter((r) => r.isPublic !== false && (r.moderationStatus || '').toLowerCase() === 'approved');
+
+    // If no approved reviews, fallback to static data
+    if (filtered.length === 0) {
+      console.log('No approved reviews found, using static test data');
+      return staticTestimonials;
+    }
+
+    return filtered;
+  }, [reviews]);
+
+  console.log(items, 'visible reviews');
+  const BRANDS = [
+    { src: "/assets/home/brands/1.png", name: "Sony" },
+    { src: "/assets/home/brands/2.png", name: "Nokia" },
+    { src: "/assets/home/brands/3.png", name: "Huawei" },
+    { src: "/assets/home/brands/4.png", name: "Motorola" },
+    { src: "/assets/home/brands/5.png", name: "Google" },
+    { src: "/assets/home/brands/6.png", name: "OnePlus" },
+    { src: "/assets/home/brands/7.png", name: "Realme" },
+    { src: "/assets/home/brands/8.png", name: "Oppo" },
+    { src: "/assets/home/brands/9.png", name: "Vivo" },
+    { src: "/assets/home/brands/10.png", name: "Tecno" },
+    { src: "/assets/home/brands/11.png", name: "Xiaomi" },
+    { src: "/assets/home/brands/12.png", name: "Infinix" },
+    { src: "/assets/home/brands/13.png", name: "Samsung" },
+  ];
   return (
     <section className="relative  overflow-hidden">
       <div className="absolute top-20 -left-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
@@ -156,7 +170,7 @@ function Testimonials() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 bg-white opacity-90 p-4 md:w-[250px] w-full rounded-md">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center">
-                  <Icon icon="mdi:account-group" className="text-3xl font-bold text-white"/>
+                  <Icon icon="mdi:account-group" className="text-3xl font-bold text-white" />
                 </div>
                 <div>
                   <p className="text-2xl md:text-2xl font-bold text-primary-500">123.8 + Lac</p>
@@ -166,19 +180,19 @@ function Testimonials() {
 
               <div className="flex items-center gap-3 bg-white opacity-90 p-4 md:w-[250px] w-full rounded-md">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center">
-                  <Icon icon="streamline-flex:credit-card-approved-remix" className="text-3xl font-bold text-white"/>
+                  <Icon icon="streamline-flex:credit-card-approved-remix" className="text-3xl font-bold text-white" />
                 </div>
                 <div>
                   <p className="text-2xl md:text-2xl font-bold text-primary-500">185.8 + Lac</p>
                   <p className="text-sm text-primary-500">Loans Approved</p>
                 </div>
-              </div>    
+              </div>
             </div>
 
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 bg-white opacity-90 p-4 md:w-[250px] w-full rounded-md">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center">
-                  <Icon icon="mdi:dollar" className="text-3xl font-bold text-white"/>
+                  <Icon icon="mdi:dollar" className="text-3xl font-bold text-white" />
                 </div>
                 <div>
                   <p className="text-2xl md:text-2xl font-bold text-primary-500">93212.8 Cr</p>
@@ -188,7 +202,7 @@ function Testimonials() {
 
               <div className="flex items-center gap-3 bg-white opacity-90 p-4 md:w-[250px] w-full rounded-md">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center">
-                  <Icon icon="mdi:award" className="text-3xl font-bold text-white"/>
+                  <Icon icon="mdi:award" className="text-3xl font-bold text-white" />
                 </div>
                 <div>
                   <p className="text-2xl md:text-2xl font-bold text-primary-500">Since 2015</p>
@@ -231,7 +245,7 @@ function Testimonials() {
                 transition={{ delay: index * 0.1 }}
                 className="bg-teal-50/20  backdrop-blur-sm rounded-2xl p-6 border border-teal-200/30 cursor-pointer  hover:scale-105 transition-transform duration-300  h-[300px] mb-8 flex flex-col"
               >
-                           <div className="flex flex-row items-center gap-3 mt-auto">
+                <div className="flex flex-row items-center gap-3 mt-auto">
                   {(() => {
                     const name = item.customerName || 'Customer Name';
                     const imageSrc = item.customerAvatar || item.avatar;
@@ -240,7 +254,7 @@ function Testimonials() {
                     return imageSrc ? (
                       <Image
                         src={imageSrc}
-                        alt={name||"name"}
+                        alt={name || "name"}
                         width={48}
                         height={48}
                         className="w-12 h-12 rounded-full object-cover border-2 border-primary-400/50"
@@ -256,58 +270,55 @@ function Testimonials() {
                     {/* <p className="text-primary-900 text-xs">{new Date(item.createdAt || item.updatedAt || Date.now()).toLocaleDateString()}</p> */}
                   </div>
                 </div>
-               
+
 
                 {/* Review Text */}
                 <p className="text-white opacity-90  mt-3  flex-grow text-sm line-clamp-5 leading-relaxed font-medium text-left p-2">
                   {item.reviewText || item.text || ''}
                 </p>
-                 {/* Quote Icon */}
+                {/* Quote Icon */}
                 <div className="flex flex-row justify-between items-center mt-4">
                   <svg className="w-8 h-8 text-primary-900" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                   </svg>
 
-<p className="text-primary-900 text-xs">{new Date(item.createdAt || item.updatedAt || Date.now()).toLocaleDateString()}</p>            
-     
+                  <p className="text-primary-900 text-xs">{new Date(item.createdAt || item.updatedAt || Date.now()).toLocaleDateString()}</p>
+
                 </div>
               </motion.div>
             </SwiperSlide>
           ))}
         </Swiper>
-
-        {/* Brands */}
- 
       </div>
-<div className=" lg:max-w-[1400px] max-w-7xl mx-auto p-8 bg-primary-600">
-  <Marquee speed={40} gradient={false} pauseOnHover autoFill>
-  <div className="flex items-center gap-24">
-    
-    {[
-      "/assets/marque/image1.png",
-      "/assets/marque/image2.png",
-      "/assets/marque/image3.png",
-      "/assets/marque/image4.png",
-      "/assets/marque/image5.png",
-      "/assets/marque/image6.png",
-      "/assets/marque/image7.png",
-    ].map((src, i) => (
-      <div key={i} className="flex items-center justify-center h-12">
-        <Image
-          src={src}
-          alt={`brand-${i}`}
-          width={120} // fallback (required by Next)
-          height={50}
-          className="h-10 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-        />
-      </div>
-    ))}
 
-  </div>
-</Marquee>
-    </div>
+      <section
+        aria-label="Supported brands"
+        className="py-2 bg-gradient-to-r from-primary-400 to-primary-700 border-t border-2 border-gray-200/50  overflow-hidden"
+      >
+        <div className="mx-auto max-w-7xl lg:max-w-[1400px] px-4 md:px-3">
+          <Marquee speed={40} gradient={false} pauseOnHover autoFill>
+            {BRANDS.map(({ src, name }) => (
+              <div
+                key={name}
+                className="flex items-center justify-center md:mx-2 py-2"
+              >
+                <Image
+                  src={src}
+                  alt={name}
+                  width={100}
+                  height={100}
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                  className="h-10 md:h-12 w-auto object-contain opacity-80 hover:opacity-100 hover:scale-110 transition duration-300"
+                />
+              </div>
+            ))}
+          </Marquee>
+        </div>
+      </section>
 
-    
+
       {/* Custom styles */}
       <style jsx global>{`
         .swiper-custom-bullet {

@@ -71,9 +71,10 @@ const ServiceSection = () => {
   // Fetch Brands
   const fetchBrands = async () => {
     try {
-      const response = await axiosInstance.get("/services/brands");
+      const response = await axiosInstance.get("/public/brands");
       if (response.data && response.data.success) {
-        setBrands(response.data.data);
+        const data = response.data.data;
+        setBrands(data.brands || data || []);
       }
     } catch (err) {
       console.error("Failed to fetch brands:", err);
@@ -87,9 +88,10 @@ const ServiceSection = () => {
   const fetchModels = async (brandId) => {
     setLoadingModels(true);
     try {
-      const response = await axiosInstance.get(`/services/models?brandId=${brandId}`);
+      const response = await axiosInstance.get(`/public/models/brand/${brandId}`);
       if (response.data && response.data.success) {
-        setModels(response.data.data);
+        const data = response.data.data;
+        setModels(data.models || data || []);
       }
     } catch (err) {
       console.error("Failed to fetch models:", err);
@@ -102,9 +104,10 @@ const ServiceSection = () => {
   const fetchColors = async (modelId) => {
     setLoadingColors(true);
     try {
-      const response = await axiosInstance.get(`/services/colors?modelId=${modelId}`);
+      const response = await axiosInstance.get(`/public/models/${modelId}/colors`);
       if (response.data && response.data.success) {
-        setColors(response.data.data);
+        const data = response.data.data;
+        setColors(data.colors || data || []);
       }
     } catch (err) {
       console.error("Failed to fetch colors:", err);
@@ -156,10 +159,15 @@ const ServiceSection = () => {
     router.push(`/mail-in-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
   };
 
+  const handlePostJob = () => {
+    setShowModal(false);
+    router.push(`/mobile-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
+  };
+
   // Formatting Options for Dropdowns
-  const brandOptions = brands.map((b) => ({ label: b.name, value: b._id, icon: b.icon }));
-  const modelOptions = models.map((m) => ({ label: m.name, value: m._id }));
-  const colorOptions = colors.map((c) => ({ label: c, value: c }));
+  const brandOptions = Array.isArray(brands) ? brands.map((b) => ({ label: b.name, value: b._id, icon: b.icon })) : [];
+  const modelOptions = Array.isArray(models) ? models.map((m) => ({ label: m.name, value: m._id })) : [];
+  const colorOptions = Array.isArray(colors) ? colors.map((c) => ({ label: c, value: c })) : [];
 
   return (
     <div className="py-16 bg-white">

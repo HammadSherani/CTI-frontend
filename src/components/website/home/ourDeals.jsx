@@ -9,22 +9,22 @@ export default function OurDeals() {
   const data = [
     {
       title: "Refurbished Device Offers",
-      img: "/assets/home/deals.png",
+      img: "/assets/home/25.png",
       gradient: "from-yellow-400 via-yellow-500 to-yellow-600"
     },
     {
       title: "Exchange Offers",
-      img: "/assets/home/deals.png",
+      img: "/assets/home/25.png",
       gradient: "from-orange-500 via-orange-600 to-orange-700"
     },
     {
       title: "Buyback Offers",
-      img: "/assets/home/deals.png",
+      img: "/assets/home/25.png",
       gradient: "from-gray-800 via-gray-900 to-black"
     },
     {
       title: "Special Offers",
-      img: "/assets/home/deals.png",
+      img: "/assets/home/25.png",
       gradient: "from-orange-400 via-orange-500 to-orange-600"
     }
   ]
@@ -33,7 +33,7 @@ export default function OurDeals() {
 
   return (
     <div className="py-12">
-      
+
       {/* Header */}
       <div className="max-w-7xl mx-auto flex flex-col lg:flex-row justify-between gap-6 mb-12 px-4">
         <div className="lg:max-w-xl">
@@ -49,7 +49,7 @@ export default function OurDeals() {
 
       {/* Cards */}
       <div className="max-w-7xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 px-4">
-        
+
         {data.map((item, i) => (
           <div
             key={i}
@@ -61,7 +61,7 @@ export default function OurDeals() {
 
             {/* Content */}
             <div className="flex flex-col justify-between h-full">
-              
+
               {/* Top */}
               <div className="flex items-center justify-between gap-4">
                 <h3 className="text-white text-lg font-bold leading-snug max-w-[60%]">
@@ -70,7 +70,7 @@ export default function OurDeals() {
 
                 <Image
                   src={item.img}
-                  alt={item.title||"deal"}
+                  alt={item.title || "deal"}
                   width={120}
                   height={160}
                   className="object-contain"
@@ -78,7 +78,7 @@ export default function OurDeals() {
               </div>
 
               {/* Button */}
-              <button onClick={()=>router.push("/coming")} className="mt-6  flex items-center gap-1 w-fit bg-white text-orange-600 text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 active:scale-95 transition">
+              <button onClick={() => router.push("/coming")} className="mt-6  flex items-center gap-1 w-fit bg-white text-orange-600 text-sm font-semibold px-4 py-2 rounded-lg hover:opacity-90 active:scale-95 transition">
                 Explore
                 <Icon icon="mdi:chevron-right" />
               </button>

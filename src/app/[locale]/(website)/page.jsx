@@ -39,7 +39,7 @@ import TermsSection from '@/components/website/home/terms';
 function Home() {
   const dispatch = useDispatch();
   const { homeData, loading, error } = useSelector((state) => state.home);
-  const [initialLoad, setInitialLoad] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(!homeData);
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, []);
