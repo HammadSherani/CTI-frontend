@@ -20,6 +20,9 @@ const partSchema = yup.object().shape({
   category: yup
     .string()
     .required('Category is required'),
+  subCategory: yup
+    .string()
+    .required('SubCategory is required'),
   description: yup
     .string()
     .nullable(),
@@ -81,11 +84,16 @@ function AcademyContentCreate() {
     defaultValues: {
       title: '',
       category: '',
+      subCategory: '',
       description: '',
       images: null,
       videos: null,
     },
   });
+
+  const selectedCategory = watch('category');
+  const [subCategories, setSubCategories] = useState([]);
+  const [loadingSubCategories, setLoadingSubCategories] = useState(false);
 
 
 
@@ -108,6 +116,31 @@ function AcademyContentCreate() {
       toast.error('Failed to load categories');
     } finally {
       setLoadingCategories(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedCategory) {
+      fetchSubCategories(selectedCategory);
+    } else {
+      setSubCategories([]);
+    }
+  }, [selectedCategory]);
+
+  const fetchSubCategories = async (catId) => {
+    try {
+      setLoadingSubCategories(true);
+      // Dummy or real endpoint to fetch subcategories based on categoryId
+      const response = await axiosInstance.get(`/admin/academic-subcategory?categoryId=${catId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSubCategories(response.data.data || []);
+    } catch (error) {
+      console.error('Error fetching subcategories:', error);
+      // Fallback empty array if endpoint doesn't exist yet
+      setSubCategories([]);
+    } finally {
+      setLoadingSubCategories(false);
     }
   };
 
@@ -222,6 +255,7 @@ function AcademyContentCreate() {
       // Append all fields
       formData.append('title', data.title || '');
       formData.append('categoryId', data.category || '');
+      formData.append('subCategoryId', data.subCategory || '');
       formData.append('description', data.description || '');
 
       // Add images if provided (multiple)
@@ -379,6 +413,29 @@ function AcademyContentCreate() {
                   )}
                 </div>
 
+                {/* SubCategory */}
+                <div>
+                  <label htmlFor="subCategory" className="block text-sm font-medium text-gray-700 mb-2">
+                    SubCategory *
+                  </label>
+                  <select
+                    id="subCategory"
+                    {...register('subCategory')}
+                    className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+                      errors.subCategory ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    disabled={!selectedCategory || loadingSubCategories}
+                  >
+                    <option value="">Select SubCategory</option>
+                    {subCategories.map(subCat => (
+                      <option key={subCat._id} value={subCat._id}>{subCat.title}</option>
+                    ))}
+                  </select>
+                  {errors.subCategory && (
+                    <p className="mt-1 text-sm text-red-600">{errors.subCategory.message}</p>
+                  )}
+                </div>
+
   <div className="space-y-6">
                 {/* Description */}
                 <div>
@@ -390,7 +447,7 @@ function AcademyContentCreate() {
                     {...register('description')}
                     rows={4}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                    placeholder="Detailed description of the part, its features, and specifications..."
+                    placeholder="Detailed description of the course, its features, and specifications..."
                   />
                 </div>
 
@@ -400,14 +457,14 @@ function AcademyContentCreate() {
             </div>
 
 
-            {/* Images Upload */}
+            {/* Thumbnail Upload */}
             <div className="bg-white rounded-lg shadow-sm p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <Icon icon="mdi:image-multiple" className="w-6 h-6 text-primary-600" />
-                Part Images
+                <Icon icon="mdi:image-outline" className="w-6 h-6 text-primary-600" />
+                Course Thumbnail
               </h2>
               <p className="text-sm text-gray-500 mb-4">
-                Upload images of the part. You can upload up to 10 images. Supported formats: JPG, PNG, GIF, WebP. Max size: 5MB per image.
+                Upload a thumbnail image for the course. Supported formats: JPG, PNG, GIF, WebP. Max size: 5MB.
               </p>
 
               <input

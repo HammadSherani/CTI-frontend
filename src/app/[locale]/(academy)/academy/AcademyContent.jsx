@@ -30,8 +30,8 @@ export default function AcademyContent() {
               {/* <button className="bg-gray-800 text-white px-6 py-3 rounded-full hover:bg-gray-900">Promotional Video</button> */}
             </div>
           </div>
-          <div className="md:w-1/2">
-            <Image src="/assets/academy/1.png" alt="Computer" width={600} height={400} className="rounded-lg " />
+          <div className="md:w-1/3">
+            <Image src="/assets/academy/222.png" alt="Computer" width={600} height={400} className="rounded-lg" />
           </div>
         </motion.div>
       </section>

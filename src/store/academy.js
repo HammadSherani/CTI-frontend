@@ -19,13 +19,32 @@ export const fetchCategory= createAsyncThunk(
   }
 );
 
+export const fetchSubCategory = createAsyncThunk(
+  "Academy/subcategory",
+  async (categoryId, { rejectWithValue }) => {
+    try {
+      const params = {};
+      if (categoryId && categoryId !== 'all') params.categoryId = categoryId;
+      const response = await axiosInstance.get(
+        `${baseUrl}/academic/subcategory`,
+        { params, ...getConfig() }
+      );
+      return response.data;
+    } catch (err) {
+      handleError(err);
+      return rejectWithValue(err?.response?.data || err?.message || "Something went wrong");
+    }
+  }
+);
 
 export const fetchAcademicData = createAsyncThunk(
   "Academy/data",
-  async ({ page = 1, limit = 10, categoryId = "all", search = "" }, { rejectWithValue }) => {
+  async ({ page = 1, limit = 10, categoryId = "all", search = "", subCategoryId = "all", sort = "recent" }, { rejectWithValue }) => {
     try {
       const params = { page, limit };
       if (search) params.search = search;
+      if (subCategoryId && subCategoryId !== 'all') params.subCategoryId = subCategoryId;
+      if (sort && sort !== 'recent') params.sort = sort;
       const response = await axiosInstance.get(
         `${baseUrl}${GET_ACADEMY_CONTENT_API}/${categoryId}`,
         {
@@ -33,7 +52,6 @@ export const fetchAcademicData = createAsyncThunk(
           ...getConfig(),
         }
       );
-
       return response.data;
     } catch (err) {
       handleError(err);
@@ -63,12 +81,13 @@ export const fetchCourseDetails= createAsyncThunk(
 
 const initialState = {
   data: null,
-  isLoading: false,
+  isLoading: true,
   isError: false,
   isSuccess: false,
   academicCategories: null,
+  academicSubCategories: null,
   academicData: null,
-  courseDetails:null
+  courseDetails: null
 };
 
 const academySlice = createSlice({
@@ -78,21 +97,30 @@ const academySlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(fetchCategory.pending, (state) => {
-        state.isLoading = true;
         state.isError = false;
         state.isSuccess = false;
       })
       .addCase(fetchCategory.fulfilled, (state, action) => {
-        state.isLoading = false;
         state.isSuccess = true;
         state.academicCategories = action.payload.data;
       })
-      .addCase(fetchCategory.rejected, (state, action) => {
-        state.isLoading = false;
+      .addCase(fetchCategory.rejected, (state) => {
         state.isError = true;
         state.isSuccess = false;
       });
-       builder
+
+    builder
+      .addCase(fetchSubCategory.pending, (state) => {
+        state.academicSubCategories = null;
+      })
+      .addCase(fetchSubCategory.fulfilled, (state, action) => {
+        state.academicSubCategories = action.payload.data;
+      })
+      .addCase(fetchSubCategory.rejected, (state) => {
+        state.academicSubCategories = [];
+      });
+
+    builder
       .addCase(fetchAcademicData.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
@@ -101,14 +129,15 @@ const academySlice = createSlice({
       .addCase(fetchAcademicData.fulfilled, (state, action) => {
         state.isLoading = false;
         state.isSuccess = true;
-        state.academicData = action.payload.data;
+        state.academicData = action.payload;
       })
-      .addCase(fetchAcademicData.rejected, (state, action) => {
+      .addCase(fetchAcademicData.rejected, (state) => {
         state.isLoading = false;
         state.isError = true;
         state.isSuccess = false;
       });
-        builder
+
+    builder
       .addCase(fetchCourseDetails.pending, (state) => {
         state.isLoading = true;
         state.isError = false;
@@ -119,12 +148,12 @@ const academySlice = createSlice({
         state.isSuccess = true;
         state.courseDetails = action.payload.data;
       })
-      .addCase(fetchCourseDetails.rejected, (state, action) => {
+      .addCase(fetchCourseDetails.rejected, (state) => {
         state.isLoading = false;
         state.isError = true;
         state.isSuccess = false;
       });
-    }
+  }
 });
 
 export default academySlice.reducer;
