@@ -90,7 +90,7 @@ const ModelPage = () => {
           <div className="">
 
             {/* Title */}
-            <h4 className="text-3xl md:text-4xl font-extrabold text-gray-800  mb-8">
+            <h4 className="text-2xl md:text-3xl font-bold text-gray-800 mb-8">
               {brandSlug ? `Models of ${brandSlug}` : "Available Models"}
             </h4>
 

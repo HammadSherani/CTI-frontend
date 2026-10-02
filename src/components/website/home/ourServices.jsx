@@ -29,11 +29,13 @@ const cardVariants = {
   },
 };
 
+let cachedBrands = null;
+
 const ServiceSection = () => {
   const router = useRouter();
 
   // Dropdown States
-  const [brands, setBrands] = useState([]);
+  const [brands, setBrands] = useState(cachedBrands || []);
   const [models, setModels] = useState([]);
   const [colors, setColors] = useState([]);
 
@@ -41,10 +43,11 @@ const ServiceSection = () => {
   const [selectedModel, setSelectedModel] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
 
-  const [loadingBrands, setLoadingBrands] = useState(true);
+  const [loadingBrands, setLoadingBrands] = useState(!cachedBrands);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingColors, setLoadingColors] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [isNavigating, setIsNavigating] = useState(false);
   const [error, setError] = useState(null);
 
   // Categories State
@@ -70,11 +73,13 @@ const ServiceSection = () => {
 
   // Fetch Brands
   const fetchBrands = async () => {
+    if (cachedBrands) return;
     try {
       const response = await axiosInstance.get("/public/brands");
       if (response.data && response.data.success) {
         const data = response.data.data;
-        setBrands(data.brands || data || []);
+        cachedBrands = data.brands || data || [];
+        setBrands(cachedBrands);
       }
     } catch (err) {
       console.error("Failed to fetch brands:", err);
@@ -150,24 +155,33 @@ const ServiceSection = () => {
   };
 
   const handleSearchRepairman = () => {
-    setShowModal(false);
+    setIsNavigating(true);
     router.push(`/mobile-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
   };
 
   const handleMailInRepair = () => {
-    setShowModal(false);
+    setIsNavigating(true);
     router.push(`/mail-in-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
   };
 
   const handlePostJob = () => {
-    setShowModal(false);
+    setIsNavigating(true);
     router.push(`/mobile-repair/${selectedBrand.slug}/${selectedModel._id}/${selectedColor}`);
   };
 
   // Formatting Options for Dropdowns
-  const brandOptions = Array.isArray(brands) ? brands.map((b) => ({ label: b.name, value: b._id, icon: b.icon })) : [];
-  const modelOptions = Array.isArray(models) ? models.map((m) => ({ label: m.name, value: m._id })) : [];
-  const colorOptions = Array.isArray(colors) ? colors.map((c) => ({ label: c, value: c })) : [];
+  const formatLabel = (str) => {
+    if (!str) return "";
+    return String(str)
+      .toLowerCase()
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  const brandOptions = Array.isArray(brands) ? brands.map((b) => ({ label: formatLabel(b.name), value: b._id, icon: b.icon })) : [];
+  const modelOptions = Array.isArray(models) ? models.map((m) => ({ label: formatLabel(m.name), value: m._id })) : [];
+  const colorOptions = Array.isArray(colors) ? colors.map((c) => ({ label: formatLabel(c), value: c })) : [];
 
   return (
     <div className="py-16 bg-white">
@@ -272,7 +286,8 @@ const ServiceSection = () => {
               <div className="p-6 space-y-3">
                 <button
                   onClick={handleSearchRepairman}
-                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
+                  disabled={isNavigating}
+                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-blue-100 rounded-2xl flex items-center justify-center">
@@ -283,26 +298,32 @@ const ServiceSection = () => {
                       <p className="text-sm text-gray-500">Find nearby verified technicians</p>
                     </div>
                   </div>
-                  <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                  {isNavigating ? (
+                    <Icon icon="eos-icons:loading" className="w-6 h-6 text-gray-400 animate-spin" />
+                  ) : (
+                    <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                  )}
                 </button>
 
                 <button
                   onClick={handlePostJob}
-                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group"
+                  disabled={isNavigating}
+                  className="w-full flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 rounded-2xl group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-11 h-11 bg-orange-100 rounded-2xl flex items-center justify-center">
                       <Icon icon="mdi:plus-circle" className="w-6 h-6 text-orange-600" />
                     </div>
                     <div className="text-left">
-                      <p className="font-semibold text-gray-900">Hire a Repairman<picture>
-                        <source media="(min-width: 640px)" />
-                        <img src="" alt="" />
-                      </picture></p>
+                      <p className="font-semibold text-gray-900">Hire a Repairman</p>
                       <p className="text-sm text-gray-500">Let repairmen come to you</p>
                     </div>
                   </div>
-                  <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                  {isNavigating ? (
+                    <Icon icon="eos-icons:loading" className="w-6 h-6 text-gray-400 animate-spin" />
+                  ) : (
+                    <Icon icon="mdi:chevron-right" className="w-6 h-6 text-gray-400 group-hover:text-gray-600" />
+                  )}
                 </button>
               </div>
 

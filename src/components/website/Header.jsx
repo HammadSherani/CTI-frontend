@@ -695,6 +695,11 @@ function NavigationBar({ isHome, isScrolled }) {
       hasDropdown: false,
     },
     {
+      name: "Docs",
+      href: "/docs",
+      hasDropdown: false,
+    },
+    {
       name: "Support",
       href: "/live-support",
       hasDropdown: true,
@@ -722,7 +727,7 @@ function NavigationBar({ isHome, isScrolled }) {
 
   const onNav = isHome && !isScrolled;
 
-  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 whitespace-nowrap ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
     }`;
 
   const renderDropdownContent = (item) => {

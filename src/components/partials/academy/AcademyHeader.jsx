@@ -7,13 +7,16 @@ import { usePathname,useRouter ,Link} from '@/i18n/navigation'
 import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { fetchCategory } from '@/store/academy'
+import { clearAuth } from '@/store/auth'
 export default function AcademyHeader() {
   const pathname = usePathname()
   const router = useRouter()
   const [open, setOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const dispatch = useDispatch()
   const { academicCategories } = useSelector(s => s.academy || {})
+  const { user } = useSelector(state => state.auth || {})
 
   useEffect(() => {
     dispatch(fetchCategory())
@@ -32,8 +35,8 @@ useEffect(() => {
 }, [searchTerm]);
   const tabs = [
     { name: 'CTI Academy', href: '/academy' },
-    { name: 'Seller Panel', href: '/coming' },
-    { name: 'Seller Information Center', href: '/coming' },
+    { name: 'Seller Info Center', href: '/academy/seller-info' },
+    { name: 'Repairman Info Center', href: '/academy/repairman-info' },
   ]
 
   return (
@@ -148,10 +151,63 @@ useEffect(() => {
             />
           </div>
 
-          {/* Login */}
-          <button className="bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition">
-            Log in
-          </button>
+          {/* Login / User */}
+          {user ? (
+            <div className="relative">
+              <div 
+                className="flex items-center gap-3 bg-gray-100 px-4 py-2 rounded-lg cursor-pointer hover:bg-gray-200 transition" 
+                onClick={() => setProfileOpen(!profileOpen)}
+              >
+                <div className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center font-bold">
+                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <span className="font-medium text-gray-700 hidden sm:block">
+                  {user.name || user.email || 'User'}
+                </span>
+                <Icon icon="mdi:chevron-down" className="text-gray-500" />
+              </div>
+              
+              {profileOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white border rounded-lg shadow-lg z-50 py-2">
+                  <div 
+                    onClick={() => {
+                      setProfileOpen(false);
+                      if (user.role === 'admin') {
+                        router.push('/admin'); 
+                      } else if (user.role === 'seller') {
+                        router.push('/seller');
+                      } else if (user.role === 'repairman') {
+                        router.push('/repairman');
+                      } else {
+                        router.push('/profile');
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+                  >
+                    <Icon icon="mdi:account-outline" className="text-lg" />
+                    Dashboard / Profile
+                  </div>
+                  <div 
+                    onClick={() => {
+                      setProfileOpen(false);
+                      dispatch(clearAuth());
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 cursor-pointer"
+                  >
+                    <Icon icon="mdi:logout" className="text-lg" />
+                    Logout
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => router.push('/auth/login')}
+              className="bg-orange-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-orange-600 transition"
+            >
+              Log in
+            </button>
+          )}
         </div>
       </div>
     </header>

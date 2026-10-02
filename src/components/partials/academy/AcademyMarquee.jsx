@@ -7,7 +7,7 @@ import { useRouter } from '@/i18n/navigation';
 
 export default function AcademyMarquee() {
   const containerRef = useRef(null);
-   const router=useRouter()
+  const router = useRouter()
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
@@ -22,48 +22,48 @@ export default function AcademyMarquee() {
   // Academy courses
   const courses = [
     {
-      text: 'Web Development',
-      icon: 'mdi:code-tags',
+      text: 'Mobile Hardware Repair',
+      icon: 'mdi:cellphone-cog',
       color: 'from-blue-500 to-cyan-500',
     },
     {
-      text: 'UI / UX Design',
-      icon: 'mdi:palette-outline',
+      text: 'Screen Replacements',
+      icon: 'mdi:tablet-cellphone',
       color: 'from-purple-500 to-pink-500',
     },
     {
-      text: 'Data Science',
-      icon: 'mdi:chart-bar',
+      text: 'Motherboard Diagnostics',
+      icon: 'mdi:memory',
       color: 'from-emerald-500 to-teal-500',
     },
     {
-      text: 'Mobile Applications',
-      icon: 'mdi:cellphone',
+      text: 'Seller Onboarding',
+      icon: 'mdi:storefront-outline',
       color: 'from-orange-500 to-red-500',
     },
     {
-      text: 'Digital Marketing',
-      icon: 'mdi:trending-up',
+      text: 'Battery Optimization',
+      icon: 'mdi:battery-charging-60',
       color: 'from-indigo-500 to-blue-500',
     },
     {
-      text: 'Cloud Computing',
-      icon: 'mdi:cloud-outline',
+      text: 'Customer Management',
+      icon: 'mdi:account-group',
       color: 'from-cyan-500 to-blue-500',
     },
   ];
 
   const skills = [
-    'HTML & CSS',
-    'JavaScript',
-    'React.js',
-    'Python',
-    'SQL',
-    'Git & GitHub',
-    'Figma',
-    'Photoshop',
-    'Node.js',
-    'TypeScript',
+    'Soldering Basics',
+    'Liquid Damage Repair',
+    'Quality Check (QC)',
+    'Refurbishing Guides',
+    'Pricing Strategies',
+    'Tool Usage & Safety',
+    'Data Recovery',
+    'Software Flashing',
+    'B2B Networking',
+    'Trust & Verification',
   ];
 
   const extendedCourses = [...courses, ...courses, ...courses];
@@ -89,85 +89,85 @@ export default function AcademyMarquee() {
       <div className=''>
 
 
-      {/* Title */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className="relative z-10 mb-10  text-center px-4"
-      >
-        <h2 className="text-3xl md:text-5xl font-bold text-slate-900 mb-2">
-          Master the Skills You Need
-        </h2>
-        <p className="text-slate-600 text-sm md:text-base">
-          Explore our comprehensive course catalog
-        </p>
-      </motion.div>
-
-      {/* Courses Marquee */}
-      <div className="relative mb-6">
+        {/* Title */}
         <motion.div
-          animate={{ x: [0, '-33.333%'] }}
-          transition={{
-            duration: 25,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-          className="flex gap-4 md:gap-6"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="relative z-10 mb-10  text-center px-4"
         >
-          {extendedCourses.map((course, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.05, y: -5 }}
-              className="flex-shrink-0 cursor-pointer"
-            >
-              <div
-                className={`
-                  px-6 py-3 md:px-8 md:py-4
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">
+            Master Tech & Repair Skills
+          </h2>
+          <p className="text-slate-600 text-sm md:text-base">
+            Explore topics for repairmen, sellers, and gadget enthusiasts
+          </p>
+        </motion.div>
+
+        {/* Courses Marquee */}
+        <div className="relative mb-6">
+          <motion.div
+            animate={{ x: [0, '-33.333%'] }}
+            transition={{
+              duration: 25,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            className="flex gap-4 md:gap-6"
+          >
+            {extendedCourses.map((course, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.05, y: -5 }}
+                className="flex-shrink-0 cursor-pointer"
+              >
+                <div
+                  className={`
+                  px-4 py-2 md:px-5 md:py-3
                   bg-gradient-to-br ${course.color}
                   rounded-xl
                   shadow-lg hover:shadow-xl
                   transition-shadow duration-300
                   border border-white/20
                 `}
-              >
-                <div className="flex items-center gap-3">
-                  <Icon
-                    icon={course.icon}
-                    className="text-white"
-                    width={28}
-                    height={28}
-                  />
-                  <span className="text-base md:text-lg font-semibold text-white whitespace-nowrap">
-                    {course.text}
-                  </span>
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      icon={course.icon}
+                      className="text-white"
+                      width={22}
+                      height={22}
+                    />
+                    <span className="text-sm md:text-base font-medium text-white whitespace-nowrap">
+                      {course.text}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
 
-      {/* Divider */}
-      <div className="relative h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent mb-6" />
+        {/* Divider */}
+        <div className="relative h-px bg-gradient-to-r from-transparent via-slate-300 to-transparent mb-6" />
 
-      {/* Skills Marquee */}
-      <motion.div className="relative" style={{ opacity }}>
-        <motion.div
-          animate={{ x: ['-33.333%', 0] }}
-          transition={{
-            duration: 30,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-          className="flex gap-3 md:gap-4"
-        >
-          {extendedSkills.map((skill, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.1 }}
-              className="
+        {/* Skills Marquee */}
+        <motion.div className="relative" style={{ opacity }}>
+          <motion.div
+            animate={{ x: ['-33.333%', 0] }}
+            transition={{
+              duration: 30,
+              repeat: Infinity,
+              ease: 'linear',
+            }}
+            className="flex gap-3 md:gap-4"
+          >
+            {extendedSkills.map((skill, index) => (
+              <motion.div
+                key={index}
+                whileHover={{ scale: 1.1 }}
+                className="
                 flex-shrink-0
                 px-5 py-2 md:px-6 md:py-2.5
                 bg-white
@@ -177,29 +177,29 @@ export default function AcademyMarquee() {
                 transition-all duration-300
                 cursor-pointer
               "
-            >
-              <span className="text-sm md:text-base font-medium text-slate-700 whitespace-nowrap">
-                {skill}
-              </span>
-            </motion.div>
-          ))}
+              >
+                <span className="text-sm md:text-base font-medium text-slate-700 whitespace-nowrap">
+                  {skill}
+                </span>
+              </motion.div>
+            ))}
+          </motion.div>
         </motion.div>
-      </motion.div>
 
-      {/* CTA */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ delay: 0.3, duration: 0.6 }}
-        className="relative z-10 mt-10 text-center"
-      
-      >
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={()=>router.push("/academy/academy-listing")}
-          className="
+        {/* CTA */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+          className="relative z-10 mt-10 text-center"
+
+        >
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push("/academy/academy-listing")}
+            className="
             px-8 py-3
             bg-gradient-to-r from-blue-600 to-cyan-600
             text-white font-semibold
@@ -207,10 +207,10 @@ export default function AcademyMarquee() {
             shadow-lg hover:shadow-xl
             transition-shadow duration-300
           "
-        >
-          View All Courses
-        </motion.button>
-      </motion.div>
+          >
+            View All Courses
+          </motion.button>
+        </motion.div>
       </div>
 
     </div>
@@ -220,4 +220,3 @@ export default function AcademyMarquee() {
 
 
 
- 

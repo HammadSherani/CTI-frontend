@@ -146,7 +146,7 @@ function Testimonials() {
       <div className="absolute top-20 -left-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
       <div className="absolute bottom-20 -right-40 w-80 h-80 bg-teal-500/10 rounded-full blur-3xl"></div>
 
-      <div className="lg:max-w-[1400px] max-w-7xl  bg-gradient-to-r from-primary-400 to-primary-700 text-gray-900 p-10 mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="w-full max-w-7xl rounded-t-md  bg-gradient-to-r from-primary-400 to-primary-700 text-gray-900 p-10 mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="flex items-center gap-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -293,9 +293,9 @@ function Testimonials() {
 
       <section
         aria-label="Supported brands"
-        className="py-2 bg-gradient-to-r from-primary-400 to-primary-700 border-t border-2 border-gray-200/50  overflow-hidden"
+        className="py-2 mx-auto max-w-7xl w-full bg-gradient-to-r from-primary-400 to-primary-700 border-t border-2 border-gray-200/50  overflow-hidden"
       >
-        <div className="mx-auto max-w-7xl lg:max-w-[1400px] px-4 md:px-3">
+        <div className="  px-4 md:px-3">
           <Marquee speed={40} gradient={false} pauseOnHover autoFill>
             {BRANDS.map(({ src, name }) => (
               <div

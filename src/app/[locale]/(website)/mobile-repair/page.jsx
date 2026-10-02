@@ -50,7 +50,7 @@ function BrandPage() {
 
                         <div className='flex items-center justify-between'>
                             <motion.h4
-                                className="text-3xl md:text-4xl font-extrabold text-gray-800 mb-12"
+                                className="text-2xl md:text-3xl font-bold text-gray-800 mb-8"
 
                             >
                                 Explore Top Mobile Brands
