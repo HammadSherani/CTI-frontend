@@ -58,6 +58,7 @@ function Header() {
             { name: "Brand", icon: "mdi:tag-outline", path: "/admin/brand" },
             { name: "Models", icon: "mdi:cube-outline", path: "/admin/models" },
             { name: "Blog", icon: "mdi:post-outline", path: "/admin/blogs" },
+            { name: "Home Reviews", icon: "mdi:star-outline", path: "/admin/home-reviews" },
           ]
         },
         {

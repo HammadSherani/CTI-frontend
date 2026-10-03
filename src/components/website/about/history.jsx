@@ -96,27 +96,27 @@ function History() {
     <div className="min-h-screen bg-gray-50">
       
       {/* Hero Section */}
-      <section className="relative w-full rounded-lg overflow-hidden bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 text-white py-10">
+      <section className="relative w-full rounded-lg overflow-hidden bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600 text-white py-8">
         <motion.div 
           className="absolute inset-0 opacity-10"
           animate={{ rotate: 360 }}
           transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
         >
-          <div className="absolute top-1/2 left-1/4 w-96 h-96 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl" />
-          <div className="absolute top-1/2 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl" />
+          <div className="absolute top-1/2 left-1/4 w-64 h-64 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl" />
+          <div className="absolute top-1/2 right-1/4 w-64 h-64 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl" />
         </motion.div>
 
-        <div className="relative z-10 container mx-auto  px-6 text-center">
+        <div className="relative z-10 container mx-auto px-6 text-center">
           <motion.span 
-            className="inline-block mb-4 text-sm font-semibold uppercase tracking-widest text-primary-200"
+            className="inline-block mb-3 text-xs font-semibold uppercase tracking-widest text-primary-200"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            Our Storys
+            Our Story
           </motion.span>
 
           <motion.h1 
-            className="text-5xl md:text-6xl lg:text-7xl font-extrabold mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-extrabold mb-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.1 }}
@@ -125,7 +125,7 @@ function History() {
           </motion.h1>
 
           <motion.p 
-            className="text-xl text-gray-300 max-w-3xl mx-auto"
+            className="text-lg text-gray-100 max-w-3xl mx-auto"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
@@ -136,7 +136,7 @@ function History() {
       </section>
 
       {/* Timeline Section */}
-      <section className="relative w-full py-20">
+      <section className="relative w-full py-12 lg:py-16">
         <div className="container mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
@@ -155,19 +155,19 @@ function History() {
                     <motion.button
                       key={index}
                       onClick={() => setActiveIndex(index)}
-                      className={`w-full text-left p-4 rounded-xl transition-all duration-300 transform hover:scale-105 ${
+                      className={`w-full text-left p-3 rounded-xl transition-all duration-300 transform hover:scale-105 ${
                         activeIndex === index
                           ? `${colors.bg} text-white shadow-lg`
-                          : `bg-white border-2 border-gray-200 text-gray-900 hover:border-gray-300`
+                          : `bg-white border-2 border-gray-100 text-gray-900 hover:border-gray-200`
                       }`}
                       variants={itemVariants}
                       whileHover={{ x: 10 }}
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-2xl font-bold">{item.year}</span>
+                        <span className="text-xl font-bold">{item.year}</span>
                         <div className="flex-1">
-                          <p className="font-semibold">{item.title}</p>
-                          <p className={`text-sm ${activeIndex === index ? 'text-white/80' : 'text-gray-500'}`}>
+                          <p className="text-sm font-semibold">{item.title}</p>
+                          <p className={`text-xs ${activeIndex === index ? 'text-white/80' : 'text-gray-500'}`}>
                             {item.highlight}
                           </p>
                         </div>
@@ -195,25 +195,25 @@ function History() {
                     const colors = getColorClasses(item.color);
 
                     return (
-                      <div className={`rounded-3xl p-8 md:p-12 ${colors.light} border-2 ${colors.border}`}>
+                      <div className={`rounded-2xl p-6 md:p-8 ${colors.light} border-2 ${colors.border}`}>
                         
                         {/* Icon and Year */}
-                        <div className="flex items-start justify-between mb-8">
+                        <div className="flex items-start justify-between mb-6">
                           <div>
                             <motion.div 
-                              className={`w-16 h-16 ${colors.bg} rounded-2xl flex items-center justify-center mb-6`}
+                              className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center mb-4`}
                               initial={{ scale: 0, rotate: -180 }}
                               animate={{ scale: 1, rotate: 0 }}
                               transition={{ type: "spring", stiffness: 200 }}
                             >
-                              <Icon icon={item.icon} width={28} height={28} className="text-white" />
+                              <Icon icon={item.icon} width={22} height={22} className="text-white" />
                             </motion.div>
-                            <h2 className="text-5xl md:text-6xl font-extrabold text-gray-900">
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900">
                               {item.year}
                             </h2>
                           </div>
                           <div className="text-right">
-                            <p className={`text-sm font-semibold ${colors.text}`}>
+                            <p className={`text-xs font-semibold ${colors.text}`}>
                               {item.stats}
                             </p>
                           </div>
@@ -225,29 +225,29 @@ function History() {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: 0.2 }}
                         >
-                          <h3 className="text-4xl font-bold text-gray-900 mb-4">
+                          <h3 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
                             {item.title}
                           </h3>
-                          <p className="text-lg text-gray-700 leading-relaxed mb-8">
+                          <p className="text-sm md:text-base text-gray-700 leading-relaxed mb-6">
                             {item.description}
                           </p>
 
                           {/* Highlight Badge */}
                           <motion.div 
-                            className={`inline-flex items-center gap-3 px-6 py-3 ${colors.bg} text-white rounded-full font-semibold`}
+                            className={`inline-flex items-center gap-2 px-4 py-2 text-sm ${colors.bg} text-white rounded-full font-semibold`}
                             whileHover={{ scale: 1.05 }}
                           >
-                            <span className="w-2 h-2 bg-white rounded-full" />
+                            <span className="w-1.5 h-1.5 bg-white rounded-full" />
                             {item.highlight}
                           </motion.div>
                         </motion.div>
 
                         {/* Navigation Arrows */}
-                        <div className="flex gap-3 mt-12">
+                        <div className="flex gap-2 mt-8">
                           <motion.button
                             onClick={() => setActiveIndex(Math.max(0, activeIndex - 1))}
                             disabled={activeIndex === 0}
-                            className={`p-3 rounded-lg transition-all ${
+                            className={`p-2 rounded-md transition-all ${
                               activeIndex === 0
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : `${colors.bg} text-white hover:scale-110`
@@ -255,12 +255,12 @@ function History() {
                             whileHover={{ scale: activeIndex !== 0 ? 1.1 : 1 }}
                             whileTap={{ scale: 0.95 }}
                           >
-                            <Icon icon="akar-icons:chevron-left" width={18} height={18} />
+                            <Icon icon="akar-icons:chevron-left" width={16} height={16} />
                           </motion.button>
                           <motion.button
                             onClick={() => setActiveIndex(Math.min(timelineData.length - 1, activeIndex + 1))}
                             disabled={activeIndex === timelineData.length - 1}
-                            className={`p-3 rounded-lg transition-all ${
+                            className={`p-2 rounded-md transition-all ${
                               activeIndex === timelineData.length - 1
                                 ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                                 : `${colors.bg} text-white hover:scale-110`
@@ -268,7 +268,7 @@ function History() {
                             whileHover={{ scale: activeIndex !== timelineData.length - 1 ? 1.1 : 1 }}
                             whileTap={{ scale: 0.95 }}
                           >
-                            <Icon icon="akar-icons:chevron-right" width={18} height={18} />
+                            <Icon icon="akar-icons:chevron-right" width={16} height={16} />
                           </motion.button>
                         </div>
                       </div>

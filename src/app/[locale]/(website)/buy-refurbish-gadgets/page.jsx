@@ -375,39 +375,27 @@ export default function Refurbish() {
 
       <div className="grid grid-cols-1 mt-10 md:grid-cols-2 gap-4">
         <div>
-          <Image src='/assets/refurbish/sections/1.webp' width={500} height={500} alt="1" className='rounded-lg' />
+          <Image src='/assets/refurbish/sections/1.png' width={500} height={500} alt="1" className='shadow-md rounded-lg' />
         </div>
         <div>
-          <Image src='/assets/refurbish/sections/2.avif' width={500} height={500} alt="1" className='rounded-lg' />
+          <Image src='/assets/refurbish/sections/2.png' width={500} height={500} alt="1" className='shadow-md rounded-lg' />
         </div>
       </div>
 
 
 
-      {/* EMI Section */}
-      <div className="mt-10 mb-10 relative">
-        <Link href="/buy-refurbish-gadgets">
-          <Image
-            width={2000}
-            height={800}
-            className="w-full rounded-xl"
-            alt="CTI Tradebulls Sell Device Banner"
-            src="/assets/refurbish/sections/emi.avif"
-            priority
-          />
-        </Link>
-      </div>
+
 
 
       <div>
-        <div className='grid grid-cols-4 gap-4'>
+        <div className='grid grid-cols-4 mt-10 gap-4'>
           <Link href="/buy-refurbish-gadgets">
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/4.avif"
+              src="/assets/refurbish/sections/3.png"
               priority
             />
           </Link>
@@ -415,9 +403,9 @@ export default function Refurbish() {
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/3.avif"
+              src="/assets/refurbish/sections/4.png"
               priority
             />
           </Link>
@@ -425,9 +413,9 @@ export default function Refurbish() {
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/6.webp"
+              src="/assets/refurbish/sections/5.png"
               priority
             />
           </Link>
@@ -435,9 +423,9 @@ export default function Refurbish() {
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/5.avif"
+              src="/assets/refurbish/sections/6.png"
               priority
             />
           </Link>
@@ -464,9 +452,9 @@ export default function Refurbish() {
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/l1.webp"
+              src="/assets/refurbish/sections/7.png"
               priority
             />
           </Link>
@@ -474,9 +462,9 @@ export default function Refurbish() {
             <Image
               width={2000}
               height={800}
-              className="w-full rounded-xl"
+              className="w-full rounded-xl shadow-md"
               alt="CTI Tradebulls Sell Device Banner"
-              src="/assets/refurbish/sections/l2.webp"
+              src="/assets/refurbish/sections/8.png"
               priority
             />
           </Link>
@@ -500,9 +488,9 @@ export default function Refurbish() {
           <Image
             width={2000}
             height={800}
-            className="w-full rounded-xl"
+            className="w-full rounded-xl shadow-md"
             alt="CTI Tradebulls Sell Device Banner"
-            src="/assets/refurbish/sections/w1.avif"
+            src="/assets/refurbish/sections/9.png"
             priority
           />
         </Link>
@@ -510,9 +498,9 @@ export default function Refurbish() {
           <Image
             width={2000}
             height={800}
-            className="w-full rounded-xl"
+            className="w-full rounded-xl shadow-md"
             alt="CTI Tradebulls Sell Device Banner"
-            src="/assets/refurbish/sections/w2.avif"
+            src="/assets/refurbish/sections/10.png"
             priority
           />
         </Link>
@@ -528,18 +516,19 @@ export default function Refurbish() {
         loading={loading}
       />
 
+
+
       <div className="mt-10 mb-10 relative">
-        <Link href='/buy-refurbish-gadgets'>
-          <Image src='/assets/refurbish/sections/wht.avif' width={1500} height={800} className='rounded-xl' />
+        <Link href="/buy-refurbish-gadgets">
+          <Image
+            width={2000}
+            height={800}
+            className="w-full rounded-xl shadow-md"
+            alt="CTI Tradebulls Sell Device Banner"
+            src="/assets/refurbish/sections/ernii.png"
+            priority
+          />
         </Link>
-      </div>
-
-
-      <div className="mt-10 mb-10  gap-4 relative">
-        <Link href='/buy-refurbish-gadgets'>
-          <Image src='/assets/refurbish/sections/eft.avif' width={1500} height={800} className='rounded-xl' />
-        </Link>
-
       </div>
 
 
