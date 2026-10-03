@@ -83,6 +83,7 @@ function Header() {
           items: [
             { name: "All Users", icon: "mdi:account-group-outline", path: "/admin/users" },
             { name: "Repairmen", icon: "mdi:account-wrench-outline", path: "/admin/repair-man" },
+            { name: "Top Professionals", icon: "mdi:star-circle-outline", path: "/admin/top-professionals" },
             { name: "KYC Management", icon: "mdi:shield-account-outline", path: "/admin/kyc-management" },
           ]
         },

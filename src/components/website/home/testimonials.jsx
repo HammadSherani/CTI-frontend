@@ -113,16 +113,16 @@ function Testimonials() {
       return staticTestimonials;
     }
 
+    // HomeReview data has 'type', 'username', 'reviewText', 'rating', 'profilePhoto', 'image'
     const list = Array.isArray(reviews) ? reviews : [reviews];
-    const filtered = list.filter((r) => r.isPublic !== false && (r.moderationStatus || '').toLowerCase() === 'approved');
-
-    // If no approved reviews, fallback to static data
-    if (filtered.length === 0) {
-      console.log('No approved reviews found, using static test data');
+    
+    // We want to show all HomeReviews fetched
+    if (list.length === 0) {
+      console.log('No reviews found, using static test data');
       return staticTestimonials;
     }
 
-    return filtered;
+    return list;
   }, [reviews]);
 
   console.log(items, 'visible reviews');
@@ -247,8 +247,8 @@ function Testimonials() {
               >
                 <div className="flex flex-row items-center gap-3 mt-auto">
                   {(() => {
-                    const name = item.customerName || 'Customer Name';
-                    const imageSrc = item.customerAvatar || item.avatar;
+                    const name = item.username || item.customerName || 'Customer';
+                    const imageSrc = item.profilePhoto || item.customerAvatar || item.avatar;
                     const fallback = name.charAt(0).toUpperCase() || 'C';
 
                     return imageSrc ? (
@@ -266,14 +266,30 @@ function Testimonials() {
                     );
                   })()}
                   <div className="text-center">
-                    <h4 className="font-bold capitalize text-white text-md">{item.customerName || 'Customer Name'}</h4>
-                    {/* <p className="text-primary-900 text-xs">{new Date(item.createdAt || item.updatedAt || Date.now()).toLocaleDateString()}</p> */}
+                    <h4 className="font-bold capitalize text-white text-md">{item.username || item.customerName || 'Customer'}</h4>
+                    {item.type && (
+                      <span className="text-xs bg-primary-900/50 text-white px-2 py-0.5 rounded-full capitalize">
+                        {item.type}
+                      </span>
+                    )}
                   </div>
                 </div>
 
+                {/* Rating stars if available */}
+                {item.rating && (
+                  <div className="flex items-center gap-0.5 mt-3 px-2">
+                    {[...Array(5)].map((_, i) => (
+                      <Icon
+                        key={i}
+                        icon="mdi:star"
+                        className={`w-4 h-4 ${i < item.rating ? 'text-amber-400' : 'text-gray-400/50'}`}
+                      />
+                    ))}
+                  </div>
+                )}
 
                 {/* Review Text */}
-                <p className="text-white opacity-90  mt-3  flex-grow text-sm line-clamp-5 leading-relaxed font-medium text-left p-2">
+                <p className={`text-white opacity-90 ${item.rating ? 'mt-2' : 'mt-3'} flex-grow text-sm line-clamp-5 leading-relaxed font-medium text-left p-2`}>
                   {item.reviewText || item.text || ''}
                 </p>
                 {/* Quote Icon */}

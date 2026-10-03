@@ -20,15 +20,15 @@ import { addChat } from '@/store/chat';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 
-export default function MeetOurProfessionals() {
+export default function TopSellers() {
   const swiperRef = useRef(null);
   const [progress, setProgress] = useState(0);
   const [currentIndex, setCurrentIndex] = useState(1);
   const [isHovered, setIsHovered] = useState(false);
 
-  const { repairmans, loading } = useSelector((state) => state.home || {});
-  const professionals = Array.isArray(repairmans) ? repairmans : [];
-
+  const { sellers, loading } = useSelector((state) => state.home || {});
+  const professionals = Array.isArray(sellers) ? sellers : [];
+  console.log(sellers, 'seller')
   // Memoized update function
   const updateProgress = useCallback((swiper) => {
     if (!swiper) return;
@@ -85,9 +85,8 @@ export default function MeetOurProfessionals() {
         { headers: { Authorization: "Bearer " + token } }
       );
 
-      const profile = pro.repairmanProfile || pro;
-      const fullName = profile.fullName || "Expert Technician";
-      const imageSrc = profile.profilePhoto || '/placeholder-repairman.jpg';
+      const fullName = pro.businessName || pro.name || "Premium Store";
+      const imageSrc = pro.profilePictureOrLogo || pro.profileImage || `https://placehold.co/400x300/0d9488/ffffff?text=${encodeURIComponent(fullName.charAt(0).toUpperCase())}`;
 
       const newChat = {
         id: data?.chat._id,
@@ -136,7 +135,7 @@ export default function MeetOurProfessionals() {
     return (
       <section className="py-20 bg-white text-gray-900 overflow-hidden">
         <div className="max-w-7xl mx-auto px-5 lg:px-8 text-center">
-          <SectionTag title="Our Specialists" />
+          <SectionTag title="Top Sellers" />
           <h2 className="text-xl md:text-2xl font-bold mt-4 mb-6">
             Coming Soon
           </h2>
@@ -158,19 +157,17 @@ export default function MeetOurProfessionals() {
         <div className="flex flex-col lg:flex-row justify-between gap-8 mb-12 lg:mb-16">
           <div className="lg:max-w-xl">
             <div className="">
-              <SectionTag title="Our Specialists" />
+              <SectionTag title="Top Sellers" />
             </div>
             <h2 className="text-xl md:text-2xl font-bold tracking-tight leading-tight">
               Meet Our Verified{' '}
               <p className="text-primary-500 relative ">
-                Professional
+                Stores
               </p>
             </h2>
           </div>
           <p className="max-w-lg text-gray-500 text-sm sm:text-base leading-relaxed lg:self-end">
-            Our certified repair experts bring years of hands-on experience and consistently
-            high customer satisfaction. Each professional is carefully vetted to ensure
-            reliable, fast, and trustworthy service.
+            Our top sellers offer high-quality products and excellent customer service. Each store is verified to ensure authentic parts and devices.
           </p>
         </div>
 
@@ -186,9 +183,9 @@ export default function MeetOurProfessionals() {
             spaceBetween={20}
             slidesPerView={1}
             breakpoints={{
-              640: { slidesPerView: 1, spaceBetween: 20 },
-              768: { slidesPerView: 2, spaceBetween: 24 },
-              1024: { slidesPerView: 2, spaceBetween: 30 },
+              640: { slidesPerView: 2, spaceBetween: 20 },
+              768: { slidesPerView: 3, spaceBetween: 24 },
+              1024: { slidesPerView: 4, spaceBetween: 24 },
             }}
             loop={professionals.length > 1}
             autoplay={{
@@ -200,11 +197,10 @@ export default function MeetOurProfessionals() {
             className="!overflow-visible"
           >
             {professionals.map((pro, idx) => {
-              const profile = pro.repairmanProfile || pro;
-              const fullName = profile.fullName || "Expert Technician";
-              const specialization = profile.specialization || "Mobile Repair Services";
-              const rawBio = profile.bio || "Specializes in corporate governance and commercial law, supporting clients through high-stakes decisions with precision, discretion, and a strong commitment to ethical practice.";
-              const bio = rawBio.length > 150 ? rawBio.slice(0, 150) + '...' : rawBio;
+              const fullName = pro.businessName || pro.name || "Premium Store";
+              const rawBio = pro.storeDescription || "Top rated seller offering authentic products with fast delivery.";
+              const bio = rawBio.length > 120 ? rawBio.slice(0, 120) + '...' : rawBio;
+              const imageSrc = pro.profilePictureOrLogo || `https://placehold.co/400x300/0d9488/ffffff?text=${encodeURIComponent(fullName.charAt(0).toUpperCase())}`;
 
               return (
                 <SwiperSlide key={pro._id || idx}>
@@ -212,102 +208,64 @@ export default function MeetOurProfessionals() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.1 }}
-                    className="h-auto"
+                    className="h-[420px]"
                   >
-                    {/* Card Container */}
-                    <div className="bg-white overflow-hidden  transition-all duration-300 flex flex-col sm:flex-row h-auto sm:h-[450px]
-                     lg:h-[370px] group">
+                    {/* Card Container - Vertical Design */}
+                    <div className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col h-full group">
 
-                      {/* Image Section - Responsive */}
-                      <div className="relative w-full sm:w-[200px] md:w-[230px] lg:w-[260px] h-[250px] sm:h-full overflow-hidden">
+                      {/* Image Section */}
+                      <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-50">
                         <Image
-                          src={profile.profilePhoto || '/placeholder-repairman.jpg'}
-                          alt={fullName || "profile"}
+                          src={imageSrc}
+                          alt={fullName}
                           fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 260px"
-                          className="object-cover object-center group-hover:scale-105 rounded-lg transition-transform duration-500"
-                          priority={idx < 2}
+                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                          className="object-cover object-center group-hover:scale-110 transition-transform duration-700"
+                          priority={idx < 4}
                         />
-                        {/* Gradient Overlay for better text readability on mobile */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent sm:bg-none" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0" />
 
-                        {/* Mobile Name Overlay */}
-                        <div className="absolute bottom-4 left-4 right-4 sm:hidden">
-                          <h3 className="text-white text-lg font-bold drop-shadow-lg">
-                            {fullName}
-                          </h3>
-                          <p className="text-white/90 text-sm drop-shadow">
-                            {specialization}
-                          </p>
+                        <div className="absolute bottom-3 left-3 right-3 flex justify-between items-end">
+                          <span className="bg-primary-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+                            Top Seller
+                          </span>
+                          {pro.city && (
+                            <span className="text-white capitalize text-xs flex items-center gap-1 drop-shadow-md">
+                              <Icon icon="mdi:map-marker-outline" width={14} />
+                              {pro.city.name || pro.city}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Content Section */}
-                      <div className="p-5 sm:p-6 flex flex-col flex-1">
-                        {/* Desktop Name & Location */}
-                        <div className="hidden sm:block mb-4">
-                          <h3 className="text-xl md:text-2xl font-bold text-gray-900 leading-tight hover:text-primary-500 transition-colors">
-                            {fullName}
-                          </h3>
-                          <p className="text-primary-500 text-sm md:text-base mt-1 font-medium">
-                            {specialization}
-                          </p>
-                          {profile.city && (
-                            <p className="text-xs text-gray-400 mt-1 flex items-center gap-1">
-                              <Icon icon="mdi:map-marker-outline" width={12} />
-                              {profile.city.name || profile.city}
-                            </p>
-                          )}
-                        </div>
+                      <div className="p-5 flex flex-col flex-1">
+                        <h3 className="text-lg capitalize font-bold text-gray-900 leading-tight group-hover:text-primary-600 transition-colors line-clamp-1 mb-1">
+                          {fullName}
+                        </h3>
+                        {/* <p className="text-primary-500 capitalize text-xs font-medium uppercase tracking-wider line-clamp-1 mb-3">
+                          {specialization}
+                        </p> */}
 
-                        {/* Divider - Hidden on mobile */}
-                        <div className="hidden sm:block h-px bg-gray-200 mb-4" />
-
-                        {/* Bio - Responsive */}
-                        <p className="text-gray-500 text-sm leading-relaxed line-clamp-4 md:line-clamp-5 mb-4">
+                        <p className="text-gray-500 text-sm leading-relaxed line-clamp-3 mb-5 flex-1 min-h-[60px]">
                           {bio}
                         </p>
 
-                        {/* Social Icons */}
-                        <div className="flex items-center text-gray-900 gap-3 mb-4">
-                          <a
-                            href="#"
-                            className="text-gray-900 hover:text-primary-500 transition-colors"
-                            aria-label="Twitter"
-                          >
-                            <Icon icon="mdi:twitter" width={18} className="sm:w-5" />
-                          </a>
-                          <a
-                            href="#"
-                            className="text-gray-900 hover:text-primary-500 transition-colors"
-                            aria-label="LinkedIn"
-                          >
-                            <Icon icon="mdi:linkedin" width={18} className="sm:w-5" />
-                          </a>
-                          <a
-                            href="#"
-                            className="text-gray-900 hover:text-primary-500 transition-colors"
-                            aria-label="Facebook"
-                          >
-                            <Icon icon="mdi:facebook" width={18} className="sm:w-5" />
-                          </a>
-                        </div>
-
                         {/* Action Buttons */}
-                        <div className="flex gap-2 sm:gap-3 mt-auto">
+                        <div className="flex gap-2 mt-auto">
                           <button
-                            onClick={() => router.push(`/repairmans/${pro._id}`)}
-                            className="flex-1 bg-gray-900 hover:bg-primary-500 text-white transition-all duration-300 py-2.5 sm:py-3 rounded-xl text-sm font-semibold transform hover:scale-[1.02] active:scale-[0.98]"
-                            aria-label="Book appointment"
+                            onClick={() => router.push(`/store/${pro._id}`)}
+                            className="flex-1 bg-gray-50 hover:bg-primary-500 text-gray-700 hover:text-white transition-all duration-300 py-2 rounded-xl text-sm font-semibold border border-gray-200 hover:border-primary-500"
+                            aria-label="Visit Store"
                           >
-                            Book Appointment
+                            Visit Store
                           </button>
                           <button
                             onClick={() => handleChat(pro)}
-                            className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-200 hover:border-primary-500 hover:text-primary-500 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-105"
-                            aria-label="Chat with professional"
+                            className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors border border-gray-200"
+                            aria-label="Chat with seller"
                           >
-                            <Icon icon="mdi:chat-outline" width={18} className="sm:w-5" />
+                            <Icon icon="mdi:chat-outline" width={18} />
                           </button>
                         </div>
                       </div>

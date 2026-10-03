@@ -22,6 +22,7 @@ const initialState = {
   blogs: [],
   reviews: [],
   repairmans: [],
+  sellers: [],
   services: [],
   heroSlides: [],
   loading: false,
@@ -40,6 +41,7 @@ const homeSlice = createSlice({
       state.blogs = [];
       state.reviews = [];
       state.repairmans = [];
+      state.sellers = [];
       state.services = [];
       state.heroSlides = [];
       state.lastFetched = null;
@@ -59,6 +61,7 @@ const homeSlice = createSlice({
         state.blogs = action.payload.blogs || [];
         state.reviews = action.payload.reviews || [];
         state.repairmans = action.payload.repairmen || [];
+        state.sellers = action.payload.sellers || [];
         state.services = action.payload.services || [];
         state.heroSlides = action.payload.banners || [];
         state.lastFetched = Date.now();

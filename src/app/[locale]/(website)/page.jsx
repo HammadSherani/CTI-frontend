@@ -18,6 +18,7 @@ import FilterBar from '@/components/website/FilterBar';
 import OurServices from '@/components/website/home/ourServices';
 import SellGadgets from '@/components/website/home/SellGadgets';
 import TopRepairman from '@/components/website/home/TopRepairman';
+import TopSellers from '@/components/website/home/TopSellers';
 import BecomePartner from '@/components/website/home/becomePartner';
 import Testimonials from '@/components/website/home/testimonials';
 import AcademySection from '@/components/website/home/MobileAcademySection';
@@ -88,6 +89,7 @@ function Home() {
       <Stores />
       <HowItWorks />
       <TopRepairman />
+      <TopSellers />
       <Testimonials />
       <OurDeals />
       <DownloadApp />
