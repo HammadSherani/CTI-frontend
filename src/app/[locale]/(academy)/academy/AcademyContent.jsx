@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { useRouter } from '@/i18n/navigation';
 import AcademyMarquee from '@/components/partials/academy/AcademyMarquee';
+import AcademyPoliciesAndFAQ from '@/components/partials/academy/AcademyPoliciesAndFAQ';
+import Button from '@/components/ui/button';
 
 export default function AcademyContent() {
 
@@ -26,7 +28,7 @@ export default function AcademyContent() {
             <h1 className="text-xl font-semibold mb-4 pt-2">Your complete guide to the tech ecosystem!</h1>
             <p className="mb-6">Discover everything about mobile repair, buying and selling used or new devices, and connecting repairmen with customers. CTI Academy provides you with all the knowledge to succeed as a seller, repairman, or a customer looking for the best tech deals.</p>
             <div className="flex space-x-4">
-              <button onClick={() => router.push('academy/academy-listing')} className="bg-primary-500 text-white px-6 py-3 rounded-full hover:bg-primary-600">View All trainings</button>
+              <Button onClick={() => router.push('academy/academy-listing')} variant="primary" size="lg">View All trainings</Button>
               {/* <button className="bg-gray-800 text-white px-6 py-3 rounded-full hover:bg-gray-900">Promotional Video</button> */}
             </div>
           </div>
@@ -90,56 +92,13 @@ export default function AcademyContent() {
 
 
 
-      {/* Academy Policies & Guidelines Section */}
-      <section className="py-12 px-6 bg-gray-50 border-t border-gray-200">
-        <div className="max-w-7xl mx-auto">
-          <div className="prose prose-lg max-w-none text-gray-700">
-            <h2 className="text-3xl font-bold text-gray-900 mb-6">
-              Academy Policies, Terms, and Guidelines
-            </h2>
-            <p className="leading-relaxed mb-6">
-              Welcome to the CTI Academy informational hub. Here you will find all the rules, regulations, and best practices expected from repairmen, sellers, and customers within our tech ecosystem. Our priority is to maintain a safe, transparent, and high-quality environment for everyone.
-            </p>
-
-            <h3 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-              Repairman Standards & Verification
-            </h3>
-            <p className="leading-relaxed mb-4">
-              All repairmen operating on CTI must undergo a strict verification process. This includes background checks and validation of technical certifications. By participating in our ecosystem, repairmen agree to:
-            </p>
-            <ul className="list-disc list-outside space-y-2 pl-6 mb-8 text-gray-700">
-              <li>Use high-quality, genuine, or OEM-equivalent parts for all repairs.</li>
-              <li>Provide transparent pricing without hidden fees.</li>
-              <li>Ensure customer data privacy during the repair process.</li>
-              <li>Offer a minimum warranty on hardware replacements.</li>
-            </ul>
-
-            <h3 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-              Seller Quality Checks & Refurbishment
-            </h3>
-            <p className="leading-relaxed mb-4">
-              Sellers listing refurbished or used devices must adhere to CTI's 32-point quality check. Any device sold on our platform is expected to match its listed condition (Fair, Good, Superb). Sellers must:
-            </p>
-            <ul className="list-disc list-outside space-y-2 pl-6 mb-8 text-gray-700">
-              <li>Accurately declare the battery health and screen condition.</li>
-              <li>Ensure the device is factory reset and completely wiped of previous user data.</li>
-              <li>Provide a clear return policy (e.g., 15-day replacement) for defective items.</li>
-            </ul>
-
-            <h3 className="text-2xl font-semibold text-gray-900 mt-8 mb-4">
-              Customer Responsibilities & Protection
-            </h3>
-            <p className="leading-relaxed mb-4">
-              As a customer, your rights are protected by CTI’s robust support system. However, we also expect customers to engage responsibly when buying, selling, or booking repairs. Before selling your device, always ensure you have backed up your data and logged out of your iCloud/Google accounts. When booking a repair, provide accurate details regarding the damage so our technicians can quote you correctly.
-            </p>
-          </div>
-        </div>
-      </section>
+      {/* Academy Policies, Guidelines & FAQ Section */}
+      <AcademyPoliciesAndFAQ />
 
       {/* Become a Seller Banner */}
       <section className="py-8 px-6 bg-gradient-to-r from-primary-400 to-primary-600 text-white text-center">
         <p className="mb-4">To access all features, you must be a registered CTI user. Click below to start your journey.</p>
-        <button className="bg-white text-purple-500 px-6 py-3 rounded-full hover:bg-gray-100" onClick={() => router.push('/academy/academy-listing')}>Go to Academy listing page</button>
+        <Button variant="primary" size="lg" onClick={() => router.push('/academy/academy-listing')}>Go to Academy listing page</Button>
       </section>
 
 

@@ -19,13 +19,13 @@ export default function Button({
   const variants =
     {
       primary:
-        'bg-[#1e7bff] text-white hover:brightness-95 active:brightness-90 focus:ring-[#1e7bff]/40',
+        'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus:ring-primary-500/40',
       secondary:
-        'bg-[#FEA621] text-black hover:brightness-95 active:brightness-90 focus:ring-[#FEA621]/40',
+        'bg-orange-500 text-white hover:bg-orange-600 active:bg-orange-700 focus:ring-orange-500/40',
       ghost:
-        'bg-white text-[#1e7bff] border border-[#d8e3ff] hover:bg-[#f2f6ff] focus:ring-[#1e7bff]/30',
+        'bg-transparent text-primary-600 border border-primary-200 hover:bg-primary-50 active:bg-primary-100 focus:ring-primary-500/30',
     }[variant] ||
-    'bg-[#1e7bff] text-white hover:brightness-95 active:brightness-90 focus:ring-[#1e7bff]/40';
+    'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 focus:ring-primary-500/40';
 
   return (
     <button className={`${base} ${sizes} ${variants} ${className}`} {...props}>

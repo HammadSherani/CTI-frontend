@@ -11,8 +11,9 @@ import { clearAuth } from '@/store/auth'
 
 const TABS = [
   { name: 'CTI Academy', href: '/academy' },
-  { name: 'Seller Info Center', href: '/academy/seller-info' },
-  { name: 'Repairman Info Center', href: '/academy/repairman-info' },
+  { name: 'Seller Info Center', href: '/academy/seller-info-center' },
+  // { name: 'Seller Info Center', href: '/docs/seller' },
+  // { name: 'Repairman Info Center', href: '/docs/repairman' },
 ]
 
 const ROLE_ROUTES = {
@@ -228,14 +229,14 @@ export default function AcademyHeader() {
             )}
           </div>
 
-          {/* Calendar */}
+          {/* Calendar
           <button
             type="button"
             className="hidden sm:flex items-center gap-1 text-sm font-medium text-gray-700 hover:text-orange-500 transition-colors"
           >
             <Icon icon="mdi:calendar-month-outline" className="text-base" />
             Calendar
-          </button>
+          </button> */}
         </div>
 
         {/* Right */}
@@ -264,8 +265,12 @@ export default function AcademyHeader() {
                 aria-expanded={profileOpen}
                 className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg hover:bg-gray-200 transition"
               >
-                <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold">
-                  {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                <div className="w-7 h-7 rounded-full bg-orange-500 text-white flex items-center justify-center text-xs font-bold overflow-hidden">
+                  {user?.profileImage ? (
+                    <img src={user.profileImage} alt={user?.name || "User"} className="w-full h-full object-cover" />
+                  ) : (
+                    user?.name ? user.name.charAt(0).toUpperCase() : 'U'
+                  )}
                 </div>
                 <span className="text-sm font-medium text-gray-700 hidden sm:block max-w-[120px] truncate">
                   {user.name || user.email || 'User'}

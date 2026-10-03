@@ -183,8 +183,12 @@ function ButtonSection() {
           onClick={toggleDropdown}
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <div className="w-7 h-7 rounded-full bg-orange-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
+          <div className="w-7 h-7 rounded-full overflow-hidden bg-orange-500 flex items-center justify-center flex-shrink-0">
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt={user?.name || "User"} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
+            )}
           </div>
           <span className="hidden sm:block text-[12px] font-semibold text-gray-700 max-w-[80px] truncate">
             {user?.name?.split(" ")[0]}
@@ -241,8 +245,12 @@ function ButtonSection() {
           onClick={toggleDropdown}
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors"
         >
-          <div className="w-7 h-7 rounded-full bg-primary-500 flex items-center justify-center flex-shrink-0">
-            <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
+          <div className="w-7 h-7 rounded-full overflow-hidden bg-primary-500 flex items-center justify-center flex-shrink-0">
+            {user?.profileImage ? (
+              <img src={user.profileImage} alt={user?.name || "User"} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-[11px] font-bold text-white">{getInitials(user?.name)}</span>
+            )}
           </div>
           <span className="hidden sm:block text-[12px] font-semibold text-gray-700 max-w-[80px] truncate">
             {user?.name?.split(" ")[0]}

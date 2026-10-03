@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 import { Link } from "@/i18n/navigation";
 import { setUserDetails } from "@/store/auth";
 
+const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
+
 export default function CustomerProfilePage() {
   const { token, user } = useSelector((s) => s.auth);
   const dispatch = useDispatch();
@@ -19,22 +21,25 @@ export default function CustomerProfilePage() {
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({ name: "", phone: "", country: "" });
-  const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const fileRef = useRef(null);
+
+  const authHeaders = { Authorization: `Bearer ${token}` };
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
       const { data } = await axiosInstance.get("/customer/profile", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: authHeaders,
       });
       if (data.success) {
-        setProfile(data.data.user);
+        const u = data.data.user;
+        setProfile(u);
         setForm({
-          name: data.data.user.name || "",
-          phone: data.data.user.phone || "",
-          country: data.data.user.country || "",
+          name: u.name || "",
+          phone: u.phone || "",
+          country: u.country || "",
         });
       }
     } catch (err) {
@@ -45,40 +50,94 @@ export default function CustomerProfilePage() {
   };
 
   useEffect(() => {
-    if (token) fetchProfile();
+    if (token) {
+      fetchProfile();
+    } else {
+      // token nahi hai to spinner hamesha na chalta rahe
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const handlePhotoSelect = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPhotoFile(file);
-      setPhotoPreview(URL.createObjectURL(file));
+  // blob URL memory leak se bachne ke liye
+  useEffect(() => {
+    return () => {
+      if (photoPreview) URL.revokeObjectURL(photoPreview);
+    };
+  }, [photoPreview]);
+
+  const handlePhotoSelect = async (e) => {
+    const file = e.target.files?.[0];
+    // same file dobara select karne par bhi onChange chale
+    e.target.value = "";
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+    if (file.size > MAX_PHOTO_SIZE) {
+      toast.error("Image must be smaller than 5MB");
+      return;
+    }
+
+    setPhotoPreview(URL.createObjectURL(file));
+
+    try {
+      setUploadingPhoto(true);
+      const fd = new FormData();
+      fd.append("profilePhoto", file);
+
+      // Content-Type manually set nahi karna, axios boundary khud lagata hai
+      const { data } = await axiosInstance.post(
+        "/customer/profile/upload-profile",
+        fd,
+        { headers: authHeaders }
+      );
+
+      if (data.success) {
+        toast.success(data.message || "Profile photo updated!");
+        setProfile((prev) => ({ ...prev, profileImage: data.data.profileImage }));
+        dispatch(setUser({ ...user, profileImage: data.data.profileImage }));
+        setPhotoPreview(null); // ab server wali image dikhao
+      }
+    } catch (err) {
+      handleError(err);
+      setPhotoPreview(null); // error par purani photo wapas
+    } finally {
+      setUploadingPhoto(false);
     }
   };
 
   const handleSave = async () => {
+    const name = form.name.trim();
+    const phone = form.phone.trim();
+    const country = form.country.trim();
+
+    if (!name) {
+      toast.error("Name is required");
+      return;
+    }
+
     try {
       setSaving(true);
       const fd = new FormData();
-      if (form.name) fd.append("name", form.name);
-      if (form.phone) fd.append("phone", form.phone);
-      if (form.country) fd.append("country", form.country);
-      if (photoFile) fd.append("profilePhoto", photoFile);
+      fd.append("name", name);
+      // hamesha bhejo, taake user phone/country khali (clear) bhi kar sake
+      fd.append("phone", phone);
+      fd.append("country", country);
 
-      const { data } = await axiosInstance.put("/customer/profile/update-profile", fd, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      const { data } = await axiosInstance.put(
+        "/customer/profile/update-profile",
+        fd,
+        { headers: authHeaders }
+      );
+
       if (data.success) {
         toast.success(data.message || "Profile updated!");
         setProfile(data.data.user);
         setEditing(false);
-        setPhotoFile(null);
-        setPhotoPreview(null);
-        // Update redux store
-        dispatch(setUserDetails({ ...user, ...data.data.user }));
+        dispatch(setUser({ ...user, ...data.data.user }));
       }
     } catch (err) {
       handleError(err);
@@ -89,8 +148,6 @@ export default function CustomerProfilePage() {
 
   const cancelEdit = () => {
     setEditing(false);
-    setPhotoFile(null);
-    setPhotoPreview(null);
     setForm({
       name: profile?.name || "",
       phone: profile?.phone || "",
@@ -111,12 +168,15 @@ export default function CustomerProfilePage() {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 max-w-sm text-center">
           <Icon icon="heroicons:exclamation-triangle" className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
           <h3 className="text-lg font-bold text-gray-900 mb-1">Profile Not Found</h3>
           <p className="text-sm text-gray-500">Please login to view your profile.</p>
-          <Link href="/auth/login" className="inline-block mt-4 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors">
+          <Link
+            href="/auth/login"
+            className="inline-block mt-4 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors"
+          >
             Login
           </Link>
         </div>
@@ -124,20 +184,23 @@ export default function CustomerProfilePage() {
     );
   }
 
-  const displayPhoto = photoPreview || profile.profilePhoto;
+  const displayPhoto = photoPreview || profile.profileImage;
+
+  const inputClass =
+    "w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 bg-white";
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">My Profile</h1>
             <p className="text-sm text-gray-500 mt-0.5">Manage your account information</p>
           </div>
           <Link
             href="/profile/change-password"
-            className="flex items-center gap-2 px-4 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex items-center gap-2 px-4 py-2.5 border bg-white/50 border-gray-200 rounded-xl text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
           >
             <Icon icon="heroicons:lock-closed" className="w-4 h-4" />
             Change Password
@@ -146,15 +209,10 @@ export default function CustomerProfilePage() {
 
         {/* Profile Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {/* Banner */}
-          <div className="h-32 bg-gradient-to-r from-primary-500 via-primary-600 to-primary-700 relative">
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMCAyMGgyMFYwSDIwdjIwSDQwdjIwSDIwVjIwSDB6IiBmaWxsPSJyZ2JhKDI1NSwyNTUsMjU1LDAuMDUpIi8+PC9zdmc+')] opacity-30" />
-          </div>
-
           {/* Avatar */}
-          <div className="relative -mt-16 px-6">
+          <div className="relative px-6 pt-6">
             <div className="relative inline-block">
-              <div className="w-28 h-28 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+              <div className="relative w-28 h-28 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-gray-100">
                 {displayPhoto ? (
                   <img src={displayPhoto} alt="Profile" className="w-full h-full object-cover" />
                 ) : (
@@ -162,15 +220,21 @@ export default function CustomerProfilePage() {
                     <Icon icon="heroicons:user" className="w-12 h-12 text-primary-400" />
                   </div>
                 )}
+                {uploadingPhoto && (
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+                    <Icon icon="eos-icons:loading" className="w-8 h-8 text-white animate-spin" />
+                  </div>
+                )}
               </div>
-              {editing && (
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  className="absolute -bottom-2 -right-2 p-2 bg-primary-600 text-white rounded-xl shadow-lg hover:bg-primary-700 transition-colors"
-                >
-                  <Icon icon="heroicons:camera" className="w-4 h-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                aria-label="Change profile photo"
+                onClick={() => fileRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="absolute -bottom-2 -right-2 p-2 bg-primary-600 text-white rounded-xl shadow-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+              >
+                <Icon icon="heroicons:camera" className="w-4 h-4" />
+              </button>
               <input
                 ref={fileRef}
                 type="file"
@@ -183,18 +247,19 @@ export default function CustomerProfilePage() {
 
           {/* Info */}
           <div className="px-6 pt-4 pb-6">
-            <div className="flex items-start justify-between mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">{profile.name || "No Name"}</h2>
-                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1">
-                  <Icon icon="heroicons:envelope" className="w-4 h-4" />
+            <div className="flex items-start justify-between gap-3 mb-6">
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-gray-900 truncate">{profile.name || "No Name"}</h2>
+                <p className="text-sm text-gray-500 flex items-center gap-1.5 mt-1 break-all">
+                  <Icon icon="heroicons:envelope" className="w-4 h-4 shrink-0" />
                   {profile.email}
                 </p>
               </div>
               {!editing && (
                 <button
+                  type="button"
                   onClick={() => setEditing(true)}
-                  className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-primary-600 border border-primary-200 rounded-xl hover:bg-primary-50 transition-colors"
+                  className="shrink-0 flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-primary-600 border border-primary-200 rounded-xl hover:bg-primary-50 transition-colors"
                 >
                   <Icon icon="heroicons:pencil-square" className="w-4 h-4" />
                   Edit Profile
@@ -217,7 +282,7 @@ export default function CustomerProfilePage() {
                       value={form.name}
                       onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
                       placeholder="Enter your name"
-                      className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 bg-white"
+                      className={inputClass}
                     />
                   ) : (
                     <p className="text-sm font-medium text-gray-900 mt-0.5">{profile.name || "Not provided"}</p>
@@ -232,7 +297,7 @@ export default function CustomerProfilePage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Email Address</p>
-                  <p className="text-sm font-medium text-gray-900 mt-0.5">{profile.email}</p>
+                  <p className="text-sm font-medium text-gray-900 mt-0.5 break-all">{profile.email}</p>
                   <p className="text-xs text-gray-400 mt-0.5">Email cannot be changed</p>
                 </div>
               </div>
@@ -250,7 +315,7 @@ export default function CustomerProfilePage() {
                       value={form.phone}
                       onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
                       placeholder="Enter your phone number"
-                      className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 bg-white"
+                      className={inputClass}
                     />
                   ) : (
                     <p className={`text-sm font-medium mt-0.5 ${profile.phone ? "text-gray-900" : "text-gray-400 italic"}`}>
@@ -273,7 +338,7 @@ export default function CustomerProfilePage() {
                       value={form.country}
                       onChange={(e) => setForm((p) => ({ ...p, country: e.target.value }))}
                       placeholder="Enter your country"
-                      className="w-full mt-1 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 bg-white"
+                      className={inputClass}
                     />
                   ) : (
                     <p className={`text-sm font-medium mt-0.5 ${profile.country ? "text-gray-900" : "text-gray-400 italic"}`}>
@@ -288,12 +353,15 @@ export default function CustomerProfilePage() {
             {editing && (
               <div className="flex gap-3 pt-5 border-t border-gray-100 mt-5">
                 <button
+                  type="button"
                   onClick={cancelEdit}
-                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors"
+                  disabled={saving}
+                  className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-50"
                 >
                   Cancel
                 </button>
                 <button
+                  type="button"
                   onClick={handleSave}
                   disabled={saving}
                   className="flex-1 px-5 py-2.5 bg-primary-600 text-white rounded-xl text-sm font-semibold hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"

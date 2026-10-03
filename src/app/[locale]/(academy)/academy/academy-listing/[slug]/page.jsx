@@ -7,6 +7,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchCourseDetails as fetchCourseDetailsAction } from '@/store/academy'
 import Image from 'next/image'
 import SmallLoader from '@/components/SmallLoader'
+import AcademyReviewSection from '@/components/partials/academy/AcademyReviewSection'
+import axiosInstance from '@/config/axiosInstance'
 
 export default function CoursePage() {
   const params = useParams()
@@ -24,6 +26,8 @@ export default function CoursePage() {
       try {
         setLoading(true)
         await dispatch(fetchCourseDetailsAction(slugParam)).unwrap()
+        // Increment views
+        axiosInstance.patch(`/academic/${slugParam}/views`).catch(console.error)
       } catch (err) {
         console.error('Error fetching course details:', err)
       } finally {
@@ -374,7 +378,7 @@ export default function CoursePage() {
           )}
           </div>
 
-         
+         <AcademyReviewSection slug={slugParam} />
 
         
         </div>
