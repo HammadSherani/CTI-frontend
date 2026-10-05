@@ -415,8 +415,8 @@ function AcademyCategoryPage() {
                                                                 onClick={() => !isUpdating && toggleActive(category._id)}
                                                                 disabled={isUpdating}
                                                                 className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${category.isActive
-                                                                        ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
-                                                                        : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
+                                                                    ? 'bg-green-100 text-green-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-green-200')
+                                                                    : 'bg-red-100 text-red-800 ' + (isUpdating ? 'opacity-80 cursor-not-allowed' : 'hover:bg-red-200')
                                                                     } transition-colors`}
                                                             >
                                                                 {isUpdating ? (

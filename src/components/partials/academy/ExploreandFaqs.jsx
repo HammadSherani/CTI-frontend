@@ -11,31 +11,42 @@ const CONTENTS = [
         title: 'Seller Basics',
         text: 'Learn how to set up your seller account, verify your identity, and understand the basic requirements to start selling.',
         href: '/docs/seller/seller',
+        img: '/assets/academy/seller/explore/1.png',
     },
     {
         title: 'Products',
         text: 'A complete guide on adding new products, editing existing ones, managing inventory, and optimizing listings.',
         href: '/docs/seller/products',
+        img: '/assets/academy/seller/explore/2.png',
+
     },
     {
         title: 'Orders & Selling',
         text: 'Learn how to manage incoming orders, fulfill shipments properly, and handle returns or cancellations smoothly.',
         href: '/docs/seller/orders',
+        img: '/assets/academy/seller/explore/3.png',
+
     },
     {
         title: 'Earnings & Payments',
         text: 'Understand how seller payouts work, track your revenue, check your fees, and manage your wallet balance.',
         href: '/docs/seller/earnings',
+        img: '/assets/academy/seller/explore/4.png',
+
     },
     {
         title: 'More Seller Tools',
         text: 'Explore advanced tools for store analytics, running promotions, and using features to boost your overall sales.',
         href: '/docs/seller/other-tools',
+        img: '/assets/academy/seller/explore/5.png',
+
     },
     {
         title: 'Help & Reference',
         text: 'Find answers to frequently asked questions, read our selling policies, and contact support for further assistance.',
         href: '/docs/seller/help',
+        img: '/assets/academy/seller/explore/6.png',
+
     },
 ];
 
@@ -78,7 +89,7 @@ function ContentCard({ item, index }) {
                     className="relative flex h-32 w-full items-center justify-center overflow-hidden rounded-lg sm:h-36 bg-gray-100"
                 >
                     <img
-                        src={`https://placehold.co/400x300/f3f4f6/9ca3af?text=${encodeURIComponent(item.title)}`}
+                        src={item.img}
                         alt={item.title}
                         className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
                     />

@@ -21,7 +21,7 @@ const LEARN_CARDS = [
         subtitle: 'Choose the right learning path for your needs.',
         tags: ['Video', 'Live Classes', 'Practicals', 'Notes'],
         icon: 'heroicons:academic-cap',
-        image: '/assets/academy/seller/2.webp',
+        image: '/assets/academy/seller/5.png',
     },
     {
         title: 'Technician Help Center',
