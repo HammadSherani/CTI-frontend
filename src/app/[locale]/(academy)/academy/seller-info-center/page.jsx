@@ -140,7 +140,7 @@ export default function SellerInfo() {
             className="mx-auto w-full max-w-lg md:max-w-none"
           >
             <Image
-              src="/assets/academy/seller/1.webp"
+              src="/assets/academy/seller/1.png"
               alt="Technician repairing a device"
               width={600}
               height={400}
