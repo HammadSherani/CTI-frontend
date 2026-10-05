@@ -451,6 +451,7 @@ function MobileMenu({ open, onClose }) {
     { label: "Home", href: "/", icon: "mdi:home-outline" },
     { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
     { label: "Academy", href: "/academy", icon: "mdi:school-outline" },
+    { label: "Insurance", href: "/insurance", icon: "mdi:shield-check-outline" },
     { label: "Track Order", href: "/coming", icon: "mdi:map-marker-path" },
     { label: "Contact", href: "/contact", icon: "mdi:phone-outline" },
   ];
@@ -684,21 +685,28 @@ function NavigationBar({ isHome, isScrolled }) {
       href: "/repairmans",
       hasDropdown: false,
     },
+
     {
-      name: "Academy",
-      href: "/academy",
-      hasDropdown: false,
+      name: "Academy/Docs", href: "/academy", hasDropdown: true,
+      dropdownItems: [
+        // sell phones
+        { name: "Academy Listing", href: "/academy/academy-listing", hasDropdown: true, dropdownItems: SELL_GADGETS },
+
+        { name: "Documentation", href: "/docs", hasDropdown: true, dropdownItems: SELL_GADGETS },
+        { name: "Seller Info", href: "/academy/seller-info-center", hasDropdown: true, dropdownItems: SELL_PHONE },
+      ],
     },
+    // {
+    //   name: "Insurance",
+    //   href: "/insurance",
+    //   hasDropdown: false,
+    // },
     {
       name: "About",
       href: "/about-us",
       hasDropdown: false,
     },
-    {
-      name: "Docs",
-      href: "/docs",
-      hasDropdown: false,
-    },
+
     {
       name: "Support",
       href: "/live-support",

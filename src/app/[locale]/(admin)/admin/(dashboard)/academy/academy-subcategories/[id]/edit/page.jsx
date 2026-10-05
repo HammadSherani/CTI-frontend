@@ -15,9 +15,12 @@ import { useSelector } from 'react-redux';
 const categorySchema = yup.object().shape({
   name: yup
     .string()
-    .required('Category name is required')
+    .required('SubCategory name is required')
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must not exceed 100 characters'),
+  categoryId: yup
+    .string()
+    .required('Parent Category is required'),
   icon: yup
     .mixed()
     .nullable()
@@ -44,6 +47,7 @@ const categorySchema = yup.object().shape({
 });
 
 function EditAcademyCategory() {
+  const [categories, setCategories] = useState([]);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [iconPreview, setIconPreview] = useState(null);
@@ -68,11 +72,30 @@ function EditAcademyCategory() {
     mode: 'onChange', // Validate on change to update isValid properly
     defaultValues: {
       name: '',
+      categoryId: '',
       icon: null,
       isActive: true,
       isFeatured: false,
     },
   });
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axiosInstance.get('/admin/academic-category?limit=100', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setCategories(response.data.data || []);
+      } catch (error) {
+        console.error('Failed to load categories', error);
+      }
+    };
+    if (token) {
+      fetchCategories();
+    }
+  }, [token]);
 
   const watchedIcon = watch('icon');
   const watchedIsActive = watch('isActive');
@@ -98,6 +121,7 @@ function EditAcademyCategory() {
       
       // Populate form with existing data
       setValue('name', category.title);
+      setValue('categoryId', category.categoryId?._id || category.categoryId || '');
       
       // Set existing icon preview
       if (category.icon) {
@@ -106,8 +130,8 @@ function EditAcademyCategory() {
       }
       
     } catch (error) {
-      console.error('Error fetching category:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to load category';
+      console.error('Error fetching subcategory:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to load subcategory';
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     } finally {
@@ -157,6 +181,7 @@ function EditAcademyCategory() {
       
       // Append fields
       formData.append('title', data.name);
+      formData.append('categoryId', data.categoryId);
 
       // Add new icon only if changed and file exists
       if (iconChanged && data.icon && data.icon.length > 0) {
@@ -191,11 +216,11 @@ function EditAcademyCategory() {
         router.push('/admin/academy/academy-subcategories');
       }, 2000);
     } catch (error) {
-      console.error('Error updating category:', error);
+      console.error('Error updating subcategory:', error);
       setUploadProgress(0);
 
       const errorMessage =
-        error.response?.data?.message || error.message || 'Failed to update category. Please try again.';
+        error.response?.data?.message || error.message || 'Failed to update subcategory. Please try again.';
       setSubmitError(errorMessage);
       toast.error(errorMessage);
     }
@@ -221,7 +246,7 @@ function EditAcademyCategory() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="flex flex-col items-center">
           <Icon icon="mdi:loading" className="w-12 h-12 text-primary-600 animate-spin" />
-          <p className="mt-4 text-gray-600">Loading category...</p>
+          <p className="mt-4 text-gray-600">Loading subcategory...</p>
         </div>
       </div>
     );
@@ -237,14 +262,14 @@ function EditAcademyCategory() {
               <button
                 onClick={handleCancel}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
-                title="Back to categories"
-                aria-label="Back to categories"
+                title="Back to subcategories"
+                aria-label="Back to subcategories"
               >
                 <Icon icon="mdi:arrow-left" className="w-6 h-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Edit Parts Category</h1>
-                <p className="text-gray-600 mt-1">Update category information and settings</p>
+                <h1 className="text-3xl font-bold text-gray-900">Edit Academy SubCategory</h1>
+                <p className="text-gray-600 mt-1">Update subcategory information and settings</p>
               </div>
             </div>
           </div>
@@ -294,14 +319,44 @@ function EditAcademyCategory() {
                   </p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Enter a clear and descriptive name for the category
+                  Enter a clear and descriptive name for the subcategory
                 </p>
               </div>
 
-              {/* Category Icon Upload */}
+              {/* Parent Category */}
+              <div>
+                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent Category *
+                </label>
+                <select
+                  id="categoryId"
+                  {...register('categoryId')}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white ${
+                    errors.categoryId ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  aria-invalid={errors.categoryId ? 'true' : 'false'}
+                >
+                  <option value="">Select a Parent Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.title}
+                    </option>
+                  ))}
+                </select>
+                {errors.categoryId && (
+                  <p className="mt-1 text-sm text-red-600" role="alert">
+                    {errors.categoryId.message}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Select the main category this subcategory belongs to
+                </p>
+              </div>
+
+              {/* SubCategory Icon Upload */}
               <div>
                 <label htmlFor="icon" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category Icon (Optional)
+                  SubCategory Icon (Optional)
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
                   Upload a new icon to replace the existing one. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
@@ -323,7 +378,7 @@ function EditAcademyCategory() {
                     aria-describedby="icon-description"
                   />
                   <p id="icon-description" className="sr-only">
-                    Upload a category icon. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
+                    Upload a subcategory icon. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
                   </p>
 
                   {errors.icon && (
@@ -395,8 +450,8 @@ function EditAcademyCategory() {
                     <ul className="list-disc list-inside space-y-1 text-blue-700">
                       <li>Changes will be applied immediately after saving</li>
                       <li>If you upload a new icon, the old one will be replaced</li>
-                      <li>Deactivating a category won't delete associated parts</li>
-                      <li>Featured status can be toggled without affecting functionality</li>
+                      <li>Deactivating a subcategory won't delete associated items</li>
+                      <li>Select the correct parent category</li>
                     </ul>
                   </div>
                 </div>
@@ -417,10 +472,10 @@ function EditAcademyCategory() {
                   type="submit"
                   disabled={isSubmitting || uploadProgress > 0 || !isValid}
                   className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  aria-label="Update category"
+                  aria-label="Update subcategory"
                 >
                   {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
-                  {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Update Category'}
+                  {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Update SubCategory'}
                 </button>
               </div>
             </div>

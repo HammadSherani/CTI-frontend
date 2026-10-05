@@ -64,8 +64,6 @@ function AcademyCategoryPage() {
     };
 
 
-    console.log(categories, "categoriwess")
-    console.log(pagination, "pagination")
     const applyFilters = () => {
         let filtered = [...categories];
 
@@ -87,7 +85,7 @@ function AcademyCategoryPage() {
     };
 
     const handleDelete = async (categoryId) => {
-        if (!window.confirm('Are you sure you want to delete this category?')) return;
+        if (!window.confirm('Are you sure you want to delete this subcategory?')) return;
 
         // capture original item and index for possible revert
         const originalIndex = categories.findIndex(c => c._id === categoryId);
@@ -110,8 +108,8 @@ function AcademyCategoryPage() {
                 }
             });
 
-            toast.success(res.data.message || 'Category deleted successfully!');
-            setSubmitSuccess('Category deleted successfully!');
+            toast.success(res.data.message || 'SubCategory deleted successfully!');
+            setSubmitSuccess('SubCategory deleted successfully!');
             setTimeout(() => setSubmitSuccess(''), 3000);
 
             // If removal left the page empty and we are beyond page 1, load previous page
@@ -135,8 +133,8 @@ function AcademyCategoryPage() {
             });
             setPagination(prev => ({ ...prev, totalItems: (prev.totalItems || 0) + 1 }));
 
-            setSubmitError('Failed to delete category. Please try again.');
-            toast.error('Failed to delete category');
+            setSubmitError('Failed to delete subcategory. Please try again.');
+            toast.error('Failed to delete subcategory');
         } finally {
             setDeletingIds(prev => {
                 const copy = { ...prev };
@@ -166,15 +164,15 @@ function AcademyCategoryPage() {
                     }
                 }
             );
-            toast.success(res.data.message || 'Category status updated!');
+            toast.success(res.data.message || 'SubCategory status updated!');
         } catch (error) {
             console.error('Toggle active error:', error);
             // revert on failure
             setCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: category.isActive } : c));
             setFilteredCategories(prev => prev.map(c => c._id === categoryId ? { ...c, isActive: category.isActive } : c));
 
-            setSubmitError('Failed to update category status. Please try again.');
-            toast.error('Failed to update category status');
+            setSubmitError('Failed to update subcategory status. Please try again.');
+            toast.error('Failed to update subcategory status');
         } finally {
             setLoadingIds(prev => {
                 const copy = { ...prev };
@@ -262,7 +260,7 @@ function AcademyCategoryPage() {
                         <div>
                             <h1 className="text-3xl font-bold text-gray-900">Academy SubCategories</h1>
                             <p className="mt-2 text-sm text-gray-600">
-                                Manage your academy categories and classifications
+                                Manage your academy subcategories and their parent classifications
                             </p>
                         </div>
                         <Link
@@ -270,7 +268,7 @@ function AcademyCategoryPage() {
                             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 shadow-sm transition-colors"
                         >
                             <Icon icon="mdi:plus" className="w-5 h-5 mr-2" />
-                            Add New Category
+                            Add New SubCategory
                         </Link>
                     </div>
                 </div>
@@ -300,7 +298,7 @@ function AcademyCategoryPage() {
                                 </div>
                                 <input
                                     type="text"
-                                    placeholder="Search by category name..."
+                                    placeholder="Search by subcategory name..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
@@ -348,7 +346,7 @@ function AcademyCategoryPage() {
                         <div className="flex items-center justify-center h-64">
                             <div className="flex flex-col items-center">
                                 <Icon icon="mdi:loading" className="w-12 h-12 text-primary-600 animate-spin" />
-                                <p className="mt-4 text-gray-600">Loading categories...</p>
+                                <p className="mt-4 text-gray-600">Loading subcategories...</p>
                             </div>
                         </div>
                     ) : (
@@ -364,9 +362,11 @@ function AcademyCategoryPage() {
                                                 Name
                                             </th>
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                Parent Category
+                                            </th>
+                                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Status
                                             </th>
-
                                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                                 Created
                                             </th>
@@ -408,6 +408,16 @@ function AcademyCategoryPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
+                                                    {category.categoryId ? (
+                                                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-50 text-primary-700 border border-primary-200">
+                                                            <Icon icon="mdi:folder-outline" className="w-3 h-3 mr-1" />
+                                                            {category.categoryId.title || 'Unknown'}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-sm text-gray-400 italic">No parent</span>
+                                                    )}
+                                                </td>
+                                                <td className="px-6 py-4 whitespace-nowrap">
                                                     {(() => {
                                                         const isUpdating = !!loadingIds[category._id];
                                                         return (
@@ -440,7 +450,7 @@ function AcademyCategoryPage() {
                                                         <Link
                                                             href={`/admin/academy/academy-subcategories/${category._id}/edit`}
                                                             className="text-primary-600 hover:text-primary-900 transition-colors"
-                                                            title="Edit category"
+                                                            title="Edit subcategory"
                                                         >
                                                             <Icon icon="mdi:pencil" className="w-5 h-5" />
                                                         </Link>
@@ -451,7 +461,7 @@ function AcademyCategoryPage() {
                                                                     onClick={() => !isDeleting && handleDelete(category._id)}
                                                                     disabled={isDeleting}
                                                                     className={`text-red-600 ${isDeleting ? 'opacity-80 cursor-not-allowed' : 'hover:text-red-900'} transition-colors`}
-                                                                    title="Delete category"
+                                                                    title="Delete subcategory"
                                                                 >
                                                                     {isDeleting ? (
                                                                         <Icon icon="mdi:loading" className="w-5 h-5 animate-spin" />
@@ -471,11 +481,11 @@ function AcademyCategoryPage() {
                                 {!loading && filteredCategories.length === 0 && (
                                     <div className="text-center py-12">
                                         <Icon icon="mdi:shape-outline" className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No categories found</h3>
+                                        <h3 className="text-lg font-medium text-gray-900 mb-2">No subcategories found</h3>
                                         <p className="text-gray-500">
                                             {searchTerm || filterActive !== 'all' || filterFeatured !== 'all'
                                                 ? 'Try adjusting your search or filters.'
-                                                : 'Get started by creating your first category.'
+                                                : 'Get started by creating your first subcategory.'
                                             }
                                         </p>
                                         {(!searchTerm && filterActive === 'all' && filterFeatured === 'all') && (
@@ -484,7 +494,7 @@ function AcademyCategoryPage() {
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 mt-4"
                                             >
                                                 <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
-                                                Create your first category
+                                                Create your first subcategory
                                             </Link>
                                         )}
                                     </div>
@@ -502,7 +512,7 @@ function AcademyCategoryPage() {
                                 <Icon icon="mdi:shape-outline" className="w-8 h-8 text-primary-600" />
                             </div>
                             <div className="ml-4">
-                                <p className="text-sm font-medium text-gray-500">Total Categories</p>
+                                <p className="text-sm font-medium text-gray-500">Total SubCategories</p>
                                 <p className="text-2xl font-semibold text-gray-900">
                                     {loading ? '...' : categories.length}
                                 </p>

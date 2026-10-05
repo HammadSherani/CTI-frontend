@@ -130,6 +130,7 @@ function Header() {
           category: "Academy",
           items: [
             { name: "Academy Categories", icon: "mdi:shape-outline", path: "/admin/academy/academy-categories" },
+            { name: "Academy Subcategories", icon: "mdi:file-tree-outline", path: "/admin/academy/academy-subcategories" },
             { name: "Ace Management", icon: "mdi:warehouse", path: "/admin/academy/ace-management" },
           ]
         },
@@ -147,6 +148,7 @@ function Header() {
           items: [
             { name: "Ecommerce", icon: "mdi:store", path: "/admin/ecom/dashbaord" },
             { name: "Refurbished", icon: "mdi:cellphone-link", path: "/admin/refurbished/dashbaord" },
+            { name: "Insurance Requests", icon: "mdi:shield-check-outline", path: "/admin/insurance/requests" },
           ]
         }
       ]

@@ -7,12 +7,14 @@ import DashboardCharts from './components/DashboardCharts';
 import DashboardTables from './components/DashboardTables';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
+import { useRouter } from '@/i18n/navigation';
 
 function AdminDashboard() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const { token } = useSelector((state) => state.auth);
+  const router = useRouter();
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -63,6 +65,22 @@ function AdminDashboard() {
       </div>
 
       <DashboardStats data={data} />
+      <button
+        type="button"
+        onClick={() => router.push('/admin/insurance/requests')}
+        className="mb-8 flex w-full items-center justify-between rounded-xl border border-indigo-100 bg-white p-5 text-left shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
+      >
+        <span className="flex items-center gap-4">
+          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 text-2xl text-indigo-600">
+            <Icon icon="mdi:shield-check-outline" />
+          </span>
+          <span>
+            <span className="block text-base font-bold text-gray-800">Insurance Requests</span>
+            <span className="mt-1 block text-sm text-gray-500">Review customer device insurance enquiries</span>
+          </span>
+        </span>
+        <Icon icon="mdi:arrow-right" className="text-xl text-indigo-600" />
+      </button>
       <DashboardCharts data={data} />
       <DashboardTables data={data} />
     </div>

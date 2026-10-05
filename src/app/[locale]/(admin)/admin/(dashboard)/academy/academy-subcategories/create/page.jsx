@@ -14,9 +14,12 @@ import { useSelector } from 'react-redux';
 const categorySchema = yup.object().shape({
   name: yup
     .string()
-    .required('Category name is required')
+    .required('SubCategory name is required')
     .min(2, 'Name must be at least 2 characters')
     .max(100, 'Name must not exceed 100 characters'),
+  categoryId: yup
+    .string()
+    .required('Parent Category is required'),
   icon: yup
     .mixed()
     .test('fileType', 'Only image files are allowed', (value) => {
@@ -34,6 +37,7 @@ const categorySchema = yup.object().shape({
 });
 
 function CreatePartsCategory() {
+  const [categories, setCategories] = useState([]);
   const [submitError, setSubmitError] = useState('');
   const [submitSuccess, setSubmitSuccess] = useState('');
   const [iconPreview, setIconPreview] = useState(null);
@@ -52,11 +56,31 @@ function CreatePartsCategory() {
     resolver: yupResolver(categorySchema),
     defaultValues: {
       name: '',
+      categoryId: '',
       icon: null,
       isActive: true,
       isFeatured: false,
     },
   });
+
+  React.useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await axiosInstance.get('/admin/academic-category?limit=100', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        setCategories(response.data.data || []);
+      } catch (error) {
+        console.error('Failed to load categories', error);
+        toast.error('Failed to load parent categories');
+      }
+    };
+    if (token) {
+      fetchCategories();
+    }
+  }, [token]);
 
   const watchedIcon = watch('icon');
   const watchedIsActive = watch('isActive');
@@ -101,6 +125,7 @@ function CreatePartsCategory() {
       
       // Append required fields
       formData.append('title', data.name);
+      formData.append('categoryId', data.categoryId);
     
 
       // Add icon if provided
@@ -137,7 +162,7 @@ function CreatePartsCategory() {
         router.push('/admin/academy/academy-subcategories');
       }, 2000);
     } catch (error) {
-      console.error('Error creating category:', error);
+      console.error('Error creating subcategory:', error);
       setUploadProgress(0);
 
       const errorMessage =
@@ -181,8 +206,8 @@ function CreatePartsCategory() {
                 <Icon icon="mdi:arrow-left" className="w-6 h-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold text-gray-900">Create New Academy Category</h1>
-                <p className="text-gray-600 mt-1">Add a new category for organizing your academy inventory</p>
+                <h1 className="text-3xl font-bold text-gray-900">Create New Academy SubCategory</h1>
+                <p className="text-gray-600 mt-1">Add a new subcategory for organizing your academy inventory</p>
               </div>
             </div>
           </div>
@@ -232,17 +257,47 @@ function CreatePartsCategory() {
                   </p>
                 )}
                 <p className="mt-1 text-sm text-gray-500">
-                  Enter a clear and descriptive name for the category
+                  Enter a clear and descriptive name for the subcategory
                 </p>
               </div>
 
-              {/* Category Icon Upload */}
+              {/* Parent Category */}
+              <div>
+                <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
+                  Parent Category *
+                </label>
+                <select
+                  id="categoryId"
+                  {...register('categoryId')}
+                  className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 bg-white ${
+                    errors.categoryId ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  aria-invalid={errors.categoryId ? 'true' : 'false'}
+                >
+                  <option value="">Select a Parent Category</option>
+                  {categories.map((cat) => (
+                    <option key={cat._id} value={cat._id}>
+                      {cat.title}
+                    </option>
+                  ))}
+                </select>
+                {errors.categoryId && (
+                  <p className="mt-1 text-sm text-red-600" role="alert">
+                    {errors.categoryId.message}
+                  </p>
+                )}
+                <p className="mt-1 text-sm text-gray-500">
+                  Select the main category this subcategory belongs to
+                </p>
+              </div>
+
+              {/* SubCategory Icon Upload */}
               <div>
                 <label htmlFor="icon" className="block text-sm font-medium text-gray-700 mb-2">
-                  Category Icon (Optional)
+                  SubCategory Icon (Optional)
                 </label>
                 <p className="text-sm text-gray-500 mb-4">
-                  Upload an icon for the category. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
+                  Upload an icon for the subcategory. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
                   Recommended dimensions: 256x256px (square).
                 </p>
 
@@ -261,7 +316,7 @@ function CreatePartsCategory() {
                     aria-describedby="icon-description"
                   />
                   <p id="icon-description" className="sr-only">
-                    Upload a category icon. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
+                    Upload a subcategory icon. Supported formats: JPG, PNG, GIF, WebP. Max size: 2MB.
                   </p>
 
                   {errors.icon && (
@@ -325,13 +380,13 @@ function CreatePartsCategory() {
                 <div className="flex items-start">
                   <Icon icon="mdi:information" className="w-5 h-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
                   <div className="text-sm text-blue-800">
-                    <p className="font-medium mb-1">Category Guidelines:</p>
+                    <p className="font-medium mb-1">SubCategory Guidelines:</p>
                     <ul className="list-disc list-inside space-y-1 text-blue-700">
                       <li>Choose clear, descriptive names that make it easy to find parts</li>
-                      <li>Icons help users quickly identify categories at a glance</li>
-                      <li>Active categories appear in the parts management system</li>
-                      <li>Featured categories are highlighted in the user interface</li>
-                      <li>You can edit these settings anytime from the categories list</li>
+                      <li>Icons help users quickly identify subcategories at a glance</li>
+                      <li>Select the appropriate Parent Category</li>
+                      <li>Active subcategories appear in the parts management system</li>
+                      <li>You can edit these settings anytime from the subcategories list</li>
                     </ul>
                   </div>
                 </div>
@@ -344,7 +399,7 @@ function CreatePartsCategory() {
                   onClick={handleCancel}
                   disabled={isSubmitting}
                   className="px-6 py-2 text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  aria-label="Cancel category creation"
+                  aria-label="Cancel subcategory creation"
                 >
                   Cancel
                 </button>
@@ -352,10 +407,10 @@ function CreatePartsCategory() {
                   type="submit"
                   disabled={isSubmitting || uploadProgress > 0 || !isValid}
                   className="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                  aria-label="Create category"
+                  aria-label="Create subcategory"
                 >
                   {isSubmitting && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
-                  {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Create Category'}
+                  {uploadProgress > 0 ? `Uploading ${uploadProgress}%` : 'Create SubCategory'}
                 </button>
               </div>
             </div>

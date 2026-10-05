@@ -35,6 +35,7 @@ import Stores from '@/components/website/home/stores';
 import HowItWorks from '@/components/website/home/works';
 import OurDeals from '@/components/website/home/ourDeals';
 import TermsSection from '@/components/website/home/terms';
+import InsuranceSection from '@/components/website/home/InsuranceSection';
 
 
 function Home() {
@@ -95,6 +96,7 @@ function Home() {
       <DownloadApp />
       <BlogSection />
       <TermsSection />
+      <InsuranceSection />
       <ScrollToTop />
     </div>
   );

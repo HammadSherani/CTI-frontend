@@ -19,6 +19,7 @@ export default function Footer() {
       { label: "Mobile Repair", url: "/mobile-repair" },
       { label: "Buy Refurbished", url: "/buy-refurbish-gadgets" },
       { label: "Sell Devices", url: "/sell-devices" },
+      { label: "Device Insurance", url: "/insurance" },
       { label: "Tech Repair", url: "/tech-repair" },
       { label: "Service Catalog", url: "/service-catalog" },
       { label: "Live Support", url: "/live-support" },
@@ -156,10 +157,6 @@ export default function Footer() {
           </div>
 
         </div>
-
-
-
-
 
         <div className="flex flex-col lg:flex-row gap-4 items-start md:w-[45%] w-full ml-[55%] mt-10">
           <div className="lg:w-auto w-full mt-8">
