@@ -95,8 +95,8 @@ function Home() {
       <OurDeals />
       <DownloadApp />
       <BlogSection />
-      <TermsSection />
       <InsuranceSection />
+      <TermsSection />
       <ScrollToTop />
     </div>
   );
