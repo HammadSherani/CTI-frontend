@@ -12,8 +12,8 @@ import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
 import SearchInput from "@/components/partials/admin/ecom/SearchInput";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 
-const statuses = ["Pending", "Contacted", "Completed", "Rejected"];
-const statusClass = { Pending: "bg-yellow-100 text-yellow-700", Contacted: "bg-blue-100 text-blue-700", Completed: "bg-green-100 text-green-700", Rejected: "bg-red-100 text-red-700" };
+const statuses = ["Pending", "Contacted", "Approved", "Rejected", "Completed"];
+const statusClass = { Pending: "bg-yellow-100 text-yellow-700", Contacted: "bg-blue-100 text-blue-700", Approved: "bg-indigo-100 text-indigo-700", Completed: "bg-green-100 text-green-700", Rejected: "bg-red-100 text-red-700" };
 
 export default function InsuranceRequestsPage() {
   const { token } = useSelector((state) => state.auth);
@@ -47,7 +47,7 @@ export default function InsuranceRequestsPage() {
   const columns = [
     { key: "customer", header: "Customer", cell: (row) => <div><p className="font-bold text-gray-800">{row.customer?.fullName}</p><p className="text-xs text-gray-400">{row.customer?.phone}</p></div> },
     { key: "device", header: "Device", cell: (row) => <div><p className="font-semibold text-gray-800">{row.device?.brand} {row.device?.model}</p><p className="text-xs text-gray-400">{row.device?.type}</p></div> },
-    { key: "insurance", header: "Insurance", cell: (row) => <span className="text-sm text-gray-600">{row.insuranceType}</span> },
+    { key: "insurance", header: "Insurance", cell: (row) => <div><p className="text-sm font-semibold text-gray-700">{row.insuranceCategory || "Legacy request"}</p><p className="text-xs text-gray-400">{row.insuranceTypeName || row.insuranceType}</p></div> },
     { key: "date", header: "Submitted", cell: (row) => <span className="text-sm text-gray-600">{moment(row.createdAt).format("DD MMM YYYY")}</span> },
     { key: "status", header: "Status", cell: (row) => <span className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ${statusClass[row.status] || "bg-gray-100 text-gray-700"}`}>{row.status}</span> },
     { key: "actions", header: "Actions", cell: (row) => <button type="button" title="View details" onClick={() => router.push(`/admin/insurance/requests/${row._id}`)} className="rounded-xl p-2 text-primary-600 hover:bg-primary-50"><Icon icon="mdi:eye-outline" className="h-5 w-5" /></button> },

@@ -632,6 +632,7 @@ function NavigationBar({ isHome, isScrolled }) {
         // buy refurbished devices
         { name: "Buy Refurbished Devices", href: "/refurbish", hasDropdown: true, dropdownItems: REFURBISHED },
         // Services
+        {name:"insurance", href:"/insurance", hasDropdown:false},
         { name: "Services", href: "/mobile-repair", hasDropdown: true, dropdownItems: SERVICES },
       ],
     },
