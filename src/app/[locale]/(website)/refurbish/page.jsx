@@ -41,14 +41,12 @@ export default function RefurbishListingPage() {
   const [priceMax, setPriceMax] = useState(150000);
   const [localPriceMin, setLocalPriceMin] = useState(0);
   const [localPriceMax, setLocalPriceMax] = useState(150000);
-  
+
   const [selectedConditions, setSelectedConditions] = useState([]);
   const [selectedRams, setSelectedRams] = useState([]);
   const [selectedStorages, setSelectedStorages] = useState([]);
   const [selectedRating, setSelectedRating] = useState(0); // 0 = all ratings
-  const [selectedRoles, setSelectedRoles] = useState([]); // platform or seller
-
-  // UI open/close states
+  const [selectedRoles, setSelectedRoles] = useState([]);
   const [openSections, setOpenSections] = useState({
     category: true,
     brand: true,

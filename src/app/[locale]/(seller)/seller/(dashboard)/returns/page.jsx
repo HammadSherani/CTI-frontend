@@ -363,9 +363,9 @@ export default function SellerReturnsPage() {
       header: "Price / Earnings",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-gray-900 text-sm">Rs. {(row.price || 0).toLocaleString()}</span>
+          <span className="font-bold text-gray-900 text-sm">{formatCurrency(row.price || 0)}</span>
           <span className="text-xs text-amber-600 font-semibold">
-            Your cut: Rs. {(row.sellerEarnings || 0).toLocaleString()}
+            Your cut: {formatCurrency(row.sellerEarnings || 0)}
           </span>
         </div>
       ),

@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
+import { formatCurrency } from "@/helper/currencyFormatter";
 import { useRouter } from "@/i18n/navigation";
 import moment from "moment";
 
@@ -175,7 +176,7 @@ export default function SellerCancelledOrdersPage() {
       header: "Price",
       cell: (row) => (
         <span className="font-bold text-gray-900 text-sm">
-          Rs. {(row.items?.[0]?.price || 0).toLocaleString()}
+          {formatCurrency(row.items?.[0]?.price || 0)}
         </span>
       ),
     },

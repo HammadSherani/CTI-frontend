@@ -18,7 +18,8 @@ const compact = (n) => {
   if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
   return String(n);
 };
-const fmtPKR = (n) => `Rs. ${(n || 0).toLocaleString("en-PK", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+import { formatCurrency } from "@/helper/currencyFormatter";
+const fmtPKR = (n) => formatCurrency(n);
 const fmtD = (d) => d ? moment(d).format("DD MMM YYYY") : "—";
 const daysLeft = (d) => Math.max(0, moment(d).diff(moment(), "days"));
 const fmtRel = (d) => d ? moment(d).fromNow() : "—";
@@ -156,7 +157,7 @@ function SalesPerformance({ data, loading }) {
               <XAxis dataKey="label" tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}
                 tickFormatter={v => compact(v)} width={40} />
-              <Tooltip content={<ChartTooltip prefix="Rs. " />} />
+              <Tooltip content={<ChartTooltip prefix="" />} />
               <Area type="monotone" dataKey="revenue" name="Revenue"
                 stroke="#6366f1" strokeWidth={2.5}
                 fill="url(#revGrad)" dot={{ r: 3, fill: "#6366f1", strokeWidth: 0 }}

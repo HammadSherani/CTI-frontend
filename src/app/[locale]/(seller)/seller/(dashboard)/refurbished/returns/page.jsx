@@ -8,8 +8,8 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
-import moment from "moment";
 import { formatCurrency } from "@/helper/currencyFormatter";
+import moment from "moment";
 
 const TABS = [
   { id: "",          label: "All Returns",      icon: "mdi:package-variant-closed-remove" },
@@ -108,7 +108,7 @@ function DetailModal({ ret, onClose }) {
               <div className="text-sm text-amber-800">
                 <p className="font-bold">Payment Deducted</p>
                 <p className="mt-0.5">
-                  Rs. {(ret.sellerEarnings || ret.price || 0).toLocaleString()} has been cut from your wallet
+                  {formatCurrency(ret.sellerEarnings || ret.price || 0)} has been cut from your wallet
                   and moved to admin hold for customer refund.
                 </p>
               </div>
@@ -162,7 +162,7 @@ function ApproveModal({ ret, onClose, onConfirm, loading }) {
               Payment will be deducted
             </p>
             <p className="mt-1">
-              Approving this return will deduct <strong>Rs. {amountToCut.toLocaleString()}</strong> from
+              Approving this return will deduct <strong>{formatCurrency(amountToCut)}</strong> from
               your wallet balance and move it to admin hold for customer refund.
             </p>
           </div>
@@ -345,9 +345,9 @@ export default function SellerReturnsPage() {
       header: "Price / Earnings",
       cell: (row) => (
         <div className="flex flex-col gap-0.5">
-          <span className="font-bold text-gray-900 text-sm">Rs. {(row.price || 0).toLocaleString()}</span>
+          <span className="font-bold text-gray-900 text-sm">{formatCurrency(row.price || 0)}</span>
           <span className="text-xs text-amber-600 font-semibold">
-            Your cut: Rs. {(row.sellerEarnings || 0).toLocaleString()}
+            Your cut: {formatCurrency(row.sellerEarnings || 0)}
           </span>
         </div>
       ),

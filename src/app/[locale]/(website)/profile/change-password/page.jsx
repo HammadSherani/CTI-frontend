@@ -44,7 +44,6 @@ const PasswordInput = ({ label, field, showKey, icon, form, setForm, show, setSh
     </div>
   </div>
 );
-
 export default function CustomerChangePasswordPage() {
   const { token } = useSelector((s) => s.auth);
   const [form, setForm] = useState({ currentPassword: "", newPassword: "", confirmPassword: "" });
@@ -78,7 +77,6 @@ export default function CustomerChangePasswordPage() {
     }
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 py-8 px-4">
       <div className="max-w-lg mx-auto">
@@ -111,14 +109,14 @@ export default function CustomerChangePasswordPage() {
 
             <div>
               <PasswordInput label="New Password" field="newPassword" showKey="new" icon="heroicons:lock-closed" form={form} setForm={setForm} show={show} setShow={setShow} />
-            {isSameAsOld && (
-              <p className="text-xs text-red-500 font-medium mt-1.5 flex items-center gap-1">
-                <Icon icon="heroicons:exclamation-circle" className="w-4 h-4" />
-                New password cannot be the same as your current password.
-              </p>
-            )}
-            {/* Strength Bar */}
-            {form.newPassword && !isSameAsOld && (
+              {isSameAsOld && (
+                <p className="text-xs text-red-500 font-medium mt-1.5 flex items-center gap-1">
+                  <Icon icon="heroicons:exclamation-circle" className="w-4 h-4" />
+                  New password cannot be the same as your current password.
+                </p>
+              )}
+              {/* Strength Bar */}
+              {form.newPassword && !isSameAsOld && (
                 <div className="mt-2">
                   <div className="flex gap-1">
                     {[0, 1, 2, 3, 4].map((i) => (

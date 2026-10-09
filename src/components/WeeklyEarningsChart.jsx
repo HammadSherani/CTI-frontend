@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
+import { formatCurrency } from "@/helper/currencyFormatter";
 import {
   BarChart,
   Bar,
@@ -210,8 +211,8 @@ export default function WeeklyEarningsChart() {
               tickLine={false}
               tick={{ fill: "#6b7280", fontSize: 12 }}
               tickFormatter={(v) => {
-                if (v >= 1000) return `$${v / 1000}k`;
-                return `$${v}`;
+                if (v >= 1000) return formatCurrency(v / 1000).replace(/[0-9.,]/g, '').trim() + (v / 1000) + 'k';
+                return formatCurrency(v);
               }}
               domain={[0, 'auto']}
             />

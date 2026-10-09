@@ -5,6 +5,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
+import { formatCurrency } from '@/helper/currencyFormatter';
 import {
   AreaChart,
   Area,
@@ -139,9 +140,9 @@ export default function RefurbishedDashboard() {
       {/* Overview stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {[
-          { label: 'Gross Revenue', value: `$${(overview.grossRevenue || 0).toFixed(2)}`, icon: 'solar:dollar-minimalistic-bold-duotone', color: 'text-emerald-600 bg-emerald-50' },
-          { label: 'Shipping Costs', value: `$${(overview.shippingCosts || 0).toFixed(2)}`, icon: 'solar:delivery-bold-duotone', color: 'text-rose-600 bg-rose-50' },
-          { label: 'Net Earnings', value: `$${(overview.netEarnings || 0).toFixed(2)}`, icon: 'solar:wallet-money-bold-duotone', color: overview.netEarnings >= 0 ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50' },
+          { label: 'Gross Revenue', value: formatCurrency(overview.grossRevenue || 0), icon: 'solar:dollar-minimalistic-bold-duotone', color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Shipping Costs', value: formatCurrency(overview.shippingCosts || 0), icon: 'solar:delivery-bold-duotone', color: 'text-rose-600 bg-rose-50' },
+          { label: 'Net Earnings', value: formatCurrency(overview.netEarnings || 0), icon: 'solar:wallet-money-bold-duotone', color: overview.netEarnings >= 0 ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50' },
           { label: 'Total Paid Orders', value: overview.totalOrders || 0, icon: 'solar:box-bold-duotone', color: 'text-indigo-600 bg-indigo-50' }
         ].map((c, i) => (
           <div key={i} className="flex items-center justify-between p-6 rounded-2xl bg-white shadow-sm transition-all hover:scale-[1.01] hover:shadow-md">
