@@ -67,6 +67,7 @@ function RefurbishedHeader() {
             { "name": "Returns", "icon": "mdi:package-variant-closed-remove", "path": "/admin/refurbished/returns" },
             { "name": "Enquiries", "icon": "mdi:message-text-outline", "path": "/admin/refurbished/enquiries" },
             { "name": "Flash Deals", "icon": "mdi:flash", "path": "/admin/refurbished/flash-deals" },
+            { "name": "Top Selling Brands & Models", "icon": "mdi:star-circle-outline", "path": "/admin/refurbished/top-selling" },
           ],
         },
       ],

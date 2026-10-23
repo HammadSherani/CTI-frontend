@@ -17,6 +17,7 @@ import BottomPromoImages from '@/components/website/home/bottomPromoImages';
 import FilterBar from '@/components/website/FilterBar';
 import OurServices from '@/components/website/home/ourServices';
 import SellGadgets from '@/components/website/home/SellGadgets';
+import TopSellingBrandsSection from '@/components/website/home/topSellingBrands';
 import TopRepairman from '@/components/website/home/TopRepairman';
 import TopSellers from '@/components/website/home/TopSellers';
 import BecomePartner from '@/components/website/home/becomePartner';
@@ -83,6 +84,7 @@ function Home() {
       <OurServices />
       <SellGadgets />
       <VideoSection />
+      <TopSellingBrandsSection />
       {/* <SellingProducts title="Products" titleHighlight="New" /> */}
       <StaticSections />
       <FAQ />
@@ -93,9 +95,9 @@ function Home() {
       <TopSellers />
       <Testimonials />
       <OurDeals />
-      <DownloadApp />
       <BlogSection />
       <InsuranceSection />
+      <DownloadApp />
       <TermsSection />
       <ScrollToTop />
     </div>

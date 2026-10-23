@@ -12,6 +12,7 @@ import CustomTranslate from "../Translate";
 import { useLocale, useTranslations } from "next-intl";
 import axiosInstance from "@/config/axiosInstance";
 import useDebounce from "@/hooks/useDebounce";
+import { formatCurrency } from "@/helper/currencyFormatter";
 
 /* ════════════════════════════════════════════
    SHARED CONTAINER — single source of truth for
@@ -31,22 +32,35 @@ function Container({ children, className = "" }) {
 function SearchSuggestions({ query, data, loading, onSelect, visible }) {
   if (!visible) return null;
 
-  const hasResults =
-    data.products.length > 0 ||
-    data.categories.length > 0 ||
-    data.brands.length > 0 ||
-    data.sellers.length > 0;
+  const productsList = data?.products || [];
+  const categoriesList = data?.categories || [];
+  const brandsList = data?.brands || [];
+  const sellersList = data?.sellers || [];
 
+  const hasResults =
+    productsList.length > 0 ||
+    categoriesList.length > 0 ||
+    brandsList.length > 0 ||
+    sellersList.length > 0;
+
+  // Safe highlight helper that handles spaces and special regex characters without throwing
   const highlight = (text) => {
-    if (!query.trim()) return text;
-    const parts = text.split(new RegExp(`(${query})`, "gi"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={i} className="bg-orange-100 text-orange-600 rounded px-0.5 not-italic">
-          {part}
-        </mark>
-      ) : part
-    );
+    if (!text || !query?.trim()) return text;
+    try {
+      const cleanQ = query.trim().replace(/\s+/g, " ");
+      const escaped = cleanQ.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const regex = new RegExp(`(${escaped})`, "gi");
+      const parts = String(text).split(regex);
+      return parts.map((part, i) =>
+        part.toLowerCase() === cleanQ.toLowerCase() ? (
+          <mark key={i} className="bg-orange-100 text-orange-600 rounded px-0.5 not-italic font-semibold">
+            {part}
+          </mark>
+        ) : part
+      );
+    } catch {
+      return text;
+    }
   };
 
   return (
@@ -54,53 +68,107 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center gap-2 py-6 text-sm text-gray-400">
-          <Icon icon="mdi:loading" className="animate-spin w-4 h-4" />
-          Searching…
+          <Icon icon="mdi:loading" className="animate-spin w-4 h-4 text-primary-600" />
+          <span>Searching products & brands…</span>
         </div>
       )}
 
       {/* No query — show hint */}
       {!loading && !query.trim() && (
         <div className="px-4 py-4 text-sm text-gray-400 text-center">
-          Start typing to search products, stores, categories…
+          Start typing to search store products, refurbished devices, brands…
         </div>
       )}
 
       {/* Has results */}
       {!loading && query.trim() && hasResults && (
-        <div className="py-2 max-h-[420px] overflow-y-auto divide-y divide-gray-50">
+        <div className="py-2 max-h-[460px] overflow-y-auto divide-y divide-gray-50">
 
-          {/* Products */}
-          {data.products.length > 0 && (
+          {/* Products (E-Commerce + Refurbished) */}
+          {productsList.length > 0 && (
             <div className="pb-1">
-              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                Products
-              </p>
-              {data.products.map((item) => (
+              <div className="px-4 pt-3 pb-1.5 flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">
+                  Products ({productsList.length})
+                </span>
+                <span className="text-[10px] text-gray-400">Store & Refurbished</span>
+              </div>
+              {productsList.map((item) => (
                 <button
-                  key={item._id}
-                  onMouseDown={() => onSelect({ type: "product", value: item.title, slug: item.slug })}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                  key={`${item.type || 'p'}-${item._id}`}
+                  onMouseDown={() => onSelect(item)}
+                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left cursor-pointer"
                 >
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center overflow-hidden border border-gray-100">
+                  <span className="flex-shrink-0 w-9 h-9 rounded-lg bg-gray-50 flex items-center justify-center overflow-hidden border border-gray-100 p-0.5">
                     <img
                       src={item.image || 'https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image'}
                       alt={item.title}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                       onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/100x100/f3f4f6/9ca3af?text=No+Image'; }}
                     />
                   </span>
                   <div className="flex-1 min-w-0">
-                    <span className="text-[13px] font-medium text-gray-800 leading-tight block truncate">
-                      {highlight(item.title)}
-                    </span>
-                    {item.category && (
-                      <span className="text-[11px] text-gray-400">{item.category}</span>
-                    )}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[13px] font-medium text-gray-800 leading-tight block truncate">
+                        {highlight(item.title)}
+                      </span>
+                      {item.isRefurbished ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                          Refurbished
+                        </span>
+                      ) : (
+                        <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex-shrink-0">
+                          Store
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
+                      {item.brand && <span>{item.brand}</span>}
+                      {item.brand && item.category && <span>•</span>}
+                      {item.category && <span>{item.category}</span>}
+                      {item.modelNumber && (
+                        <>
+                          <span>•</span>
+                          <span className="font-mono text-gray-500">{item.modelNumber}</span>
+                        </>
+                      )}
+                    </div>
                   </div>
                   {item.minPrice > 0 && (
-                    <span className="text-[12px] font-bold text-orange-500 flex-shrink-0">
-                      ${item.minPrice.toFixed(2)}
+                    <span className="text-[12px] font-bold text-primary-600 flex-shrink-0">
+                      {formatCurrency(item.minPrice)}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Brands (E-Commerce + Refurbished) */}
+          {brandsList.length > 0 && (
+            <div className="pb-1">
+              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
+                Brands
+              </p>
+              {brandsList.map((item) => (
+                <button
+                  key={`${item.type || 'b'}-${item._id}`}
+                  onMouseDown={() => onSelect(item)}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group text-left cursor-pointer"
+                >
+                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-gray-50 overflow-hidden flex items-center justify-center p-1 border border-gray-100">
+                    {item.icon ? (
+                      <img src={item.icon} alt={item.title} className="w-full h-full object-contain" />
+                    ) : (
+                      <Icon icon="mdi:tag-outline" className="w-3.5 h-3.5 text-gray-400" />
+                    )}
+                  </span>
+                  <span className="text-[13px] font-medium text-gray-800 truncate flex-1">
+                    {highlight(item.title)}
+                  </span>
+                  {item.isRefurbished && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                      Refurbished Brand
                     </span>
                   )}
                 </button>
@@ -109,81 +177,56 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
           )}
 
           {/* Categories */}
-          {data.categories.length > 0 && (
+          {categoriesList.length > 0 && (
             <div className="pb-1">
               <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
                 Categories
               </p>
-              {data.categories.map((item) => (
+              {categoriesList.map((item) => (
                 <button
-                  key={item._id}
-                  onMouseDown={() => onSelect({ type: "category", value: item.title, id: item._id })}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                  key={`${item.type || 'c'}-${item._id}`}
+                  onMouseDown={() => onSelect(item)}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group text-left cursor-pointer"
                 >
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-purple-50 overflow-hidden flex items-center justify-center">
+                  <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-purple-50 overflow-hidden flex items-center justify-center p-1 border border-purple-100">
                     {item.icon ? (
-                      <img src={item.icon} alt={item.title} className="w-full h-full object-cover" />
+                      <img src={item.icon} alt={item.title} className="w-full h-full object-contain" />
                     ) : (
-                      <Icon icon="mdi:tag" className="w-4 h-4 text-purple-500" />
+                      <Icon icon="mdi:tag" className="w-3.5 h-3.5 text-purple-500" />
                     )}
                   </span>
                   <div className="flex-1 min-w-0">
                     <span className="text-[13px] font-medium text-gray-800 block truncate">
                       {highlight(item.title)}
                     </span>
-                    {item.productCount > 0 && (
-                      <span className="text-[11px] text-gray-400">{item.productCount} products</span>
-                    )}
                   </div>
+                  {item.isRefurbished && (
+                    <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 flex-shrink-0">
+                      Refurbished
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
           )}
 
-          {/* Brands */}
-          {data.brands.length > 0 && (
-            <div className="pb-1">
-              <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
-                Brands
-              </p>
-              {data.brands.map((item) => (
-                <button
-                  key={item._id}
-                  onMouseDown={() => onSelect({ type: "brand", value: item.title, id: item._id })}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
-                >
-                  <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-green-50 overflow-hidden flex items-center justify-center">
-                    {item.icon ? (
-                      <img src={item.icon} alt={item.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <Icon icon="mdi:tag-outline" className="w-4 h-4 text-green-500" />
-                    )}
-                  </span>
-                  <span className="text-[13px] font-medium text-gray-800 truncate">
-                    {highlight(item.title)}
-                  </span>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* Sellers */}
-          {data.sellers.length > 0 && (
+          {/* Sellers / Stores */}
+          {sellersList.length > 0 && (
             <div className="pb-1">
               <p className="px-4 pt-3 pb-1 text-[10px] font-black uppercase tracking-widest text-gray-400">
                 Stores
               </p>
-              {data.sellers.map((item) => (
+              {sellersList.map((item) => (
                 <button
                   key={item._id}
-                  onMouseDown={() => onSelect({ type: "seller", value: item.businessName, id: item._id })}
-                  className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors group text-left"
+                  onMouseDown={() => onSelect({ ...item, type: "seller" })}
+                  className="w-full flex items-center gap-3 px-4 py-2 hover:bg-gray-50 transition-colors group text-left cursor-pointer"
                 >
                   {item.logo ? (
-                    <img src={item.logo} alt={item.businessName} className="w-8 h-8 rounded-lg object-cover flex-shrink-0" />
+                    <img src={item.logo} alt={item.businessName} className="w-7 h-7 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <span className="flex-shrink-0 w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center font-bold text-orange-500 text-sm">
-                      {item.businessName.charAt(0).toUpperCase()}
+                    <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center font-bold text-orange-500 text-xs">
+                      {item.businessName?.charAt(0).toUpperCase()}
                     </span>
                   )}
                   <div className="flex-1 min-w-0">
@@ -206,8 +249,11 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
       {!loading && query.trim() && !hasResults && (
         <div className="px-4 py-6 text-center">
           <Icon icon="mdi:magnify-remove-outline" className="w-10 h-10 text-gray-300 mx-auto mb-2" />
-          <p className="text-[13px] text-gray-400">
-            No results for <strong className="text-gray-600">"{query}"</strong>
+          <p className="text-[13px] text-gray-500 font-medium">
+            No products found for <strong className="text-gray-800">"{query.trim()}"</strong>
+          </p>
+          <p className="text-[11px] text-gray-400 mt-0.5">
+            Try checking spelling or searching for a brand like Apple, Samsung, Canon, Lenovo…
           </p>
         </div>
       )}
@@ -216,11 +262,11 @@ function SearchSuggestions({ query, data, loading, onSelect, visible }) {
       {!loading && query.trim() && hasResults && (
         <div className="border-t border-gray-100 px-4 py-2.5">
           <button
-            onMouseDown={() => onSelect({ type: "all", value: query })}
-            className="text-[12px] font-semibold text-orange-500 hover:text-orange-600 flex items-center gap-1"
+            onMouseDown={() => onSelect({ type: "all", value: query.trim() })}
+            className="text-[12px] font-semibold text-primary-600 hover:text-primary-700 flex items-center gap-1 cursor-pointer"
           >
             <Icon icon="mdi:magnify" className="w-4 h-4" />
-            See all results for "{query}"
+            See all results for "{query.trim()}"
           </button>
         </div>
       )}
@@ -240,45 +286,63 @@ function SearchBar({ className = "" }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const inputRef = useRef(null);
-  const debouncedQuery = useDebounce(query, 350);
+  const debouncedQuery = useDebounce(query, 300);
 
   useEffect(() => {
-    if (!debouncedQuery.trim()) {
+    const cleanQ = (debouncedQuery || "").trim().replace(/\s+/g, " ");
+    if (!cleanQ) {
       setResults(EMPTY_RESULTS);
       return;
     }
     let cancelled = false;
     setLoading(true);
     axiosInstance
-      .get(`/e-commerce/search?q=${encodeURIComponent(debouncedQuery)}`)
+      .get(`/e-commerce/search?q=${encodeURIComponent(cleanQ)}`)
       .then(({ data }) => {
-        if (!cancelled && data.success) setResults(data.data);
+        if (!cancelled && data.success) setResults(data.data || EMPTY_RESULTS);
       })
       .catch(() => { })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [debouncedQuery]);
 
-  const handleSelect = useCallback(({ type, value, slug, id }) => {
+  const handleSelect = useCallback((item) => {
+    if (!item) return;
+    const value = item.title || item.businessName || item.value || "";
     setQuery(value);
     setFocused(false);
     inputRef.current?.blur();
 
-    if (type === "product" && slug) router.push(`/product/${slug}`);
-    else if (type === "category" && id) router.push(`/product?categoryIds=${id}`);
-    else if (type === "brand" && id) router.push(`/product?brandIds=${id}`);
-    else if (type === "seller" && id) router.push(`/store/${id}`);
-    else router.push(`/product?q=${encodeURIComponent(value)}`);
+    if (item.url) {
+      router.push(item.url);
+    } else if (item.isRefurbished || item.type === "refurbished") {
+      router.push(`/refurbish/${item.slug}`);
+    } else if (item.type === "refurbishedBrand") {
+      router.push(`/top-selling-brands/${item.slug}`);
+    } else if (item.type === "refurbishedCategory") {
+      router.push(`/refurbish?category=${item.slug}`);
+    } else if (item.type === "product" && item.slug) {
+      router.push(`/product/${item.slug}`);
+    } else if (item.type === "category" && (item.id || item._id)) {
+      router.push(`/product?categoryIds=${item.id || item._id}`);
+    } else if (item.type === "brand" && (item.id || item._id)) {
+      router.push(`/product?brandIds=${item.id || item._id}`);
+    } else if (item.type === "seller" && (item.id || item._id)) {
+      router.push(`/store/${item.id || item._id}`);
+    } else {
+      router.push(`/product?q=${encodeURIComponent(value.trim())}`);
+    }
   }, [router]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (query.trim()) handleSelect({ type: "all", value: query.trim() });
+    const clean = query.trim();
+    if (clean) handleSelect({ type: "all", value: clean });
   };
 
   return (
     <form onSubmit={handleSubmit} className={`relative ${className}`}>
-      <div className={`flex items-center bg-white border rounded-lg px-3 py-1.5 transition-all duration-200 ${focused ? "border-orange-400 shadow-sm shadow-orange-100" : "border-gray-200 hover:border-gray-300"
+      <div className={`flex items-center bg-white border rounded-lg px-3 py-1.5 transition-all duration-200 ${focused ? "border-primary-500 shadow-sm shadow-primary-500/10" : "border-gray-200 hover:border-gray-300"
         }`}>
         <Icon icon="mdi:magnify" className="w-4 h-4 text-gray-400 flex-shrink-0" />
         <input
@@ -289,13 +353,13 @@ function SearchBar({ className = "" }) {
           placeholder="Search products, brands, stores…"
           className="flex-1 bg-transparent outline-none text-[13px] placeholder-gray-400 text-gray-800 mx-2"
           onFocus={() => setFocused(true)}
-          onBlur={() => setTimeout(() => setFocused(false), 150)}
+          onBlur={() => setTimeout(() => setFocused(false), 200)}
         />
         {query && (
           <button
             type="button"
             onClick={() => { setQuery(""); setResults(EMPTY_RESULTS); }}
-            className="text-gray-300 hover:text-gray-500 transition-colors"
+            className="text-gray-300 hover:text-gray-500 transition-colors cursor-pointer"
           >
             <Icon icon="mdi:close-circle" className="w-3.5 h-3.5" />
           </button>
@@ -632,7 +696,7 @@ function NavigationBar({ isHome, isScrolled }) {
         // buy refurbished devices
         { name: "Buy Refurbished Devices", href: "/refurbish", hasDropdown: true, dropdownItems: REFURBISHED },
         // Services
-        {name:"insurance", href:"/insurance", hasDropdown:false},
+        { name: "insurance", href: "/insurance", hasDropdown: false },
         { name: "Services", href: "/mobile-repair", hasDropdown: true, dropdownItems: SERVICES },
       ],
     },
