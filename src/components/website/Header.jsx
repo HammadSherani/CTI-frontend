@@ -714,7 +714,7 @@ function NavigationBar({ isHome, isScrolled }) {
       isLoading: loadingProductCategories,
     },
     {
-      name: "Buy Refurbished Devices",
+      name: "Buy Refurbished",
       href: "/buy-refurbish-gadgets",
       hasDropdown: true,
       dropdownItems: REFURBISHED,
@@ -746,7 +746,7 @@ function NavigationBar({ isHome, isScrolled }) {
       ] : [],
     },
     {
-      name: "Experts / Top Repairmen",
+      name: "Top Repairmen",
       href: "/repairmans",
       hasDropdown: false,
     },
@@ -800,7 +800,7 @@ function NavigationBar({ isHome, isScrolled }) {
 
   const onNav = isHome && !isScrolled;
 
-  const linkCls = `flex items-center gap-1 px-3 py-1.5 rounded-md text-[13px] font-medium transition-colors duration-150 whitespace-nowrap ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+  const linkCls = `flex items-center gap-0.5 px-1.5 xl:px-2.5 2xl:px-3 py-1 rounded-md text-[11px] xl:text-[12.5px] 2xl:text-[13px] font-medium transition-colors duration-150 whitespace-nowrap ${onNav ? "text-white hover:bg-white/15" : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
     }`;
 
   const renderDropdownContent = (item) => {

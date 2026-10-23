@@ -2,26 +2,72 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
-import { useRouter, usePathname } from "@/i18n/navigation";
-import { useTranslations, useLocale } from "next-intl";
 import SmallLoader from "./SmallLoader";
 
 const languages = [
-  { code: "en", label: "English", flag: "🇺🇸" },
   { code: "tr", label: "Türkçe", flag: "🇹🇷" },
+  { code: "en", label: "English", flag: "🇺🇸" },
 ];
+
+function setGoogTransCookie(val) {
+  if (typeof document === "undefined") return;
+  const domain = window.location.hostname;
+  document.cookie = `googtrans=${val}; path=/;`;
+  document.cookie = `googtrans=${val}; path=/; domain=${domain};`;
+  if (domain.includes(".") && !domain.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const parts = domain.split(".");
+    if (parts.length > 1) {
+      const root = parts.slice(-2).join(".");
+      document.cookie = `googtrans=${val}; path=/; domain=.${root};`;
+    }
+  }
+}
+
+function clearGoogTransCookie() {
+  if (typeof document === "undefined") return;
+  const domain = window.location.hostname;
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+  if (domain.includes(".") && !domain.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const parts = domain.split(".");
+    if (parts.length > 1) {
+      const root = parts.slice(-2).join(".");
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${root};`;
+    }
+  }
+}
+
+function getInitialLanguage() {
+  if (typeof window === "undefined") return "tr";
+  const saved = localStorage.getItem("preferredLocale");
+  if (saved === "en") return "en";
+  return "tr"; // Turkish is always the default language
+}
 
 export default function CustomTranslate() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [targetLangText, setTargetLangText] = useState("");
+  const [activeLang, setActiveLang] = useState("tr");
   const wrapperRef = useRef(null);
 
-  const router = useRouter();
-  const pathname = usePathname();
-  const locale = useLocale();
-  const t = useTranslations("Home.LanguageSwitcher");
+  // Sync active language & ensure default Turkish translation on mount
+  useEffect(() => {
+    const initial = getInitialLanguage();
+    setActiveLang(initial);
 
-  // close on outside click
+    // If Turkish, ensure googtrans is set to /en/tr
+    if (initial === "tr") {
+      const cookies = document.cookie || "";
+      if (!cookies.includes("googtrans=/en/tr")) {
+        setGoogTransCookie("/en/tr");
+      }
+    } else {
+      setGoogTransCookie("/en/en");
+    }
+  }, []);
+
+  // Close dropdown on outside click
   useEffect(() => {
     if (!open) return;
     const handleClickOutside = (e) => {
@@ -34,37 +80,80 @@ export default function CustomTranslate() {
   }, [open]);
 
   const changeLanguage = (langCode) => {
-    if (langCode === locale) {
+    if (langCode === activeLang) {
       setOpen(false);
       return;
     }
+
+    setTargetLangText(
+      langCode === "en" ? "Translating to English..." : "Sayfa Türkçeye çevriliyor..."
+    );
     setLoading(true);
     setOpen(false);
-    window.localStorage.setItem("preferredLocale", langCode);
-    router.replace(pathname, { locale: langCode });
-    setTimeout(() => setLoading(false), 1000);
+
+    try {
+      if (langCode === "tr") {
+        setGoogTransCookie("/en/tr");
+      } else {
+        clearGoogTransCookie();
+        setGoogTransCookie("/en/en");
+      }
+
+      localStorage.setItem("preferredLocale", langCode);
+      setActiveLang(langCode);
+
+      // Trigger Google Translate combo element
+      const combo = document.querySelector(".goog-te-combo");
+      if (combo) {
+        if (langCode === "tr") {
+          combo.value = "tr";
+        } else {
+          const hasEn = Array.from(combo.options || []).some(
+            (opt) => opt.value === "en"
+          );
+          combo.value = hasEn ? "en" : "";
+        }
+        combo.dispatchEvent(new Event("change"));
+      }
+
+      // Immediately reload so Google Translate applies the new language with 100% reliability
+      setTimeout(() => {
+        window.location.reload();
+      }, 250);
+    } catch (err) {
+      console.error("Language switch error:", err);
+      setLoading(false);
+    }
   };
 
-  const currentLang = languages.find((l) => l.code === locale);
+  const currentLang = languages.find((l) => l.code === activeLang) || languages[0];
 
   return (
     <>
-      {loading && <SmallLoader text="Switching language..." loading={loading} />}
+      {loading && (
+        <SmallLoader
+          text={targetLangText || "Translating..."}
+          loading={loading}
+        />
+      )}
 
-      <div className="relative shrink-0" ref={wrapperRef}>
+      <div className="relative shrink-0 notranslate" ref={wrapperRef}>
         {/* ── Trigger Button ── */}
         <button
+          type="button"
           onClick={() => setOpen((v) => !v)}
           disabled={loading}
           aria-haspopup="listbox"
           aria-expanded={open}
-          className="flex items-center gap-1 text-gray-500 px-2 py-1 rounded-md border border-gray-200 hover:border-gray-300 hover:text-gray-700 disabled:opacity-50 transition-colors text-[11px] leading-none"
+          className="flex items-center gap-1.5 text-gray-700 hover:text-primary-600 px-2.5 py-1.5 rounded-lg border border-gray-200 hover:border-gray-300 disabled:opacity-50 transition-all text-xs font-semibold cursor-pointer bg-white shadow-xs"
         >
-          <span className="text-[13px] leading-none">{currentLang?.flag}</span>
-          <span className="hidden sm:inline">{currentLang?.code?.toUpperCase()}</span>
+          <span className="text-sm leading-none">{currentLang?.flag}</span>
+          <span className="font-bold">{currentLang?.code?.toUpperCase()}</span>
           <Icon
             icon="mdi:chevron-down"
-            className={`w-3 h-3 transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${
+              open ? "rotate-180" : ""
+            }`}
           />
         </button>
 
@@ -72,30 +161,34 @@ export default function CustomTranslate() {
         {open && (
           <div
             role="listbox"
-            className="absolute right-0 mt-1.5 w-40 bg-white rounded-lg shadow-lg border border-gray-100 overflow-hidden z-50 origin-top-right animate-in fade-in zoom-in-95 duration-150"
+            className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50 origin-top-right animate-in fade-in zoom-in-95 duration-150"
           >
-            <div className="px-3 py-1.5 text-[10px] font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-100">
-              {t("selectLanguage")}
+            <div className="px-3.5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-wider border-b border-gray-100 bg-gray-50/60">
+              Dil Seçin / Language
             </div>
-            <div className="max-h-48 overflow-y-auto">
+            <div className="p-1 space-y-0.5">
               {languages.map((lang) => {
-                const isActive = locale === lang.code;
+                const isActive = activeLang === lang.code;
                 return (
                   <button
                     key={lang.code}
+                    type="button"
                     role="option"
                     aria-selected={isActive}
                     onClick={() => changeLanguage(lang.code)}
-                    className={`flex items-center gap-2 w-full px-3 py-1.5 text-left text-[12px] transition-colors ${
+                    className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-orange-50 text-orange-600 font-semibold"
-                        : "hover:bg-gray-50 text-gray-600"
+                        ? "bg-primary-50 text-primary-700 font-bold"
+                        : "hover:bg-gray-50 text-gray-700 font-medium"
                     }`}
                   >
-                    <span className="text-sm">{lang.flag}</span>
-                    <span className="truncate">{lang.label}</span>
+                    <span className="text-base">{lang.flag}</span>
+                    <span className="truncate flex-1">{lang.label}</span>
                     {isActive && (
-                      <Icon icon="mdi:check" className="w-3.5 h-3.5 ml-auto text-orange-600 shrink-0" />
+                      <Icon
+                        icon="mdi:check"
+                        className="w-4 h-4 text-primary-600 shrink-0"
+                      />
                     )}
                   </button>
                 );

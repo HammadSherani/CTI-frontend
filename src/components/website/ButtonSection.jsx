@@ -39,10 +39,11 @@ const IconButton = ({
 };
 
 const DashboardLink = ({ link }) => (
-  <Link href={link}>
-    <button className="text-[12px] font-semibold px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors">
-      Dashboard
-    </button>
+  <Link
+    href={link}
+    className="inline-block text-[12px] font-semibold px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors whitespace-nowrap"
+  >
+    <span>Dashboard</span>
   </Link>
 );
 
