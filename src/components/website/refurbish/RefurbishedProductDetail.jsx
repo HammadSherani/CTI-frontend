@@ -579,7 +579,7 @@ export default function RefurbishedProductDetail({ params }) {
                             </span>
                           )}
                           {productData.categoryId?.name && (
-                            <span className="bg-slate-100 text-slate-700 text-xs font-bold px-2 py-0.5 rounded">
+                            <span className="bg-slate-100 text-nowrap text-slate-700 text-xs font-bold px-2 py-0.5 rounded">
                               {productData.categoryId.name}
                             </span>
                           )}
