@@ -13,6 +13,7 @@ import 'swiper/css/thumbs'
 import RefurbishedSliderSection from '@/components/website/refurbish/RefurbishedSliderSection'
 import RefurbishedReviewSection from '@/components/website/refurbish/RefurbishedReviewSection'
 import RefurbishedProductCard from '@/components/website/refurbish/RefurbishedProductCard'
+import HotDealsSection from '@/components/website/refurbish/HotDealsSection'
 import { Link } from '@/i18n/navigation'
 
 export default function Refurbish() {
@@ -274,6 +275,7 @@ export default function Refurbish() {
       </div>
 
 
+
       {/* Active Flash Deals Section */}
       {flashDeals.map((deal) => {
         const mappedProducts = (deal.products || []).map(p => mapFlashProduct(p, deal.discountPercentage)).filter(Boolean);
@@ -285,14 +287,15 @@ export default function Refurbish() {
             {/* Header with Title and Countdown */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 relative z-10">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
+                {/* <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600 flex items-center justify-center shadow-lg shadow-orange-500/20 shrink-0">
                   <Icon icon="mdi:flash" className="w-7 h-7 text-white" />
-                </div>
+                </div> */}
                 <div>
                   <h2 className="text-xl md:text-2xl font-black tracking-tight flex items-center gap-2 flex-wrap">
                     {deal.title}
                     <span className="text-xs bg-gradient-to-r from-amber-500 to-orange-600 text-white text-slate-950 px-3 py-1 rounded-full font-extrabold shadow-md uppercase tracking-wider">
-                      ⚡ {deal.discountPercentage}% OFF
+                      {/* ⚡ */}
+                      {deal.discountPercentage}% OFF
                     </span>
                   </h2>
                   {deal.description && (
@@ -364,7 +367,8 @@ export default function Refurbish() {
         viewAllHref="/refurbish"
         loading={loading}
       />
-
+      {/* Hot Deals Voucher Section (Curated 3 Deals) */}
+      <HotDealsSection />
       {/* Top Selling Phones Section */}
       <RefurbishedSliderSection
         title="Top Selling Phones"
