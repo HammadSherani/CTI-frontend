@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
 
 function ProductCard({ product, isWishlisted = false, onWishlist }) {
@@ -69,15 +69,14 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const ratingCount = Number(ratings?.count || 0);
 
   return (
-    <div
+    <Link
+      href={`/product/${slug}`}
       onClick={(e) => {
         if (typeof product.onCardClick === 'function') {
           product.onCardClick(e);
-        } else {
-          router.push(`/product/${slug}`);
         }
       }}
-      className="group relative  isolate  flex flex-col cursor-pointer bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full"
+      className="group relative isolate flex flex-col cursor-pointer bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full block"
     >
       {/* Badges */}
       <div className="absolute top-3 left-3 z-20 flex flex-col gap-1.5">
@@ -108,7 +107,9 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
       {onWishlist && (
         <div className="absolute top-3 right-3 z-10">
           <button
+            type="button"
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onWishlist(e);
             }}
@@ -242,7 +243,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
           </div>
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
-import { useRouter } from '@/i18n/navigation';
+import { Link, useRouter } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import { toast } from 'react-toastify';
@@ -41,15 +41,11 @@ export default function RefurbishedProductCard({ product }) {
     return itemProdId === productIdVal;
   });
 
-  const handleCardClick = (e) => {
-    if (typeof product.onCardClick === 'function') product.onCardClick(e);
-    else if (href && href !== '#') router.push(href);
-  };
+  const cardHref = href && href !== '#' ? href : (product.slug ? `/refurbish/${product.slug}` : '#');
 
-  const handleCardKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      handleCardClick(e);
+  const handleCardClick = (e) => {
+    if (typeof product.onCardClick === 'function') {
+      product.onCardClick(e);
     }
   };
 
@@ -63,14 +59,11 @@ export default function RefurbishedProductCard({ product }) {
     toast.success(isWishlisted ? 'Removed from wishlist' : 'Added to wishlist');
   };
 
-
   return (
-    <div
+    <Link
+      href={cardHref}
       onClick={handleCardClick}
-      onKeyDown={handleCardKeyDown}
-      role="button"
-      tabIndex={0}
-      className={`group relative border rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full ${isFlashDeal
+      className={`group relative border rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full block ${isFlashDeal
         ? 'border-amber-300 shadow-md shadow-amber-500/5 hover:shadow-amber-500/20 hover:border-amber-400'
         : 'border-gray-200 hover:shadow-primary-100/50 hover:border-primary-300'
         }`}
@@ -226,6 +219,6 @@ export default function RefurbishedProductCard({ product }) {
           )}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }

@@ -4,6 +4,7 @@ import React, { useRef } from 'react';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { motion } from 'framer-motion';
+import { Link } from '@/i18n/navigation';
 
 export default function BrandSlider({
   brands = [],
@@ -44,14 +45,14 @@ export default function BrandSlider({
           const brand = item.brand || item;
           const isSelected = String(brand.id || brand._id) === String(selectedBrandId);
 
+          const identifier = brand.slug || brand.id || brand._id;
+
           return (
-            <motion.button
+            <Link
               key={brand.id || brand._id}
-              type="button"
-              onClick={() => onSelectBrand(brand)}
-              whileHover={{ y: -3 }}
-              whileTap={{ scale: 0.98 }}
-              className={`flex-shrink-0 w-32 sm:w-40 h-28 sm:h-32 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer relative bg-white ${
+              href={`/top-selling-brands/${identifier}`}
+              onClick={() => onSelectBrand && onSelectBrand(brand)}
+              className={`flex-shrink-0 w-32 sm:w-40 h-28 sm:h-32 rounded-2xl p-3 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer relative bg-white block hover:-translate-y-1 ${
                 isSelected
                   ? 'border-2 border-primary-500 shadow-md shadow-primary-500/10 bg-gradient-to-b from-primary-50/40 to-white ring-2 ring-primary-500/20'
                   : 'border border-gray-200/80 hover:border-primary-300 hover:shadow-md'
@@ -85,7 +86,7 @@ export default function BrandSlider({
               {isSelected && (
                 <span className="absolute -top-1.5 right-2 w-2 h-2 rounded-full bg-primary-500 ring-2 ring-white animate-pulse" />
               )}
-            </motion.button>
+            </Link>
           );
         })}
       </div>

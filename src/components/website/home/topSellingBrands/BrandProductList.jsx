@@ -102,7 +102,10 @@ export default function BrandProductList({
                   >
                     {/* Left: Image & Title */}
                     <div className="flex items-center gap-4 flex-1 min-w-0">
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-gray-200/80 p-2 flex items-center justify-center flex-shrink-0 shadow-xs">
+                      <Link
+                        href={`/refurbish/${productSlug}`}
+                        className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-white border border-gray-200/80 p-2 flex items-center justify-center flex-shrink-0 shadow-xs hover:border-primary-400 transition-colors cursor-pointer"
+                      >
                         <img
                           src={image}
                           alt={title}
@@ -111,7 +114,7 @@ export default function BrandProductList({
                             e.currentTarget.src = '/assets/placeholder.jpg';
                           }}
                         />
-                      </div>
+                      </Link>
 
                       <div className="min-w-0 space-y-1">
                         <Link
