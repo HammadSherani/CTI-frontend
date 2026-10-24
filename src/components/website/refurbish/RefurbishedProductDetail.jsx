@@ -27,6 +27,8 @@ export default function RefurbishedProductDetail({ params }) {
   const [variants, setVariants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
+  const [seller, setSeller] = useState(null);
+  const [showFullStoreDesc, setShowFullStoreDesc] = useState(false);
   const [submittingReview, setSubmittingReview] = useState(false);
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
@@ -67,13 +69,15 @@ export default function RefurbishedProductDetail({ params }) {
   const [isSellerOnline, setIsSellerOnline] = useState(false);
 
   useEffect(() => {
-    if (productData?.sellerId?.isOnline !== undefined) {
+    if (seller?.isOnline !== undefined) {
+      setIsSellerOnline(seller.isOnline);
+    } else if (productData?.sellerId?.isOnline !== undefined) {
       setIsSellerOnline(productData.sellerId.isOnline);
     }
-  }, [productData]);
+  }, [seller, productData]);
 
   useEffect(() => {
-    const sId = productData?.sellerId?.userId || productData?.sellerId?._id;
+    const sId = seller?.ownerId || seller?.owner?._id || productData?.sellerId?.userId || productData?.sellerId?._id;
     if (!socket || !sId) return;
 
     const handleStatusChanged = (data) => {
@@ -84,7 +88,7 @@ export default function RefurbishedProductDetail({ params }) {
 
     socket.on('user_status_changed', handleStatusChanged);
     return () => socket.off('user_status_changed', handleStatusChanged);
-  }, [socket, productData]);
+  }, [socket, seller, productData]);
 
   // Ref for scrolling to order section
   const orderRef = useRef(null);
@@ -101,6 +105,9 @@ export default function RefurbishedProductDetail({ params }) {
         if (res.success) {
           const prod = res.data;
           setProductData(prod);
+          if (res.seller || prod.seller) {
+            setSeller(res.seller || prod.seller);
+          }
           const vList = prod.variants || [];
           setVariants(vList);
           if (vList.length) {
@@ -415,7 +422,7 @@ export default function RefurbishedProductDetail({ params }) {
   const currentUniqueId = selectedVariant?._id ? `${productData._id}-${selectedVariant._id}` : productData._id;
 
   return (
-    <div className="max-w-7xl mx-auto px-10 py-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       {/* Breadcrumbs */}
       <Breadcrumbs items={[
         { label: 'Refurbished', href: '/buy-refurbish-gadgets' },
@@ -425,7 +432,7 @@ export default function RefurbishedProductDetail({ params }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start mb-12">
         {/* LEFT COLUMN */}
-        <div className="lg:col-span-9 xl:col-span-9 space-y-10">
+        <div className="lg:col-span-7 xl:col-span-8 space-y-10">
           {/* Flash Deal Banner if active */}
           {flashDealInfo && (
             <div className="bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-rose-500/15 border border-amber-300/60 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm relative overflow-hidden">
@@ -624,6 +631,64 @@ export default function RefurbishedProductDetail({ params }) {
                 </span>
               </div>
 
+              {/* Variants selection (Select Options) */}
+              {attrTypes.length > 0 ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs space-y-3">
+                  <h3 className="text-xs font-extrabold text-gray-900 mb-2 flex items-center gap-1.5">
+                    <Icon icon="mdi:tune-variant" className="text-primary-500 w-4 h-4" />
+                    Select Options
+                  </h3>
+                  {attrTypes.map(type => {
+                    const opts = attrOptions[type] || [];
+                    const currentVal = selectedAttributes[type];
+                    return (
+                      <div key={type}>
+                        <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1">{type}</span>
+                        <div className="flex gap-2 flex-wrap">
+                          {opts.map(opt => {
+                            const isSelected = currentVal === opt.value;
+                            return (
+                              <button
+                                key={opt.value}
+                                onClick={() => handleAttrSelect(type, opt.value)}
+                                className={`px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all duration-200 cursor-pointer ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-white text-gray-700 hover:border-primary-300'}`}
+                              >
+                                {opt.hex && (
+                                  <span className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle border border-gray-300" style={{ backgroundColor: opt.hex }} />
+                                )}
+                                {opt.value}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : variants.length > 0 && !(variants.length === 1 && (variants[0].title === 'Default Variant' || variants[0].isDefault)) ? (
+                <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-2xs">
+                  <h3 className="text-xs font-extrabold text-gray-900 mb-2 flex items-center gap-1.5">
+                    <Icon icon="mdi:tune-variant" className="text-primary-500 w-4 h-4" />
+                    Select Options
+                  </h3>
+                  <div className="flex gap-2 flex-wrap">
+                    {variants.map(v => {
+                      if (v.title === 'Default Variant' && variants.length > 1) return null;
+                      const isSelected = v._id === selectedVariantId;
+                      return (
+                        <button
+                          key={v._id}
+                          onClick={() => setSelectedVariantId(v._id)}
+                          className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all duration-200 cursor-pointer ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
+                        >
+                          {v.title || 'Default'}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden w-fit">
                 <button onClick={() => setQuantity(q => Math.max(1, q - 1))} className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500">
                   <Icon icon="mdi:minus" className="w-4 h-4" />
@@ -718,134 +783,322 @@ export default function RefurbishedProductDetail({ params }) {
         </div>
 
         {/* RIGHT COLUMN */}
-        <div className="lg:col-span-3 xl:col-span-3 space-y-4 sticky top-6">
-          <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm flex flex-col gap-4">
-            <div className="flex gap-3 items-center">
-              {productData.addedByRole === 'admin' ? (
-                <>
-                  <div className="w-12 h-12 rounded-xl flex items-center justify-center text-primary-600 font-black text-lg bg-primary-50 flex-shrink-0">
-                    <Icon icon="mdi:shield-check" className="w-7 h-7" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center flex-wrap gap-1.5">
-                      <h1 className="font-extrabold text-sm text-gray-900 leading-tight truncate">CTI Platform</h1>
-                      <Icon icon="mdi:check-decagram" className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" />
+        <div className="lg:col-span-5 xl:col-span-4 space-y-4 sticky top-6">
+          {(() => {
+            const isPlatform = productData?.addedByRole === 'admin' || !seller || !seller?._id || !seller?.businessName;
+
+            if (isPlatform) {
+              return (
+                /* CTI OFFICIAL PLATFORM CARD */
+                <div className="rounded-2xl border border-primary-200/90 bg-gradient-to-b from-white via-primary-50/15 to-white p-3.5 sm:p-4 shadow-sm space-y-3 relative overflow-hidden">
+                  <div className="absolute -top-12 -right-12 w-32 h-32 bg-primary-100/40 rounded-full blur-2xl pointer-events-none" />
+
+                  {/* Header: Official Platform Guarantee */}
+                  <div className="flex items-start gap-2.5 pb-2.5 border-b border-gray-100 relative">
+                    <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center flex-shrink-0 shadow-sm shadow-primary-500/20">
+                      <Icon icon="solar:shield-check-bold" className="w-4 h-4 text-white" />
                     </div>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Verified & Certified Refurbished</p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="relative">
-                    {productData.sellerId?.profilePictureOrLogo ? (
-                      <img src={productData.sellerId.profilePictureOrLogo} alt={productData.sellerId.businessName || productData.sellerId.name} className="w-12 h-12 rounded-xl object-cover border border-gray-100 flex-shrink-0" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-xl flex items-center justify-center text-indigo-600 font-black text-lg bg-indigo-50 flex-shrink-0">
-                        {(productData.sellerId?.businessName || productData.sellerId?.name || 'S').charAt(0).toUpperCase()}
-                      </div>
-                    )}
-                    {isSellerOnline && <span className="absolute bottom-0 right-0 w-3.5 h-3.5 bg-green-500 border-2 border-white rounded-full"></span>}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center flex-wrap gap-1.5">
-                      <Link href={`/store/${productData.sellerId?._id || productData.sellerId}`} className="font-extrabold text-sm text-gray-900 leading-tight truncate hover:underline">
-                        {productData.sellerId?.businessName || productData.sellerId?.name || 'Independent Seller'}
-                      </Link>
-                      {productData.sellerId?.isApproved && <Icon icon="mdi:check-decagram" className="w-4 h-4 text-emerald-500 flex-shrink-0" title="Verified Seller" />}
-                    </div>
-                    <div className="flex items-center flex-wrap gap-1.5 mt-1.5 mb-1">
-                      {isSellerOnline ? (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-600 text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span> Online
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <h4 className="font-extrabold text-[11px] tracking-wider uppercase text-primary-700">
+                          OFFICIAL CTI PLATFORM
+                        </h4>
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                          <Icon icon="mdi:check-decagram" className="w-3 h-3 text-emerald-500" /> 100% Certified Direct
                         </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-gray-50 text-gray-500 text-[9px] font-bold uppercase tracking-wider border border-gray-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
+                      </div>
+                      <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                        Tested, certified, and dispatched directly by CTI Central Hub.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Quick Badges (Warranty, Return, Dispatch) */}
+                  <div className="grid grid-cols-3 gap-1 py-0.5 text-center border-b border-gray-100 pb-2.5">
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Icon icon="solar:verified-check-bold" className="w-3.5 h-3.5 text-primary-600" />
+                      <span className="text-[9px] text-gray-700 font-semibold leading-tight">1-Year Warranty</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5 border-x border-gray-100">
+                      <Icon icon="mdi:refresh" className="w-3.5 h-3.5 text-primary-600" />
+                      <span className="text-[9px] text-gray-700 font-semibold leading-tight">14-Day Free Returns</span>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <Icon icon="mdi:truck-fast-outline" className="w-3.5 h-3.5 text-primary-600" />
+                      <span className="text-[9px] text-gray-700 font-semibold leading-tight">Express Dispatch</span>
+                    </div>
+                  </div>
+
+                  {/* Platform Identity */}
+                  <div className="flex gap-2.5 items-center">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-primary-600 via-primary-500 to-amber-500 flex items-center justify-center text-white font-black text-xs shadow-md shadow-primary-500/20 flex-shrink-0 tracking-wider">
+                      CTI
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight truncate">
+                          CTI Official Direct
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[9px] font-bold text-primary-700 bg-primary-100/60 px-2 py-0.5 rounded-full border border-primary-200">
+                          <Icon icon="solar:medal-ribbons-star-bold" className="w-3 h-3 text-primary-600" /> Platform Direct
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-600 text-[9px] font-bold tracking-wider border border-emerald-100">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Official Stock
+                        </span>
+                        <span className="text-[10px] text-gray-400">• Quality Verified</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Structured Details Box */}
+                  <div className="bg-white/90 rounded-xl p-2.5 sm:p-3 border border-gray-150 space-y-1.5 text-xs shadow-2xs">
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Seller:</span>
+                      <span className="text-gray-900 font-bold text-xs">CTI Official Platform</span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Fulfilled By:</span>
+                      <span className="text-gray-900 font-bold text-xs">CTI Central Fulfillment Center</span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Inspection:</span>
+                      <span className="text-emerald-700 font-bold text-xs flex items-center gap-1">
+                        <Icon icon="mdi:check-circle" className="w-3 h-3 text-emerald-500" /> 32-Point Diagnostic Tested
+                      </span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Warranty:</span>
+                      <span className="text-gray-900 font-semibold text-xs">Standard 12 Months CTI Warranty</span>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Support Email:</span>
+                      <a
+                        href="mailto:support@cti.com"
+                        className="text-gray-900 font-semibold text-xs hover:text-primary-600 hover:underline break-all"
+                      >
+                        support@cti.com
+                      </a>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Dispatch:</span>
+                      <span className="text-gray-900 font-semibold text-xs">Within 24-48 Hours (Insured & Tracked)</span>
+                    </div>
+
+                    <div className="pt-1.5 border-t border-gray-200/60 mt-1">
+                      <span className="text-gray-500 font-medium text-[10px] block mb-0.5">Platform Guarantee:</span>
+                      <p className={`text-gray-700 text-[10px] sm:text-[11px] leading-relaxed ${showFullStoreDesc ? '' : 'line-clamp-2'}`}>
+                        100% CTI inspected and certified refurbished device. Every platform-certified device undergoes rigorous multi-point diagnostics, professional sanitization, battery health testing, and includes certified accessories with official platform warranty.
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => setShowFullStoreDesc(!showFullStoreDesc)}
+                        className="text-primary-600 hover:text-primary-700 text-[9px] font-bold mt-0.5 cursor-pointer"
+                      >
+                        {showFullStoreDesc ? 'Show less' : 'Show more'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Ask CTI Support CTA */}
+                  <div className="pt-0.5">
+                    <button
+                      onClick={() => {
+                        if (!token) { toast.error('Please log in to contact support'); router.push('/auth/login'); return; }
+                        setShowAskModal(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-primary-500 hover:bg-primary-600 text-black rounded-xl transition-all text-xs font-bold shadow-sm shadow-primary-200 cursor-pointer active:scale-95"
+                    >
+                      <Icon icon="solar:chat-round-dots-bold" className="w-3.5 h-3.5" />
+                      Ask CTI Support
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              /* MARKETPLACE SELLER CARD */
+              <div className="rounded-2xl border border-gray-200 bg-white p-3.5 sm:p-4 shadow-sm space-y-3">
+                {/* Header: Market Standard Guarantee */}
+                <div className="flex items-start gap-2.5 pb-2.5 border-b border-gray-100">
+                  <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center flex-shrink-0">
+                    <Icon icon="mdi:thumb-up-outline" className="w-4 h-4 text-orange-500" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h4 className="font-extrabold text-[11px] tracking-wider uppercase text-gray-900">
+                        MARKETPLACE SELLER
+                      </h4>
+                      {seller?.isApproved && (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.2 rounded border border-emerald-150">
+                          <Icon icon="mdi:check-decagram" className="w-3 h-3 text-emerald-500" /> Verified
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-gray-400">
-                      {productData.isCTIVerified ? 'CTI Verified Refurbished Seller' : 'E-commerce Seller'}
+                    <p className="text-[10px] text-gray-500 leading-tight mt-0.5">
+                      All our marketplace sellers guarantee quality service standards.
                     </p>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
 
-            <div className="border-t border-gray-100 pt-3">
-              <button
-                onClick={() => {
-                  if (!token) { toast.error('Please log in to ask a question'); router.push('/auth/login'); return; }
-                  setShowAskModal(true);
-                }}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-300 rounded-xl transition-all text-sm font-semibold text-gray-700 hover:text-primary-700"
-              >
-                <Icon icon="solar:chat-round-dots-bold" className="w-4 h-4 text-primary-500" />
-                {productData.addedByRole === 'admin' ? 'Ask Platform' : 'Ask Seller'}
-              </button>
-            </div>
-          </div>
+                {/* Quick Badges (Return, Delivery, Support) */}
+                <div className="grid grid-cols-3 gap-1 py-0.5 text-center border-b border-gray-100 pb-2.5">
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Icon icon="mdi:refresh" className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[9px] text-gray-600 font-medium leading-tight">Free Returns</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5 border-x border-gray-100">
+                    <Icon icon="mdi:truck-fast-outline" className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[9px] text-gray-600 font-medium leading-tight">Fast Delivery</span>
+                  </div>
+                  <div className="flex flex-col items-center gap-0.5">
+                    <Icon icon="mdi:headset" className="w-3.5 h-3.5 text-gray-400" />
+                    <span className="text-[9px] text-gray-600 font-medium leading-tight">Customer Support</span>
+                  </div>
+                </div>
 
-          {/* Attribute selection */}
-          {/* Attribute selection */}
-          {attrTypes.length > 0 ? (
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
-                Select Options
-              </h3>
-              <div className="space-y-4">
-                {attrTypes.map(type => {
-                  const opts = attrOptions[type] || [];
-                  const currentVal = selectedAttributes[type];
-                  return (
-                    <div key={type}>
-                      <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider block mb-1">{type}</span>
-                      <div className="flex gap-2 flex-wrap">
-                        {opts.map(opt => {
-                          const isSelected = currentVal === opt.value;
-                          return (
-                            <button
-                              key={opt.value}
-                              onClick={() => handleAttrSelect(type, opt.value)}
-                              className={`px-3 py-1.5 rounded-lg border-2 text-xs font-bold transition-all duration-200 ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
-                            >
-                              {opt.hex && (
-                                <span className="inline-block w-3 h-3 rounded-full mr-1.5 align-middle border border-gray-300" style={{ backgroundColor: opt.hex }} />
-                              )}
-                              {opt.value}
-                            </button>
-                          );
-                        })}
-                      </div>
+                {/* Main Seller Identity */}
+                <div className="flex gap-2.5 items-center">
+                  {seller?.profilePictureOrLogo || productData.sellerId?.profilePictureOrLogo ? (
+                    <img
+                      src={seller?.profilePictureOrLogo || productData.sellerId?.profilePictureOrLogo}
+                      alt={seller?.businessName || productData.sellerId?.businessName || 'Seller'}
+                      className="w-10 h-10 rounded-lg object-cover border border-gray-150 flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center text-primary-600 font-black text-sm bg-primary-50 border border-primary-100 flex-shrink-0">
+                      {((seller?.businessName || productData.sellerId?.businessName || 'S').charAt(0)).toUpperCase()}
                     </div>
-                  );
-                })}
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1">
+                      <Link
+                        href={`/store/${seller?._id || seller?.userId || productData.sellerId?._id}`}
+                        className="font-extrabold text-xs sm:text-sm text-gray-900 leading-tight truncate hover:text-primary-600 transition-colors"
+                      >
+                        {seller?.businessName || productData.sellerId?.businessName || 'Independent Seller'}
+                      </Link>
+                      <Link
+                        href={`/store/${seller?._id || seller?.userId || productData.sellerId?._id}`}
+                        className="text-[10px] font-bold text-primary-600 hover:text-primary-700 hover:underline flex-shrink-0"
+                      >
+                        Visit Store
+                      </Link>
+                    </div>
+
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {isSellerOnline ? (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-emerald-50 text-emerald-600 text-[9px] font-bold uppercase tracking-wider border border-emerald-100">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_4px_rgba(16,185,129,0.5)]"></span> Online
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-gray-50 text-gray-500 text-[9px] font-bold uppercase tracking-wider border border-gray-200">
+                          <span className="w-1.5 h-1.5 rounded-full bg-gray-400"></span> Offline
+                        </span>
+                      )}
+                      {seller?.productCount ? (
+                        <span className="text-[10px] text-gray-400">
+                          • {seller.productCount} Products
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Structured Details Box (Trendyol Layout) */}
+                <div className="bg-gray-50/70 rounded-xl p-2.5 sm:p-3 border border-gray-150 space-y-1.5 text-xs">
+                  {/* Seller */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                    <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Seller:</span>
+                    <span className="text-gray-900 font-bold text-xs">
+                      {seller?.businessName || productData.sellerId?.businessName || 'Independent Seller'}
+                    </span>
+                  </div>
+
+                  {/* Seller Email */}
+                  {(seller?.owner?.email || seller?.email || productData.sellerId?.email) && (
+                    <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                      <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Email:</span>
+                      <a
+                        href={`mailto:${seller?.owner?.email || seller?.email || productData.sellerId?.email}`}
+                        className="text-gray-900 font-semibold text-xs hover:text-primary-600 hover:underline break-all"
+                      >
+                        {seller?.owner?.email || seller?.email || productData.sellerId?.email}
+                      </a>
+                    </div>
+                  )}
+
+                  {/* Working Hours */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                    <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Working Hours:</span>
+                    <span className="text-gray-900 font-semibold text-xs">
+                      {seller?.workingHours?.start && seller?.workingHours?.end
+                        ? `${seller.workingHours.start} - ${seller.workingHours.end}`
+                        : '09:00 AM - 06:00 PM'}
+                    </span>
+                  </div>
+
+                  {/* Working Days */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                    <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Working Days:</span>
+                    <span className="text-gray-900 font-semibold text-xs">
+                      {seller?.workingDays && seller.workingDays.length > 0
+                        ? (Array.isArray(seller.workingDays) ? seller.workingDays.join(', ') : seller.workingDays)
+                        : 'Monday - Saturday'}
+                    </span>
+                  </div>
+
+                  {/* Address */}
+                  <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1">
+                    <span className="text-gray-500 font-medium text-[10px] sm:text-xs min-w-[85px] flex-shrink-0">Address:</span>
+                    <span className="text-gray-900 font-semibold text-xs leading-relaxed">
+                      {seller?.storeAddress || productData.sellerId?.storeAddress || 'CTI Tradebulls Center, Turkey'}
+                    </span>
+                  </div>
+
+                  {/* Store Description */}
+                  {(seller?.storeDescription || productData.sellerId?.storeDescription) && (
+                    <div className="pt-1.5 border-t border-gray-200/60 mt-1">
+                      <span className="text-gray-500 font-medium text-[10px] block mb-0.5">Store Description:</span>
+                      <p className={`text-gray-700 text-[10px] sm:text-[11px] leading-relaxed ${showFullStoreDesc ? '' : 'line-clamp-2'}`}>
+                        {seller?.storeDescription || productData.sellerId?.storeDescription}
+                      </p>
+                      {(seller?.storeDescription || productData.sellerId?.storeDescription)?.length > 80 && (
+                        <button
+                          type="button"
+                          onClick={() => setShowFullStoreDesc(!showFullStoreDesc)}
+                          className="text-primary-600 hover:text-primary-700 text-[9px] font-bold mt-0.5 cursor-pointer"
+                        >
+                          {showFullStoreDesc ? 'Show less' : 'Show more'}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Ask Seller CTA */}
+                <div className="pt-0.5">
+                  <button
+                    onClick={() => {
+                      if (!token) { toast.error('Please log in to ask a question'); router.push('/auth/login'); return; }
+                      setShowAskModal(true);
+                    }}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-gray-50 hover:bg-primary-50 border border-gray-200 hover:border-primary-300 rounded-xl transition-all text-xs font-bold text-gray-700 hover:text-primary-700 shadow-2xs cursor-pointer active:scale-95"
+                  >
+                    <Icon icon="solar:chat-round-dots-bold" className="w-3.5 h-3.5 text-primary-500" />
+                    Ask Seller
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : variants.length > 0 && !(variants.length === 1 && (variants[0].title === 'Default Variant' || variants[0].isDefault)) ? (
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-extrabold text-gray-900 mb-4 flex items-center gap-2">
-                <Icon icon="mdi:tune-variant" className="text-primary-500 w-5 h-5" />
-                Select Options
-              </h3>
-              <div className="flex gap-2 flex-wrap">
-                {variants.map(v => {
-                  if (v.title === 'Default Variant' && variants.length > 1) return null;
-                  const isSelected = v._id === selectedVariantId;
-                  return (
-                    <button
-                      key={v._id}
-                      onClick={() => setSelectedVariantId(v._id)}
-                      className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all duration-200 ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
-                    >
-                      {v.title || 'Default'}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
+            );
+          })()}
         </div>
       </div>
 
@@ -944,7 +1197,7 @@ export default function RefurbishedProductDetail({ params }) {
           onSubmit={handleAskSubmit}
           loading={askLoading}
           productTitle={productData?.title || ''}
-          sellerName={productData?.addedByRole === 'admin' ? 'the Platform' : (productData?.sellerId?.businessName || productData?.sellerId?.name || 'Seller')}
+          sellerName={productData?.addedByRole === 'admin' || !seller ? 'CTI Support' : (seller?.businessName || productData?.sellerId?.businessName || 'Seller')}
         />
       )}
 
