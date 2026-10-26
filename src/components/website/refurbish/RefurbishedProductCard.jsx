@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Image from 'next/image';
 import { Icon } from '@iconify/react';
 import { Link, useRouter } from '@/i18n/navigation';
@@ -7,10 +8,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import { toast } from 'react-toastify';
 import { formatCurrency } from '@/helper/currencyFormatter';
+import ProductHoverVideo, { extractProductVideo } from '@/components/common/ProductHoverVideo';
 
 export default function RefurbishedProductCard({ product }) {
   const router = useRouter();
   const dispatch = useDispatch();
+  const [isHovered, setIsHovered] = useState(false);
 
   if (!product) return null;
 
@@ -28,8 +31,7 @@ export default function RefurbishedProductCard({ product }) {
   const shortDescription = product.shortDescription || '';
   const showStock = stock !== null && stock > 0 && stock <= 5;
   const mainImage = product.src || defaultVariant?.images?.[0]?.url || '/assets/placeholder.jpg';
-  const isVideo = product.isVideo !== undefined ? product.isVideo : !!(defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url);
-  const videoSrc = product.videoSrc || defaultVariant?.videos?.[0]?.url || product.videos?.[0]?.url || null;
+  const videoSrc = extractProductVideo(product, defaultVariant);
   const offAmount = mrp > price ? mrp - price : 0;
   const isFlashDeal = product.isFlashDeal || false;
   const flashDiscount = product.flashDiscount || 0;
@@ -63,7 +65,9 @@ export default function RefurbishedProductCard({ product }) {
     <Link
       href={cardHref}
       onClick={handleCardClick}
-      className={`group relative border rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full block ${isFlashDeal
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative border rounded-2xl overflow-hidden bg-white hover:shadow-xl hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 transition-all duration-300 ease-out cursor-pointer flex flex-col w-full h-[375px] justify-between ${isFlashDeal
         ? 'border-amber-300 shadow-md shadow-amber-500/5 hover:shadow-amber-500/20 hover:border-amber-400'
         : 'border-gray-200 hover:shadow-primary-100/50 hover:border-primary-300'
         }`}
@@ -79,7 +83,7 @@ export default function RefurbishedProductCard({ product }) {
       )}
 
       {/* ── Header: logo + stock + wishlist ── */}
-      <div className="flex items-center justify-between px-3 pt-3 shrink-0">
+      <div className="flex items-center justify-between px-3 pt-3 shrink-0 h-9">
         <div className="relative w-14 h-6 flex items-center">
           <Image
             src="/assets/logo.png"
@@ -116,103 +120,95 @@ export default function RefurbishedProductCard({ product }) {
         </div>
       </div>
 
-      {/* ── Image ── */}
-      <div className="relative shrink-0 h-[160px] bg-gradient-to-b from-gray-50/60 to-white flex items-center justify-center px-3 py-2 overflow-hidden">
-        <Image
-          src={mainImage}
+      {/* ── Image with Video Hover Preview (Fixed Height) ── */}
+      <div className="relative shrink-0 h-[155px] bg-gradient-to-b from-gray-50/60 to-white flex items-center justify-center overflow-hidden">
+        <ProductHoverVideo
+          videoSrc={videoSrc}
+          posterSrc={mainImage}
           alt={title}
-          fill
-          className={`object-contain p-3 group-hover:scale-110 transition-transform duration-500 ease-out ${isVideo ? 'group-hover:opacity-0' : ''}`}
+          isCardHovered={isHovered}
+          fill={true}
+          imageClassName="object-contain p-3 group-hover:scale-105 transition-transform duration-500 ease-out"
         />
-        {isVideo && videoSrc && (
-          <video
-            src={videoSrc}
-            className="absolute inset-0 w-full h-full object-cover hidden group-hover:block"
-            autoPlay muted loop playsInline
-          />
-        )}
-        {isVideo && (
-          <div className="absolute inset-0 flex items-center justify-center group-hover:hidden">
-            <div className="w-9 h-9 rounded-full bg-black/40 flex items-center justify-center transition-transform duration-200 group-hover:scale-110">
-              <div className="w-0 h-0 border-l-[9px] border-l-white border-y-[5px] border-y-transparent ml-0.5" />
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* ── Body ── */}
-      <div className="px-3 pb-3 pt-2 flex flex-col gap-1.5 grow">
+      {/* ── Body (Structured with reserved slots for perfect height consistency) ── */}
+      <div className="px-3 pb-3 pt-2 flex flex-col justify-between grow overflow-hidden">
+        <div className="flex flex-col gap-1">
+          {/* Brand · Category — always exactly 1 line */}
+          <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate leading-none h-[12px] shrink-0">
+            {[brand, categoryName].filter(Boolean).join(' · ') || '\u00A0'}
+          </p>
 
-        {/* Brand · Category — always 1 line reserved */}
-        <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide truncate leading-none min-h-[10px]">
-          {[brand, categoryName].filter(Boolean).join(' · ')}
-        </p>
+          {/* Title — strictly locked to 2 lines space */}
+          <h3
+            className="text-[13px] font-semibold text-gray-900 leading-[1.35] group-hover:text-primary-700 transition-colors duration-200 overflow-hidden shrink-0"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              height: '35px',
+            }}
+          >
+            {title}
+          </h3>
 
-        {/* Title — always exactly 2 lines of space reserved, never clipped mid-glyph */}
-        <h3
-          className="text-[13px] font-semibold text-gray-900 leading-[1.35] group-hover:text-primary-700 transition-colors duration-200 overflow-hidden"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-            minHeight: 'calc(1.35em * 2)',
-          }}
-        >
-          {title}
-        </h3>
-
-        {/* Short description — always 1 line of space reserved */}
-        <p
-          className="text-[11px] text-gray-400 leading-[1.4] overflow-hidden"
-          style={{
-            display: '-webkit-box',
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: 'vertical',
-            minHeight: shortDescription ? 'calc(1.4em * 1)' : 0,
-          }}
-        >
-          {shortDescription}
-        </p>
-
-        {/* Refurbished badge + rating + savings */}
-        <div className="flex items-center gap-1.5 flex-wrap">
-          {isFlashDeal ? (
-            <span className="bg-gradient-to-r from-amber-500 to-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5 shadow-sm">
-              <Icon icon="mdi:flash" className="text-[10px]" /> Flash Deal
-            </span>
-          ) : (
-            <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
-              Refurbished
-            </span>
-          )}
-          {product.isCTIVerified && (
-            <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
-              <Icon icon="mdi:check-decagram" className="text-blue-500" /> CTI Verified
-            </span>
-          )}
-          {rating !== null && (
-            <span className="text-gray-700 text-[10px] font-semibold flex items-center gap-0.5 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded shrink-0">
-              {Number(rating).toFixed(1)}
-              <Icon icon="material-symbols:star-rounded" className="text-amber-500 text-sm -mt-0.5" />
-            </span>
-          )}
-          {offAmount > 0 && (
-            <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-semibold truncate">
-              Save {formatCurrency(offAmount)}
-            </span>
-          )}
+          {/* Short description — strictly locked to 1 line space */}
+          <p
+            className="text-[11px] text-gray-400 leading-[1.4] overflow-hidden shrink-0"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: 'vertical',
+              height: '16px',
+            }}
+          >
+            {shortDescription || '\u00A0'}
+          </p>
         </div>
 
-        {/* Urgency message for flash deals */}
-        {isFlashDeal && (
-          <div className="flex items-center gap-1 text-[9px] text-amber-600 font-bold tracking-tight uppercase">
-            <Icon icon="mdi:clock-alert-outline" className="text-amber-500 text-xs" />
-            <span>Limited time flash deal!</span>
+        {/* Refurbished badge + rating + savings (Strictly reserved 46px height so all cards align) */}
+        <div className="flex flex-col justify-center gap-1 h-[46px] shrink-0 my-1">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {isFlashDeal ? (
+              <span className="bg-gradient-to-r from-amber-500 to-rose-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0 flex items-center gap-0.5 shadow-sm">
+                <Icon icon="mdi:flash" className="text-[10px]" /> Flash Deal
+              </span>
+            ) : (
+              <span className="bg-primary-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider shrink-0">
+                Refurbished
+              </span>
+            )}
+            {product.isCTIVerified && (
+              <span className="bg-blue-50 text-blue-600 border border-blue-100 text-[9px] font-bold px-1.5 py-0.5 rounded flex items-center gap-0.5 shrink-0">
+                <Icon icon="mdi:check-decagram" className="text-blue-500" /> CTI Verified
+              </span>
+            )}
+            {rating !== null && (
+              <span className="text-gray-700 text-[10px] font-semibold flex items-center gap-0.5 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded shrink-0">
+                {Number(rating).toFixed(1)}
+                <Icon icon="material-symbols:star-rounded" className="text-amber-500 text-sm -mt-0.5" />
+              </span>
+            )}
           </div>
-        )}
 
-        {/* Price — pinned to bottom, never overlaps text above */}
-        <div className="mt-auto flex items-center gap-1.5 flex-wrap pt-1">
+          {/* Reserved slot for discount savings or urgency badge */}
+          <div className="h-[18px] flex items-center">
+            {offAmount > 0 ? (
+              <span className="text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded text-[10px] font-semibold truncate leading-none">
+                Save {formatCurrency(offAmount)}
+              </span>
+            ) : isFlashDeal ? (
+              <span className="flex items-center gap-1 text-[9px] text-amber-600 font-bold tracking-tight uppercase leading-none">
+                <Icon icon="mdi:clock-alert-outline" className="text-amber-500 text-xs" />
+                <span>Limited time!</span>
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {/* Price — pinned to bottom, exactly identical baseline across all cards */}
+        <div className="mt-auto pt-1 flex items-baseline gap-1.5 shrink-0 h-[26px]">
           <span className="text-base font-bold text-gray-900 tracking-tight">{formatCurrency(price)}</span>
           {mrp > price && (
             <span className="text-[11px] text-gray-400 line-through">{formatCurrency(mrp)}</span>

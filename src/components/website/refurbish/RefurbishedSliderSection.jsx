@@ -51,8 +51,8 @@ export default function RefurbishedSliderSection({ title, products = [], viewAll
         >
           {loading
             ? Array.from({ length: 5 }).map((_, idx) => (
-              <SwiperSlide key={`skeleton-${idx}`}>
-                <div className="animate-pulse border border-gray-200 rounded-xl overflow-hidden bg-white p-3 space-y-3 h-[350px] flex flex-col">
+              <SwiperSlide key={`skeleton-${idx}`} className="!h-auto flex">
+                <div className="animate-pulse border border-gray-200 rounded-xl overflow-hidden bg-white p-3 space-y-3 h-[375px] w-full flex flex-col justify-between">
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <div className="h-5 w-16 bg-gray-200 rounded-md"></div>
@@ -69,7 +69,7 @@ export default function RefurbishedSliderSection({ title, products = [], viewAll
               </SwiperSlide>
             ))
             : products.map((product) => (
-              <SwiperSlide key={product.id || product._id}>
+              <SwiperSlide key={product.id || product._id} className="!h-auto flex">
                 <RefurbishedProductCard product={product} />
               </SwiperSlide>
             ))

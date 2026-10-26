@@ -5,9 +5,11 @@ import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
+import ProductHoverVideo, { extractProductVideo } from '@/components/common/ProductHoverVideo';
 
 function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const router = useRouter();
+  const [isHovered, setIsHovered] = useState(false);
 
   const defaultVariant =
     product?.variants?.find(v => v.isDefault) || product?.variants?.[0];
@@ -47,6 +49,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
   const [imgSrc, setImgSrc] = useState(initialImage);
   const [imgError, setImgError] = useState(false);
+  const videoSrc = extractProductVideo(product, defaultVariant);
 
   useEffect(() => {
     setImgSrc(initialImage);
@@ -76,6 +79,8 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
           product.onCardClick(e);
         }
       }}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
       className="group relative isolate flex flex-col cursor-pointer bg-white border border-gray-200 rounded-2xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 h-full block"
     >
       {/* Badges */}
@@ -126,7 +131,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
         </div>
       )}
 
-      {/* Image */}
+      {/* Image with Video Hover Preview */}
       <div className="relative w-full h-40 flex items-center justify-center overflow-hidden bg-gray-50">
         {imgError || !imgSrc ? (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
@@ -134,12 +139,14 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
             <span className="text-[10px] uppercase font-semibold">No Image</span>
           </div>
         ) : (
-          <Image
-            src={imgSrc}
+          <ProductHoverVideo
+            videoSrc={videoSrc}
+            posterSrc={imgSrc}
             alt={title || 'product'}
+            isCardHovered={isHovered}
             width={280}
             height={280}
-            className="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
+            imageClassName="object-contain w-full h-full group-hover:scale-105 transition-transform duration-500"
             onError={() => setImgError(true)}
           />
         )}

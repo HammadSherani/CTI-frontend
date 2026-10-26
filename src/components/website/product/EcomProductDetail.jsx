@@ -17,6 +17,7 @@ import ReviewCard from '../ReviewCard';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import ProductGalleryModal from './ProductGalleryModal';
+import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common/ProductHoverVideo';
 
 export default function EcomProductDetail({ params }) {
   const router = useRouter();
@@ -539,9 +540,7 @@ export default function EcomProductDetail({ params }) {
                         className={`relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
                       >
                         {isVideo ? (
-                          <div className="w-full h-full bg-black/80 flex items-center justify-center">
-                            <Icon icon="solar:play-circle-bold" className="w-6 h-6 text-white" />
-                          </div>
+                          <ThumbnailVideoPreview url={url} />
                         ) : (
                           <img src={url} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
                         )}
@@ -574,18 +573,10 @@ export default function EcomProductDetail({ params }) {
 
                     if (isVideo) {
                       return (
-                        <div
-                          className="w-full h-full relative cursor-pointer group"
-                          onClick={() => setIsGalleryOpen(true)}
-                        >
-                          <video
-                            src={url}
-                            className="w-full h-full object-contain pointer-events-none"
-                          />
-                          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 flex items-center justify-center transition-colors">
-                            <Icon icon="solar:play-circle-bold" className="w-16 h-16 text-white drop-shadow-md opacity-80 group-hover:opacity-100 transition-opacity" />
-                          </div>
-                        </div>
+                        <MainVideoHoverPlayer
+                          url={url}
+                          onOpenGallery={() => setIsGalleryOpen(true)}
+                        />
                       );
                     }
                     return (

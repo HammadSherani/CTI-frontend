@@ -329,7 +329,7 @@ export default function Refurbish() {
                 className="!pb-2"
               >
                 {mappedProducts.map((product) => (
-                  <SwiperSlide key={product.id}>
+                  <SwiperSlide key={product.id} className="!h-auto flex">
                     <RefurbishedProductCard product={product} />
                   </SwiperSlide>
                 ))}
