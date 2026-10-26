@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Icon } from "@iconify/react";
 import SmallLoader from "./SmallLoader";
+import { useLocale } from "next-intl";
 
 const languages = [
   { code: "tr", label: "Türkçe", flag: "🇹🇷" },
@@ -37,35 +38,25 @@ function clearGoogTransCookie() {
   }
 }
 
-function getInitialLanguage() {
-  if (typeof window === "undefined") return "tr";
-  const saved = localStorage.getItem("preferredLocale");
-  if (saved === "en") return "en";
-  return "tr"; // Turkish is always the default language
-}
-
 export default function CustomTranslate() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [targetLangText, setTargetLangText] = useState("");
-  const [activeLang, setActiveLang] = useState("tr");
+  const locale = useLocale();
+  const [activeLang, setActiveLang] = useState(locale || "tr");
   const wrapperRef = useRef(null);
 
-  // Sync active language & ensure default Turkish translation on mount
+  // Sync active language with locale from URL
   useEffect(() => {
-    const initial = getInitialLanguage();
-    setActiveLang(initial);
-
-    // If Turkish, ensure googtrans is set to /en/tr
-    if (initial === "tr") {
-      const cookies = document.cookie || "";
-      if (!cookies.includes("googtrans=/en/tr")) {
+    if (locale && (locale === "tr" || locale === "en")) {
+      setActiveLang(locale);
+      if (locale === "tr") {
         setGoogTransCookie("/en/tr");
+      } else {
+        setGoogTransCookie("/en/en");
       }
-    } else {
-      setGoogTransCookie("/en/en");
     }
-  }, []);
+  }, [locale]);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -100,6 +91,7 @@ export default function CustomTranslate() {
       }
 
       localStorage.setItem("preferredLocale", langCode);
+      document.cookie = `NEXT_LOCALE=${langCode}; path=/; max-age=31536000;`;
       setActiveLang(langCode);
 
       // Trigger Google Translate combo element
@@ -116,10 +108,22 @@ export default function CustomTranslate() {
         combo.dispatchEvent(new Event("change"));
       }
 
-      // Immediately reload so Google Translate applies the new language with 100% reliability
+      // Compute new path with switched locale
+      const currentPath = window.location.pathname;
+      let newPath = currentPath;
+      if (currentPath.startsWith("/" + activeLang)) {
+        newPath = currentPath.replace("/" + activeLang, "/" + langCode);
+      } else if (currentPath.startsWith("/en") || currentPath.startsWith("/tr")) {
+        newPath = currentPath.replace(/^\/(en|tr)/, "/" + langCode);
+      } else {
+        newPath = "/" + langCode + currentPath;
+      }
+      const newUrl = newPath + window.location.search + window.location.hash;
+
+      // Navigate with full reload to apply Google Translate cleanly
       setTimeout(() => {
-        window.location.reload();
-      }, 250);
+        window.location.href = newUrl;
+      }, 150);
     } catch (err) {
       console.error("Language switch error:", err);
       setLoading(false);

@@ -22,18 +22,48 @@ if (typeof window !== "undefined" && typeof Node === "function" && Node.prototyp
   };
 }
 
-export default function GoogleTranslator() {
-  useEffect(() => {
-    // Default to Turkish unless user explicitly chose English
-    const saved = localStorage.getItem("preferredLocale");
-    const domain = window.location.hostname;
-    if (saved === "en") {
-      document.cookie = "googtrans=/en/en; path=/;";
-      document.cookie = `googtrans=/en/en; path=/; domain=${domain};`;
-    } else {
-      document.cookie = "googtrans=/en/tr; path=/;";
-      document.cookie = `googtrans=/en/tr; path=/; domain=${domain};`;
+function setGoogTransCookie(val) {
+  if (typeof document === "undefined") return;
+  const domain = window.location.hostname;
+  document.cookie = `googtrans=${val}; path=/;`;
+  document.cookie = `googtrans=${val}; path=/; domain=${domain};`;
+  if (domain.includes(".") && !domain.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const parts = domain.split(".");
+    if (parts.length > 1) {
+      const root = parts.slice(-2).join(".");
+      document.cookie = `googtrans=${val}; path=/; domain=.${root};`;
     }
+  }
+}
+
+function clearGoogTransCookie() {
+  if (typeof document === "undefined") return;
+  const domain = window.location.hostname;
+  document.cookie = "googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+  document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain};`;
+  if (domain.includes(".") && !domain.match(/^\d+\.\d+\.\d+\.\d+$/)) {
+    const parts = domain.split(".");
+    if (parts.length > 1) {
+      const root = parts.slice(-2).join(".");
+      document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${root};`;
+    }
+  }
+}
+
+export default function GoogleTranslator({ locale = "en" }) {
+  useEffect(() => {
+    // Sync Google Translate cookie with active URL locale
+    if (locale === "tr") {
+      setGoogTransCookie("/en/tr");
+    } else {
+      clearGoogTransCookie();
+      setGoogTransCookie("/en/en");
+    }
+
+    try {
+      localStorage.setItem("preferredLocale", locale);
+      document.cookie = `NEXT_LOCALE=${locale}; path=/; max-age=31536000;`;
+    } catch (e) {}
 
     window.googleTranslateElementInit = () => {
       if (window.google?.translate?.TranslateElement) {
@@ -53,8 +83,21 @@ export default function GoogleTranslator() {
       !document.querySelector(".goog-te-combo")
     ) {
       window.googleTranslateElementInit();
+    } else {
+      const combo = document.querySelector(".goog-te-combo");
+      if (combo) {
+        if (locale === "tr") {
+          combo.value = "tr";
+        } else {
+          const hasEn = Array.from(combo.options || []).some(
+            (opt) => opt.value === "en"
+          );
+          combo.value = hasEn ? "en" : "";
+        }
+        combo.dispatchEvent(new Event("change"));
+      }
     }
-  }, []);
+  }, [locale]);
 
   return (
     <>

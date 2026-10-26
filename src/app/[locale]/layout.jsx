@@ -27,7 +27,7 @@ export default async function LocaleLayout({ children, params }) {
           <AuthListener />
           <SocketProvider>
             <NotificationSetup />
-            <GoogleTranslator />
+            <GoogleTranslator locale={locale} />
             {children}
             <ToastContainer />
           </SocketProvider>
