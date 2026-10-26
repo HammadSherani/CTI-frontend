@@ -6,10 +6,13 @@ import { Icon } from '@iconify/react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import ProductHoverVideo, { extractProductVideo } from '@/components/common/ProductHoverVideo';
+import { useLocale } from 'next-intl';
 
 function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
+  const locale = useLocale();
+  const isTurkish = locale === 'tr';
 
   const defaultVariant =
     product?.variants?.find(v => v.isDefault) || product?.variants?.[0];
@@ -51,6 +54,15 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
   const [imgError, setImgError] = useState(false);
   const videoSrc = extractProductVideo(product, defaultVariant);
 
+  const averageRating = Number(ratings?.average || 0);
+  const ratingCount = Number(ratings?.count || 0);
+
+  const isBestSeller =
+    product.isBestSeller ||
+    averageRating >= 4.5 ||
+    (product.salesCount && product.salesCount > 5) ||
+    product.isFeatured;
+
   useEffect(() => {
     setImgSrc(initialImage);
   }, [initialImage]);
@@ -67,9 +79,6 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
       ((originalPrice - displayPrice) / originalPrice) * 100
     )
     : 0;
-
-  const averageRating = Number(ratings?.average || 0);
-  const ratingCount = Number(ratings?.count || 0);
 
   return (
     <Link
@@ -133,6 +142,47 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
 
       {/* Image with Video Hover Preview */}
       <div className="relative w-full h-40 flex items-center justify-center overflow-hidden bg-gray-50">
+        {/* Trendyol Style Circular Sticker Badge (Image Stamp) */}
+        {!isOutOfStock && (
+          product.badge === 'flash_deal' ? (
+            <div className="absolute top-2.5 right-2.5 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 via-rose-500 to-red-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
+              <Icon icon="mdi:flash" className="text-[12px] -mb-0.5" />
+              <span className="text-[7.5px] font-black tracking-tighter uppercase leading-none text-center">
+                {isTurkish ? 'FIRSAT' : 'DEAL'}
+              </span>
+            </div>
+          ) : product.badge === 'custom' && product.customBadgeText ? (
+            <div className="absolute top-2.5 right-2.5 z-20 px-2 py-1 rounded-full bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform max-w-[85px]">
+              <span className="text-[7.5px] font-black tracking-tight uppercase leading-none truncate text-center">
+                {product.customBadgeText}
+              </span>
+            </div>
+          ) : product.badge === 'fast_delivery' || product.isFastDelivery ? (
+            <div className="absolute top-2.5 right-2.5 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
+              <Icon icon="mdi:truck-fast" className="text-[12px] -mb-0.5" />
+              <span className="text-[7px] font-black tracking-tight uppercase leading-[1.05] text-center">
+                {isTurkish ? <>HIZLI<br />KARGO</> : <>FAST<br />SHIP</>}
+              </span>
+            </div>
+          ) : product.badge === 'new_arrival' ? (
+            <div className="absolute top-2.5 right-2.5 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
+              <span className="text-[7.5px] font-black tracking-tight uppercase leading-[1.05] text-center">
+                {isTurkish ? <>YENİ<br />ÜRÜN</> : <>NEW<br />ARRIVAL</>}
+              </span>
+            </div>
+          ) : (isBestSeller || product.badge === 'best_seller') ? (
+            <div className="absolute top-2.5 right-2.5 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-8deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
+              <span className="text-[7.5px] font-black tracking-tight uppercase leading-[1.05] text-center drop-shadow-xs">
+                {isTurkish ? (
+                  <>EN ÇOK<br />SATAN</>
+                ) : (
+                  <>BEST<br />SELLER</>
+                )}
+              </span>
+            </div>
+          ) : null
+        )}
+
         {imgError || !imgSrc ? (
           <div className="w-full h-full flex flex-col items-center justify-center text-gray-300">
             <Icon icon="mdi:image-outline" className="w-12 h-12 mb-2 text-gray-200" />
@@ -157,18 +207,6 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
             ✕ Out of Stock
           </div>
         )}
-
-        {/* {isLowStock && (
-          <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 backdrop-blur-sm text-white text-[11px] font-bold py-1.5 text-center tracking-widest uppercase z-10">
-            ⚡ Only {stock} Left!
-          </div>
-        )} */}
-{/* 
-        {(defaultVariant.images?.length > 1 || images?.length > 1) && (
-          <div className="absolute top-2 right-2 bg-gradient-to-r from-orange-400 to-red-500 text-white text-[10px] font-bold px-2.5 py-0.5 rounded-lg shadow z-20">
-            Multiple Images
-          </div>
-        )} */}
       </div>
 
       {/* Body */}
@@ -190,7 +228,7 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
         )}
 
         {/* Rating */}
-        <div className="flex items-center gap-1.5 mb-2.5">
+        <div className="flex items-center gap-1.5 mb-1.5">
           {averageRating > 0 ? (
             <>
               <div className="flex items-center text-amber-400">
@@ -220,6 +258,16 @@ function ProductCard({ product, isWishlisted = false, onWishlist }) {
             <span className="text-[10px] text-gray-400">No reviews yet</span>
           )}
         </div>
+
+        {/* Free Shipping Badge (Trendyol Style) */}
+        {product.isFreeShipping !== false && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded leading-none">
+              <Icon icon="solar:box-bold" className="text-[11px] text-emerald-600 shrink-0" />
+              <span>{isTurkish ? 'Kargo Bedava' : 'Free Shipping'}</span>
+            </span>
+          </div>
+        )}
 
         {/* Price */}
         <div className="flex items-baseline justify-between mt-auto">

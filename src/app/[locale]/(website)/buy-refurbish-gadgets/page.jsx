@@ -56,6 +56,14 @@ export default function Refurbish() {
       isVideo,
       videoSrc,
       stock,
+      badge: p.badge || 'none',
+      customBadgeText: p.customBadgeText || null,
+      isFreeShipping: p.isFreeShipping !== false,
+      isFastDelivery: !!p.isFastDelivery,
+      isBestSeller: !!p.isBestSeller,
+      isFeatured: !!p.isFeatured,
+      salesCount: p.salesCount || 0,
+      isCTIVerified: p.isCTIVerified !== false,
     };
   };
 
@@ -90,6 +98,14 @@ export default function Refurbish() {
       stock,
       isFlashDeal,
       flashDiscount: discountPercentage,
+      badge: p.badge || 'flash_deal',
+      customBadgeText: p.customBadgeText || null,
+      isFreeShipping: p.isFreeShipping !== false,
+      isFastDelivery: !!p.isFastDelivery,
+      isBestSeller: !!p.isBestSeller,
+      isFeatured: !!p.isFeatured,
+      salesCount: p.salesCount || 0,
+      isCTIVerified: p.isCTIVerified !== false,
     };
   };
 
