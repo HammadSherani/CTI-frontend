@@ -93,6 +93,54 @@ export default function RefurbishedProductDetail({ params }) {
   // Ref for scrolling to order section
   const orderRef = useRef(null);
 
+  /* Follow Seller State */
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
+
+  useEffect(() => {
+    const sId = seller?._id || seller?.userId || productData?.sellerId?._id || productData?.sellerId;
+    if (!sId || !token) return;
+
+    axiosInstance.get(`/e-commerce/sellers/${sId}/follow-status`)
+      .then(res => {
+        if (res.data?.success) {
+          setIsFollowing(Boolean(res.data.isFollowing));
+        }
+      })
+      .catch(() => { });
+  }, [seller, productData, token]);
+
+  const handleToggleFollow = async () => {
+    if (!token) {
+      toast.info('Please log in to follow this seller.');
+      router.push('/auth/login');
+      return;
+    }
+    const sId = seller?._id || seller?.userId || productData?.sellerId?._id || productData?.sellerId;
+    const sOwnerId = seller?.ownerId || seller?.owner?._id || seller?.userId || productData?.sellerId?.userId || productData?.sellerId?._id;
+    if (sOwnerId && currentUserId && sOwnerId.toString() === currentUserId.toString()) {
+      toast.warning('You cannot follow your own store.');
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      const { data } = await axiosInstance.post(`/e-commerce/sellers/${sId}/follow`);
+      if (data.success) {
+        setIsFollowing(data.isFollowing);
+        if (data.isFollowing) {
+          toast.success(data.message || 'You are now following this store!');
+        } else {
+          toast.info(data.message || 'Unfollowed store.');
+        }
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update follow status.');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -985,12 +1033,36 @@ export default function RefurbishedProductDetail({ params }) {
                       >
                         {seller?.businessName || productData.sellerId?.businessName || 'Independent Seller'}
                       </Link>
-                      <Link
-                        href={`/store/${seller?._id || seller?.userId || productData.sellerId?._id}`}
-                        className="text-[10px] font-bold text-primary-600 hover:text-primary-700 hover:underline flex-shrink-0"
-                      >
-                        Visit Store
-                      </Link>
+                      <div className="flex items-center gap-1.5 flex-shrink-0">
+                        <button
+                          onClick={handleToggleFollow}
+                          disabled={followLoading}
+                          className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all flex items-center gap-0.5 cursor-pointer disabled:opacity-50 ${isFollowing
+                              ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-rose-50 hover:text-rose-600 hover:border-rose-300'
+                              : 'bg-primary-500 hover:bg-primary-600 text-white shadow-2xs'
+                            }`}
+                        >
+                          {followLoading ? (
+                            <Icon icon="mdi:loading" className="w-3 h-3 animate-spin" />
+                          ) : isFollowing ? (
+                            <>
+                              <Icon icon="mdi:check" className="w-3 h-3 text-emerald-600" />
+                              Following
+                            </>
+                          ) : (
+                            <>
+                              <Icon icon="mdi:plus" className="w-3 h-3" />
+                              Follow
+                            </>
+                          )}
+                        </button>
+                        <Link
+                          href={`/store/${seller?._id || seller?.userId || productData.sellerId?._id}`}
+                          className="text-[10px] font-bold text-primary-600 hover:text-primary-700 hover:underline"
+                        >
+                          Visit Store
+                        </Link>
+                      </div>
                     </div>
 
                     <div className="flex items-center gap-2 mt-0.5">

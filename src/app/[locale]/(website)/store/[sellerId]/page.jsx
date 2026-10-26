@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
+import { useRouter } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
@@ -129,6 +130,54 @@ export default function SellerStorePage() {
   const wishlistItems     = useSelector(s => s.wishlist?.items     || []);
   const wishlistLoadingIds = useSelector(s => s.wishlist?.loadingIds || []);
 
+  const auth = useSelector(s => s.auth);
+  const token = auth?.token;
+  const currentUserId = auth?.user?._id || auth?.user?.id;
+  const router = useRouter();
+
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followersCount, setFollowersCount] = useState(0);
+  const [followLoading, setFollowLoading] = useState(false);
+  const [isHoveredFollowing, setIsHoveredFollowing] = useState(false);
+
+  useEffect(() => {
+    if (seller) {
+      setIsFollowing(Boolean(seller.isFollowing));
+      setFollowersCount(seller.followersCount || 0);
+    }
+  }, [seller]);
+
+  const handleToggleFollow = async () => {
+    if (!token) {
+      toast.info('Please log in to follow this store.');
+      router.push('/auth/login');
+      return;
+    }
+    const sOwnerId = seller?.ownerId || seller?.owner?._id || seller?.userId;
+    if (sOwnerId && currentUserId && sOwnerId.toString() === currentUserId.toString()) {
+      toast.warning('You cannot follow your own store.');
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      const { data } = await axiosInstance.post(`/e-commerce/sellers/${sellerId}/follow`);
+      if (data.success) {
+        setIsFollowing(data.isFollowing);
+        setFollowersCount(data.followersCount);
+        if (data.isFollowing) {
+          toast.success(data.message || 'You are now following this store!');
+        } else {
+          toast.info(data.message || 'Unfollowed store.');
+        }
+      }
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to update follow status.');
+    } finally {
+      setFollowLoading(false);
+    }
+  };
+
   const fetchStore = useCallback(async () => {
     if (!sellerId) return;
     setLoading(true);
@@ -253,6 +302,40 @@ export default function SellerStorePage() {
                     ID: {seller.sellerId}
                   </span>
                 )}
+                <button
+                  onClick={handleToggleFollow}
+                  disabled={followLoading}
+                  onMouseEnter={() => setIsHoveredFollowing(true)}
+                  onMouseLeave={() => setIsHoveredFollowing(false)}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer disabled:opacity-60 ${
+                    isFollowing
+                      ? isHoveredFollowing
+                        ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                        : 'bg-emerald-50 text-emerald-700 border border-emerald-300'
+                      : 'bg-primary-500 hover:bg-primary-600 text-black shadow-primary-200'
+                  }`}
+                >
+                  {followLoading ? (
+                    <Icon icon="mdi:loading" className="w-3.5 h-3.5 animate-spin" />
+                  ) : isFollowing ? (
+                    isHoveredFollowing ? (
+                      <>
+                        <Icon icon="mdi:account-remove" className="w-3.5 h-3.5" />
+                        Unfollow
+                      </>
+                    ) : (
+                      <>
+                        <Icon icon="mdi:check-bold" className="w-3.5 h-3.5 text-emerald-600" />
+                        Following
+                      </>
+                    )
+                  ) : (
+                    <>
+                      <Icon icon="mdi:plus" className="w-4 h-4" />
+                      Follow
+                    </>
+                  )}
+                </button>
               </div>
               {seller.storeAddress && (
                 <p className="text-sm text-gray-400 mt-1 flex items-center gap-1.5">
@@ -270,6 +353,7 @@ export default function SellerStorePage() {
             {/* Stats */}
             <div className="flex gap-3 flex-wrap sm:flex-nowrap">
               {[
+                { icon: 'mdi:account-heart-outline', label: 'Followers', value: followersCount },
                 { icon: 'mdi:star',           label: 'Rating',  value: seller.avgRating ? `${seller.avgRating}★` : '—' },
                 { icon: 'mdi:package-variant', label: 'Products', value: seller.productCount ?? '—' },
                 { icon: 'mdi:check-circle',   label: 'Orders',  value: seller.completedOrders ?? '—' },

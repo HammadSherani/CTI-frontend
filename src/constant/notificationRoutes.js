@@ -15,6 +15,7 @@ const ROUTES = {
     payment_received: (d) => `/customer/orders/${d.jobId}/invoice`,
     offer_received: (d) => `/customer/quotes/${d.jobId}`,
     job_completed: (d) => `/customer/feedback/${d.jobId}`,
+    seller_new_product: (d) => d?.link || (d?.slug ? (d.type === 'refurbished' ? `/refurbish/${d.slug}` : `/product/${d.slug}`) : '/'),
   },
   [USER_ROLES.SELLER]: {
     ecom_new_order: (d) => `/seller/order/${d.orderId}`,
