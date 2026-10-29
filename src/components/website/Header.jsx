@@ -758,6 +758,7 @@ function NavigationBar({ isHome, isScrolled }) {
         { name: "Academy Listing", href: "/academy/academy-listing", hasDropdown: true, dropdownItems: SELL_GADGETS },
 
         { name: "Documentation", href: "/docs", hasDropdown: true, dropdownItems: SELL_GADGETS },
+        { name: "Partner With Us", href: "/partner-with-us" },
         { name: "Seller Info", href: "/academy/seller-info-center", hasDropdown: true, dropdownItems: SELL_PHONE },
       ],
     },
