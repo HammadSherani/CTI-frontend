@@ -44,11 +44,12 @@ export default function ProductGalleryModal({ isOpen, onClose, mediaList, initia
 
     return (
       <Image
-        width={300}
-        height={300}
+        width={isMain ? 1200 : 200}
+        height={isMain ? 1200 : 200}
+        unoptimized
         src={url || '/assets/placeholder.jpg'}
         alt="Gallery media"
-        className={`w-full h-full ${isMain ? 'object-contain' : 'object-cover'}`}
+        className={`w-full h-full ${isMain ? 'object-contain p-2' : 'object-cover'}`}
       />
     );
   };
@@ -94,11 +95,6 @@ export default function ProductGalleryModal({ isOpen, onClose, mediaList, initia
                       }`}
                   >
                     {renderMedia(media, false)}
-                    {isVideo && (
-                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center transition-colors hover:bg-black/30">
-                        <Icon icon="solar:play-circle-bold" className="w-8 h-8 text-white drop-shadow-md" />
-                      </div>
-                    )}
                   </button>
                 );
               })}

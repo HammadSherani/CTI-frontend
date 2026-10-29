@@ -18,6 +18,7 @@ import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import ProductGalleryModal from './ProductGalleryModal';
 import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common/ProductHoverVideo';
+import ProductActivityIndicator from '@/components/common/ProductActivityIndicator';
 
 export default function EcomProductDetail({ params }) {
   const router = useRouter();
@@ -513,52 +514,63 @@ export default function EcomProductDetail({ params }) {
         <div className="lg:col-span-7 xl:col-span-8 space-y-10">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Gallery */}
-            <div className="flex gap-3">
-              <div className="flex flex-col items-center gap-2 flex-shrink-0">
-                <button
-                  onClick={() => setThumbStart(p => Math.max(0, p - 1))}
-                  disabled={!canScrollUp}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
-                >
-                  <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
-                </button>
-                <div className="flex flex-col gap-2">
-                  {visibleThumbs.map((media, i) => {
-                    const realIndex = thumbStart + i;
-                    const isVideo = typeof media === 'string'
-                      ? media.match(/\.(mp4|webm|ogg|mov)$/i)
-                      : media?.type?.startsWith('video');
-                    const url = typeof media === 'string' ? media : media?.url;
+            <div className="flex flex-col-reverse sm:flex-row gap-3">
+              {allMedia.length > 1 && (
+                <div className="flex sm:flex-col items-center gap-2 flex-shrink-0 overflow-x-auto sm:overflow-visible pb-1 sm:pb-0">
+                  {allMedia.length > THUMBS_PER_VIEW && (
+                    <button
+                      type="button"
+                      onClick={() => setThumbStart(p => Math.max(0, p - 1))}
+                      disabled={!canScrollUp}
+                      className="hidden sm:flex w-10 h-8 items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <Icon icon="mdi:chevron-up" className="text-lg text-gray-600" />
+                    </button>
+                  )}
+                  <div className="flex sm:flex-col gap-2">
+                    {visibleThumbs.map((media, i) => {
+                      const realIndex = thumbStart + i;
+                      const isVideo = typeof media === 'string'
+                        ? media.match(/\.(mp4|webm|ogg|mov)$/i)
+                        : media?.type?.startsWith('video');
+                      const url = typeof media === 'string' ? media : media?.url;
 
-                    return (
-                      <button
-                        key={realIndex}
-                        onClick={() => {
-                          setSelectedImage(realIndex);
-                          setIsGalleryOpen(true);
-                        }}
-                        className={`relative w-14 h-14 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-gray-50 ${selectedImage === realIndex ? 'border-primary-500 shadow-md shadow-primary-100' : 'border-gray-200 hover:border-gray-300'}`}
-                      >
-                        {isVideo ? (
-                          <ThumbnailVideoPreview url={url} />
-                        ) : (
-                          <img src={url} alt={`thumb-${realIndex}`} className="w-full h-full object-contain p-1" />
-                        )}
-                      </button>
-                    );
-                  })}
+                      return (
+                        <button
+                          key={realIndex}
+                          type="button"
+                          onClick={() => setSelectedImage(realIndex)}
+                          onMouseEnter={() => setSelectedImage(realIndex)}
+                          className={`relative w-14 h-14 sm:w-16 sm:h-16 flex-shrink-0 rounded-xl overflow-hidden border-2 transition-all bg-white p-1 cursor-pointer ${
+                            selectedImage === realIndex
+                              ? 'border-primary-500 shadow-md ring-2 ring-primary-100'
+                              : 'border-gray-200 hover:border-gray-400 opacity-75 hover:opacity-100'
+                          }`}
+                        >
+                          {isVideo ? (
+                            <ThumbnailVideoPreview url={url} />
+                          ) : (
+                            <img src={url} alt={`thumb-${realIndex}`} className="w-full h-full object-contain" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {allMedia.length > THUMBS_PER_VIEW && (
+                    <button
+                      type="button"
+                      onClick={() => setThumbStart(p => Math.min(allMedia.length - THUMBS_PER_VIEW, p + 1))}
+                      disabled={!canScrollDown}
+                      className="hidden sm:flex w-10 h-8 items-center justify-center rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                    >
+                      <Icon icon="mdi:chevron-down" className="text-lg text-gray-600" />
+                    </button>
+                  )}
                 </div>
-                <button
-                  onClick={() => setThumbStart(p => Math.min(allMedia.length - THUMBS_PER_VIEW, p + 1))}
-                  disabled={!canScrollDown}
-                  className="w-10 h-10 flex items-center justify-center rounded-xl bg-gray-100 hover:bg-gray-200 border border-gray-200 transition-colors disabled:opacity-40"
-                >
-                  <Icon icon="mdi:chevron-down" className="text-lg text-gray-600" />
-                </button>
-              </div>
+              )}
 
-              <div className="flex-1 flex flex-col gap-3">
-                <div className="relative rounded-2xl overflow-hidden bg-gray-50 border border-gray-100 aspect-square">
+              <div className="flex-1 flex flex-col gap-3 min-w-0 w-full">
+                <div className="relative rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-xs group w-full h-[400px] sm:h-[480px] md:h-[520px]">
                   {discountPercent && (
                     <span className="absolute top-3 left-3 z-10 bg-red-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-md pointer-events-none">
                       -{discountPercent}%
@@ -581,7 +593,7 @@ export default function EcomProductDetail({ params }) {
                     }
                     return (
                       <div
-                        className="w-full h-full cursor-pointer"
+                        className="w-full h-full cursor-pointer flex items-center justify-center"
                         onClick={() => setIsGalleryOpen(true)}
                       >
                         <ImageZoom key={url || selectedImage} src={url} alt={productData.title} />
@@ -589,26 +601,17 @@ export default function EcomProductDetail({ params }) {
                     );
                   })()}
 
-                  {/* Gallery Button overlay at bottom */}
-                  <div className="absolute bottom-4 left-4 right-4 z-10">
-                    <button
-                      onClick={() => setIsGalleryOpen(true)}
-                      className="w-full flex items-center justify-between bg-primary-500/90 hover:bg-primary-600 backdrop-blur-sm text-white px-4 py-3 rounded-xl shadow-lg transition-colors border border-primary-400"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-                          <Icon icon={productVideos.length > 0 ? "solar:video-frame-play-bold-duotone" : "solar:gallery-bold-duotone"} className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-bold text-sm">
-                            {productVideos.length > 0 ? "See the video of this device" : "See all images"}
-                          </p>
-                          <p className="text-xs text-white/80">View the complete product gallery</p>
-                        </div>
-                      </div>
-                      <Icon icon="mdi:chevron-right" className="w-5 h-5" />
-                    </button>
-                  </div>
+                  {/* Clean Floating Gallery Pill Button (does NOT block product image) */}
+                  <button
+                    type="button"
+                    onClick={() => setIsGalleryOpen(true)}
+                    className="absolute bottom-3 right-3 z-10 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/65 hover:bg-black/85 backdrop-blur-md text-white text-xs font-semibold shadow-md transition-all group border border-white/20 hover:scale-105 active:scale-95 cursor-pointer"
+                    title="View full gallery"
+                  >
+                    <Icon icon="solar:gallery-bold-duotone" className="w-4 h-4 text-white" />
+                    <span>{allMedia.length} {allMedia.length === 1 ? 'Photo' : 'Photos'}</span>
+                    <Icon icon="mdi:fullscreen" className="w-3.5 h-3.5 opacity-70 group-hover:opacity-100" />
+                  </button>
                 </div>
               </div>
             </div>
@@ -616,9 +619,9 @@ export default function EcomProductDetail({ params }) {
             {/* Product Details */}
             <div className="flex flex-col gap-5">
               <div>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
+                <div className="flex items-start justify-between gap-4 w-full">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
                       {brandName && (
                         <span className="bg-primary-50 text-primary-700 text-xs font-black uppercase px-2.5 py-0.5 rounded border border-primary-200 tracking-wide">
                           {brandName}
@@ -630,24 +633,37 @@ export default function EcomProductDetail({ params }) {
                         </span>
                       )}
                     </div>
-                    <h1 className="text-2xl font-extrabold text-gray-900 leading-snug">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug">
                       {productData?.title}
                     </h1>
                   </div>
                   <button
+                    type="button"
                     onClick={handleToggleWishlist}
+                    disabled={wishlistLoadingIds.includes(productData?._id)}
                     aria-label={isWishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
-                    className={`flex-shrink-0 w-10 h-10 rounded-xl border-2 flex items-center justify-center transition-all ${isWishlisted ? 'border-red-400 bg-red-50 text-red-500' : 'border-gray-200 text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'}`}
+                    className={`flex-shrink-0 w-11 h-11 rounded-xl border-2 flex items-center justify-center transition-all shadow-sm ${
+                      isWishlisted
+                        ? 'border-red-400 bg-red-50 text-red-500 shadow-red-100'
+                        : 'border-gray-200 bg-white text-gray-400 hover:border-red-300 hover:text-red-400 hover:bg-red-50'
+                    } disabled:opacity-50 cursor-pointer`}
                   >
                     <Icon icon={isWishlisted ? 'mdi:heart' : 'mdi:heart-outline'} className="w-5 h-5" />
                   </button>
                 </div>
                 {productData?.shortDescription && (
-                  <p className="text-gray-500 text-sm mt-1.5 leading-relaxed">
+                  <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-xl">
                     {productData.shortDescription}
                   </p>
                 )}
               </div>
+
+              {/* Real-time Visitor Social Proof Activity Indicator */}
+              <ProductActivityIndicator
+                productId={productData?._id}
+                slug={params?.slug}
+                mode="banner"
+              />
 
               <div className="flex items-baseline gap-3 flex-wrap">
                 {discountPercent && (

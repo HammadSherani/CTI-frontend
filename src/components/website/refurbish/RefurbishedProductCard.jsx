@@ -15,8 +15,6 @@ export default function RefurbishedProductCard({ product }) {
   const router = useRouter();
   const dispatch = useDispatch();
   const [isHovered, setIsHovered] = useState(false);
-  const locale = useLocale();
-  const isTurkish = locale === 'tr';
 
   if (!product) return null;
 
@@ -135,7 +133,7 @@ export default function RefurbishedProductCard({ product }) {
           <div className="absolute top-2 left-2 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 via-rose-500 to-red-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
             <Icon icon="mdi:flash" className="text-[12px] -mb-0.5" />
             <span className="text-[7.5px] font-black tracking-tighter uppercase leading-none text-center">
-              {isTurkish ? 'FIRSAT' : 'DEAL'}
+              DEAL
             </span>
           </div>
         ) : product.badge === 'custom' && product.customBadgeText ? (
@@ -148,23 +146,19 @@ export default function RefurbishedProductCard({ product }) {
           <div className="absolute top-2 left-2 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-sky-500 to-blue-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
             <Icon icon="mdi:truck-fast" className="text-[12px] -mb-0.5" />
             <span className="text-[7px] font-black tracking-tight uppercase leading-[1.05] text-center">
-              {isTurkish ? <>HIZLI<br />KARGO</> : <>FAST<br />SHIP</>}
+              FAST<br />SHIP
             </span>
           </div>
         ) : product.badge === 'new_arrival' ? (
           <div className="absolute top-2 left-2 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-6deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
             <span className="text-[7.5px] font-black tracking-tight uppercase leading-[1.05] text-center">
-              {isTurkish ? <>YENİ<br />ÜRÜN</> : <>NEW<br />ARRIVAL</>}
+              NEW<br />ARRIVAL
             </span>
           </div>
         ) : isBestSeller || product.badge === 'best_seller' ? (
           <div className="absolute top-2 left-2 z-20 w-11 h-11 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white flex flex-col items-center justify-center shadow-md border-2 border-white rotate-[-8deg] pointer-events-none transform group-hover:rotate-0 transition-transform">
             <span className="text-[7.5px] font-black tracking-tight uppercase leading-[1.05] text-center drop-shadow-xs">
-              {isTurkish ? (
-                <>EN ÇOK<br />SATAN</>
-              ) : (
-                <>BEST<br />SELLER</>
-              )}
+              BEST<br />SELLER
             </span>
           </div>
         ) : null}
@@ -239,11 +233,11 @@ export default function RefurbishedProductCard({ product }) {
             )}
           </div>
 
-          {/* Trendyol Style Free Shipping badge + Savings */}
+          {/* Free Shipping badge + Savings */}
           <div className="h-[20px] flex items-center gap-1.5 overflow-hidden">
             <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200/80 px-1.5 py-0.5 rounded shrink-0 leading-none">
               <Icon icon="solar:box-bold" className="text-[11px] text-emerald-600 shrink-0" />
-              <span>{isTurkish ? 'Kargo Bedava' : 'Free Shipping'}</span>
+              <span>Free Shipping</span>
             </span>
 
             {offAmount > 0 ? (

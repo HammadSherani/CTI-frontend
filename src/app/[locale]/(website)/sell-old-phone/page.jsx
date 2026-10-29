@@ -8,6 +8,7 @@ import Breadcrumb from '@/components/ui/Breadcrumb';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import RefurbishedReviewSection from '@/components/website/refurbish/RefurbishedReviewSection';
+import SellDeviceFaqSection from '@/components/website/refurbish/SellDeviceFaqSection';
 
 export default function SellOldPhonePage() {
   const router = useRouter();
@@ -324,8 +325,15 @@ export default function SellOldPhonePage() {
           </div>
 
           {/* Testimonials Review Section */}
+
+          {/* Testimonials Review Section */}
           <div className="pt-6 pb-10 border-t border-gray-100">
             <RefurbishedReviewSection />
+          </div>
+
+
+          <div className="pt-6 pb-10 border-t border-gray-100">
+            <SellDeviceFaqSection deviceType="Phone" />
           </div>
 
         </div>

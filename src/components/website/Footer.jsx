@@ -27,6 +27,7 @@ export default function Footer() {
     company: [
       { label: "About Us", url: "/about-us" },
       { label: "Blog", url: "/blog" },
+      { label: "Partner With Us", url: "/partner-with-us" },
       { label: "Contact Us", url: "/contact" },
       { label: "Our Repairmans", url: "/repairmans" },
     ],

@@ -15,23 +15,26 @@ export default function ImageZoom({ src, alt }) {
   }, []);
 
 
+  const imageSrc = src || '/assets/placeholder.jpg';
+
   return (
     <div
       ref={ref}
       onMouseEnter={() => setZoom(true)}
       onMouseLeave={() => setZoom(false)}
       onMouseMove={handleMouseMove}
-      className="w-full h-full overflow-hidden cursor-zoom-in"
+      className="w-full h-full overflow-hidden cursor-zoom-in flex items-center justify-center relative select-none"
     >
       <Image
-        key={src}
-        src={src}
-        alt={alt}
+        key={imageSrc}
+        src={imageSrc}
+        alt={alt || 'Product image'}
         width={800}
         height={600}
-        className="w-full h-full object-contain transition-transform duration-200 ease-out will-change-transform"
+        unoptimized
+        className="w-full h-full object-contain transition-transform duration-200 ease-out will-change-transform pointer-events-none p-3"
         style={{
-          transform: zoom ? 'scale(2)' : 'scale(1)',
+          transform: zoom ? 'scale(1.8)' : 'scale(1)',
           transformOrigin: `${origin.x} ${origin.y}`,
         }}
       />

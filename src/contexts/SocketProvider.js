@@ -24,28 +24,26 @@ export const SocketProvider = ({ children }) => {
       }
     }
 
-    if (token && user) {
-      console.log('Connecting socket for user:', user.name);
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000';
+    const newSocket = io(socketUrl, {
+      auth: token ? { token } : {},
+      autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 1000,
+    });
 
-      const newSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:5000', {
-        auth: { token },
-        autoConnect: true,
-        reconnection: true,
-        reconnectionAttempts: 5,
-        reconnectionDelay: 1000,
-      });
-
-      newSocket.on('connect', () => {
-        console.log('Socket connected:', newSocket.id);
-        setConnected(true);
+    newSocket.on('connect', () => {
+      setConnected(true);
+      if (user) {
         newSocket.emit('user_online');
         newSocket.emit('get_online_users');
-      });
+      }
+    });
 
-      newSocket.on('disconnect', (reason) => {
-        console.log('Socket disconnected:', reason);
-        setConnected(false);
-      });
+    newSocket.on('disconnect', (reason) => {
+      setConnected(false);
+    });
 
       newSocket.on('connected', (data) => {
         console.log('Server confirmation:', data);
@@ -137,16 +135,8 @@ export const SocketProvider = ({ children }) => {
       setSocket(newSocket);
 
       return () => {
-        console.log('Cleaning up socket connection');
         newSocket.disconnect();
       };
-    } else {
-      if (socket) {
-        socket.disconnect();
-        setSocket(null);
-        setConnected(false);
-      }
-    }
   }, [token, user, dispatch]);
 
   const value = {
