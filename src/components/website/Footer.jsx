@@ -1,28 +1,17 @@
-'use client';
+"use client";
+import React from "react";
+import Image from "next/image";
+import { Link, useRouter } from "@/i18n/navigation";
+import { Icon } from "@iconify/react";
 
-import React from 'react';
-import { Icon } from '@iconify/react';
-import Image from 'next/image';
-import Marquee from 'react-fast-marquee';
-import { useRouter, Link } from '@/i18n/navigation';
-
-export default function Footer() {
+function Footer() {
   const footerData = {
-    social: [
-      { label: "Twitter", url: "https://twitter.com", icon: "mdi:twitter" },
-      { label: "Facebook", url: "https://facebook.com", icon: "mdi:facebook" },
-      { label: "Instagram", url: "https://instagram.com", icon: "mdi:instagram" },
-      { label: "YouTube", url: "https://youtube.com", icon: "mdi:youtube" },
-    ],
     services: [
-      { label: "Sell Old Phone", url: "/sell-old-phone" },
       { label: "Mobile Repair", url: "/mobile-repair" },
+      { label: "Sell Old Phone", url: "/sell-old-phone" },
       { label: "Buy Refurbished", url: "/buy-refurbish-gadgets" },
-      { label: "Sell Devices", url: "/sell-devices" },
-      { label: "Device Insurance", url: "/insurance" },
-      { label: "Tech Repair", url: "/tech-repair" },
-      { label: "Service Catalog", url: "/service-catalog" },
-      { label: "Live Support", url: "/live-support" },
+      { label: "Insurance Services", url: "/insurance" },
+      { label: "Academy", url: "/academy" },
     ],
     company: [
       { label: "About Us", url: "/about-us" },
@@ -43,10 +32,22 @@ export default function Footer() {
       { label: "FAQ", url: "/faq" },
       { label: "Contact Us", url: "/contact" },
       { label: "Privacy Policy", url: "/privacy-policy" },
-      { label: "Refund Policy", url: "/refund-policy" },
       { label: "Terms & Conditions", url: "/terms-and-conditions" },
+      { label: "Repair Warranty Policy", url: "/warranty-policy-repair" },
+      { label: "Refurbished Warranty", url: "/warranty-policy-refurbished" },
+      { label: "Refund Policy", url: "/refund-policy" },
+      { label: "Cookie Policy", url: "/cookie-policy" },
+      { label: "Refer & Earn Terms", url: "/refer-and-earn-terms" },
       { label: "E-Waste Policy", url: "/e-waste-policy" },
+      { label: "Indemnity Form", url: "/indemnity-form" },
       { label: "How to Return", url: "/how-to-return" },
+    ],
+    social: [
+      { icon: "mdi:facebook", url: "https://facebook.com" },
+      { icon: "mdi:twitter", url: "https://twitter.com" },
+      { icon: "mdi:instagram", url: "https://instagram.com" },
+      { icon: "mdi:linkedin", url: "https://linkedin.com" },
+      { icon: "mdi:youtube", url: "https://youtube.com" },
     ],
   };
 
@@ -77,80 +78,90 @@ export default function Footer() {
 
             {/* Social Icons */}
             <div className="flex gap-4 mt-8">
-              {footerData.social.map((item) => (
-                <Link
-                  key={item.label}
+              {footerData.social.map((item, idx) => (
+                <a
+                  key={idx}
                   href={item.url}
-                  className="w-10 h-10 bg-gray-900 hover:bg-gray-800 rounded-full flex items-center justify-center transition-all"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-10 h-10 rounded-full bg-gray-900 border border-gray-800 flex items-center justify-center text-gray-300 hover:text-white hover:bg-primary-600 hover:border-primary-600 transition-all duration-300"
                 >
-                  <Icon icon={item.icon} className="text-xl" />
-                </Link>
+                  <Icon icon={item.icon} className="text-lg" />
+                </a>
               ))}
             </div>
           </div>
 
-          {/* Services */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">Services</h3>
-            <ul className="space-y-3 text-sm">
-              {footerData.services.map((item) => (
-                <li key={item.label}>
+          {/* Links Column 1 - Services */}
+          <div className="lg:col-span-2 md:col-span-1">
+            <h3 className="text-white font-bold text-base uppercase tracking-wider mb-5">
+              Services
+            </h3>
+            <ul className="space-y-3">
+              {footerData.services.map((link, idx) => (
+                <li key={idx}>
                   <Link
-                    href={item.url}
-                    className="hover:text-white transition-colors"
+                    href={link.url}
+                    className="text-sm text-gray-400 hover:text-primary-500 transition-colors duration-200"
                   >
-                    {item.label}
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Company */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">Company</h3>
-            <ul className="space-y-3 text-sm">
-              {footerData.company.map((item) => (
-                <li key={item.label}>
+          {/* Links Column 2 - Company */}
+          <div className="lg:col-span-2 md:col-span-1">
+            <h3 className="text-white font-bold text-base uppercase tracking-wider mb-5">
+              Company
+            </h3>
+            <ul className="space-y-3">
+              {footerData.company.map((link, idx) => (
+                <li key={idx}>
                   <Link
-                    href={item.url}
-                    className="hover:text-white transition-colors"
+                    href={link.url}
+                    className="text-sm text-gray-400 hover:text-primary-500 transition-colors duration-200"
                   >
-                    {item.label}
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* My Account */}
-          <div className="lg:col-span-2">
-            <h3 className="text-white font-semibold mb-5">My Account</h3>
-            <ul className="space-y-3 text-sm">
-              {footerData.account.map((item) => (
-                <li key={item.label}>
+          {/* Links Column 3 - Account */}
+          <div className="lg:col-span-2 md:col-span-1">
+            <h3 className="text-white font-bold text-base uppercase tracking-wider mb-5">
+              Account
+            </h3>
+            <ul className="space-y-3">
+              {footerData.account.map((link, idx) => (
+                <li key={idx}>
                   <Link
-                    href={item.url}
-                    className="hover:text-white transition-colors"
+                    href={link.url}
+                    className="text-sm text-gray-400 hover:text-primary-500 transition-colors duration-200"
                   >
-                    {item.label}
+                    {link.label}
                   </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Support */}
-          <div className="lg:col-span-3">
-            <h3 className="text-white font-semibold mb-5">Support</h3>
-            <ul className="space-y-3 text-sm">
-              {footerData.support.map((item) => (
-                <li key={item.label}>
+          {/* Links Column 4 - Support & Legal */}
+          <div className="lg:col-span-3 md:col-span-1">
+            <h3 className="text-white font-bold text-base uppercase tracking-wider mb-5">
+              Policies & Support
+            </h3>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-2.5 gap-x-4">
+              {footerData.support.map((link, idx) => (
+                <li key={idx}>
                   <Link
-                    href={item.url}
-                    className="hover:text-white transition-colors"
+                    href={link.url}
+                    className="text-xs text-gray-400 hover:text-primary-500 transition-colors duration-200 truncate block"
                   >
-                    {item.label}
+                    {link.label}
                   </Link>
                 </li>
               ))}
@@ -159,151 +170,25 @@ export default function Footer() {
 
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 items-start md:w-[45%] w-full ml-[55%] mt-10">
-          <div className="lg:w-auto w-full mt-8">
-            <button onClick={() => router.push('/live-support')} className="bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 transition-all duration-300 text-white font-medium py-1 pr-20  rounded-2xl flex items-center gap-3 shadow-lg w-full lg:w-auto group">
-              <Image
-                src="/assets/footer/message.png"
-                alt="Chat Icon"
-                width={54}
-                height={34}
-                className="object-contain group-hover:scale-110 transition-transform duration-300"
-              />
-              <div className="text-left">
-                <div className="font-semibold text-base">Chat With Us</div>
-                <div className="text-xs opacity-90">Got questions? Just ask.</div>
-              </div>
-            </button>
-          </div>
-
-          <div className="flex-1 opacity-80 shadow-2xl sm:w-full lg:w-[40%]">
-            <div className="mb-3">
-              <Marquee
-                gradient={false}
-                speed={30}
-                direction="right"
-                pauseOnHover
-                autoFill
-              >
-                <div className="flex items-center gap-8">
-                  <Image
-                    src="/assets/footer/f1.png"
-                    alt="Partner 1"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f2.png"
-                    alt="Partner 2"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f3.png"
-                    alt="Partner 3"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f4.png"
-                    alt="Partner 4"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                </div>
-              </Marquee>
-            </div>
-
-            <div>
-              <Marquee
-                gradient={false}
-                speed={35}
-                direction="left"
-                pauseOnHover
-                autoFill
-              >
-                <div className="flex items-center gap-8">
-                  <Image
-                    src="/assets/footer/f5.png"
-                    alt="Partner 5"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f6.png"
-                    alt="Partner 6"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f7.png"
-                    alt="Partner 7"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                  <Image
-                    src="/assets/footer/f8.png"
-                    alt="Partner 8"
-                    width={70}
-                    height={35}
-                    className="h-9 w-auto object-contain grayscale hover:grayscale-0 transition-all duration-300"
-                  />
-                </div>
-              </Marquee>
-            </div>
+        {/* Bottom Bar */}
+        <div className="mt-14 pt-8 border-t border-gray-900 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+          <p>© {new Date().getFullYear()} CTI (Complete Telecom Infrastructure). All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy-policy" className="hover:text-gray-400 transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/terms-and-conditions" className="hover:text-gray-400 transition-colors">
+              Terms & Conditions
+            </Link>
+            <Link href="/e-waste-policy" className="hover:text-gray-400 transition-colors">
+              E-Waste
+            </Link>
           </div>
         </div>
 
-        {/* Bottom Section */}
-        <div className="mt-4 pt-10 border-t border-gray-800 grid grid-cols-1 lg:grid-cols-12 gap-10">
-          {/* Registered Office */}
-          <div className="lg:col-span-8 text-sm text-gray-400">
-            <p className="font-semibold text-gray-200 mb-3">Registered Office:</p>
-            <p>
-              Manak Waste Management Pvt Ltd, 55, 2nd Floor, Lane-2, Westend Marg, Saidullajab, Near
-              Saket Metro Station, New Delhi-110030, India. Support-7290068900 | CIN:
-              U46524DL2009PTC190441
-            </p>
-            <p className="mt-4">
-              Manak Waste Management Pvt Ltd. is ISO 27001 & 27701 Compliance Certified.
-              Person who may be contacted in case of any compliance related queries or grievances:
-              Manoj Kumar (grievanceofficer@cashify.in)
-            </p>
-            <p className="mt-6 text-xs leading-relaxed">
-              ** All product names, logos, and brands are property of their respective owners.
-              All company, product and service names used in this website are for identification
-              purposes only. Use of these names, logos, and brands does not imply endorsement.
-            </p>
-          </div>
-
-          <div className="lg:col-span-4 w-full ">
-            <div className="  bg-white   pr-12 gap-4 justify-center items-center flex border border-zinc-800 rounded-2xl p-2  max-w-[420px] hover:border-zinc-700 transition-all duration-300">
-              <div>
-                <Image src='/assets/footer/f9.png' alt='footer' width={190} height={120} />
-              </div>
-              <div className="text-xs">
-                <p className="text-black font-semibold mb-1 text-md">Safeguarded by DeviceSafety.org</p>
-                <p className="text-gray-400 leading-relaxed text-md">
-                  All devices are data-wiped using DeviceSafety.org certified tools, guaranteeing
-                  the highest standards of data security and privacy.
-                </p>
-              </div>
-            </div>
-
-          </div>        </div>
-
-        {/* Copyright */}
-        <div className="text-center text-xs text-gray-500 mt-16 pt-6 border-t border-gray-800">
-          Copyright © 2026 Cashify All rights reserved
-        </div>
       </div>
     </footer>
   );
 }
+
+export default Footer;

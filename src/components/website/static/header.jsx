@@ -1,133 +1,179 @@
 "use client";
 
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { usePathname } from "@/i18n/navigation";
 import { useMemo } from "react";
+import { Icon } from "@iconify/react";
 
 function getMetaFromPath(path = "") {
   const p = path.toLowerCase();
 
+  if (p.includes("warranty-policy-repair")) {
+    return {
+      title: "Warranty Policy for Repair",
+      subtitle: "Comprehensive guarantee covering replaced spare parts and expert technician workmanship.",
+      badge: "Customer Protection",
+      icon: "solar:shield-check-bold",
+    };
+  }
+
+  if (p.includes("warranty-policy-refurbished")) {
+    return {
+      title: "Warranty Policy for Refurbished Devices",
+      subtitle: "32-point technical testing, 7-day replacement guarantee, and 6–12 months hardware warranty.",
+      badge: "Certified Assurance",
+      icon: "solar:medal-star-circle-bold",
+    };
+  }
+
+  if (p.includes("cookie")) {
+    return {
+      title: "Cookie Policy",
+      subtitle: "How we use essential, functional, and performance cookies to optimize your browsing experience.",
+      badge: "Privacy & Data",
+      icon: "solar:shield-warning-bold",
+    };
+  }
+
+  if (p.includes("refer-and-earn")) {
+    return {
+      title: "Refer & Earn Terms",
+      subtitle: "Invite friends to buy, sell, or repair devices on CTI and earn instant wallet rewards.",
+      badge: "Community Rewards",
+      icon: "solar:gift-bold",
+    };
+  }
+
+  if (p.includes("indemnity")) {
+    return {
+      title: "Indemnity Form & Declaration",
+      subtitle: "Legal declaration of lawful device ownership and non-encumbrance for buybacks and repairs.",
+      badge: "Legal Compliance",
+      icon: "solar:document-text-bold",
+    };
+  }
+
   if (p.includes("privacy")) {
     return {
       title: "Privacy Policy",
-      subtitle: "How we handle your information and respect your privacy.",
-      image: "/assets/contact/1.avif",
+      subtitle: "How we securely handle your personal information, protect user data, and respect your privacy.",
+      badge: "Security & Trust",
+      icon: "solar:lock-keyhole-minimalistic-bold",
     };
   }
 
   if (p.includes("terms")) {
     return {
       title: "Terms and Conditions",
-      subtitle: "The rules and regulations for using our platform.",
-      image: "/assets/contact/1.avif",
+      subtitle: "The rules, user obligations, and guidelines governing the use of CTI platform and services.",
+      badge: "Legal Terms",
+      icon: "solar:document-text-bold",
     };
   }
 
   if (p.includes("refund")) {
     return {
       title: "Refund Policy",
-      subtitle: "Everything you need to know about our refund process.",
-      image: "/assets/contact/1.avif",
+      subtitle: "Transparent timelines and processes for order cancellations, returns, and payment refunds.",
+      badge: "Buyer Protection",
+      icon: "solar:wallet-money-bold",
     };
   }
 
-   if (p.includes("return")) {
+  if (p.includes("return")) {
     return {
       title: "How to Return",
-      subtitle: "Everything you need to know about our return process.",
-      image: "/assets/contact/1.avif",
+      subtitle: "Step-by-step guidance on packing, scheduling pickup, and returning devices hassle-free.",
+      badge: "Return Center",
+      icon: "solar:box-minimalistic-bold",
     };
   }
 
   if (p.includes("e-waste")) {
     return {
-      title: "E-waste Policy",
-      subtitle: "Our commitment to responsible electronic waste disposal and recycling.",
-      image: "/assets/contact/1.avif",
+      title: "E-Waste & Recycling Policy",
+      subtitle: "Our commitment to sustainable electronic waste disposal, safe dismantling, and green recycling.",
+      badge: "Sustainability",
+      icon: "solar:leaf-bold",
     };
   }
 
   if (p.includes("live")) {
     return {
       title: "Live Support",
-      subtitle: "live chat support for immediate assistance.",
-      image: "/assets/about/1.avif",
+      subtitle: "Get in touch with our customer assistance team for immediate help with your orders or services.",
+      badge: "24/7 Help Desk",
+      icon: "fluent:person-support-28-regular",
+    };
+  }
+
+  if (p.includes("faq")) {
+    return {
+      title: "Frequently Asked Questions",
+      subtitle: "Find answers to commonly asked questions about repairs, buybacks, and refurbished orders.",
+      badge: "Knowledge Base",
+      icon: "solar:question-circle-bold",
     };
   }
 
   return {
-    title: "Page",
-    subtitle: "Welcome to this page.",
-    image: "/assets/contact/1.avif",
+    title: "Policies & Legal Center",
+    subtitle: "Official documentation, terms, and customer rights for using CTI services.",
+    badge: "Official Terms",
+    icon: "solar:document-bold",
   };
 }
 
-export default function PageHeader({ title: propTitle, subtitle: propSubtitle, image: propImage }) {
+export default function PageHeader({ title: propTitle, subtitle: propSubtitle }) {
   const pathname = usePathname();
 
   const auto = useMemo(() => getMetaFromPath(pathname || "/"), [pathname]);
 
   const title = propTitle ?? auto.title;
   const subtitle = propSubtitle ?? auto.subtitle;
-  const image = propImage ?? auto.image;
 
   return (
-    <section className="relative  !h-[60vh] bg-gradient-to-br from-primary-600 via-primary-200 to-primary-700 overflow-hidden">
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 opacity-10 pointer-events-none">
-        <div className="absolute top-0 left-0 w-64 h-64 md:w-80 md:h-80 bg-white rounded-full blur-3xl" />
-        <div className="absolute bottom-0 right-0 w-64 h-64 md:w-80 md:h-80 bg-white rounded-full blur-3xl" />
-      </div>
+    <section className="relative bg-gradient-to-b from-gray-900 via-gray-900 to-black text-white py-14 sm:py-20 border-b border-gray-800 overflow-hidden">
+      {/* Decorative clean ambient glows (No images) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-56 bg-primary-600/15 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-72 h-32 bg-primary-500/10 blur-2xl pointer-events-none" />
 
-      {/* Content container */}
-      <div className="relative z-10 h-full">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full">
-          <div className={`grid gap-6 lg:gap-10 items-center  h-full  ${
-            image ? "lg:grid-cols-2" : "grid-cols-1 text-center"
-          }`}>
-            
-            {/* Text Content */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6 }}
-              className={`flex flex-col justify-center ${!image ? "items-center" : ""}`}
-            >
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl text-nowrap xl:text-6xl font-bold text-gray-900 mb-3 md:mb-4 leading-tight">
-                {title}
-              </h1>
+      {/* Centered Content Container */}
+      <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center flex flex-col items-center">
+        {/* Category / Badge Pill */}
+        {auto.badge && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-white/90 border border-white/15 text-xs font-bold uppercase tracking-wider mb-5 shadow-sm backdrop-blur-sm"
+          >
+            {auto.icon && <Icon icon={auto.icon} className="text-primary-400 text-sm" />}
+            <span>{auto.badge}</span>
+          </motion.div>
+        )}
 
-              {subtitle && (
-                <p className="text-base sm:text-lg lg:text-xl text-gray-700 max-w-2xl leading-relaxed">
-                  {subtitle}
-                </p>
-              )}
-            </motion.div>
+        {/* Centered Heading */}
+        <motion.h1
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="text-3xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight max-w-3xl"
+        >
+          {title}
+        </motion.h1>
 
-            {/* Image */}
-            {image && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="hidden lg:flex justify-start items-start"
-              >
-                <div className="relative w-full max-w-md xl:max-w-lg">
-                  <Image 
-                    src={image} 
-                    alt={title} 
-                    width={520} 
-                    height={360} 
-                    className="w-full h-auto object-contain drop-shadow-2xl p-12"
-                    priority
-                  />
-                </div>
-              </motion.div>
-            )}
-
-          </div>
-        </div>
+        {/* Centered Subtitle */}
+        {subtitle && (
+          <motion.p
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, delay: 0.1 }}
+            className="mt-4 text-sm sm:text-base md:text-lg text-gray-300 max-w-2xl leading-relaxed font-normal"
+          >
+            {subtitle}
+          </motion.p>
+        )}
       </div>
     </section>
   );

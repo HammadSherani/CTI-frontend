@@ -677,12 +677,18 @@ function NavigationBar({ isHome, isScrolled }) {
   }));
 
   const SUPPORT = [
-    { name: "Privacy Policy", href: "/privacy-policy" },
-    { name: "Terms of Service", href: "/terms-of-service" },
-    { name: "Environmental Policy", href: "/e-waste-policy" },
-    { name: "How to return", href: "/how-to-return" },
+    { name: "Live Support", href: "/live-support" },
     { name: "FAQ", href: "/faq" },
+    { name: "Privacy Policy", href: "/privacy-policy" },
+    { name: "Terms and Conditions", href: "/terms-and-conditions" },
+    { name: "Repair Warranty Policy", href: "/warranty-policy-repair" },
+    { name: "Refurbished Warranty", href: "/warranty-policy-refurbished" },
     { name: "Refund Policy", href: "/refund-policy" },
+    { name: "Cookie Policy", href: "/cookie-policy" },
+    { name: "Refer and Earn Terms", href: "/refer-and-earn-terms" },
+    { name: "E-Waste Policy", href: "/e-waste-policy" },
+    { name: "Indemnity Form", href: "/indemnity-form" },
+    { name: "How to Return", href: "/how-to-return" },
   ];
 
   const mainNav = [
