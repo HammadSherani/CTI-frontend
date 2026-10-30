@@ -1,6 +1,6 @@
 import createMiddleware from 'next-intl/middleware';
-import {routing} from './src/i18n/routing';
- 
+import { routing } from './src/i18n/routing';
+
 const handleI18nRouting = createMiddleware(routing);
 
 export default function middleware(request) {
@@ -17,15 +17,19 @@ export default function middleware(request) {
     if (location) {
       if (location.includes('/tr')) targetLocale = 'tr';
       else if (location.includes('/en')) targetLocale = 'en';
+    } else {
+      // Default fallback is always Turkish
+      targetLocale = 'tr';
     }
   }
 
-  if (targetLocale === 'tr') {
-    response.cookies.set('googtrans', '/en/tr', { path: '/' });
-    response.cookies.set('NEXT_LOCALE', 'tr', { path: '/' });
-  } else if (targetLocale === 'en') {
+  if (targetLocale === 'en') {
     response.cookies.set('googtrans', '/en/en', { path: '/' });
     response.cookies.set('NEXT_LOCALE', 'en', { path: '/' });
+  } else {
+    // Default to Turkish translation
+    response.cookies.set('googtrans', '/en/tr', { path: '/' });
+    response.cookies.set('NEXT_LOCALE', 'tr', { path: '/' });
   }
 
   return response;
@@ -36,4 +40,4 @@ export const config = {
   // - … if they start with `/api`, `/trpc`, `/_next` or `/_vercel`
   // - … the ones containing a dot (e.g. `favicon.ico`)
   matcher: '/((?!api|trpc|_next|_vercel|.*\\..*).*)'
-};
+};

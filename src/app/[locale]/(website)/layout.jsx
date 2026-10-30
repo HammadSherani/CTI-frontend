@@ -20,7 +20,9 @@ import useNotifications from '@/hooks/useNotifications'
 
 function Layout({ children }) {
   const { token, user } = useSelector(state => state.auth);
-  const [loading, setLoading] = useState(false)
+  // Initial page loading state to prevent structure flash & hide while assets mount
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
   const dispatch = useDispatch();
   const pathname = usePathname();
   const {
@@ -38,6 +40,28 @@ function Layout({ children }) {
   const STORAGE_KEY = 'repair_form';
   const STEP_KEY = 'repair_step';
 
+  // Dismiss initial loader once window is ready and page structure is hydrated
+  useEffect(() => {
+    const handleReady = () => {
+      // Small buffer to guarantee fonts, styles, and hero elements settle
+      setTimeout(() => {
+        setInitialLoading(false);
+      }, 350);
+    };
+
+    if (document.readyState === 'complete') {
+      handleReady();
+    } else {
+      window.addEventListener('load', handleReady);
+      // Fallback timer
+      const timer = setTimeout(handleReady, 1200);
+      return () => {
+        window.removeEventListener('load', handleReady);
+        clearTimeout(timer);
+      };
+    }
+  }, []);
+
   useEffect(() => {
     if (!token) return;
 
@@ -46,7 +70,7 @@ function Layout({ children }) {
     const fetchUserDetails = async () => {
       try {
         if (!user) {
-          setLoading(true);
+          setAuthLoading(true);
         }
 
         const { data } = await axiosInstance.get('/auth/user-details', {
@@ -61,7 +85,7 @@ function Layout({ children }) {
       } catch (error) {
         handleError(error);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setAuthLoading(false);
       }
     };
 
@@ -90,6 +114,7 @@ function Layout({ children }) {
       localStorage.removeItem(STEP_KEY);
     };
   }, [pathname]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -101,32 +126,28 @@ function Layout({ children }) {
     }
   }, []);
 
-
   useEffect(() => {
     fetchNotifications();
   }, []);
 
-  if (loading) {
-    return (
-      <div className="fixed inset-0 flex items-center justify-center bg-white z-50">
-        <Loader loading={true} />
-      </div>
-    );
-  }
+  const isLoadingScreen = initialLoading || authLoading;
 
   return (
-    <div className="relative">
-      <WebsiteHeader />
+    <>
+      <Loader loading={isLoadingScreen} />
+      <div className="relative">
+        <WebsiteHeader />
 
-      <div className={isHome ? 'mt-0' : 'mt-0'}>
-        {children}
+        <div className={isHome ? 'mt-0' : 'mt-0'}>
+          {children}
+        </div>
+
+        <Chat />
+        <AiShoppingAssistant />
+        <Footer />
+        <SelectCountry />
       </div>
-
-      <Chat />
-      <AiShoppingAssistant />
-      <Footer />
-      <SelectCountry />
-    </div>
+    </>
   );
 }
 

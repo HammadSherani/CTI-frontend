@@ -3,9 +3,9 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const LOCALES = ["en", "tr"];
+const LOCALES = ["tr", "en"];
 const LOCALE_STORAGE_KEY = "preferredLocale";
-const DEFAULT_LOCALE = "en";
+const DEFAULT_LOCALE = "tr";
 
 const getPreferredLocale = () => {
   if (typeof window === "undefined") {
