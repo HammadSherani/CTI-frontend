@@ -17,9 +17,12 @@ const PAGE_SIZE = 30;
 
 const SORT_OPTIONS = [
   { label: "Default", value: "default" },
+  { label: "🔥 Best Sellers", value: "best-sellers" },
+  { label: "👁️ Most Visited", value: "most-visited" },
+  { label: "❤️ Most Favorited", value: "most-favorited" },
+  { label: "⭐ Most Rated", value: "most-rated" },
   { label: "Price: Low → High", value: "price-asc" },
   { label: "Price: High → Low", value: "price-desc" },
-  { label: "Top Rated", value: "rating" },
 ];
 
 /* Reads URL params and returns initial filter object */
@@ -44,28 +47,25 @@ export default function ProductListingPage() {
 
   /* Initialise filters directly from URL so first fetch uses them */
   const [filters, setFilters] = useState(() => parseUrlFilters(searchParams));
-  const [sort, setSort] = useState('default');
+  const [sort, setSort] = useState(() => searchParams.get('sort') || 'default');
   const [page, setPage] = useState(1);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
-  /* Track whether we've already done the first URL-sync so subsequent
-     searchParams changes only update URL-owned fields and do NOT wipe
-     sidebar-managed fields (warrantyTypes, stockStatus, colors, etc.) */
+  /* Track whether we've already done the first URL-sync */
   const initializedRef = useRef(false);
 
   const { items: wishlistItems } = useSelector(s => s.wishlist || { items: [] });
   const auth = useSelector(s => s.auth);
 
-  /* Re-sync ONLY URL-owned filters if URL changes — preserve sidebar state */
+  /* Re-sync ONLY URL-owned filters if URL changes */
   useEffect(() => {
     if (!initializedRef.current) {
       initializedRef.current = true;
-      return; // first mount already handled by useState initializer
+      return;
     }
-    // Only update the fields that come from URL params; leave sidebar fields intact
     const urlFields = parseUrlFilters(searchParams);
     setFilters(prev => ({
       ...prev,
@@ -74,6 +74,9 @@ export default function ProductListingPage() {
       brandIds: urlFields.brandIds,
       q: urlFields.q,
     }));
+    if (searchParams.get('sort')) {
+      setSort(searchParams.get('sort'));
+    }
     setPage(1);
   }, [searchParams.toString()]);
 
@@ -126,11 +129,6 @@ export default function ProductListingPage() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  /* Active filter chips — derived from current filters */
-  const activeChips = [
-    ...(filters.q ? [{ label: `"${filters.q}"`, key: 'q' }] : []),
-  ];
-
   const clearChip = (key) => {
     if (key === 'q') {
       const next = new URLSearchParams(searchParams.toString());
@@ -142,25 +140,19 @@ export default function ProductListingPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-10 py-10">
       <div>
-        <h1 className="text-2xl font-bold mb-4 text-gray-900">Lorem ipsum is placeholder text commonly</h1>
-        <p className="text-gray-600 mb-8">
-          Lorem ipsum, or lipsum as it is sometimes known, is dummy text used in laying out print, graphic or web designs. The passage is attributed to Letraset, a popular manufacturer of dry transfer sheets for text and other design elements.
-
-          It is believed that they scrambled parts of Cicero’s De Finibus Bonorum et Malorum in the 1960s for use in their Body Type (basically body paragraph placeholder) sheets. It usually begins with:
-
-          “Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.”
-
-          The purpose of lorem ipsum is to create a natural looking block of text (sentence, paragraph, page, etc.) that doesn't distract from the layout. A practice not without controversy, laying out pages with meaningless filler text can be very useful when the focus is meant to be on design, not content.
-
-          The passage experienced a surge in popularity during the 1960s when Letraset used it on their dry-transfer sheets, and again during the 90s as desktop publishers bundled the text with their software. Today it's seen all around the web; on templates, websites, and stock designs. Use our generator to get your own, or read on for the authoritative history of lorem ipsum.</p>
+        <h1 className="text-2xl font-bold mb-4 text-gray-900">Explore Store Products</h1>
+        <p className="text-gray-600 mb-8 text-sm sm:text-base leading-relaxed">
+          Discover certified electronics, smartphones, accessories, and replacement parts with verified warranty, instant delivery, and official buyer protection.
+        </p>
       </div>
+
       {/* Active search query banner */}
       {filters.q && (
         <div className="mb-6 flex items-center gap-3 flex-wrap">
           <span className="text-sm text-gray-500">Results for:</span>
           <span className="flex items-center gap-1.5 bg-primary-50 border border-primary-200 text-primary-700 text-sm font-semibold px-3 py-1 rounded-full">
             "{filters.q}"
-            <button onClick={() => clearChip('q')} className="ml-1 hover:text-primary-900">
+            <button onClick={() => clearChip('q')} className="ml-1 hover:text-primary-900 cursor-pointer">
               <Icon icon="mdi:close" className="w-3.5 h-3.5" />
             </button>
           </span>
@@ -208,7 +200,7 @@ export default function ProductListingPage() {
             <div className="text-center py-24 bg-white rounded-2xl border border-gray-200">
               <Icon icon="mdi:package-variant-remove" className="w-16 h-16 text-gray-200 mx-auto mb-4" />
               <h3 className="text-lg font-bold text-gray-700">No products found</h3>
-              <p className="text-gray-400 mt-1 text-sm">Try adjusting your filters</p>
+              <p className="text-gray-400 mt-1 text-sm">Try selecting another filter or clearing search</p>
             </div>
           ) : (
             <div className={`relative transition-opacity duration-300 ${loading ? 'opacity-40 pointer-events-none' : 'opacity-100'}`}>
@@ -244,36 +236,42 @@ export default function ProductListingPage() {
               <button
                 disabled={page === 1}
                 onClick={() => handlePageChange(page - 1)}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 ← Prev
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => {
-                if (p !== 1 && p !== totalPages && Math.abs(p - page) > 1) {
-                  if (p === page - 2 || p === page + 2)
-                    return <span key={`e${p}`} className="text-gray-400 text-sm px-1">…</span>;
-                  return null;
-                }
-                return (
-                  <button
-                    key={p}
-                    onClick={() => handlePageChange(p)}
-                    className={`px-4 py-2 rounded-xl border text-sm font-semibold transition-colors ${p === page ? 'bg-primary-500 text-white border-primary-500' : 'border-gray-200 hover:bg-gray-50'
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                if (p === 1 || p === totalPages || (p >= page - 1 && p <= page + 1)) {
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => handlePageChange(p)}
+                      className={`w-10 h-10 rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                        p === page
+                          ? 'bg-primary-600 text-white'
+                          : 'border border-gray-200 hover:bg-gray-50 text-gray-700'
                       }`}
-                  >
-                    {p}
-                  </button>
-                );
+                    >
+                      {p}
+                    </button>
+                  );
+                }
+                if (p === page - 2 || p === page + 2) {
+                  return <span key={p} className="text-gray-400 px-1">...</span>;
+                }
+                return null;
               })}
               <button
                 disabled={page === totalPages}
                 onClick={() => handlePageChange(page + 1)}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold disabled:opacity-40 hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 Next →
               </button>
             </div>
           )}
+
         </div>
       </div>
     </div>
