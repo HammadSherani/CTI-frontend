@@ -12,16 +12,13 @@ const getPreferredLocale = () => {
     return DEFAULT_LOCALE;
   }
 
+  // If user has explicitly selected a locale before
   const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
   if (storedLocale && LOCALES.includes(storedLocale)) {
     return storedLocale;
   }
 
-  const browserLocale = navigator.language?.slice(0, 2)?.toLowerCase();
-  if (browserLocale && LOCALES.includes(browserLocale)) {
-    return browserLocale;
-  }
-
+  // By default always Turkish
   return DEFAULT_LOCALE;
 };
 

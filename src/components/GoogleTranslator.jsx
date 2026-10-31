@@ -102,10 +102,10 @@ export default function GoogleTranslator({ locale = "tr" }) {
         const interval = setInterval(() => {
           attempts++;
           const done = triggerTranslate(isEnglish ? "en" : "tr");
-          if (done || attempts > 25) {
+          if (done || attempts > 30) {
             clearInterval(interval);
           }
-        }, 150);
+        }, 120);
       }
     };
 
@@ -120,7 +120,21 @@ export default function GoogleTranslator({ locale = "tr" }) {
 
   return (
     <>
+      {/* Hidden google translate mount container */}
       <div id="google_translate_element" style={{ display: "none" }} />
+      {/* Inline script to set cookie before Google script evaluates */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              var isEn = window.location.pathname.startsWith('/en');
+              var trans = isEn ? '/en/en' : '/en/tr';
+              document.cookie = 'googtrans=' + trans + '; path=/;';
+              document.cookie = 'NEXT_LOCALE=' + (isEn ? 'en' : 'tr') + '; path=/; max-age=31536000;';
+            })();
+          `,
+        }}
+      />
       <Script
         id="google-translate-script"
         src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"

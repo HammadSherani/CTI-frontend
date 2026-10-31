@@ -43,6 +43,7 @@ export default function CustomTranslate() {
   const [loading, setLoading] = useState(false);
   const [targetLangText, setTargetLangText] = useState("");
   const locale = useLocale();
+  console.log(locale, 'locale')
   const [activeLang, setActiveLang] = useState(locale || "tr");
   const wrapperRef = useRef(null);
 
@@ -155,9 +156,8 @@ export default function CustomTranslate() {
           <span className="font-bold">{currentLang?.code?.toUpperCase()}</span>
           <Icon
             icon="mdi:chevron-down"
-            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${
-              open ? "rotate-180" : ""
-            }`}
+            className={`w-3.5 h-3.5 text-gray-400 transition-transform duration-200 ${open ? "rotate-180" : ""
+              }`}
           />
         </button>
 
@@ -180,11 +180,10 @@ export default function CustomTranslate() {
                     role="option"
                     aria-selected={isActive}
                     onClick={() => changeLanguage(lang.code)}
-                    className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer ${
-                      isActive
-                        ? "bg-primary-50 text-primary-700 font-bold"
-                        : "hover:bg-gray-50 text-gray-700 font-medium"
-                    }`}
+                    className={`flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-left text-xs transition-colors cursor-pointer ${isActive
+                      ? "bg-primary-50 text-primary-700 font-bold"
+                      : "hover:bg-gray-50 text-gray-700 font-medium"
+                      }`}
                   >
                     <span className="text-base">{lang.flag}</span>
                     <span className="truncate flex-1">{lang.label}</span>

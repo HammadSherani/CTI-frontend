@@ -9,7 +9,7 @@ const poppins = Poppins({
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={poppins.className}>
+    <html lang="tr" className={poppins.className}>
       <body className="antialiased">
         {children}
       </body>
