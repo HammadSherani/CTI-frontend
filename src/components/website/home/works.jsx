@@ -47,7 +47,7 @@ export default function HowItWorks() {
         <div className="absolute inset-0 flex flex-col md:flex-row justify-between items-start md:items-center px-6 md:px-20 py-10">
 
           {/* Step 01 */}
-          <div className="max-w-xs text-left absolute top-4 left-2 flex flex-col items-center justify-centerw-[400px] p-6 rounded-lg">
+          <div className="max-w-xs text-left absolute top-4 left-2 flex flex-col items-center justify-center p-6 rounded-lg">
             <div className="bg-black hover:opacity-80 text-white w-22 h-18 flex items-center justify-center rounded-full text-lg font-bold mb-4">
               01
             </div>
