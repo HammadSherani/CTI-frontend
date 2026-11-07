@@ -63,6 +63,9 @@ export default function Refurbish() {
       isBestSeller: !!p.isBestSeller,
       isFeatured: !!p.isFeatured,
       salesCount: p.salesCount || 0,
+      viewsCount: p.viewsCount || 0,
+      favoritesCount: p.favoritesCount || 0,
+      cartCount: p.cartCount || 0,
       isCTIVerified: p.isCTIVerified !== false,
     };
   };
