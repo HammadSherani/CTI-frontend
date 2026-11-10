@@ -45,6 +45,35 @@ const getServiceNames = (services) => {
   return names;
 };
 
+// "offers_received" -> "Offers Received", "in-progress" -> "In Progress"
+const formatStatus = (status) => {
+  if (!status) return '';
+  return String(status)
+    .replace(/[_-]+/g, ' ')
+    .trim()
+    .toLowerCase()
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const STATUS_CLASSES = {
+  draft: 'bg-gray-100 text-gray-700',
+  open: 'bg-blue-100 text-blue-700',
+  pending: 'bg-yellow-100 text-yellow-800',
+  offers_received: 'bg-amber-100 text-amber-800',
+  booked: 'bg-indigo-100 text-indigo-700',
+  confirmed: 'bg-indigo-100 text-indigo-700',
+  in_progress: 'bg-sky-100 text-sky-700',
+  completed: 'bg-green-100 text-green-700',
+  cancelled: 'bg-red-100 text-red-700',
+  expired: 'bg-gray-200 text-gray-600',
+  deleted: 'bg-gray-200 text-gray-600',
+  disputed: 'bg-rose-100 text-rose-700',
+};
+
+const getStatusClasses = (status) => {
+  const key = String(status || '').toLowerCase().replace(/-/g, '_');
+  return STATUS_CLASSES[key] || 'bg-primary-100 text-primary-800';
+};
 
 const JobDescription = ({ job }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -217,8 +246,8 @@ const RepairJobCard = ({ job }) => {
       <div className="flex items-center justify-between pt-4 border-t border-gray-200">
         <div className="flex items-center gap-4 text-xs text-gray-500">
           {(isQuotationBased ? job?.bookingStatus : job?.status) && (
-            <span className="inline-block bg-primary-100 text-primary-800 font-medium px-3 py-1 rounded-full capitalize">
-              {isQuotationBased ? job?.bookingStatus : job?.status}
+            <span className={`inline-block font-medium px-3 py-1 rounded-full ${getStatusClasses(isQuotationBased ? job?.bookingStatus : job?.status)}`}>
+              {formatStatus(isQuotationBased ? job?.bookingStatus : job?.status)}
             </span>
           )}
 
