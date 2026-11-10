@@ -46,13 +46,35 @@ const DEFAULT_ROW = {
   specs: [],  // dynamic key-value specs (additive)
 };
 
+/** "Color:Green" for a row, or null when the row has no color option. */
+const colorKeyOf = (row) => {
+  const color = row.combo?.find((c) => c.colorHex || /colou?r/i.test(c.name));
+  return color ? `${color.name}:${color.value}` : null;
+};
+
+const hasSameImages = (a, b) => {
+  const urlsA = (a.existingImages || []).map((i) => i.url);
+  const urlsB = (b.existingImages || []).map((i) => i.url);
+  const filesA = a.imageFiles || [];
+  const filesB = b.imageFiles || [];
+  return (
+    urlsA.length === urlsB.length &&
+    filesA.length === filesB.length &&
+    urlsA.every((url, i) => url === urlsB[i]) &&
+    filesA.every((file, i) => file === filesB[i])
+  );
+};
+
 /* ────────────────────────────────────────────────────────────
    HOOK
 ──────────────────────────────────────────────────────────── */
 /**
  * @param {Array} initialVariants — from API (edit mode)
+ * @param {Object} [options]
+ * @param {boolean} [options.shareColorImages] — a photo added to one variant is
+ *   also added to the other variants of that color
  */
-export function useVariantBuilder(initialVariants = [], product = null) {
+export function useVariantBuilder(initialVariants = [], product = null, { shareColorImages = false } = {}) {
   const fallbackRow = useMemo(() => {
     const defaultVariant = initialVariants?.find(v => v.isDefault || !v.attributes?.length) || initialVariants?.[0];
     const basePrice = defaultVariant ? String(defaultVariant.price || "") : String(product?.summary?.minSalePrice || product?.summary?.minPrice || product?.price || "");
@@ -279,6 +301,29 @@ export function useVariantBuilder(initialVariants = [], product = null) {
     }));
   }, [fallbackRow]);
 
+  /**
+   * Add photos to a variant. With shareColorImages they also go to same-color
+   * variants whose photos still match this one, so a variant the admin has
+   * customized keeps its own photos.
+   */
+  const addRowImages = useCallback((key, files) => {
+    const source = rows.find((r) => r.key === key);
+    if (!source) return;
+
+    const sourceColor = shareColorImages ? colorKeyOf(source) : null;
+    const targets = sourceColor
+      ? rows.filter((r) => colorKeyOf(r) === sourceColor && hasSameImages(r, source))
+      : [source];
+
+    setRowData((prev) => {
+      const next = { ...prev };
+      targets.forEach(({ key: rowKey, label, combo, ...data }) => {
+        next[rowKey] = { ...data, imageFiles: [...(data.imageFiles || []), ...files] };
+      });
+      return next;
+    });
+  }, [rows, shareColorImages]);
+
   /** Bulk-fill price/stock/discount across all current rows */
   const bulkFill = useCallback(
     ({ price, stock, discountPercentage }) => {
@@ -371,6 +416,7 @@ export function useVariantBuilder(initialVariants = [], product = null) {
     addCustomValue,
     removeAttrValue,
     updateRow,
+    addRowImages,
     updateRowAttribute,
     removeRowAttribute,
     bulkFill,

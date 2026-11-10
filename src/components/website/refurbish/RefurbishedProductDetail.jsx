@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { toast } from 'react-toastify';
@@ -91,9 +91,6 @@ export default function RefurbishedProductDetail({ params }) {
     socket.on('user_status_changed', handleStatusChanged);
     return () => socket.off('user_status_changed', handleStatusChanged);
   }, [socket, seller, productData]);
-
-  // Ref for scrolling to order section
-  const orderRef = useRef(null);
 
   /* Follow Seller State */
   const [isFollowing, setIsFollowing] = useState(false);
@@ -270,16 +267,36 @@ export default function RefurbishedProductDetail({ params }) {
   const inStock = stockCount > 0;
 
   /* ── Build media gallery ── */
-  const productVideos = (productData?.videos || []).map(v => v?.url || v);
-  const selectedVariantImages = (selectedVariant?.images || []).map(i => i?.url || i);
-  const otherImages = variants.filter(v => v._id !== selectedVariantId).flatMap(v => (v.images || []).map(i => i?.url || i));
-  const productImages = (productData?.images || []).map(i => i?.url || i);
+  const toUrls = (list) => (list || []).map(item => item?.url || item);
+  const productVideos = toUrls(productData?.videos);
+  const productImages = toUrls(productData?.images);
 
-  const uniqueVariantImages = selectedVariantImages.filter(img => !productImages.includes(img));
-  const sharedVariantImages = selectedVariantImages.filter(img => productImages.includes(img));
+  const buildGallery = (variant) => {
+    const variantImages = toUrls(variant?.images);
+    const otherImages = variants.filter(v => v._id !== variant?._id).flatMap(v => toUrls(v.images));
+    const uniqueVariantImages = variantImages.filter(img => !productImages.includes(img));
+    const sharedVariantImages = variantImages.filter(img => productImages.includes(img));
+    const media = [...new Set([...productVideos, ...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
+    return media.length ? media : ['/assets/placeholder.jpg'];
+  };
 
-  let allMedia = [...new Set([...productVideos, ...uniqueVariantImages, ...sharedVariantImages, ...productImages, ...otherImages])].filter(Boolean);
-  if (!allMedia.length) allMedia = ['/assets/placeholder.jpg'];
+  const allMedia = buildGallery(selectedVariant);
+
+  /* Selects a variant and brings its first photo into the main gallery slot.
+     Videos sit at the start of the gallery, so index 0 is not always an image. */
+  const selectVariant = (variant) => {
+    if (!variant) return;
+    setSelectedVariantId(variant._id);
+
+    const media = buildGallery(variant);
+    const variantImages = toUrls(variant.images);
+    const target = media.find(m => variantImages.includes(m))
+      ?? media.find(m => !/\.(mp4|webm|ogg|mov)$/i.test(m));
+    const index = Math.max(0, media.indexOf(target));
+
+    setSelectedImage(index);
+    setThumbStart(index < THUMBS_PER_VIEW ? 0 : Math.min(index, media.length - THUMBS_PER_VIEW));
+  };
 
   const visibleThumbs = allMedia.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
   const canScrollUp = thumbStart > 0;
@@ -305,31 +322,34 @@ export default function RefurbishedProductDetail({ params }) {
     const isAlreadySelected = selectedAttributes[attrName] === value;
     const next = { ...selectedAttributes };
     if (isAlreadySelected) delete next[attrName]; else next[attrName] = value;
-    setSelectedAttributes(next);
+
     if (Object.keys(next).length === 0) {
-      const def = variants.find(v => v.isDefault) || variants[0];
-      setSelectedVariantId(def?._id || null);
-      setSelectedImage(0);
-      setThumbStart(0);
+      setSelectedAttributes(next);
+      selectVariant(variants.find(v => v.isDefault) || variants[0]);
       return;
     }
-    const match = variants.find(v => Object.entries(next).every(([k, val]) => v.attributes?.some(a => a.name === k && a.value === val)));
-    if (match) {
-      setSelectedVariantId(match._id);
-      setSelectedImage(0);
-      setThumbStart(0);
-      setTimeout(() => {
-        if (orderRef.current) {
-          orderRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          orderRef.current.style.transition = 'box-shadow 0.3s ease';
-          orderRef.current.style.boxShadow = '0 0 0 3px rgba(234, 179, 8, 0.5)';
-          setTimeout(() => {
-            if (orderRef.current) orderRef.current.style.boxShadow = '';
-          }, 1200);
-        }
-      }, 80);
+
+    const hasAttr = (v, name, val) => v.attributes?.some(a => a.name === name && a.value === val);
+    const matchCount = (v) => Object.entries(next).filter(([k, val]) => hasAttr(v, k, val)).length;
+
+    const exact = variants.find(v => matchCount(v) === Object.keys(next).length);
+    if (exact) {
+      setSelectedAttributes(next);
+      selectVariant(exact);
+      return;
     }
-    else setSelectedVariantId(null);
+
+    // This combination isn't sold (e.g. Black + 256GB): switch to the closest
+    // variant that has the clicked option so the selection stays purchasable.
+    const closest = variants
+      .filter(v => hasAttr(v, attrName, value))
+      .sort((a, b) => matchCount(b) - matchCount(a))[0];
+    if (closest) {
+      const attrs = {};
+      (closest.attributes || []).forEach(a => { attrs[a.name] = a.value; });
+      setSelectedAttributes(attrs);
+      selectVariant(closest);
+    }
   };
 
   const handleAddToCart = () => {
@@ -728,7 +748,7 @@ export default function RefurbishedProductDetail({ params }) {
                       return (
                         <button
                           key={v._id}
-                          onClick={() => setSelectedVariantId(v._id)}
+                          onClick={() => selectVariant(v)}
                           className={`px-3.5 py-1.5 rounded-xl border-2 text-xs font-bold transition-all duration-200 cursor-pointer ${isSelected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 bg-gray-50 text-gray-700 hover:border-primary-300'}`}
                         >
                           {v.title || 'Default'}
@@ -749,7 +769,7 @@ export default function RefurbishedProductDetail({ params }) {
                 </button>
               </div>
 
-              <div id="order-section" ref={orderRef} className="flex gap-2 rounded-xl transition-all duration-300">
+              <div id="order-section" className="flex gap-2 rounded-xl transition-all duration-300">
                 <button
                   onClick={handleAddToCart}
                   disabled={!inStock}

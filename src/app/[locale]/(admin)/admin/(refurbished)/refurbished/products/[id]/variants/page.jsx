@@ -18,7 +18,7 @@ function VariantManager({ product, initialVariants }) {
   const [submitting, setSubmitting] = useState(false);
   const [variantErrors, setVariantErrors] = useState({});
 
-  const vb = useVariantBuilder(initialVariants, product);
+  const vb = useVariantBuilder(initialVariants, product, { shareColorImages: true });
 
   const handleSave = async () => {
     const errs = vb.validate();
@@ -35,12 +35,19 @@ function VariantManager({ product, initialVariants }) {
       const fd = new FormData();
       fd.append("variants", JSON.stringify(variants));
 
-      // Append image files — fieldname pattern: variantImage_<rowIndex>
+      // A photo shared by several variants is sent once, with the rows it belongs to
+      const rowsByFile = new Map();
       vb.rows.forEach((row, idx) => {
         (row.imageFiles || []).forEach((file) => {
-          fd.append(`variantImage_${idx}`, file);
+          rowsByFile.set(file, [...(rowsByFile.get(file) || []), idx]);
         });
       });
+      const imageTargets = [];
+      rowsByFile.forEach((rowIndexes, file) => {
+        fd.append(`variantSharedImage_${imageTargets.length}`, file);
+        imageTargets.push(rowIndexes);
+      });
+      fd.append("imageTargets", JSON.stringify(imageTargets));
 
       await axiosInstance.post(
         `/admin/refurbish/products/${product._id}/variants`,
@@ -110,6 +117,7 @@ function VariantManager({ product, initialVariants }) {
             <span className="font-bold">How it works: </span>
             Price and photos are <strong>optional</strong> per variant — if left empty, the product&apos;s base price and images are shown automatically.
             Toggle <em>Variations</em> to add options like sizes or colors and we&apos;ll auto-generate all combinations.
+            A photo added to one variant also appears on the other variants of that color, and you can still remove or change it on any single variant.
           </div>
         </div>
 

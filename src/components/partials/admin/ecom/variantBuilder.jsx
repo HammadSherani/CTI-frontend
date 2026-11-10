@@ -279,7 +279,7 @@ function SpecsEditor({ specs = [], onChange }) {
 /* ══════════════════════════════════════════════════════════
    PANEL A — Base / Default Variant Details (Always Visible)
    ══════════════════════════════════════════════════════════ */
-function DefaultVariantPanel({ row, updateRow, errors, product }) {
+function DefaultVariantPanel({ row, updateRow, addRowImages, errors, product }) {
   const totalImgs = (row.existingImages?.length || 0) + (row.imageFiles?.length || 0);
   const priceErr = errors[`${row.key}_price`];
   const productImages = product?.images || [];
@@ -292,7 +292,7 @@ function DefaultVariantPanel({ row, updateRow, errors, product }) {
   const handleFiles = (files) => {
     const arr = Array.from(files);
     if (totalImgs + arr.length > 5) { alert("Max 5 images per variant."); return; }
-    updateRow(row.key, "imageFiles", [...(row.imageFiles || []), ...arr]);
+    addRowImages(row.key, arr);
   };
 
   const removeImg = (idx, isExisting) => {
@@ -807,6 +807,7 @@ function VariantCardItem({
   row,
   idx,
   updateRow,
+  addRowImages,
   removeRow,
   errors,
   productImages,
@@ -825,7 +826,7 @@ function VariantCardItem({
   const handleFiles = (files) => {
     const arr = Array.from(files);
     if (totalImgs + arr.length > 5) { alert("Max 5 images per variant."); return; }
-    updateRow(row.key, "imageFiles", [...(row.imageFiles || []), ...arr]);
+    addRowImages(row.key, arr);
   };
 
   const removeImg = (idx, isExisting) => {
@@ -972,7 +973,7 @@ function VariantCardItem({
   );
 }
 
-function VariantGrid({ rows, updateRow, removeRow, errors, bulkFill, productImages, productBasePrice }) {
+function VariantGrid({ rows, updateRow, addRowImages, removeRow, errors, bulkFill, productImages, productBasePrice }) {
   return (
     <div className="space-y-4">
       {rows.length > 1 && <BulkFillBar onBulkFill={bulkFill} />}
@@ -983,6 +984,7 @@ function VariantGrid({ rows, updateRow, removeRow, errors, bulkFill, productImag
             row={row}
             idx={idx}
             updateRow={updateRow}
+            addRowImages={addRowImages}
             removeRow={removeRow}
             errors={errors}
             productImages={productImages}
@@ -1000,6 +1002,7 @@ function VariantGrid({ rows, updateRow, removeRow, errors, bulkFill, productImag
 function VariantTable({
   rows,
   updateRow,
+  addRowImages,
   removeRow,
   errors,
   bulkFill,
@@ -1071,7 +1074,7 @@ function VariantTable({
                             onChange={(e) => {
                               const files = Array.from(e.target.files);
                               if (totalImgs + files.length > 5) { alert("Max 5 images per variant."); return; }
-                              updateRow(row.key, "imageFiles", [...(row.imageFiles || []), ...files]);
+                              addRowImages(row.key, files);
                             }}
                           />
                         </label>
@@ -1217,6 +1220,7 @@ export default function VariantBuilder({
   addCustomValue,
   removeAttrValue,
   updateRow,
+  addRowImages,
   bulkFill,
   removeRow,
   errors = {},
@@ -1248,7 +1252,7 @@ export default function VariantBuilder({
 
       {/* STEP 1: BASE FALLBACK DETAILS */}
       <div className={activeStep === 1 ? "ring-2 ring-emerald-500/20 rounded-2xl" : ""}>
-        <DefaultVariantPanel row={defaultRow} updateRow={updateRow} errors={errors} product={product} />
+        <DefaultVariantPanel row={defaultRow} updateRow={updateRow} addRowImages={addRowImages} errors={errors} product={product} />
       </div>
 
       {/* STEP 2: ENABLE OPTIONS & ATTRIBUTE SELECTION */}
@@ -1329,6 +1333,7 @@ export default function VariantBuilder({
               <VariantGrid
                 rows={rows}
                 updateRow={updateRow}
+                addRowImages={addRowImages}
                 errors={errors}
                 bulkFill={bulkFill}
                 productImages={product?.images}
@@ -1339,6 +1344,7 @@ export default function VariantBuilder({
               <VariantTable
                 rows={rows}
                 updateRow={updateRow}
+                addRowImages={addRowImages}
                 errors={errors}
                 bulkFill={bulkFill}
                 productImages={product?.images}
