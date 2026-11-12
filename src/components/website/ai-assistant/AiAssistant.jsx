@@ -362,6 +362,37 @@ function AssistantJobCard({ job, onClick }) {
     </button>
   );
 }
+/* ───────────────────────── Link safety ───────────────────────── */
+
+// Real internal pages the assistant is allowed to link to.
+const ALLOWED_PATH_PREFIXES = [
+  '/my-account/add-job',
+  '/my-account',
+  '/repairmans',
+  '/service-catalog',
+  '/sell-devices',
+  '/auth/login',
+  '/auth/register',
+  '/repair-man/complete-profile',
+  '/repair-man/job-board',
+  '/repair-man/service-catalog',
+];
+
+// Strips any domain / locale prefix the model may add, and returns a valid
+// internal path, or null if the link is not one of our real pages.
+function sanitizeInternalPath(raw) {
+  if (!raw) return null;
+  let path = raw.trim();
+  try {
+    if (/^https?:\/\//i.test(path)) path = new URL(path).pathname;
+  } catch {
+    return null;
+  }
+  path = path.replace(/^\/(en|tr|ur|ar)(?=\/|$)/i, '') || '/';
+  if (!path.startsWith('/')) return null;
+  return ALLOWED_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`)) ? path : null;
+}
+
 /* ───────────────────────── Message Bubble ───────────────────────── */
 
 const AssistantBubble = memo(function AssistantBubble({ message, onProductClick, onJobClick, onLoginClick }) {
@@ -391,9 +422,16 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
     while ((match = linkRegex.exec(content)) !== null) {
       const plainText = content.substring(lastIndex, match.index);
       const linkText = match[1];
-      const linkUrl = match[2];
+      const linkUrl = sanitizeInternalPath(match[2]);
 
       parts.push(...parseBold(plainText, `before-${match.index}`));
+
+      if (!linkUrl) {
+        // Unknown/placeholder link (e.g. example.com) — show label only, never a broken link
+        parts.push(linkText);
+        lastIndex = linkRegex.lastIndex;
+        continue;
+      }
 
       parts.push(
         <Link
@@ -834,6 +872,7 @@ export default function AiShoppingAssistant() {
         history,
         conversationId: dbConvId,
         guestId,
+        locale,
         assistantMode: isGuestMode ? 'guest' : 'signed-in',
         instructions: {
           scope: 'shopping-only',

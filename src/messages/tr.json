@@ -1,7 +1,6 @@
 {
   "greeting": "Bonjour",
   "welcome": "Bienvenue dans mon application Next.js!",
- 
   "Home": {
     "AnnouncementBar": {
       "message": "Cihazlarınızı <hours>24 saat</hours> içinde tamir ettirin! Seçili şehirlerde ücretsiz kapıdan teslim alma.",
