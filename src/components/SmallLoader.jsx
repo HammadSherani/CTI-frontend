@@ -1,16 +1,21 @@
 "use client"
+import { createPortal } from 'react-dom';
 import { DotLottieReact } from '@lottiefiles/dotlottie-react';
 
 function SmallLoader({ loading, text = "Loading..." }) {
   if (!loading) return null;
+  if (typeof document === 'undefined') return null;
 
-  return (
+  // Rendered through a portal on <body> so it escapes any parent stacking
+  // context (e.g. the sticky header) and always sits above floating widgets
+  // like the AI assistant.
+  return createPortal(
     <div style={{
       position: "fixed",
       inset: 0,
       background: "rgba(255,255,255,0.85)",
       backdropFilter: "blur(6px)",
-      zIndex: 9999,
+      zIndex: 2147483000,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -28,7 +33,8 @@ function SmallLoader({ loading, text = "Loading..." }) {
           {text}
         </p>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -602,6 +602,22 @@ export default function AiShoppingAssistant() {
     setIsHydrated(true);
   }, []);
 
+  // Keep the assistant open across the full-page reload triggered by the
+  // language switcher (restore on mount, persist on every open/close).
+  const hasRestoredOpenRef = useRef(false);
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('cti-ai-assistant-open') === '1') setIsOpen(true);
+    } catch { }
+    hasRestoredOpenRef.current = true;
+  }, []);
+  useEffect(() => {
+    if (!hasRestoredOpenRef.current) return;
+    try {
+      sessionStorage.setItem('cti-ai-assistant-open', isOpen ? '1' : '0');
+    } catch { }
+  }, [isOpen]);
+
   const fetchConversations = useCallback(async () => {
     setIsLoadingHistory(true);
     try {
@@ -872,7 +888,6 @@ export default function AiShoppingAssistant() {
         history,
         conversationId: dbConvId,
         guestId,
-        locale,
         assistantMode: isGuestMode ? 'guest' : 'signed-in',
         instructions: {
           scope: 'shopping-only',
