@@ -376,7 +376,7 @@ export default function CategoryQuestionsPage() {
           <button onClick={() => setModal({ mode: "edit", item: row })} className="p-2 hover:bg-blue-50 rounded-xl text-blue-600">
             <Icon icon="mdi:pencil-outline" className="w-4 h-4" />
           </button>
-          <button onClick={() => setConfirm({ categoryId: row.categoryId?._id, label: row.categoryId?.name })} className="p-2 hover:bg-red-50 rounded-xl text-red-600">
+          <button onClick={() => setConfirm({ categoryId: row.categoryId?._id || row._id, label: row.categoryId?.name || "this category" })} className="p-2 hover:bg-red-50 rounded-xl text-red-600">
             <Icon icon="mdi:delete-outline" className="w-4 h-4" />
           </button>
         </div>

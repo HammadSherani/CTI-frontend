@@ -437,6 +437,8 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
         <Link
           key={`link-${match.index}`}
           href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
           className="text-primary-600 hover:text-primary-700 font-bold underline transition-colors"
         >
           {linkText}
@@ -778,17 +780,21 @@ export default function AiShoppingAssistant() {
   const handleProductClick = useCallback((product) => {
     const target = getProductRoute(product);
     if (!target) return;
-    setIsOpen(false);
     const basePath = product?.productType === 'refurbished' ? '/refurbish' : '/product';
-    router.push(`${basePath}/${encodeURIComponent(target)}`);
-  }, [router]);
+    // Open in a new tab (keeps the chat open); window.open bypasses the i18n router,
+    // so add the current locale prefix ourselves.
+    const loc = window.location.pathname.split('/')[1];
+    const prefix = loc === 'en' || loc === 'tr' ? `/${loc}` : '';
+    window.open(`${prefix}${basePath}/${encodeURIComponent(target)}`, '_blank', 'noopener,noreferrer');
+  }, []);
 
   const handleJobClick = useCallback((job) => {
     const jobId = job.id || job._id;
     if (!jobId) return;
-    setIsOpen(false);
-    router.push(`/repair-man/job-board/${jobId}`);
-  }, [router]);
+    const loc = window.location.pathname.split('/')[1];
+    const prefix = loc === 'en' || loc === 'tr' ? `/${loc}` : '';
+    window.open(`${prefix}/repair-man/job-board/${jobId}`, '_blank', 'noopener,noreferrer');
+  }, []);
 
   const handleLoginClick = useCallback(() => {
     setIsLoginModalOpen(true);
