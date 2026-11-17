@@ -10,7 +10,7 @@ import {useRouter} from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { yupResolver } from '@hookform/resolvers/yup';
-import PartModal from '../../../job-board/[id]/PartModal';
+import PartModal, { discountedPrice } from '../../../job-board/[id]/PartModal';
 import { toast } from 'react-toastify';
 
 const schema = yup.object({
@@ -140,13 +140,14 @@ function EditOfferPage() {
     const isPartRequired = watch('isPartRequired');
 
     // Platform fee calculation
-    const platformFeePercentage = 10;
+    const platformFeePercentage = 5; // same as the new-bid form and the backend (PLATFORM_COMMISSION_RATE)
     const basePrice = parseFloat(watchedValues.basePrice) || 0;
     const baseTotal = basePrice + totalPartsPrice;
     const pickupCharges = parseFloat(watchedValues.serviceOptions?.pickupCharge) || 0;
     const totalWithPickup = baseTotal + (watchedValues.serviceOptions?.pickupAvailable ? pickupCharges : 0);
     const platformFee = (basePrice * platformFeePercentage) / 100;
-    const netAmount = baseTotal - platformFee;
+    // Parts are supplied by the admin, so their price is not part of the repairman's earning
+    const netAmount = basePrice - platformFee;
  const partsQualityOptions = [
         { value: 'original', label: 'Original Parts' },
         { value: 'a-plus', label: 'A+ Quality Parts' },
@@ -250,13 +251,20 @@ function EditOfferPage() {
             setValue('serviceOptions.dropOffAvailable', offer.serviceOptions?.dropOffLocation ? true : false);
             setValue('serviceOptions.dropOffLocation', offer.serviceOptions?.dropOffLocation || '');
             setValue('isPartRequired', offer.requiredParts && offer.requiredParts.length > 0);
-            setSelectedParts(offer.requiredParts || []);
+            // Parts are charged at their discounted price (same rule as the backend)
+            const savedParts = (offer.requiredParts || []).map((part) => ({
+                ...part,
+                price: discountedPrice(part),
+                finalPrice: discountedPrice(part),
+                originalPrice: part.price,
+            }));
+            setSelectedParts(savedParts);
             
             console.log('🔧 Loaded offer data:',offer);
             console.log('requiredParts:', offer.requiredParts);
             console.log('isPartRequired:', offer.requiredParts && offer.requiredParts.length > 0);
             
-                const totalPrice = offer.requiredParts?.reduce((sum, part) => sum + (part.price || 0), 0) || 0;
+                const totalPrice = savedParts.reduce((sum, part) => sum + (part.price || 0), 0);
                 setValue('partsEstimate', totalPrice);
 
             setLoading(false);
@@ -708,7 +716,7 @@ const formatDate = (dateString) => {
                                                     </div>
                                                     <div className="flex items-center gap-3 ml-4">
                                                         <div className="text-right">
-                                                            <p className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</p>
+                                                            <p translate="no" className="notranslate text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</p>
                                                         </div>
                                                         <button
                                                             type="button"
@@ -809,19 +817,19 @@ const formatDate = (dateString) => {
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Base service price:</span>
-                                    <span className="font-medium">₺{basePrice.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate font-medium">₺{basePrice.toFixed(2)}</span>
                                 </div>
 
                                 {selectedParts.length > 0 && (
                                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                         <div className="flex justify-between py-1 mb-2">
                                             <span className="text-gray-700 font-medium">Parts breakdown:</span>
-                                            <span className="font-medium">₺{totalPartsPrice.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate font-medium">₺{totalPartsPrice.toFixed(2)}</span>
                                         </div>
                                         {selectedParts.map((part) => (
                                             <div key={part._id || part.id} className="flex justify-between py-1 pl-4 text-xs">
                                                 <span className="text-gray-600">• {part.name}</span>
-                                                <span className="text-gray-600">₺{part.price?.toFixed(2)}</span>
+                                                <span translate="no" className="notranslate text-gray-600">₺{part.price?.toFixed(2)}</span>
                                             </div>
                                         ))}
                                         <div className="mt-2 pt-2 border-t border-blue-200">
@@ -836,7 +844,7 @@ const formatDate = (dateString) => {
 
                                 <div className="flex justify-between py-2 bg-gray-50 -mx-2 px-2 rounded-lg">
                                     <span className="text-gray-900 font-semibold">Subtotal:</span>
-                                    <span className="text-gray-900 font-bold text-lg">₺{baseTotal.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate text-gray-900 font-bold text-lg">₺{baseTotal.toFixed(2)}</span>
                                 </div>
 
                                 {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
@@ -854,7 +862,7 @@ const formatDate = (dateString) => {
                                         </div>
                                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
                                             <span className="text-sm font-semibold text-blue-900">Pickup Charges:</span>
-                                            <span className="text-sm font-bold text-blue-900">₺{pickupCharges.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate text-sm font-bold text-blue-900">₺{pickupCharges.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 )}
@@ -863,15 +871,27 @@ const formatDate = (dateString) => {
                                     <div className="mt-3 p-3 bg-primary-100 border-2 border-primary-400 rounded-lg">
                                         <div className="flex justify-between items-center">
                                             <span className="font-bold text-primary-900">Total (with Pickup):</span>
-                                            <span className="font-bold text-primary-900 text-xl">₺{totalWithPickup.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate font-bold text-primary-900 text-xl">₺{totalWithPickup.toFixed(2)}</span>
                                         </div>
                                     </div>
+                                )}
+
+                                {totalPartsPrice > 0 && (
+
+                                    <div className="mt-4 flex justify-between py-1">
+
+                                        <span className="text-gray-600">Parts (supplied by admin, paid to admin):</span>
+
+                                        <span translate="no" className="notranslate text-red-600 font-medium">-₺{totalPartsPrice.toFixed(2)}</span>
+
+                                    </div>
+
                                 )}
 
                                 <div className="mt-4 pt-3 border-t-2 border-gray-300">
                                     <div className="flex justify-between py-1">
                                         <span className="text-gray-600">Platform commission ({platformFeePercentage}% on base price only):</span>
-                                        <span className="text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
+                                        <span translate="no" className="notranslate text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -879,12 +899,12 @@ const formatDate = (dateString) => {
 
                                 <div className="flex justify-between py-2 bg-green-50 -mx-2 px-2 rounded-lg">
                                     <span className="text-gray-900 font-semibold">You'll receive:</span>
-                                    <span className="text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
                                 </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                 <p className="text-xs text-gray-500 italic">
-                                    * {platformFeePercentage}% commission applies only to base service price, not on parts
+                                    * {platformFeePercentage}% commission applies only to the base service price. Parts are supplied by the admin, so the parts amount goes to the admin, not to you.
                                 </p>
                             </div>
                         </div>

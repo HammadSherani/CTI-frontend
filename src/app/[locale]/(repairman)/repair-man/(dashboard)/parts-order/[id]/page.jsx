@@ -8,28 +8,73 @@ import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
+import { useSocket } from '@/contexts/SocketProvider';
+import PartsTrackingCard from '@/components/partials/repairman/PartsTrackingCard';
 function PartOrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState(null);
     const { token } = useSelector((state) => state.auth);
     const { id } = useParams();
 
+    const { socket } = useSocket();
+    const [receiving, setReceiving] = useState(false);
+
     useEffect(() => {
         fetchOrderById();
     }, []);
 
-    const fetchOrderById = async () => {
+    // `silent` = refresh in the background (live updates) without the full-page loader
+    const fetchOrderById = async (silent = false) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
             const response = await axiosInstance.get(`/repairman/parts/orders/${id}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             setOrder(response.data.data || null);
         } catch (error) {
-            handleError(error);
-            toast.error("Failed to load order");
+            if (!silent) {
+                handleError(error);
+                toast.error("Failed to load order");
+            }
         } finally {
-            setLoading(false);
+            if (!silent) setLoading(false);
+        }
+    };
+
+    // Live tracking: the admin's status/shipping changes arrive as a notification over the socket
+    useEffect(() => {
+        if (!socket) return undefined;
+        const onNotification = (n) => {
+            if (n?.type === 'parts_order_update' && String(n?.data?.partsOrderId) === String(id)) {
+                fetchOrderById(true);
+            }
+        };
+        socket.on('push_notification', onNotification);
+        return () => socket.off('push_notification', onNotification);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [socket, id]);
+
+    const markAsReceived = async () => {
+        try {
+            setReceiving(true);
+            const { data } = await axiosInstance.put(`/repairman/parts/orders/${id}/mark-as-received`, {}, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            toast.success(data?.message || 'Marked as received');
+            await fetchOrderById(true);
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Could not mark as received');
+        } finally {
+            setReceiving(false);
+        }
+    };
+
+    const copyTracking = async (text) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            toast.success('Tracking number copied');
+        } catch {
+            // ignore
         }
     };
 
@@ -125,7 +170,7 @@ function PartOrderDetailPage() {
                 <div className="max-w-md w-full text-center bg-white rounded-xl shadow-sm p-8">
                     <Icon icon="mdi:alert-circle-outline" className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">Order Not Found</h3>
-                    <Link href="/admin/parts/parts-orders" className="text-primary-600 hover:underline">
+                    <Link href="/repair-man/parts-order" className="text-primary-600 hover:underline">
                         ← Back to Orders
                     </Link>
                 </div>
@@ -146,7 +191,7 @@ function PartOrderDetailPage() {
                 <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                     <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                         <div className="flex items-center gap-4">
-                            <Link href="/admin/parts/parts-orders" className="text-gray-500 hover:text-gray-700">
+                            <Link href="/repair-man/parts-order" className="text-gray-500 hover:text-gray-700">
                                 <Icon icon="mdi:arrow-left" className="w-6 h-6" />
                             </Link>
                             <div>
@@ -154,7 +199,14 @@ function PartOrderDetailPage() {
                                     Order #{order.orderNumber}
                                 </h1>
                                 <p className="text-sm text-gray-500 mt-1">
-                                    Created {formatDate(order.createdAt)} • Job #{job?._id?.slice(-6)}
+                                    Created {formatDate(order.createdAt)} •{' '}
+                                    {order.bookingId ? (
+                                        <Link href={`/repair-man/my-jobs/${order.bookingId}/detail`} className="text-primary-600 hover:underline">
+                                            View job
+                                        </Link>
+                                    ) : (
+                                        <>Job #{job?._id?.slice(-6)}</>
+                                    )}
                                 </p>
                             </div>
                         </div>
@@ -169,8 +221,16 @@ function PartOrderDetailPage() {
                     </div>
                 </div>
 
+                <PartsTrackingCard
+                    order={order}
+                    receiving={receiving}
+                    onReceive={markAsReceived}
+                    onCopy={copyTracking}
+                    formatDate={formatDate}
+                />
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Job / Repair Information */}

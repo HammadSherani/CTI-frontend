@@ -314,7 +314,7 @@ const RepairJobCard = ({ job }) => {
   );
 };
 
-const ReviewJobs = () => {
+const ReviewJobs = ({ onChanged }) => {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedJob, setSelectedJob] = useState(null);
@@ -371,6 +371,7 @@ const ReviewJobs = () => {
 
       if (res.data.success) {
         toast.success('Review submitted successfully!');
+        onChanged?.();
         setSelectedJob(null);
         setRating(0);
         setReviewText('');
@@ -825,8 +826,26 @@ export default function MyAccountPage() {
     }
   }
 
+  // How many finished repairs still have no review (badge on the Reviews tab)
+  const [pendingReviews, setPendingReviews] = useState(0);
+  const fetchPendingReviews = async () => {
+    try {
+      const { data } = await axiosInstance.get('/reviews/my-completed-jobs', {
+        params: { limit: 1 },
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPendingReviews(data?.data?.pendingCount || 0);
+    } catch {
+      // badge only; ignore
+    }
+  };
+
   useEffect(() => {
     fetchJobs();
+    fetchPendingReviews();
+    // Opened from a notification: /my-account?tab=review
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab) setActiveTab(tab);
   }, [])
 
   useEffect(() => {
@@ -842,7 +861,7 @@ export default function MyAccountPage() {
     { id: 'in_progress', label: 'In Progress', icon: 'mdi:cog' },
     { id: 'completed', label: 'Completed', icon: 'mdi:check-circle' },
     { id: 'disputed', label: 'Disputed', icon: 'mdi:check-circle' },
-    { id: 'review', label: "Reviews", icon: 'mdi:check-circle' }
+    { id: 'review', label: 'Reviews', icon: 'mdi:star' }
   ];
 
   console.log(jobs,"jobsaaaa")
@@ -882,7 +901,7 @@ export default function MyAccountPage() {
 
       disputed: jobs.filter(job => getJobStatus(job) === 'disputed').length,
 
-      review: jobs.filter(job => getJobStatus(job) === 'delivered').length
+      review: pendingReviews
     };
   };
 
@@ -1044,7 +1063,9 @@ console.log(currentJobs,"current jobs")
                         >
                           <Icon icon={tab.icon} className="w-4 h-4" />
                           {tab.label}
-                          <span className={`px-2 py-1 text-xs rounded-full ${activeTab === tab.id
+                          <span key={`count-${tab.id}-${jobCounts[tab.id]}`} translate="no" className={`notranslate px-2 py-1 text-xs rounded-full ${tab.id === 'review' && jobCounts.review > 0
+                            ? 'bg-yellow-400 text-white'
+                            : activeTab === tab.id
                             ? 'bg-primary-100 text-primary-600'
                             : 'bg-gray-100 text-gray-600'
                             }`}>
@@ -1098,7 +1119,7 @@ console.log(currentJobs,"current jobs")
                 {/* Jobs List */}
                 <div className="space-y-4 mb-8">
                   {activeTab === 'review' ? (
-                    <ReviewJobs />
+                    <ReviewJobs onChanged={fetchPendingReviews} />
                   ) : currentJobs?.length > 0 ? (
                     currentJobs?.map((job) => (
                       <RepairJobCard key={job._id || job.id} job={job} />

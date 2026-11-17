@@ -278,13 +278,6 @@ const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warran
 
   return (
     <div className="bg-gray-50 rounded-xl p-6 mb-8 space-y-4">
-      {paymentId && (
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-gray-500">Payment ID</span>
-          <span className="font-mono text-sm">{paymentId}</span>
-        </div>
-      )}
-
       {showPickupCharge && (
         <div className="border-t pt-3 space-y-2">
           <div className="flex justify-between items-center text-sm">
@@ -319,7 +312,7 @@ const PaymentSummary = ({ paymentId, totalPrice, currency, estimatedTime, warran
         </div>
       )}
 
-      <div className="flex justify-between items-center border-t pt-3">
+      <div className={`flex justify-between items-center ${showPickupCharge || showQuotationPickup ? 'border-t pt-3' : ''}`}>
         <span className="text-sm text-gray-500">Amount Paid</span>
         <span className="font-semibold text-lg text-green-600">
           {currency} {totalPrice.toLocaleString()}
@@ -701,7 +694,8 @@ console.log("User Details in Order Confirmation", userDetails);
         />
 
         <div className="space-y-3">
-          <Link href="/my-account" className="block">
+          {/* Offer bookings have a job details page; quotation bookings live under My Account */}
+          <Link href={jobId && !quotationId ? `/my-account/${jobId}/job-details` : '/my-account'} className="block">
             <button className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-medium hover:from-primary-700 hover:to-primary-600 transition-all duration-500 shadow-lg">
               Track Your Order
             </button>

@@ -9,6 +9,7 @@ import { getInitials } from '@/utils/functions';
 import NotificationPanel from '../NotificationPanel';
 import useNotifications from '@/hooks/useNotifications';
 import CurrencySelector from '@/components/CurrencySelector';
+import { useSocket } from '@/contexts/SocketProvider';
 
 function Header() {
   const pathname = usePathname();
@@ -19,7 +20,14 @@ function Header() {
   const dispatch = useDispatch();
   const router = useRouter();
   const { user, token } = useSelector((state) => state.auth);
-  const { unreadCount } = useNotifications();
+  const { unreadCount, fetchNotifications } = useNotifications();
+  const { connected } = useSocket();
+
+  // Load the bell on page load, and again after a (re)connect so nothing missed while offline is lost.
+  // New notifications then arrive live through the socket.
+  useEffect(() => {
+    if (token) fetchNotifications();
+  }, [token, connected, fetchNotifications]);
 
   const handleLogout = useCallback(() => {
     dispatch(clearAuth());
@@ -150,7 +158,7 @@ function Header() {
                   />
                   {unreadCount > 0 && (
                     <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center leading-none">
-                      {unreadCount > 9 ? '9+' : unreadCount}
+                      <span key={`badge-${unreadCount}`} translate="no" className="notranslate">{unreadCount > 9 ? '9+' : unreadCount}</span>
                     </span>
                   )}
                 </button>

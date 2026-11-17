@@ -9,6 +9,28 @@ import { useDispatch, useSelector } from 'react-redux';
 import { clearAuth } from '@/store/auth';
 import AdminNotificationBell from './AdminNotificationBell';
 
+/* ---------- New parts order alert ---------- */
+
+// Blinking red dot shown on "Parts" / "Parts Orders" when a new parts order came in
+const PARTS_ORDERS_PATH = '/admin/parts/parts-orders';
+const PARTS_SEEN_KEY = 'admin_parts_orders_seen_at';
+const ALERT_NAV_NAMES = ['Parts', 'Parts Orders'];
+
+const BlinkDot = ({ className = '' }) => (
+  <span className={`flex h-2.5 w-2.5 ${className}`} aria-label="New parts order">
+    <span className="absolute inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-red-500 opacity-75" />
+    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+  </span>
+);
+
+const readSeenAt = () => {
+  try {
+    return Number(localStorage.getItem(PARTS_SEEN_KEY)) || 0;
+  } catch {
+    return 0;
+  }
+};
+
 /* ---------- Static data (kept outside the component) ---------- */
 
 const primaryNavLinks = [
@@ -146,6 +168,22 @@ function Header() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // New parts orders = 'partOrder' notifications newer than the admin's last visit to Parts Orders.
+  // Notifications arrive live over the socket, so the dot appears without a refresh.
+  const notifications = useSelector((state) => state.notifications.list);
+  const [partsSeenAt, setPartsSeenAt] = useState(0);
+  useEffect(() => setPartsSeenAt(readSeenAt()), []);
+  useEffect(() => {
+    if (!pathname?.startsWith(PARTS_ORDERS_PATH)) return;
+    const now = Date.now();
+    try { localStorage.setItem(PARTS_SEEN_KEY, String(now)); } catch { /* ignore */ }
+    setPartsSeenAt(now);
+  }, [pathname, notifications]);
+  const hasNewPartsOrder = (notifications || []).some(
+    (n) => n?.type === 'partOrder' && new Date(n.createdAt).getTime() > partsSeenAt
+  );
+  const showAlert = (name) => hasNewPartsOrder && ALERT_NAV_NAMES.includes(name);
+
   const initials = user?.name
     ? user.name.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase()
     : 'AD';
@@ -236,6 +274,7 @@ function Header() {
         >
           <Icon icon={link.icon} className="hidden h-4 w-4 2xl:block" />
           {link.name}
+          {showAlert(link.name) && <BlinkDot className="absolute right-0 top-1" />}
           <Icon icon="mdi:chevron-down" className={`h-4 w-4 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
           {active && <span className="absolute -bottom-1 left-3 right-3 h-0.5 rounded-full bg-primary-600" />}
         </button>
@@ -265,6 +304,7 @@ function Header() {
                       >
                         <Icon icon={item.icon} className={`h-4 w-4 ${itemActive ? 'text-primary-600' : 'text-gray-400'}`} />
                         {item.name}
+                        {showAlert(item.name) && <BlinkDot className="relative ml-auto" />}
                       </Link>
                     );
                   })}
@@ -367,9 +407,10 @@ function Header() {
             onClick={() => setMobileOpen((v) => !v)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={mobileOpen}
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 xl:hidden"
+            className="relative flex h-10 w-10 items-center justify-center rounded-lg text-gray-600 hover:bg-gray-100 xl:hidden"
           >
             <Icon icon={mobileOpen ? 'mdi:close' : 'mdi:menu'} className="text-2xl" />
+            {!mobileOpen && hasNewPartsOrder && <BlinkDot className="absolute right-1.5 top-1.5" />}
           </button>
         </div>
       </div>
@@ -394,6 +435,7 @@ function Header() {
                   <div className="flex items-center gap-2 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
                     <Icon icon={link.icon} className="h-4 w-4" />
                     {link.name}
+                    {showAlert(link.name) && <BlinkDot className="relative" />}
                   </div>
                   {link.submenu.map((group) => (
                     <div key={group.category} className="ml-3 space-y-0.5 border-l border-gray-200 pl-2">
@@ -411,6 +453,7 @@ function Header() {
                         >
                           <Icon icon={item.icon} className="h-4 w-4" />
                           {item.name}
+                          {showAlert(item.name) && <BlinkDot className="relative ml-auto" />}
                         </Link>
                       ))}
                     </div>

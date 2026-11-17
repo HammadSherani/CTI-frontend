@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 import { Icon } from '@iconify/react';
 import {Link} from '@/i18n/navigation';
 import Image from 'next/image';
+import { nextPartsOrderStatuses, PARTS_ORDER_STATUS_LABELS } from '@/constant/partsOrderStatus';
 function PartOrderDetailPage() {
     const [loading, setLoading] = useState(true);
     const [order, setOrder] = useState(null);
@@ -101,37 +102,57 @@ function PartOrderDetailPage() {
         return map[status?.toLowerCase()] || 'bg-gray-50 text-gray-700 border border-gray-200';
     };
 
-        const updateOrderStatus = async (orderId, newStatus) => {
-            console.log("Updating order status to:", newStatus);
+    // Status change (only allowed next steps) — the optional note goes into the tracking timeline
+    const updateOrderStatus = async (orderId, newStatus) => {
         try {
             setActionLoading('status');
-
             const res = await axiosInstance.put(
                 `/admin/parts-orders/${id}`,
-                { orderStatus: newStatus },
+                { orderStatus: newStatus, note: shipping.note },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
-
             toast.success(res.data.message || "Order status updated!");
-
-            // Update local order state and prepend activity log
-            setOrder(prev => {
-                if (!prev) return prev;
-                const previousStatus = prev.orderStatus;
-                const updated = { ...prev, orderStatus: newStatus };
-                const entry = {
-                    previousStatus,
-                    newStatus,
-                    changedBy: { name: 'Admin' },
-                    createdAt: new Date().toISOString()
-                };
-                updated.activityLog = [entry].concat(prev.activityLog || []);
-                return updated;
-            });
-
+            setShipping((s) => ({ ...s, note: '' }));
+            await fetchOrderById();
         } catch (error) {
-            handleError(error);
-            toast.error("Failed to update order status");
+            toast.error(error?.response?.data?.message || "Failed to update order status");
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    // Shipping & tracking details shown to the repairman
+    const [shipping, setShipping] = useState({ shippingMethod: 'Pickup', courierName: '', trackingNumber: '', estimatedDelivery: '', note: '' });
+    useEffect(() => {
+        if (!order) return;
+        setShipping((s) => ({
+            ...s,
+            shippingMethod: order.shippingMethod || 'Pickup',
+            courierName: order.courierName || '',
+            trackingNumber: order.trackingNumber || '',
+            estimatedDelivery: order.estimatedDelivery ? String(order.estimatedDelivery).slice(0, 10) : '',
+        }));
+    }, [order]);
+
+    const saveShipping = async () => {
+        try {
+            setActionLoading('shipping');
+            const res = await axiosInstance.put(
+                `/admin/parts-orders/${id}`,
+                {
+                    shippingMethod: shipping.shippingMethod,
+                    courierName: shipping.courierName,
+                    trackingNumber: shipping.trackingNumber,
+                    estimatedDelivery: shipping.estimatedDelivery || null,
+                    note: shipping.note,
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success(res.data.message || 'Shipping details saved');
+            setShipping((s) => ({ ...s, note: '' }));
+            await fetchOrderById();
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to save shipping details');
         } finally {
             setActionLoading(null);
         }
@@ -227,13 +248,10 @@ function PartOrderDetailPage() {
                                         disabled={actionLoading === 'status' || actionLoading === 'delete'}
                                         className={`block w-full px-3 py-2 border border-gray-300 rounded-md leading-5 bg-white text-sm ${actionLoading === 'status' ? 'opacity-70 cursor-not-allowed' : ''}`}
                                     >
-                                        <option value="pending">Pending</option>
-                                        <option value="confirmed">Confirmed</option>
-                                        <option value="processing">Processing</option>
-                                        <option value="ready-for-pickup">Ready for Pickup</option>
-                                        <option value="shipped">Shipped</option>
-                                        <option value="delivered">Delivered</option>
-                                        <option value="cancelled">Cancelled</option>
+                                        {/* Only the current status and the allowed next steps */}
+                                        {[order.orderStatus, ...nextPartsOrderStatuses(order.orderStatus)].map((s) => (
+                                            <option key={s} value={s}>{PARTS_ORDER_STATUS_LABELS[s] || s}</option>
+                                        ))}
                                     </select>
                                     {actionLoading === 'status' && (
                                         <div className="absolute right-2 top-1/2 -translate-y-1/2">
@@ -250,6 +268,12 @@ function PartOrderDetailPage() {
                                 <span className={`px-4 py-1.5 text-sm font-semibold rounded-full ${getPaymentBadge(order.paymentStatus)}`}>
                                     {order.paymentStatus.toUpperCase()}
                                 </span>
+                                {order.isReceived && (
+                                    <span className="px-4 py-1.5 text-sm font-semibold rounded-full bg-green-50 text-green-700 border border-green-200 flex items-center gap-1" title={order.receivedAt ? `Received ${formatDate(order.receivedAt)}` : ''}>
+                                        <Icon icon="mdi:hand-okay" className="w-4 h-4" />
+                                        RECEIVED BY REPAIRMAN
+                                    </span>
+                                )}
                                 <button
                                     onClick={handleDelete}
                                     disabled={actionLoading === 'delete'}
@@ -267,8 +291,81 @@ function PartOrderDetailPage() {
                     </div>
                 </div>
 
+                {/* Shipping & tracking (what the repairman sees on their tracking page) */}
+                <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                            <Icon icon="mdi:truck-delivery-outline" className="w-6 h-6 text-primary-600" />
+                            Shipping &amp; Tracking
+                        </h2>
+                        <div className="text-xs text-gray-500 flex flex-wrap gap-x-4 gap-y-1">
+                            {order.shippingDate && <span>Shipped: {formatDate(order.shippingDate)}</span>}
+                            {order.deliveryDate && <span>Delivered: {formatDate(order.deliveryDate)}</span>}
+                            {order.receivedAt && <span className="text-green-700">Received: {formatDate(order.receivedAt)}</span>}
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <label className="text-sm">
+                            <span className="block text-gray-600 mb-1">Method</span>
+                            <select
+                                value={shipping.shippingMethod}
+                                onChange={(e) => setShipping((s) => ({ ...s, shippingMethod: e.target.value }))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-white"
+                            >
+                                <option value="Pickup">Pickup</option>
+                                <option value="Courier">Courier</option>
+                                <option value="Delivery">Delivery</option>
+                            </select>
+                        </label>
+                        <label className="text-sm">
+                            <span className="block text-gray-600 mb-1">Courier name</span>
+                            <input
+                                value={shipping.courierName}
+                                onChange={(e) => setShipping((s) => ({ ...s, courierName: e.target.value }))}
+                                placeholder="e.g. Yurtiçi Kargo"
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                        </label>
+                        <label className="text-sm">
+                            <span className="block text-gray-600 mb-1">Tracking number</span>
+                            <input
+                                value={shipping.trackingNumber}
+                                onChange={(e) => setShipping((s) => ({ ...s, trackingNumber: e.target.value }))}
+                                placeholder="Courier tracking no."
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                        </label>
+                        <label className="text-sm">
+                            <span className="block text-gray-600 mb-1">Expected delivery</span>
+                            <input
+                                type="date"
+                                value={shipping.estimatedDelivery}
+                                onChange={(e) => setShipping((s) => ({ ...s, estimatedDelivery: e.target.value }))}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+                            />
+                        </label>
+                    </div>
+                    <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                        <input
+                            value={shipping.note}
+                            onChange={(e) => setShipping((s) => ({ ...s, note: e.target.value }))}
+                            placeholder="Note for the repairman (optional) — also sent with the next status change"
+                            maxLength={500}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md text-sm"
+                        />
+                        <button
+                            type="button"
+                            onClick={saveShipping}
+                            disabled={actionLoading === 'shipping'}
+                            className="px-5 py-2 rounded-md bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700 disabled:opacity-60"
+                        >
+                            {actionLoading === 'shipping' ? 'Saving...' : 'Save shipping details'}
+                        </button>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Job / Repair Information */}

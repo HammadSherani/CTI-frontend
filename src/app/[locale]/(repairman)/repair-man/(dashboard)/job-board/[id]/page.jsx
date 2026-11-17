@@ -192,7 +192,7 @@ function JobDetailPage() {
                       },
                       {
                         label: 'Total Offers',
-                        value: `${job?.offers?.length || 0} / ${job?.maxOffers || 10}`,
+                        value: job?.offersCount ?? job?.offers?.length ?? 0,
                         icon: 'solar:document-text-bold-duotone',
                       },
                       {
@@ -351,8 +351,12 @@ function JobDetailPage() {
                       <Icon icon="solar:verified-check-bold-duotone" className="w-5 h-5 text-primary-500" />
                     </div>
                     <p className="text-sm text-gray-400">
-                      Member since {new Date(job?.createdAt).getFullYear()} ·{' '}
-                      {job?.location?.city?.name}, {job?.location?.country?.name}
+                      {[
+                        job?.customerSince && !isNaN(new Date(job.customerSince))
+                          ? `Member since ${new Date(job.customerSince).getFullYear()}`
+                          : null,
+                        [job?.location?.city?.name, job?.location?.country?.name].filter(Boolean).join(', '),
+                      ].filter(Boolean).join(' · ')}
                     </p>
                   </div>
                 </div>
@@ -407,7 +411,7 @@ function JobDetailPage() {
                       },
                       {
                         label: 'Offers',
-                        value: `${job?.offers?.length || 0} of ${job?.maxOffers || 10}`,
+                        value: job?.offersCount ?? job?.offers?.length ?? 0,
                         icon: 'solar:document-text-bold-duotone',
                         valueClass: 'text-gray-700',
                       },

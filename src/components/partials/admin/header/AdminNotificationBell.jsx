@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import useNotifications from "@/hooks/useNotifications";
+import { useSocket } from "@/contexts/SocketProvider";
 import { useRouter, Link } from "@/i18n/navigation";
 import { formatDistanceToNow } from 'date-fns';
 
@@ -12,18 +13,37 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
     unreadCount,
     fetchNotifications,
     markAsRead,
+    markAllAsRead,
     deleteNotification,
     clearAllNotifications,
     isLoading
   } = useNotifications();
 
   const router = useRouter();
+  // Notifications that were unread when the panel opened stay highlighted while it is open
+  const [newIds, setNewIds] = useState(() => new Set());
 
+  // Opening the panel = "seen": refresh the list, then clear the bell count (saved on the server)
   useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
-  }, [isOpen]); // Added isOpen dependency
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    (async () => {
+      const data = await fetchNotifications();
+      if (cancelled) return;
+      const fresh = data?.notifications || notifications;
+      const unread = fresh.filter((n) => !n.isRead).map((n) => String(n._id));
+      if (unread.length) {
+        setNewIds(new Set(unread));
+        markAllAsRead();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+
+  const isNew = (n) => !n.isRead || newIds.has(String(n._id));
 
   const handleNotificationClick = (notification) => {
     if (!notification.isRead) {
@@ -44,6 +64,7 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
 
   const getNotificationIcon = (type) => {
     if (type === 'ecom_new_order') return '🛒';
+    if (type === 'partOrder' || type === 'parts_order_received') return '📦';
     if (type === 'ecom_product_query' || type === 'ecom_order_query') return '💬';
     return '📢';
   };
@@ -65,7 +86,8 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
       </div>
 
       <div className="max-h-[400px] overflow-y-auto">
-        {isLoading ? (
+        {/* Skeleton only on the very first load; afterwards the list is already there */}
+        {isLoading && notifications.length === 0 ? (
           <div className="divide-y divide-gray-50">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="p-4 flex gap-3 animate-pulse">
@@ -91,7 +113,7 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
               <div
                 key={notification._id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${!notification.isRead ? 'bg-primary-50/30' : ''}`}
+                className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${isNew(notification) ? 'bg-primary-50/30' : ''}`}
               >
                 <div className="flex gap-3">
                   <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-lg shrink-0">
@@ -99,7 +121,7 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm ${!notification.isRead ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
+                      <p className={`text-sm ${isNew(notification) ? 'font-bold text-gray-900' : 'font-medium text-gray-700'}`}>
                         {notification.title || 'Notification'}
                       </p>
                       <span className="text-[10px] text-gray-400 shrink-0 whitespace-nowrap">
@@ -110,7 +132,7 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
                       {notification.message}
                     </p>
                   </div>
-                  {!notification.isRead && (
+                  {isNew(notification) && (
                     <div className="w-2 h-2 rounded-full bg-primary-600 mt-1.5 shrink-0" />
                   )}
                 </div>
@@ -132,9 +154,16 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
 };
 
 export default function AdminNotificationBell({ userToken }) {
-  const { unreadCount, isConnected } = useNotifications(userToken);
+  const { unreadCount, fetchNotifications } = useNotifications(userToken);
+  const { connected: isConnected } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Load the count on page load (not only when the panel is opened), and again after a
+  // socket (re)connect; new notifications then arrive live through the socket.
+  useEffect(() => {
+    fetchNotifications();
+  }, [isConnected, fetchNotifications]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -164,7 +193,7 @@ export default function AdminNotificationBell({ userToken }) {
         {/* Unread count badge */}
         {unreadCount > 0 && (
           <div className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-            {unreadCount > 99 ? "99+" : unreadCount}
+            <span key={`badge-${unreadCount}`} translate="no" className="notranslate">{unreadCount > 99 ? "99+" : unreadCount}</span>
           </div>
         )}
       </button>

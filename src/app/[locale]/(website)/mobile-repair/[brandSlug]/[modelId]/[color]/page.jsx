@@ -190,6 +190,18 @@ const CreateRepairJobForm = () => {
   const selectedServices = watch('selectedServices');
   const coordinates = watch('location.coordinates');
 
+  // Steps validate with trigger() (not submit), so react-hook-form wouldn't re-check a field
+  // while the user fixes it. Re-validate any field that has an error as soon as it changes,
+  // so the message disappears once the value is valid.
+  useEffect(() => {
+    const subscription = watch((_, { name }) => {
+      if (!name) return;
+      const hasError = name.split('.').reduce((acc, key) => acc?.[key], errors);
+      if (hasError) trigger(name);
+    });
+    return () => subscription.unsubscribe();
+  }, [watch, trigger, errors]);
+
   // Load saved form data and step from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {

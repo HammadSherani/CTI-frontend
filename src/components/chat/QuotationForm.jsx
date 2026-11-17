@@ -8,7 +8,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import PartModal from '@/app/[locale]/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
+import PartModal, { discountedPrice } from '@/app/[locale]/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
 import { useMultiLoading } from '@/hooks/useMultiloading';
 
 const quotationSchema = yup.object().shape({
@@ -349,7 +349,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
         setLoading(true);
         try {
             const calculatedPartsPrice = isPartRequired
-                ? selectedParts.reduce((total, part) => total + Number(part.price || 0), 0)
+                ? selectedParts.reduce((total, part) => total + discountedPrice(part), 0) // same rule as the backend
                 : 0;
 
             const requiredPartIds = isPartRequired

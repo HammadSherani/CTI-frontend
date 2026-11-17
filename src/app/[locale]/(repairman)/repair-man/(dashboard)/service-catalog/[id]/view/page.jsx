@@ -387,7 +387,7 @@ function ViewService() {
 
 
               <div className="flex items-center flex-col gap-3 w-full">
-                <Link href={`/repair-man/service-catalog-catalog/${serviceId}/edit`} className='w-full'>
+                <Link href={`/repair-man/service-catalog/${serviceId}/edit`} className='w-full'>
                   <button
                     disabled={service.status === 'approved'}
                     className="w-full bg-primary-600 w-full text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"

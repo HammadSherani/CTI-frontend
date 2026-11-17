@@ -24,7 +24,9 @@ export const SocketProvider = ({ children }) => {
       }
     }
 
-    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:8000';
+    // Same backend as the REST API unless a separate socket URL is configured
+    const apiOrigin = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/api\/?$/, '');
+    const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL || apiOrigin || 'http://localhost:8000';
     const newSocket = io(socketUrl, {
       auth: token ? { token } : {},
       autoConnect: true,

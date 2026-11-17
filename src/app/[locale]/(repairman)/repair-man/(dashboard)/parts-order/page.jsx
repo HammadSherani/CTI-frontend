@@ -326,6 +326,27 @@ function PartsOrder() {
                                                 {/* Status */}
                                                 <td className="px-5 py-4 whitespace-nowrap">
                                                     <StatusBadge status={order.orderStatus} />
+                                                    {/* Delivered / ready but not yet confirmed by the repairman */}
+                                                    {!order.isReceived && ['delivered', 'ready-for-pickup'].includes(order.orderStatus) && (
+                                                        <div className="mt-1 flex items-center gap-1 text-[11px] font-semibold text-green-700">
+                                                            <span className="relative flex h-2 w-2">
+                                                                <span className="absolute inline-flex h-2 w-2 animate-ping rounded-full bg-green-500 opacity-75" />
+                                                                <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
+                                                            </span>
+                                                            Confirm receipt
+                                                        </div>
+                                                    )}
+                                                    {order.isReceived && (
+                                                        <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-green-700">
+                                                            <Icon icon="mdi:hand-okay" className="w-3.5 h-3.5" />
+                                                            Received
+                                                        </div>
+                                                    )}
+                                                    {!order.isReceived && order.estimatedDelivery && !['cancelled', 'returned', 'delivered'].includes(order.orderStatus) && (
+                                                        <div className="mt-1 text-[11px] text-gray-500">
+                                                            Expected {new Date(order.estimatedDelivery).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                        </div>
+                                                    )}
                                                 </td>
 
                                                 {/* Shipping */}
