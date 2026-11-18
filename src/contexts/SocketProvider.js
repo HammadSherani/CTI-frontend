@@ -1,18 +1,109 @@
-// contexts/SocketProvider.js
+// contexts/SocketProvider.js — one socket per logged-in user; feeds chat + notifications into Redux
 'use client';
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
-import { useSelector, useDispatch } from 'react-redux';
-import { addMessage, setUserOnline, setUserOffline, markChatAsRead, updateChatList, setCurrentUser, setOnlineUsers } from '../store/chat';
+import { useSelector, useDispatch, useStore } from 'react-redux';
+import {
+  addMessage,
+  setUserOnline,
+  setUserOffline,
+  markChatAsRead,
+  updateChatList,
+  setCurrentUser,
+  setOnlineUsers,
+  messagesReadByOther,
+  setTyping,
+} from '../store/chat';
 import { addNotification } from '@/store/notifications';
+import { fetchChatListInto } from '@/services/chatApi';
 
 const SocketContext = createContext();
+
+const ACK_TIMEOUT_MS = 10000;
+const TYPING_CLEAR_MS = 5000;
+
+// Short, soft two-tone "pop" made with WebAudio (no sound file to download).
+// Browsers only allow sound after the user has interacted with the page; otherwise this is silent.
+let audioCtx = null;
+let lastSoundAt = 0;
+function playMessageSound() {
+  try {
+    if (typeof window === 'undefined') return;
+    if (localStorage.getItem('chatSound') === 'off') return;
+    const now = Date.now();
+    if (now - lastSoundAt < 1500) return; // a burst of messages = one sound
+    lastSoundAt = now;
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = audioCtx || new Ctx();
+    if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    const t = audioCtx.currentTime;
+    [[880, 0], [1320, 0.09]].forEach(([freq, delay]) => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t + delay);
+      gain.gain.exponentialRampToValueAtTime(0.12, t + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + delay + 0.18);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(t + delay);
+      osc.stop(t + delay + 0.2);
+    });
+  } catch {
+    // sound is optional
+  }
+}
+
+// Socket payload -> message shape used by the chat UI
+const toMessage = (m) => ({
+  _id: m._id || m.messageId,
+  messageId: m.messageId,
+  clientId: m.clientId || undefined,
+  content: m.content,
+  messageType: m.messageType,
+  senderType: m.senderType,
+  senderId: m.senderId,
+  timestamp: m.timestamp,
+  mediaUrl: m.mediaUrl,
+  fileName: m.fileName,
+  fileSize: m.fileSize,
+  quotationId: m.quotationId,
+  quotationData: m.quotationData,
+  mimeType: m.mimeType,
+  thumbnailUrl: m.thumbnailUrl,
+  blurDataUrl: m.blurDataUrl,
+  width: m.width,
+  height: m.height,
+  duration: m.duration,
+  replyTo: m.replyTo || undefined,
+  contactMasked: !!m.contactMasked,
+  isRead: !!m.isRead,
+  status: 'sent',
+  user: {
+    _id: m.senderId,
+    name: m.senderName,
+    avatar: m.senderAvatar,
+    role: m.senderType,
+  },
+});
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const { token, user } = useSelector((state) => state.auth);
+  const userId = user?._id ? String(user._id) : null;
   const dispatch = useDispatch();
+  const store = useStore();
+  const typingTimers = useRef({});
+
+  // The chat that is open and visible right now (if any)
+  const viewedChatId = useCallback(() => {
+    const { isOpen, selectedChat } = store.getState().chat;
+    if (!isOpen || !selectedChat?.id) return null;
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return null;
+    return String(selectedChat.id);
+  }, [store]);
 
   useEffect(() => {
     // Ensure chat slice knows about the authenticated user on load
@@ -31,165 +122,155 @@ export const SocketProvider = ({ children }) => {
       auth: token ? { token } : {},
       autoConnect: true,
       reconnection: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: Infinity, // keep trying (e.g. laptop wakes up, wifi comes back)
       reconnectionDelay: 1000,
+      reconnectionDelayMax: 10000,
     });
+
+    const markReadIfViewing = (chatId) => {
+      if (viewedChatId() === String(chatId)) {
+        newSocket.emit('mark_messages_read', { chatId });
+        dispatch(markChatAsRead(chatId));
+      }
+    };
 
     newSocket.on('connect', () => {
       setConnected(true);
-      if (user) {
-        newSocket.emit('user_online');
-        newSocket.emit('get_online_users');
-      }
+      if (!token) return;
+      newSocket.emit('user_online');
+      newSocket.emit('get_online_users');
+      // (Re)connected: refresh previews + unread counts so nothing missed while offline is lost
+      fetchChatListInto(dispatch, token).catch(() => {});
     });
 
-    newSocket.on('disconnect', (reason) => {
+    newSocket.on('disconnect', () => {
       setConnected(false);
     });
 
-      newSocket.on('connected', (data) => {
-        console.log('Server confirmation:', data);
-      });
+    newSocket.on('push_notification', (data) => {
+      dispatch(addNotification(data));
+    });
 
-       newSocket.on('push_notification', (data) => {
-        console.log('🔔 Push notification received:', data);
-        dispatch(addNotification(data));
-      });
+    newSocket.on('new_message', (data) => {
+      if (!data?.chatId) return;
+      const chatId = String(data.chatId);
+      dispatch(addMessage({ chatId, message: toMessage(data) }));
 
-      newSocket.on('new_message', (messageData) => {
-        console.log('=== Socket Message Debug ===');
-        console.log('Raw messageData:', messageData);
-        console.log('messageType:', messageData.messageType);
-        console.log('quotationData:', messageData.quotationData); 
+      const fromOther = String(data.senderId) !== userId;
+      if (fromOther) {
+        // They sent a message, so they stopped typing
+        dispatch(setTyping({ chatId, isTyping: false }));
+        // Soft sound unless I'm looking at this exact chat
+        if (viewedChatId() !== chatId) playMessageSound();
+        markReadIfViewing(chatId);
+      }
+    });
 
-        dispatch(addMessage({
-          chatId: messageData.chatId,
-          message: {
-            _id: messageData.messageId,
-            messageId: messageData.messageId,
-            content: messageData.content,
-            messageType: messageData.messageType,
-            senderType: messageData.senderType,
-            senderId: messageData.senderId,
-            timestamp: messageData.timestamp,
-            mediaUrl: messageData.mediaUrl,
-            fileName: messageData.fileName,
-            quotationId: messageData.quotationId,        
-            quotationData: messageData.quotationData,   
-            status: 'delivered',
-            user: {
-              _id: messageData.senderId,
-              name: messageData.senderName,
-              avatar: messageData.senderAvatar,
-              role: messageData.senderType
-            }
-          }
-        }));
-      });
+    newSocket.on('chat_list_updated', (data) => {
+      dispatch(updateChatList(data));
+    });
 
-      // ⭐ NEW EVENT LISTENER - Handle chat list updates
-      newSocket.on('chat_list_updated', (data) => {
-        console.log('🔥 Chat list updated:', data);
-        dispatch(updateChatList(data));
-      });
-
-      newSocket.on('chat_joined', (data) => {
-        console.log('Successfully joined chat:', data.chatId);
-        console.log('Chat info:', data.chatInfo);
-      });
-
-      newSocket.on('chat_error', (error) => {
-        console.error('Chat error received:', error);
-      });
-
-      newSocket.on('message_sent', (data) => {
-        console.log('Message sent confirmation:', data);
-      });
-
-      newSocket.on('messages_read', (data) => {
-        console.log('Messages marked as read:', data);
-        dispatch(markChatAsRead(data.chatId));
-      });
-      
-      newSocket.on('online_users_list', (onlineUsers) => {
-        console.log('Received online users list:', onlineUsers);
-        dispatch(setOnlineUsers(onlineUsers));
-      });
-
-      newSocket.on('user_online', (data) => {
-        console.log('User came online:', data);
-        dispatch(setUserOnline(data.userId));
-      });
-
-      newSocket.on('user_offline', (data) => {
-        console.log('User went offline:', data);
-        dispatch(setUserOffline(data.userId));
-      });
-
-      newSocket.on('error', (error) => {
-        console.error('Socket error:', error);
-      });
-
-      newSocket.onAny((eventName, ...args) => {
-        console.log('🔥 Socket Event Received:', eventName, args);
-      });
-
-      setSocket(newSocket);
-
-      return () => {
-        newSocket.disconnect();
-      };
-  }, [token, user, dispatch]);
-
-  const value = {
-    socket,
-    connected,
-    joinChat: (chatId) => {
-      if (socket && connected) {
-        console.log('🔥 Emitting join_chat for chatId:', chatId);
-        socket.emit('join_chat', { chatId });
+    newSocket.on('messages_read', (data) => {
+      if (!data?.chatId) return;
+      if (String(data.readBy) === userId) {
+        dispatch(markChatAsRead(data.chatId)); // read in another tab of mine
       } else {
-        console.warn('Cannot join chat - socket not connected:', { socket: !!socket, connected });
+        dispatch(messagesReadByOther({ chatId: String(data.chatId), myId: userId }));
       }
-    },
-    leaveChat: (chatId) => {
-      if (socket && connected) {
-        console.log('Leaving chat:', chatId);
-        socket.emit('leave_chat', { chatId });
+    });
+
+    newSocket.on('user_typing', (data) => {
+      if (!data?.chatId || String(data.userId) === userId) return;
+      const chatId = String(data.chatId);
+      clearTimeout(typingTimers.current[chatId]);
+      dispatch(setTyping({ chatId, isTyping: !!data.isTyping }));
+      if (data.isTyping) {
+        // Safety net: clear the indicator if the "stopped typing" event never comes
+        typingTimers.current[chatId] = setTimeout(
+          () => dispatch(setTyping({ chatId, isTyping: false })),
+          TYPING_CLEAR_MS
+        );
       }
-    },
-    sendMessage: (chatId, content, messageType = 'text', mediaUrl = null, fileName = null, fileSize = null) => {
-      if (socket && connected) {
-        console.log('Sending message:', { chatId, content, messageType });
-        socket.emit('send_message', {
-          chatId,
-          content,
-          messageType,
-          mediaUrl,
-          fileName,
-          fileSize
+    });
+
+    newSocket.on('online_users_list', (onlineUsers) => {
+      dispatch(setOnlineUsers(onlineUsers));
+    });
+
+    newSocket.on('user_status_changed', (data) => {
+      if (!data?.userId) return;
+      if (data.status === 'online') dispatch(setUserOnline(data.userId));
+      else dispatch(setUserOffline({ userId: data.userId, lastSeen: data.lastSeen }));
+    });
+
+    // Older per-chat presence events
+    newSocket.on('user_online', (data) => data?.userId && dispatch(setUserOnline(data.userId)));
+    newSocket.on('user_offline', (data) => data?.userId && dispatch(setUserOffline({ userId: data.userId, lastSeen: data.lastSeen })));
+
+    newSocket.on('chat_error', (error) => {
+      console.error('Chat error:', error);
+    });
+
+    newSocket.on('connect_error', (error) => {
+      console.warn('Socket connect error:', error?.message);
+    });
+
+    // Coming back to the tab with a chat open: what arrived meanwhile is now read
+    const onVisible = () => {
+      const chatId = viewedChatId();
+      if (chatId) markReadIfViewing(chatId);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+
+    setSocket(newSocket);
+
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      Object.values(typingTimers.current).forEach(clearTimeout);
+      typingTimers.current = {};
+      newSocket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, userId, dispatch]);
+
+  const value = useMemo(() => {
+    const isUp = () => !!socket && socket.connected;
+
+    // emit with an acknowledgement; resolves { ok, ... } and never rejects
+    const emitWithAck = (event, payload) =>
+      new Promise((resolve) => {
+        if (!isUp()) return resolve({ ok: false, error: 'offline' });
+        socket.timeout(ACK_TIMEOUT_MS).emit(event, payload, (err, res) => {
+          if (err) resolve({ ok: false, error: 'timeout' });
+          else resolve(res || { ok: false });
         });
-      } else {
-        console.warn('Cannot send message - socket not connected');
-      }
-    },
-    markMessagesRead: (chatId, messageIds) => {
-      if (socket && connected) {
-        console.log('Marking messages as read:', { chatId, messageIds });
-        socket.emit('mark_messages_read', { chatId, messageIds });
-      }
-    },
-    startTyping: (chatId) => {
-      if (socket && connected) {
-        socket.emit('typing_start', { chatId });
-      }
-    },
-    stopTyping: (chatId) => {
-      if (socket && connected) {
-        socket.emit('typing_stop', { chatId });
-      }
-    }
-  };
+      });
+
+    return {
+      socket,
+      connected,
+      joinChat: (chatId) => (isUp() ? emitWithAck('join_chat', { chatId }) : Promise.resolve({ ok: false })),
+      leaveChat: (chatId) => {
+        if (isUp()) socket.emit('leave_chat', { chatId });
+      },
+      // Text message with delivery confirmation: resolves { ok, message } or { ok: false, error }
+      sendChatMessage: ({ chatId, content, clientId, retry = false, replyToId }) =>
+        emitWithAck('send_message', { chatId, content, clientId, retry, replyToId, messageType: 'text' }),
+      // Older signature (fire and forget)
+      sendMessage: (chatId, content, messageType = 'text', mediaUrl = null, fileName = null, fileSize = null) => {
+        if (isUp()) socket.emit('send_message', { chatId, content, messageType, mediaUrl, fileName, fileSize });
+      },
+      markMessagesRead: (chatId) => {
+        if (isUp()) socket.emit('mark_messages_read', { chatId });
+      },
+      startTyping: (chatId) => {
+        if (isUp()) socket.emit('typing_start', { chatId });
+      },
+      stopTyping: (chatId) => {
+        if (isUp()) socket.emit('typing_stop', { chatId });
+      },
+    };
+  }, [socket, connected]);
 
   return (
     <SocketContext.Provider value={value}>
