@@ -22,6 +22,8 @@ import QuotationMessage from './QuotationMessage';
 import { ChatImage, ChatVideo, ChatFile, ChatVoice, ReplyQuote, mediaKindOf } from './MessageMedia';
 import ChatComposer from './ChatComposer';
 import ChatSearch from './ChatSearch';
+import AttachmentTray from './AttachmentTray';
+import ImageViewer from './ImageViewer';
 
 // One-line description of a message (reply preview)
 const messagePreview = (m) => {
@@ -583,17 +585,22 @@ const ChatView = ({ chat, onBack }) => {
         deliverText(clientId, messageContent, false, replyingTo?.messageId);
     }, [inputText, selectedFiles, sending, stopTypingNow, sendFiles, dispatch, chat.id, myId, mySenderType, replySnapshot, replyingTo, updateInputText, deliverText]);
 
+    // Add picked files to the selection (max 5, max 50 MB each like the server)
+    const addFiles = useCallback((picked) => {
+        const MAX_FILES = 5;
+        const MAX_BYTES = 50 * 1024 * 1024;
+        const tooBig = picked.filter((f) => f.size > MAX_BYTES);
+        if (tooBig.length) toast.error(`${tooBig[0].name} is larger than 50 MB`);
+        const current = selectedFiles || [];
+        const fresh = picked.filter((f) => f.size <= MAX_BYTES && !current.some((c) => c.name === f.name && c.size === f.size));
+        const next = [...current, ...fresh];
+        if (next.length > MAX_FILES) toast.error(`You can send up to ${MAX_FILES} files at a time.`);
+        dispatch(setSelectedFiles(next.slice(0, MAX_FILES)));
+    }, [dispatch, selectedFiles]);
+
     const handleFileSelect = useCallback((e) => {
-        const files = Array.from(e.target.files);
-        if (files.length > 0) {
-            if (files.length > 5) {
-                toast.error("You can only upload up to 5 files at a time.");
-                dispatch(setSelectedFiles(files.slice(0, 5)));
-            } else {
-                dispatch(setSelectedFiles(files));
-            }
-        }
-    }, [dispatch]);
+        addFiles(Array.from(e.target.files || []));
+    }, [addFiles]);
 
     const handleQuotationSuccess = useCallback(() => {
         fetchMessages();
@@ -614,6 +621,24 @@ const ChatView = ({ chat, onBack }) => {
     const handleFileClick = useCallback((mediaUrl) => {
         if (mediaUrl) window.open(mediaUrl, '_blank');
     }, []);
+
+    // ---- image viewer (modal instead of a new tab) ----
+    // All pictures of this chat in order, so the viewer can go to the previous / next one
+    const chatImages = useMemo(
+        () => chatMessages.filter((m) => (m.mediaUrl || m.localUrl || m.mediaKind) && mediaKindOf(m) === 'image'),
+        [chatMessages]
+    );
+    const [viewerIndex, setViewerIndex] = useState(null);
+    const openImage = useCallback((message) => {
+        const keys = messageKeysOf(message);
+        const i = chatImages.findIndex((m) => messageKeysOf(m).some((k) => keys.includes(k)));
+        setViewerIndex(i >= 0 ? i : null);
+    }, [chatImages]);
+    const imageCaption = useCallback((m) => ({
+        title: isMine(m) ? 'You' : (displayName || 'Image'),
+        subtitle: msgTime(m).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
+        text: m.content || '',
+    }), [isMine, displayName]);
 
     // Messages in time order with a date divider whenever the day changes
     const timeline = useMemo(() => {
@@ -776,7 +801,7 @@ const ChatView = ({ chat, onBack }) => {
                                                 return <ChatVoice message={message} isOwner={isOwner} onRetry={() => handleRetry(message)} />;
                                             }
                                             if (kind === 'image') {
-                                                return <ChatImage message={message} onOpen={handleFileClick} onRetry={() => handleRetry(message)} />;
+                                                return <ChatImage message={message} onOpen={openImage} onRetry={() => handleRetry(message)} />;
                                             }
                                             if (kind === 'video') {
                                                 return <ChatVideo message={message} onRetry={() => handleRetry(message)} />;
@@ -855,34 +880,13 @@ const ChatView = ({ chat, onBack }) => {
                 )}
                 </div>
 
-                {/* File Preview */}
-                {selectedFiles && selectedFiles.length > 0 && (
-                    <div className="px-4 py-2 border-t bg-gray-50 max-h-32 overflow-y-auto space-y-2">
-                        {selectedFiles.map((file, index) => (
-                            <div key={index} className="flex items-center justify-between bg-white p-2 rounded-lg border">
-                                <div className="flex items-center gap-2">
-                                    {file.type.startsWith('image/') ? (
-                                        <Icon icon="mdi:image" width={20} className="text-primary-500" />
-                                    ) : file.type.startsWith('video/') ? (
-                                        <Icon icon="mdi:video" width={20} className="text-purple-500" />
-                                    ) : (
-                                        <Icon icon={getFileIcon(file.name).icon} width={20} className={getFileIcon(file.name).color} />
-                                    )}
-                                    <span className="text-sm truncate max-w-[200px]">{file.name}</span>
-                                </div>
-                                <Icon
-                                    icon="mdi:close"
-                                    width={16}
-                                    className="text-gray-500 cursor-pointer hover:text-red-500"
-                                    onClick={() => {
-                                        const newFiles = selectedFiles.filter((_, i) => i !== index);
-                                        dispatch(setSelectedFiles(newFiles));
-                                    }}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                )}
+                {/* Files picked to send: thumbnails like WhatsApp */}
+                <AttachmentTray
+                    files={selectedFiles || []}
+                    onRemove={(index) => dispatch(setSelectedFiles(selectedFiles.filter((_, i) => i !== index)))}
+                    onClear={() => dispatch(clearSelectedFiles())}
+                    onAddMore={addFiles}
+                />
 
                 {/* Input: reply preview, emoji, attach, text, voice note / send */}
                 <ChatComposer
@@ -904,6 +908,16 @@ const ChatView = ({ chat, onBack }) => {
                     hasFiles={!!(selectedFiles && selectedFiles.length > 0)}
                 />
             </div>
+
+            {viewerIndex !== null && chatImages[viewerIndex] && (
+                <ImageViewer
+                    images={chatImages}
+                    index={viewerIndex}
+                    onIndexChange={setViewerIndex}
+                    onClose={() => setViewerIndex(null)}
+                    captionFor={imageCaption}
+                />
+            )}
 
             {showQuotationForm && (
                 <QuotationForm

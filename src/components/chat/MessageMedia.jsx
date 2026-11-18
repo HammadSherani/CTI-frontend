@@ -105,8 +105,8 @@ export function ChatImage({ message, onOpen, onRetry }) {
                         decoding="async"
                         onLoad={() => setLoaded(true)}
                         onError={() => setFailed(true)}
-                        // Full-size original opens on tap
-                        onClick={() => !uploading && onOpen?.(message.mediaUrl || src)}
+                        // Opens the full-size image in the viewer (also while uploading: local copy)
+                        onClick={() => onOpen?.(message)}
                         className={`absolute inset-0 w-full h-full object-cover cursor-pointer transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'}`}
                     />
                 )

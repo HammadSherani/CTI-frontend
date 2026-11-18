@@ -272,7 +272,7 @@ export default function ChatComposer({
                             onChange={onChange}
                             onKeyDown={onKeyDown}
                             onBlur={onBlur}
-                            placeholder="Type a message..."
+                            placeholder={hasFiles ? "Add a caption…" : "Type a message..."}
                             disabled={disabled}
                             maxLength={5000}
                             // 16px on phones so iOS does not zoom into the input
