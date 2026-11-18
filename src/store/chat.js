@@ -162,6 +162,7 @@ const chatSlice = createSlice({
                     id: current.id || message._id || message.messageId,
                     // never go back from "read" to unread because a late copy arrived
                     isRead: current.isRead || message.isRead || false,
+                    deliveredAt: current.deliveredAt || message.deliveredAt || null,
                     status: message.status || (current.status === 'failed' ? 'failed' : 'sent'),
                 };
                 return;
@@ -209,12 +210,27 @@ const chatSlice = createSlice({
             if (index !== -1) Object.assign(list[index], changes);
         },
 
+        // Our messages reached the other person's device: grey double tick
+        messagesDeliveredToOther: (state, action) => {
+            const { chatId, myId, deliveredAt } = action.payload;
+            const at = deliveredAt || new Date().toISOString();
+            (state.messages[chatId] || []).forEach((m) => {
+                const sender = typeof m.senderId === 'object' ? m.senderId?._id : m.senderId;
+                const mine = String(sender) === String(myId);
+                // only saved messages can be delivered (not "sending"/"failed" bubbles)
+                if (mine && !m.deliveredAt && m.status !== 'sending' && m.status !== 'failed') m.deliveredAt = at;
+            });
+        },
+
         // The other person read the chat: our messages get "read" ticks
         messagesReadByOther: (state, action) => {
             const { chatId, myId } = action.payload;
             (state.messages[chatId] || []).forEach((m) => {
                 const sender = typeof m.senderId === 'object' ? m.senderId?._id : m.senderId;
-                if (String(sender) === String(myId) || m.status === 'sent') m.isRead = true;
+                if (String(sender) === String(myId) && m.status !== 'sending' && m.status !== 'failed') {
+                    m.isRead = true;
+                    if (!m.deliveredAt) m.deliveredAt = new Date().toISOString(); // seen implies delivered
+                }
             });
         },
 
@@ -378,6 +394,7 @@ export const {
     addMessage,
     setMessageStatus,
     updateMessage,
+    messagesDeliveredToOther,
     messagesReadByOther,
     setTyping,
     sendMessage,

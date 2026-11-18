@@ -7,7 +7,8 @@ import MessageBar from './MessageBar';
 import ChatInbox from './ChatInbox';
 import ChatView from './ChatView';
 
-const TITLE_COUNT = /^\(\d+\+?\)\s/;
+const TITLE_COUNT = /^\(\d+\+?\)\s*/;
+const SITE_NAME = 'Click To Integrate';
 
 function GlobalChat() {
     const {
@@ -40,8 +41,9 @@ function GlobalChat() {
     useEffect(() => {
         if (typeof document === 'undefined') return undefined;
         const apply = () => {
-            const base = document.title.replace(TITLE_COUNT, '');
-            const next = totalUnread > 0 ? `(${totalUnread > 99 ? '99+' : totalUnread}) ${base}` : base;
+            // Never show a bare "(1)": a page without its own title gets the site name
+            const base = document.title.replace(TITLE_COUNT, '').trim();
+            const next = totalUnread > 0 ? `(${totalUnread > 99 ? '99+' : totalUnread}) ${base || SITE_NAME}` : base;
             if (document.title !== next) document.title = next;
         };
         apply();

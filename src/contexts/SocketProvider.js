@@ -12,6 +12,7 @@ import {
   setCurrentUser,
   setOnlineUsers,
   messagesReadByOther,
+  messagesDeliveredToOther,
   setTyping,
 } from '../store/chat';
 import { addNotification } from '@/store/notifications';
@@ -78,6 +79,7 @@ const toMessage = (m) => ({
   duration: m.duration,
   replyTo: m.replyTo || undefined,
   contactMasked: !!m.contactMasked,
+  deliveredAt: m.deliveredAt || null,
   isRead: !!m.isRead,
   status: 'sent',
   user: {
@@ -92,7 +94,8 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [connected, setConnected] = useState(false);
   const { token, user } = useSelector((state) => state.auth);
-  const userId = user?._id ? String(user._id) : null;
+  // Login returns the id as `id`, other flows as `_id`
+  const userId = (user?._id || user?.id) ? String(user._id || user.id) : null;
   const dispatch = useDispatch();
   const store = useStore();
   const typingTimers = useRef({});
@@ -161,13 +164,22 @@ export const SocketProvider = ({ children }) => {
         // They sent a message, so they stopped typing
         dispatch(setTyping({ chatId, isTyping: false }));
         // Soft sound unless I'm looking at this exact chat
-        if (viewedChatId() !== chatId) playMessageSound();
+        if (viewedChatId() !== chatId) {
+          playMessageSound();
+          // It reached my device: the sender sees a grey double tick (blue once I open the chat)
+          newSocket.emit('mark_delivered', { chatId });
+        }
         markReadIfViewing(chatId);
       }
     });
 
     newSocket.on('chat_list_updated', (data) => {
       dispatch(updateChatList(data));
+    });
+
+    newSocket.on('messages_delivered', (data) => {
+      if (!data?.chatId || String(data.deliveredTo) === userId) return;
+      dispatch(messagesDeliveredToOther({ chatId: String(data.chatId), myId: userId, deliveredAt: data.deliveredAt }));
     });
 
     newSocket.on('messages_read', (data) => {

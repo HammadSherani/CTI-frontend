@@ -21,6 +21,39 @@ const pickAudioMime = () => {
     return options.find((t) => MediaRecorder.isTypeSupported?.(t)) || '';
 };
 
+// Resolves once the microphone delivers real (non-silent) samples, or after maxWait ms.
+// Listens with an analyser only; nothing is recorded or played.
+async function waitForMicLive(stream, maxWait = 1500) {
+    const Ctx = typeof window !== 'undefined' && (window.AudioContext || window.webkitAudioContext);
+    if (!Ctx) return;
+    let ctx;
+    try {
+        ctx = new Ctx();
+        if (ctx.state === 'suspended') await ctx.resume().catch(() => {});
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 1024;
+        source.connect(analyser);
+        const buf = new Float32Array(analyser.fftSize);
+        const started = performance.now();
+        await new Promise((resolve) => {
+            const check = () => {
+                analyser.getFloatTimeDomainData(buf);
+                let peak = 0;
+                for (let i = 0; i < buf.length; i++) peak = Math.max(peak, Math.abs(buf[i]));
+                // a live mic always has some background noise; a warming-up mic is exactly 0
+                if (peak > 0.00001 || performance.now() - started > maxWait) resolve();
+                else setTimeout(check, 30);
+            };
+            check();
+        });
+    } catch {
+        // can't measure: just start
+    } finally {
+        ctx?.close?.().catch?.(() => {});
+    }
+}
+
 const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 
 export default function ChatComposer({
@@ -33,6 +66,7 @@ export default function ChatComposer({
     onSendVoice,
     replyingTo,
     replyingToMine,
+    otherName,
     onCancelReply,
     disabled,
     hasFiles,
@@ -45,6 +79,7 @@ export default function ChatComposer({
     // ---- voice recording ----
     const [recording, setRecording] = useState(false);
     const [seconds, setSeconds] = useState(0);
+    const [preparing, setPreparing] = useState(false); // mic switching on
     const rec = useRef({ recorder: null, chunks: [], stream: null, timer: null, startedAt: 0, cancelled: false });
 
     const stopTracks = () => {
@@ -58,11 +93,25 @@ export default function ChatComposer({
             toast.error('Voice messages are not supported in this browser');
             return;
         }
+        // "Starting mic…" until the microphone really delivers sound
+        rec.current = { recorder: null, chunks: [], stream: null, timer: null, startedAt: 0, cancelled: false };
+        setPreparing(true);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            const stream = await navigator.mediaDevices.getUserMedia({
+                audio: { echoCancellation: true, noiseSuppression: true, channelCount: 1 },
+            });
+            rec.current.stream = stream;
+            // Many mics/headsets send pure silence for the first 0.5-2 s after they switch on.
+            // Starting the recorder only once real sound arrives keeps the first words.
+            await waitForMicLive(stream);
+            if (rec.current.cancelled) {
+                stopTracks();
+                setPreparing(false);
+                return;
+            }
             const mimeType = pickAudioMime();
             const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
-            rec.current = { recorder, chunks: [], stream, timer: null, startedAt: Date.now(), cancelled: false };
+            rec.current = { ...rec.current, recorder, chunks: [], startedAt: Date.now() };
             recorder.ondataavailable = (e) => e.data?.size && rec.current.chunks.push(e.data);
             recorder.onstop = () => {
                 const { chunks, startedAt, cancelled } = rec.current;
@@ -78,7 +127,9 @@ export default function ChatComposer({
                 const type = (recorder.mimeType || mimeType || 'audio/webm').split(';')[0];
                 onSendVoice?.(new Blob(chunks, { type }), duration);
             };
-            recorder.start();
+            // Collect audio every 250ms, so stopping has almost nothing left to finish
+            recorder.start(250);
+            setPreparing(false);
             setRecording(true);
             setSeconds(0);
             rec.current.timer = setInterval(() => {
@@ -87,12 +138,19 @@ export default function ChatComposer({
                 if (s >= MAX_VOICE_SECONDS) rec.current.recorder?.stop();
             }, 250);
         } catch {
+            stopTracks();
+            setPreparing(false);
             toast.error('Microphone permission is needed to record a voice message');
         }
     };
 
     const finishRecording = (cancel = false) => {
         rec.current.cancelled = cancel;
+        // Hide the recording bar right away (the voice bubble appears a moment later)
+        setPreparing(false);
+        setRecording(false);
+        setSeconds(0);
+        clearInterval(rec.current.timer);
         if (rec.current.recorder?.state === 'recording') rec.current.recorder.stop();
         else stopTracks();
     };
@@ -140,7 +198,7 @@ export default function ChatComposer({
                     <div className="flex items-center gap-2 bg-gray-50 border-l-4 border-primary-500 rounded px-2 py-1">
                         <Icon icon="mdi:reply" width={16} className="text-primary-500 shrink-0" />
                         <div className="min-w-0 flex-1">
-                            <p className="text-[11px] font-semibold text-primary-600">Replying to {replyingToMine ? 'yourself' : 'them'}</p>
+                            <p className="text-[11px] font-semibold text-primary-600">Replying to {replyingToMine ? 'yourself' : (otherName || 'them')}</p>
                             <p className="text-xs text-gray-600 truncate">{replyingTo.preview}</p>
                         </div>
                         <button type="button" onClick={onCancelReply} className="text-gray-400 hover:text-gray-600" aria-label="Cancel reply">
@@ -161,17 +219,30 @@ export default function ChatComposer({
                     </div>
                 )}
 
-                {recording ? (
-                    // Recording bar: cancel | red dot + timer | send
+                {recording || preparing ? (
+                    // Recording bar: cancel | red dot + timer | send  ("Starting mic…" while it switches on)
                     <div className="flex items-center bg-gray-100 rounded-full px-3 py-1.5 gap-3">
                         <button type="button" onClick={() => finishRecording(true)} className="text-gray-500 hover:text-red-500" aria-label="Cancel recording">
                             <Icon icon="mdi:delete-outline" width={22} />
                         </button>
-                        <span className="flex items-center gap-2 flex-1 text-sm text-gray-700">
-                            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                            Recording… {fmt(seconds)}
-                        </span>
-                        <button type="button" onClick={() => finishRecording(false)} className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center" aria-label="Send voice message">
+                        {preparing ? (
+                            <span className="flex items-center gap-2 flex-1 text-sm text-gray-500">
+                                <span className="animate-spin rounded-full h-3.5 w-3.5 border-2 border-gray-300 border-t-red-500" />
+                                Starting mic… get ready to speak
+                            </span>
+                        ) : (
+                            <span className="flex items-center gap-2 flex-1 text-sm text-gray-700">
+                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                                Recording… {fmt(seconds)}
+                            </span>
+                        )}
+                        <button
+                            type="button"
+                            onClick={() => finishRecording(false)}
+                            disabled={preparing}
+                            className="w-8 h-8 rounded-full bg-primary-500 text-white flex items-center justify-center disabled:opacity-40"
+                            aria-label="Send voice message"
+                        >
                             <Icon icon="mdi:send" width={18} />
                         </button>
                     </div>

@@ -11,6 +11,12 @@ import './globals.css';
 import GoogleTranslator from "@/components/GoogleTranslator";
 const locales = ["en", "tr"];
 
+// Default browser tab title (pages that set their own title, e.g. "Cookie Policy | CTI", keep it)
+export const metadata = {
+  title: "Click To Integrate",
+  description: "Phone, laptop and gadget repairs, refurbished devices and parts on one platform.",
+};
+
 export default async function LocaleLayout({ children, params }) {
   const { locale } = await params;
 

@@ -121,10 +121,18 @@ const MessageStatus = ({ message, onRetry }) => {
             </button>
         );
     }
+    // ✓✓ blue = seen, ✓✓ = delivered to their device, ✓ = sent (saved on the server)
     if (message.isRead) {
-        return <Icon icon="mdi:check-all" width={15} className="text-sky-200" title="Read" />;
+        return (
+            <span className="inline-flex items-center justify-center rounded-full bg-white/90 px-0.5" title="Seen">
+                <Icon icon="mdi:check-all" width={15} className="text-blue-600" />
+            </span>
+        );
     }
-    return <Icon icon="mdi:check" width={15} className="text-gray-200" title="Sent" />;
+    if (message.deliveredAt) {
+        return <Icon icon="mdi:check-all" width={15} className="text-gray-100" title="Delivered" />;
+    }
+    return <Icon icon="mdi:check" width={15} className="text-gray-100" title="Sent" />;
 };
 
 const ChatView = ({ chat, onBack }) => {
@@ -152,7 +160,8 @@ const ChatView = ({ chat, onBack }) => {
     const { connected, joinChat, leaveChat, sendChatMessage, startTyping, stopTyping } = useSocket();
 
     const chatMessages = messages[chat.id] || [];
-    const myId = user?._id ? String(user._id) : null;
+    // Login returns the id as `id`, other flows as `_id`
+    const myId = (user?._id || user?.id) ? String(user._id || user.id) : null;
 
     // Skeleton only when nothing is cached for this chat yet; otherwise show the cached
     // messages instantly and refresh quietly in the background (new ones arrive via socket)
@@ -675,6 +684,7 @@ const ChatView = ({ chat, onBack }) => {
                         chatId={chat.id}
                         token={token}
                         myId={myId}
+                        otherName={displayName}
                         onJump={jumpToMessage}
                         onClose={() => setShowSearch(false)}
                     />
@@ -757,7 +767,7 @@ const ChatView = ({ chat, onBack }) => {
                                             : "bg-gray-200 text-gray-800"
                                             }`}
                                     >
-                                        <ReplyQuote replyTo={message.replyTo} isOwner={isOwner} mine={replyMine} onJump={jumpToMessage} />
+                                        <ReplyQuote replyTo={message.replyTo} isOwner={isOwner} mine={replyMine} otherName={displayName} onJump={jumpToMessage} />
 
                                         {/* Media: fixed-size box right away, the picture/video loads into it later */}
                                         {(message.mediaUrl || message.localUrl || message.mediaKind) && (() => {
@@ -888,6 +898,7 @@ const ChatView = ({ chat, onBack }) => {
                     onSendVoice={sendVoice}
                     replyingTo={replyingTo}
                     replyingToMine={replyingTo?.mine}
+                    otherName={displayName}
                     onCancelReply={() => setReplyingTo(null)}
                     disabled={sending}
                     hasFiles={!!(selectedFiles && selectedFiles.length > 0)}

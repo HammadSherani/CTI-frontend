@@ -121,21 +121,56 @@ const fmtDuration = (s) => {
     return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 };
 
-// Voice note: nothing downloads until play is pressed
+// Voice note player.
+// - Downloads quietly as soon as the bubble scrolls into view, so pressing play starts at once
+//   (voice notes are small: ~20-50 KB per minute). Browsers then keep the file (long cache header),
+//   so opening the chat again plays it without downloading again.
+// - My own note is playable immediately from the local recording while it uploads.
+// - If the audio is still loading after pressing play, the button shows a spinner.
 export function ChatVoice({ message, isOwner, onRetry }) {
     const src = message.localUrl || message.mediaUrl;
     const audioRef = React.useRef(null);
+    const boxRef = React.useRef(null);
+    const [preload, setPreload] = useState(message.localUrl ? 'auto' : 'none');
     const [playing, setPlaying] = useState(false);
+    const [buffering, setBuffering] = useState(false);
     const [current, setCurrent] = useState(0);
     const [duration, setDuration] = useState(Number(message.duration) || 0);
-    const uploading = message.status === 'sending';
     const failed = message.status === 'failed';
+
+    // Start loading when the bubble becomes visible
+    React.useEffect(() => {
+        if (preload === 'auto' || !boxRef.current || typeof IntersectionObserver === 'undefined') {
+            if (typeof IntersectionObserver === 'undefined') setPreload('auto');
+            return undefined;
+        }
+        const observer = new IntersectionObserver((entries) => {
+            if (entries.some((e) => e.isIntersecting)) {
+                setPreload('auto');
+                observer.disconnect();
+            }
+        }, { rootMargin: '200px' });
+        observer.observe(boxRef.current);
+        return () => observer.disconnect();
+    }, [preload]);
+
+    // Some browsers ignore a preload change on an existing element: start the download ourselves
+    React.useEffect(() => {
+        const a = audioRef.current;
+        if (preload === 'auto' && a && a.readyState === 0 && a.paused && a.networkState !== 2) {
+            try { a.load(); } catch { /* ignore */ }
+        }
+    }, [preload, src]);
 
     const toggle = () => {
         const a = audioRef.current;
         if (!a) return;
-        if (a.paused) a.play().catch(() => {});
-        else a.pause();
+        if (a.paused) {
+            if (a.readyState < 3) setBuffering(true); // not enough data yet
+            a.play().catch(() => setBuffering(false));
+        } else {
+            a.pause();
+        }
     };
 
     const pct = duration ? Math.min(100, (current / duration) * 100) : 0;
@@ -143,15 +178,11 @@ export function ChatVoice({ message, isOwner, onRetry }) {
     const track = isOwner ? 'bg-white/30' : 'bg-gray-300';
 
     return (
-        <div className="flex items-center gap-2 w-56 max-w-full py-1 mb-1">
+        <div ref={boxRef} className="flex items-center gap-2 w-56 max-w-full py-1 mb-1">
             {failed ? (
                 <button type="button" onClick={onRetry} className="w-9 h-9 rounded-full bg-red-500 text-white flex items-center justify-center shrink-0" aria-label="Retry">
                     <Icon icon="mdi:reload" width={20} />
                 </button>
-            ) : uploading ? (
-                <div className="w-9 h-9 flex items-center justify-center shrink-0">
-                    <div className={`animate-spin rounded-full h-6 w-6 border-2 ${isOwner ? 'border-white/40 border-t-white' : 'border-gray-300 border-t-primary-500'}`} />
-                </div>
             ) : (
                 <button
                     type="button"
@@ -159,7 +190,11 @@ export function ChatVoice({ message, isOwner, onRetry }) {
                     className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${isOwner ? 'bg-white/20 text-white' : 'bg-primary-500 text-white'}`}
                     aria-label={playing ? 'Pause' : 'Play voice message'}
                 >
-                    <Icon icon={playing ? 'mdi:pause' : 'mdi:play'} width={22} />
+                    {buffering ? (
+                        <span className="animate-spin rounded-full h-5 w-5 border-2 border-white/40 border-t-white" />
+                    ) : (
+                        <Icon icon={playing ? 'mdi:pause' : 'mdi:play'} width={22} />
+                    )}
                 </button>
             )}
             <div className="flex-1 min-w-0">
@@ -183,12 +218,20 @@ export function ChatVoice({ message, isOwner, onRetry }) {
                 <audio
                     ref={audioRef}
                     src={src}
-                    preload="none"
+                    preload={preload}
                     onPlay={() => setPlaying(true)}
+                    onPlaying={() => setBuffering(false)}
+                    onWaiting={() => setBuffering(true)}
+                    onCanPlay={() => setBuffering(false)}
                     onPause={() => setPlaying(false)}
                     onEnded={() => { setPlaying(false); setCurrent(0); }}
+                    onError={() => setBuffering(false)}
                     onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
-                    onLoadedMetadata={(e) => { if (Number.isFinite(e.currentTarget.duration)) setDuration(e.currentTarget.duration); }}
+                    onLoadedMetadata={(e) => {
+                        const d = e.currentTarget.duration;
+                        // webm recordings often report Infinity: keep the length we saved instead
+                        if (Number.isFinite(d) && d > 0) setDuration(d);
+                    }}
                 />
             )}
         </div>
@@ -196,7 +239,7 @@ export function ChatVoice({ message, isOwner, onRetry }) {
 }
 
 // Quoted message inside a reply bubble; tap to jump to the original
-export function ReplyQuote({ replyTo, isOwner, mine, onJump }) {
+export function ReplyQuote({ replyTo, isOwner, mine, otherName, onJump }) {
     if (!replyTo) return null;
     return (
         <button
@@ -205,7 +248,7 @@ export function ReplyQuote({ replyTo, isOwner, mine, onJump }) {
             className={`w-full text-left mb-1 px-2 py-1 rounded border-l-4 ${isOwner ? 'bg-white/15 border-white/70' : 'bg-white border-primary-400'} flex items-center gap-2`}
         >
             <div className="min-w-0 flex-1">
-                <p className={`text-[11px] font-semibold ${isOwner ? 'text-white' : 'text-primary-600'}`}>{mine ? 'You' : 'Them'}</p>
+                <p className={`text-[11px] font-semibold truncate ${isOwner ? 'text-white' : 'text-primary-600'}`}>{mine ? 'You' : (otherName || 'Them')}</p>
                 <p className={`text-xs truncate ${isOwner ? 'text-gray-100' : 'text-gray-600'}`}>{replyTo.content || 'Message'}</p>
             </div>
             {replyTo.mediaUrl && ['image', 'mixed'].includes(replyTo.messageType) && (

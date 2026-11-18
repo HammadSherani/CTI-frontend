@@ -21,7 +21,7 @@ const highlight = (text, q) => {
     );
 };
 
-export default function ChatSearch({ chatId, token, myId, onJump, onClose }) {
+export default function ChatSearch({ chatId, token, myId, otherName, onJump, onClose }) {
     const [q, setQ] = useState('');
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -89,7 +89,7 @@ export default function ChatSearch({ chatId, token, myId, onJump, onClose }) {
                                 className="w-full text-left px-4 py-2 hover:bg-gray-50 border-b border-gray-50"
                             >
                                 <div className="flex justify-between text-[11px] text-gray-400 mb-0.5">
-                                    <span>{String(r.senderId) === String(myId) ? 'You' : 'Them'}</span>
+                                    <span>{String(r.senderId) === String(myId) ? 'You' : (otherName || 'Them')}</span>
                                     <span>{new Date(r.timestamp).toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' })}</span>
                                 </div>
                                 <p className="text-sm text-gray-700 line-clamp-2">{highlight(r.content || '', q.trim())}</p>
