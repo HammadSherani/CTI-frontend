@@ -10,6 +10,7 @@ import { toast } from 'react-toastify'
 import StatusBadge from '@/components/partials/customer/Offer/StatusBadge'
 import { Icon } from '@iconify/react'
 import { useMultiLoading } from '@/hooks/useMultiloading'
+import ChatEvidence from '@/components/admin/ChatEvidence'
 
 function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
@@ -670,6 +671,7 @@ fetchData()
             <nav className="flex gap-1 p-2" aria-label="Tabs">
               {[
                 { id: 'chat', label: 'chat', icon: 'heroicons:chat-bubble-left-right' },
+                { id: 'evidence', label: 'Chat Evidence', icon: 'mdi:shield-search' },
                 { id: 'dispute', label: 'Dispute Details', icon: 'heroicons:exclamation-triangle' },
                 { id: 'job', label: 'Job Details', icon: 'heroicons:wrench-screwdriver' },
                 { id: 'booking', label: 'Booking Details', icon: 'heroicons:calendar' }
@@ -780,6 +782,11 @@ fetchData()
                 </div>
                 <div ref={messagesEndRef} />
               </div>
+            )}
+
+            {/* Customer <-> repairman chat incl. deleted messages (admin evidence) */}
+            {activeTab === 'evidence' && (
+              <ChatEvidence disputeId={id} token={token} />
             )}
 
             {/* Dispute Details Tab */}

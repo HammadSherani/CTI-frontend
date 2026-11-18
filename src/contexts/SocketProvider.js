@@ -13,6 +13,7 @@ import {
   setOnlineUsers,
   messagesReadByOther,
   messagesDeliveredToOther,
+  deleteMessageLocal,
   setTyping,
 } from '../store/chat';
 import { addNotification } from '@/store/notifications';
@@ -177,6 +178,12 @@ export const SocketProvider = ({ children }) => {
       dispatch(updateChatList(data));
     });
 
+    // Deleted for everyone (by them or me in another tab), or "for me" in another tab of mine
+    newSocket.on('message_deleted', (data) => {
+      if (!data?.chatId || !data?.messageId) return;
+      dispatch(deleteMessageLocal({ chatId: String(data.chatId), messageId: String(data.messageId), scope: data.scope || 'everyone' }));
+    });
+
     newSocket.on('messages_delivered', (data) => {
       if (!data?.chatId || String(data.deliveredTo) === userId) return;
       dispatch(messagesDeliveredToOther({ chatId: String(data.chatId), myId: userId, deliveredAt: data.deliveredAt }));
@@ -272,6 +279,10 @@ export const SocketProvider = ({ children }) => {
       sendMessage: (chatId, content, messageType = 'text', mediaUrl = null, fileName = null, fileSize = null) => {
         if (isUp()) socket.emit('send_message', { chatId, content, messageType, mediaUrl, fileName, fileSize });
       },
+      // { chatId, messageId, scope: 'me' | 'everyone' } -> { ok, error? }
+      deleteChatMessage: (payload) => emitWithAck('delete_message', payload),
+      // { chatId, messageIds: [], scope } -> { ok, deleted: [], failed: [{ messageId, error }] }
+      deleteChatMessages: (payload) => emitWithAck('delete_multiple_messages', payload),
       markMessagesRead: (chatId) => {
         if (isUp()) socket.emit('mark_messages_read', { chatId });
       },

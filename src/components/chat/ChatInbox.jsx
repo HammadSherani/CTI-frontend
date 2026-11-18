@@ -104,13 +104,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
             <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <div className="flex gap-4 items-center">
-                    {/* No refresh button: the list updates live over the socket and reloads itself
-                        on reconnect. Only say something when the connection is down. */}
-                    {!connected && (
-                        <span className="text-[11px] px-2 py-0.5 rounded bg-yellow-500/20 text-yellow-300">
-                            Connecting…
-                        </span>
-                    )}
+                    {/* No refresh button: the list updates live over the socket and reloads itself on reconnect */}
                     <button
                         type="button"
                         onClick={() => {
@@ -127,6 +121,14 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                     <Icon icon="mdi:chevron-down" width={20} onClick={onClose} className="cursor-pointer" />
                 </div>
             </div>
+
+            {/* Connection lost: thin strip under the header (keeps the header tidy) */}
+            {!connected && (
+                <div className="flex items-center justify-center gap-2 px-3 py-1 bg-yellow-50 border-b border-yellow-200 text-[12px] text-yellow-800" role="status">
+                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-300 border-t-yellow-700" />
+                    Connecting…
+                </div>
+            )}
 
             <div className="flex items-center px-4 py-3 border-b">
                 <div className="flex items-center bg-gray-100 rounded-full w-full px-3 py-1.5">

@@ -15,6 +15,7 @@ import {
     setMessageStatus,
     updateMessage,
     markChatAsRead,
+    deleteMessageLocal,
 } from '@/store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
 import QuotationForm from './QuotationForm';
@@ -24,6 +25,7 @@ import ChatComposer from './ChatComposer';
 import ChatSearch from './ChatSearch';
 import AttachmentTray from './AttachmentTray';
 import ImageViewer from './ImageViewer';
+import { MessageMenu, DeleteDialog } from './ChatMessageActions';
 
 // One-line description of a message (reply preview)
 const messagePreview = (m) => {
@@ -150,6 +152,9 @@ const ChatView = ({ chat, onBack }) => {
     const [replyingTo, setReplyingTo] = useState(null); // { messageId, preview, mine }
     const [showSearch, setShowSearch] = useState(false);
     const [highlightId, setHighlightId] = useState(null);
+    const [menuKey, setMenuKey] = useState(null);         // message whose ⌄ menu is open
+    const [deleteTarget, setDeleteTarget] = useState(null); // message(s) in the delete dialog
+    const [selectedKeys, setSelectedKeys] = useState([]);   // multi-select mode while not empty
 
     const { token, user } = useSelector((state) => state.auth);
     const { messages, inputText, selectedFiles, setInputText: updateInputText } = useChat();
@@ -159,7 +164,7 @@ const ChatView = ({ chat, onBack }) => {
     // Fallback when we don't know the other person's id yet: the inbox entry
     const listEntry = useSelector((state) => state.chat.chats.find((c) => String(c.id) === String(chat.id) || String(c.chatId) === String(chat.id)));
 
-    const { connected, joinChat, leaveChat, sendChatMessage, startTyping, stopTyping } = useSocket();
+    const { connected, joinChat, leaveChat, sendChatMessage, startTyping, stopTyping, deleteChatMessage, deleteChatMessages } = useSocket();
 
     const chatMessages = messages[chat.id] || [];
     // Login returns the id as `id`, other flows as `_id`
@@ -634,6 +639,117 @@ const ChatView = ({ chat, onBack }) => {
         const i = chatImages.findIndex((m) => messageKeysOf(m).some((k) => keys.includes(k)));
         setViewerIndex(i >= 0 ? i : null);
     }, [chatImages]);
+    // ---- delete (WhatsApp style) ----
+    // Same limit as the server: after 15 minutes only "Delete for me" is offered
+    const DELETE_FOR_EVERYONE_MS = 15 * 60 * 1000;
+    const canDeleteForEveryone = useCallback((m) => (
+        isMine(m)
+        && !m.deletedForEveryone
+        && m.status !== 'sending'
+        && m.status !== 'failed'
+        && m.messageType !== 'quotation'
+        && Date.now() - msgTime(m).getTime() < DELETE_FOR_EVERYONE_MS
+    ), [isMine]);
+
+    const performDelete = useCallback(async (message, scope) => {
+        setDeleteTarget(null);
+        const serverId = message.messageId || message._id;
+        // Never reached the server (still sending / failed): just drop it here
+        if (!serverId || message.status === 'sending' || message.status === 'failed') {
+            if (message.clientId) pendingUploads.current.delete(message.clientId);
+            dispatch(deleteMessageLocal({ chatId: chat.id, messageId: message.clientId, scope: 'me' }));
+            return;
+        }
+        // Instantly on screen, then tell the server
+        dispatch(deleteMessageLocal({ chatId: chat.id, messageId: String(serverId), scope }));
+        let res = await deleteChatMessage({ chatId: chat.id, messageId: String(serverId), scope });
+        if (!res?.ok && (res?.error === 'offline' || res?.error === 'timeout')) {
+            try {
+                await axiosInstance.delete(`/chat/${chat.id}/messages/${serverId}`, {
+                    data: { scope },
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+                res = { ok: true };
+            } catch (error) {
+                res = { ok: false, error: error?.response?.data?.message };
+            }
+        }
+        if (!res?.ok) {
+            toast.error(res?.error || 'Could not delete the message');
+            fetchMessages(); // put it back as the server has it
+        }
+    }, [chat.id, deleteChatMessage, dispatch, fetchMessages, token]);
+
+    const copyText = useCallback((m) => {
+        if (!m.content) return;
+        navigator.clipboard?.writeText(m.content)
+            .then(() => toast.success('Copied'))
+            .catch(() => {});
+    }, []);
+
+    // ---- multi-select ----
+    const keyOf = (m) => String(m.id || m._id || m.clientId);
+    const selecting = selectedKeys.length > 0;
+    const selectedMessages = useMemo(
+        () => chatMessages.filter((m) => selectedKeys.includes(keyOf(m))),
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [chatMessages, selectedKeys]
+    );
+    const toggleSelect = useCallback((key) => {
+        setSelectedKeys((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
+    }, []);
+    const clearSelection = useCallback(() => setSelectedKeys([]), []);
+
+    // Esc leaves selection mode; switching chats clears it
+    useEffect(() => {
+        if (!selecting) return undefined;
+        const onKey = (e) => e.key === 'Escape' && clearSelection();
+        document.addEventListener('keydown', onKey);
+        return () => document.removeEventListener('keydown', onKey);
+    }, [selecting, clearSelection]);
+    useEffect(() => { setSelectedKeys([]); }, [chat.id]);
+
+    const copySelected = useCallback(() => {
+        const text = selectedMessages
+            .filter((m) => m.content && !m.deletedForEveryone)
+            .map((m) => `[${msgTime(m).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}] ${isMine(m) ? 'You' : (displayName || 'Them')}: ${m.content}`)
+            .join('\n');
+        if (!text) return;
+        navigator.clipboard?.writeText(text).then(() => toast.success('Copied')).catch(() => {});
+        clearSelection();
+    }, [selectedMessages, isMine, displayName, clearSelection]);
+
+    // Delete several at once (instantly on screen, then one request)
+    const performDeleteMany = useCallback(async (list, scope) => {
+        setDeleteTarget(null);
+        clearSelection();
+        const onServer = [];
+        list.forEach((m) => {
+            const serverId = m.messageId || m._id;
+            if (!serverId || m.status === 'sending' || m.status === 'failed') {
+                if (m.clientId) pendingUploads.current.delete(m.clientId);
+                dispatch(deleteMessageLocal({ chatId: chat.id, messageId: m.clientId, scope: 'me' }));
+            } else {
+                onServer.push(String(serverId));
+                dispatch(deleteMessageLocal({ chatId: chat.id, messageId: String(serverId), scope }));
+            }
+        });
+        if (!onServer.length) return;
+        let res = await deleteChatMessages({ chatId: chat.id, messageIds: onServer, scope });
+        if (!res?.ok && (res?.error === 'offline' || res?.error === 'timeout')) {
+            // socket down: one request per message over HTTP
+            const results = await Promise.all(onServer.map((id) => axiosInstance
+                .delete(`/chat/${chat.id}/messages/${id}`, { data: { scope }, headers: { Authorization: `Bearer ${token}` } })
+                .then(() => true).catch(() => false)));
+            res = { ok: results.every(Boolean) };
+        }
+        if (!res?.ok) {
+            const n = res?.failed?.length;
+            toast.error(n ? `${n} message${n > 1 ? 's' : ''} could not be deleted` : (res?.error || 'Could not delete the messages'));
+            fetchMessages();
+        }
+    }, [chat.id, clearSelection, deleteChatMessages, dispatch, fetchMessages, token]);
+
     const imageCaption = useCallback((m) => ({
         title: isMine(m) ? 'You' : (displayName || 'Image'),
         subtitle: msgTime(m).toLocaleString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }),
@@ -658,50 +774,75 @@ const ChatView = ({ chat, onBack }) => {
     return (
         <>
             {/* Phones: full screen. Larger screens: the floating box */}
-            <div className="flex flex-col w-screen h-[100dvh] sm:w-96 sm:h-[500px] sm:max-h-[calc(100vh-2rem)] bg-white sm:rounded-lg shadow-xl sm:border border-gray-200">
-                <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between relative">
-                    <div className="flex items-center gap-2 min-w-0">
-                        <Icon icon="mdi:arrow-left" width={20} onClick={onBack} className="cursor-pointer hover:opacity-70 shrink-0" />
-                        <div className="relative shrink-0">
-                            <img
-                                src={displayAvatar || 'https://i.pravatar.cc/100?img=1'}
-                                alt={displayName}
-                                className="w-8 h-8 rounded-md object-cover"
-                                onError={(e) => {
-                                    e.target.src = 'https://i.pravatar.cc/100?img=1';
-                                }}
-                            />
-                            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0E1014] ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
+            <div className="relative flex flex-col w-screen h-[100dvh] sm:w-96 sm:h-[500px] sm:max-h-[calc(100vh-2rem)] bg-white sm:rounded-lg shadow-xl sm:border border-gray-200">
+                {selecting ? (
+                    // Selection bar (replaces the header while messages are selected)
+                    <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <button type="button" onClick={clearSelection} className="hover:opacity-70" aria-label="Cancel selection">
+                                <Icon icon="mdi:close" width={22} />
+                            </button>
+                            <span className="font-semibold text-sm">{selectedKeys.length} selected</span>
                         </div>
-                        <div className="min-w-0">
-                            <div className="flex items-center gap-1">
-                                <span className="font-semibold text-sm truncate">{displayName || 'Chat'}</span>
-                                {chat.verified && (
-                                    <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
-                                )}
+                        <div className="flex items-center gap-4">
+                            {selectedMessages.some((m) => m.content && !m.deletedForEveryone) && (
+                                <button type="button" onClick={copySelected} className="hover:opacity-70" aria-label="Copy selected">
+                                    <Icon icon="mdi:content-copy" width={20} />
+                                </button>
+                            )}
+                            <button type="button" onClick={() => setDeleteTarget(selectedMessages)} className="hover:text-red-400" aria-label="Delete selected">
+                                <Icon icon="mdi:delete-outline" width={22} />
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between relative">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <Icon icon="mdi:arrow-left" width={20} onClick={onBack} className="cursor-pointer hover:opacity-70 shrink-0" />
+                            <div className="relative shrink-0">
+                                <img
+                                    src={displayAvatar || 'https://i.pravatar.cc/100?img=1'}
+                                    alt={displayName}
+                                    className="w-8 h-8 rounded-md object-cover"
+                                    onError={(e) => {
+                                        e.target.src = 'https://i.pravatar.cc/100?img=1';
+                                    }}
+                                />
+                                <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#0E1014] ${isOnline ? 'bg-green-500' : 'bg-gray-400'}`} />
                             </div>
-                            <span className={`text-xs block truncate ${isTyping ? 'text-green-400' : 'text-gray-400'}`}>
-                                {statusLine}
-                            </span>
+                            <div className="min-w-0">
+                                <div className="flex items-center gap-1">
+                                    <span className="font-semibold text-sm truncate">{displayName || 'Chat'}</span>
+                                    {chat.verified && (
+                                        <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
+                                    )}
+                                </div>
+                                <span className={`text-xs block truncate ${isTyping ? 'text-green-400' : 'text-gray-400'}`}>
+                                    {statusLine}
+                                </span>
+                            </div>
+                        </div>
+    
+                        <div className="flex items-center gap-2 shrink-0">
+                            <button type="button" onClick={() => setShowSearch(true)} className="hover:opacity-70" aria-label="Search in chat">
+                                <Icon icon="mdi:magnify" width={20} />
+                            </button>
+                            {user?.role === 'repairman' && (
+                                <p
+                                    onClick={() => setShowQuotationForm(true)}
+                                    className='text-sm cursor-pointer border py-1 px-2 rounded-sm'>Create Quote</p>
+                            )}
                         </div>
                     </div>
+                )}
 
-                    <div className="flex items-center gap-2 shrink-0">
-                        <button type="button" onClick={() => setShowSearch(true)} className="hover:opacity-70" aria-label="Search in chat">
-                            <Icon icon="mdi:magnify" width={20} />
-                        </button>
-                        {!connected && (
-                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-500/20 text-yellow-300" title="Reconnecting…">
-                                Reconnecting…
-                            </span>
-                        )}
-                        {user?.role === 'repairman' && (
-                            <p
-                                onClick={() => setShowQuotationForm(true)}
-                                className='text-sm cursor-pointer border py-1 px-2 rounded-sm'>Create Quote</p>
-                        )}
+                {/* Connection lost: thin strip under the header (keeps the header tidy) */}
+                {!connected && (
+                    <div className="flex items-center justify-center gap-2 px-3 py-1 bg-yellow-50 border-b border-yellow-200 text-[12px] text-yellow-800" role="status">
+                        <span className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-300 border-t-yellow-700" />
+                        Reconnecting… messages will send when you are back online
                     </div>
-                </div>
+                )}
 
                 <div className="relative flex-1 min-h-0 flex flex-col">
                 {showSearch && (
@@ -772,26 +913,60 @@ const ChatView = ({ chat, onBack }) => {
                             const highlighted = highlightId && keys.includes(highlightId);
                             const canReply = !!(message.messageId || message._id) && message.status !== 'sending' && message.status !== 'failed';
                             const replyMine = message.replyTo && myId && String(message.replyTo.senderId?._id || message.replyTo.senderId) === myId;
+                            const isDeleted = !!message.deletedForEveryone;
+                            const menuItems = [
+                                ...(canReply && !isDeleted ? [{ label: 'Reply', icon: 'mdi:reply', onClick: () => startReply(message) }] : []),
+                                ...(message.content && !isDeleted ? [{ label: 'Copy', icon: 'mdi:content-copy', onClick: () => copyText(message) }] : []),
+                                { label: 'Select', icon: 'mdi:checkbox-marked-circle-outline', onClick: () => setSelectedKeys([keyOf(message)]) },
+                                { label: 'Delete', icon: 'mdi:delete-outline', danger: true, onClick: () => setDeleteTarget(message) },
+                            ];
 
                             return (
                                 <div
                                     key={item.key}
                                     data-mids={keys.join(' ')}
-                                    className={`group flex items-center gap-1 ${isOwner ? "justify-end" : "justify-start"} mb-2`}
+                                    // selection mode: tapping anywhere on the row (also on a photo) selects it
+                                    onClickCapture={selecting ? (e) => { e.preventDefault(); e.stopPropagation(); toggleSelect(keyOf(message)); } : undefined}
+                                    className={`group flex items-center gap-1 ${isOwner ? "justify-end" : "justify-start"} mb-2 ${selecting ? '-mx-2 px-2 rounded-md cursor-pointer' : ''} ${selecting && selectedKeys.includes(keyOf(message)) ? 'bg-primary-100/70' : ''}`}
                                 >
+                                    {selecting && (
+                                        <span className={`shrink-0 w-5 h-5 rounded-full border-2 flex items-center justify-center ${isOwner ? 'mr-auto' : 'mr-2'} ${selectedKeys.includes(keyOf(message)) ? 'bg-primary-500 border-primary-500 text-white' : 'border-gray-400 bg-white'}`}>
+                                            {selectedKeys.includes(keyOf(message)) && <Icon icon="mdi:check" width={14} />}
+                                        </span>
+                                    )}
                                     {/* Reply button (hover on desktop; long-press the bubble on phones) */}
-                                    {isOwner && canReply && (
+                                    {isOwner && canReply && !isDeleted && !selecting && (
                                         <button type="button" onClick={() => startReply(message)} className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity" aria-label="Reply">
                                             <Icon icon="mdi:reply" width={18} />
                                         </button>
                                     )}
                                     <div
-                                        onContextMenu={(e) => { if (canReply && window.matchMedia('(pointer: coarse)').matches) { e.preventDefault(); startReply(message); } }}
-                                        className={`max-w-[75%] p-2 rounded-lg transition-shadow ${highlighted ? 'ring-4 ring-yellow-300' : ''} ${isOwner
+                                        // long-press (phones) or right-click opens the message menu
+                                        onContextMenu={(e) => { e.preventDefault(); if (selecting) toggleSelect(keyOf(message)); else setMenuKey(item.key); }}
+                                        className={`relative group/bubble max-w-[75%] p-2 pr-6 rounded-lg transition-shadow ${highlighted ? 'ring-4 ring-yellow-300' : ''} ${isOwner
                                             ? `bg-primary-500 text-white ${message.status === 'failed' ? 'opacity-80 ring-1 ring-red-300' : ''}`
                                             : "bg-gray-200 text-gray-800"
                                             }`}
                                     >
+                                        {/* ⌄ opens Reply / Copy / Select / Delete */}
+                                        {!selecting && <button
+                                            type="button"
+                                            onClick={() => setMenuKey(menuKey === item.key ? null : item.key)}
+                                            className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center opacity-0 group-hover/bubble:opacity-100 focus:opacity-100 transition-opacity ${menuKey === item.key ? 'opacity-100' : ''} ${isOwner ? 'text-white/90 hover:bg-white/20' : 'text-gray-500 hover:bg-black/10'}`}
+                                            aria-label="Message options"
+                                        >
+                                            <Icon icon="mdi:chevron-down" width={18} />
+                                        </button>}
+                                        {menuKey === item.key && !selecting && (
+                                            <MessageMenu items={menuItems} alignRight={isOwner} onClose={() => setMenuKey(null)} />
+                                        )}
+
+                                        {isDeleted ? (
+                                            <p className={`text-sm italic flex items-center gap-1.5 ${isOwner ? 'text-white/85' : 'text-gray-500'}`}>
+                                                <Icon icon="mdi:cancel" width={15} />
+                                                {isOwner ? 'You deleted this message' : 'This message was deleted'}
+                                            </p>
+                                        ) : (<>
                                         <ReplyQuote replyTo={message.replyTo} isOwner={isOwner} mine={replyMine} otherName={displayName} onJump={jumpToMessage} />
 
                                         {/* Media: fixed-size box right away, the picture/video loads into it later */}
@@ -831,14 +1006,15 @@ const ChatView = ({ chat, onBack }) => {
                                                 Contact details are hidden. Keep chats and payments on CTI to stay protected.
                                             </p>
                                         )}
+                                        </>)}
 
                                         {/* Time + delivery status */}
                                         <span className={`text-xs mt-1 flex items-center justify-end gap-1 ${isOwner ? 'text-gray-200' : 'text-gray-500'}`}>
                                             {msgTime(message).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                            {isOwner && <MessageStatus message={message} onRetry={() => handleRetry(message)} />}
+                                            {isOwner && !isDeleted && <MessageStatus message={message} onRetry={() => handleRetry(message)} />}
                                         </span>
                                     </div>
-                                    {!isOwner && canReply && (
+                                    {!isOwner && canReply && !isDeleted && !selecting && (
                                         <button type="button" onClick={() => startReply(message)} className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-gray-400 hover:text-gray-600 transition-opacity" aria-label="Reply">
                                             <Icon icon="mdi:reply" width={18} />
                                         </button>
@@ -887,6 +1063,24 @@ const ChatView = ({ chat, onBack }) => {
                     onClear={() => dispatch(clearSelectedFiles())}
                     onAddMore={addFiles}
                 />
+
+                {deleteTarget && (Array.isArray(deleteTarget) ? (
+                    <DeleteDialog
+                        count={deleteTarget.length}
+                        // like WhatsApp: "for everyone" only when every selected message allows it
+                        canDeleteForEveryone={deleteTarget.length > 0 && deleteTarget.every(canDeleteForEveryone)}
+                        onDeleteForEveryone={() => performDeleteMany(deleteTarget, 'everyone')}
+                        onDeleteForMe={() => performDeleteMany(deleteTarget, 'me')}
+                        onCancel={() => setDeleteTarget(null)}
+                    />
+                ) : (
+                    <DeleteDialog
+                        canDeleteForEveryone={canDeleteForEveryone(deleteTarget)}
+                        onDeleteForEveryone={() => performDelete(deleteTarget, 'everyone')}
+                        onDeleteForMe={() => performDelete(deleteTarget, 'me')}
+                        onCancel={() => setDeleteTarget(null)}
+                    />
+                ))}
 
                 {/* Input: reply preview, emoji, attach, text, voice note / send */}
                 <ChatComposer

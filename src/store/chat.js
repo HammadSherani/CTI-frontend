@@ -210,6 +210,51 @@ const chatSlice = createSlice({
             if (index !== -1) Object.assign(list[index], changes);
         },
 
+        // WhatsApp-style delete. scope "me": gone from my list; "everyone": shows "This message was deleted"
+        deleteMessageLocal: (state, action) => {
+            const { chatId, messageId, scope } = action.payload;
+            const list = state.messages[chatId] || [];
+            const index = findMessageIndex(list, { messageId, _id: messageId, clientId: messageId });
+            if (index === -1) return;
+            const wasLast = index === list.length - 1;
+
+            if (scope === 'me') {
+                list.splice(index, 1);
+            } else {
+                Object.assign(list[index], {
+                    deletedForEveryone: true,
+                    content: '',
+                    mediaUrl: undefined,
+                    localUrl: undefined,
+                    thumbnailUrl: undefined,
+                    blurDataUrl: undefined,
+                    mediaKind: undefined,
+                    fileName: undefined,
+                    replyTo: undefined,
+                    contactMasked: false,
+                });
+                // Replies that quoted it now quote "deleted"
+                list.forEach((m) => {
+                    if (m.replyTo && String(m.replyTo.messageId) === String(messageId)) {
+                        m.replyTo = { ...m.replyTo, content: '🚫 This message was deleted', mediaUrl: undefined, messageType: 'text' };
+                    }
+                });
+            }
+
+            // Keep the chat-list preview in step when the newest message changed
+            if (wasLast) {
+                const chatIndex = findChatIndex(state, chatId);
+                const newest = list[list.length - 1];
+                if (chatIndex !== -1) {
+                    state.chats[chatIndex].lastMessage = newest
+                        ? (newest.deletedForEveryone
+                            ? { content: '🚫 This message was deleted', senderType: newest.senderType, timestamp: newest.timestamp, messageType: 'text' }
+                            : previewOf(newest))
+                        : null;
+                }
+            }
+        },
+
         // Our messages reached the other person's device: grey double tick
         messagesDeliveredToOther: (state, action) => {
             const { chatId, myId, deliveredAt } = action.payload;
@@ -357,6 +402,12 @@ const chatSlice = createSlice({
                 state.unreadCounts[chatId] = 0;
                 return;
             }
+            // newest message was deleted for everyone: new preview, same position in the list
+            if (type === 'last_message_updated') {
+                const i = findChatIndex(state, chatId);
+                if (i !== -1) state.chats[i].lastMessage = lastMessage || null;
+                return;
+            }
             if (type && type !== 'new_message') return; // presence etc. is handled elsewhere
 
             const chatIndex = findChatIndex(state, chatId);
@@ -394,6 +445,7 @@ export const {
     addMessage,
     setMessageStatus,
     updateMessage,
+    deleteMessageLocal,
     messagesDeliveredToOther,
     messagesReadByOther,
     setTyping,
