@@ -130,7 +130,8 @@ const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
     }
 
     const isExpired = quotationData.validUntil && new Date() > new Date(quotationData.validUntil);
-    const canRespond = !isOwner && user?.role === 'customer' && status === 'sent' && !isExpired;
+    // 'viewed' = the customer has opened it; it can still be accepted
+    const canRespond = !isOwner && user?.role === 'customer' && ['sent', 'viewed'].includes(status) && !isExpired;
     const isAnyButtonLoading = acceptLoading || rejectLoading;
 
     return (
