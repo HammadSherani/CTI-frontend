@@ -434,6 +434,11 @@ function ProductsDropdown({ isHome, isScrolled, onClose }) {
 ════════════════════════════════════════════ */
 function AnnouncementBar() {
   const t = useTranslations("Home.AnnouncementBar");
+  // "Login" only for visitors who are not logged in (checked after mount: login state is in the browser)
+  const { token } = useSelector((state) => state.auth) || {};
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const showLogin = mounted && !token;
 
   return (
     <div className="bg-gray-50 border-b border-gray-100 py-1 text-[11px] font-medium text-gray-500">
@@ -446,12 +451,14 @@ function AnnouncementBar() {
           })}
         </p>
         <div className="flex items-center gap-3 sm:gap-4 ml-auto shrink-0">
-          <Link
-            href="/auth/login"
-            className="hover:text-orange-600 transition-colors whitespace-nowrap"
-          >
-            {t("login")}
-          </Link>
+          {showLogin && (
+            <Link
+              href="/auth/login"
+              className="hover:text-orange-600 transition-colors whitespace-nowrap"
+            >
+              {t("login")}
+            </Link>
+          )}
           <a
             href="tel:+234567890"
             className="hover:text-orange-600 transition-colors hidden md:inline whitespace-nowrap"

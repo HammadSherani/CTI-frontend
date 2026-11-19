@@ -13,6 +13,7 @@ import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/store/chat";
 import { requestNotificationPermission, updateFCMToken } from "@/utils/fcm";
+import { homePathForUser } from "@/utils/roleHome";
 
 // Validation schema
 const schema = yup.object().shape({
@@ -78,7 +79,7 @@ function Login() {
       if (response.data.requiresVerification) {
         console.log("Email not verified → redirecting to OTP page...");
 
-        router.push(`/auth/verify-email?email=${resData.email}&userId=${resData.userId}`);
+        router.push(`/auth/verify-otp?email=${resData.email}&userId=${resData.userId}`);
         return;
       }
       if (resData.status == 410) {
@@ -105,30 +106,15 @@ function Login() {
       }
 
       // 🔐 ROLE-BASED ROUTING
-      if (resData?.user?.role === "admin") {
-        router.push("/admin/dashboard");
-      } else if (resData?.user?.role === "repairman") {
-        // Pending accounts cannot login (handled in API)
-        if (resData?.user?.kycStatus === "not_submitted") {
-          // router.push("/repair-man/dashboard");
-          router.push("/repair-man/complete-profile");
-        } if (resData.user?.role === 'seller') {
-          router.push("/seller/dashbaord")
-        }
-        else {
-          // router.push("/repair-man/complete-profile");
-          router.push("/repair-man/dashboard");
-        }
-      } else {
-        router.push("/");
-      }
+      // admin / repairman (or KYC first) / seller / customer: one rule shared with the auth pages guard
+      router.replace(homePathForUser(resData?.user));
 
     } catch (error) {
       console.log(error.response, "rer");
 
       if (error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
         const { email, userId } = error.response.data.data;
-        router.push(`/auth/verify-email?email=${email}&userId=${userId}`);
+        router.push(`/auth/verify-otp?email=${email}&userId=${userId}`);
         return;
       }
 

@@ -56,33 +56,18 @@ function SecureCheckoutPanel({ checkoutContent, isProcessing, disabled, paymentA
         );
     }
 
+    // Only information here: the single "Pay Securely" button is in the Order Summary
     return (
-        <div className="space-y-6">
-            <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <Icon icon="lucide:shield-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
-                <div className="text-sm text-gray-600">
-                    <p className="font-semibold text-gray-800">Secure card payment by iyzico</p>
-                    <p>You will enter your card details in iyzico&apos;s secure form and confirm with your bank (3D Secure). Your card details never reach our servers.</p>
-                </div>
+        <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <Icon icon="lucide:shield-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
+            <div className="text-sm text-gray-600">
+                <p className="font-semibold text-gray-800">Secure card payment by iyzico</p>
+                <p>
+                    {isProcessing
+                        ? 'Preparing your secure payment form…'
+                        : <>Press <span className="font-semibold">Pay Securely</span> in the order summary. You will enter your card details in iyzico&apos;s secure form and confirm with your bank (3D Secure). Your card details never reach our servers.</>}
+                </p>
             </div>
-            <button
-                type="button"
-                onClick={onStart}
-                disabled={isProcessing || disabled}
-                className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center gap-3"
-            >
-                {isProcessing ? (
-                    <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Preparing secure payment...
-                    </>
-                ) : (
-                    <>
-                        <Icon icon="lucide:lock" className="w-6 h-6" />
-                        Pay Securely
-                    </>
-                )}
-            </button>
         </div>
     );
 }
@@ -137,6 +122,17 @@ const userDetailsSchema = yup.object().shape({
         .min(10, 'Please enter a complete address (min 10 characters)')
         .max(200, 'Address cannot exceed 200 characters'),
 });
+
+// Brand / model / services arrive as populated objects ({ name }); show their names
+// (a bare database id is never shown as a name)
+const isDbId = (v) => typeof v === 'string' && /^[a-f0-9]{24}$/i.test(v);
+const quoteName = (v) => {
+    const name = v && typeof v === 'object' ? v.name : v;
+    return name && !isDbId(name) ? name : '';
+};
+const quoteServices = (q) => (q?.deviceInfo?.repairServices || []).map(quoteName).filter(Boolean).join(', ');
+const quoteDevice = (q) =>
+    `${quoteName(q?.deviceInfo?.brand) || quoteName(q?.deviceInfo?.brandName)} ${quoteName(q?.deviceInfo?.model) || quoteName(q?.deviceInfo?.modelName)}`.trim();
 
 function QuotationPayment({ quotationId, jobId, token, router }) {
     const [orderData, setOrderData] = useState(null);
@@ -343,12 +339,12 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-gray-900 text-lg">
-                                            {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName} Repair
+                                            {quoteDevice(quotation) ? `${quoteDevice(quotation)} Repair` : 'Device Repair'}
                                         </h3>
                                         <p className="text-sm text-gray-600 mb-3">{quotation.serviceDetails?.description}</p>
                                         <div className="flex items-center gap-4 text-sm flex-wrap">
                                             <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">
-                                                {quotation.deviceInfo?.repairServices?.join(', ')}
+                                                {quoteServices(quotation)}
                                             </span>
                                             {/* {quotation.serviceDetails?.warranty?.duration && (
                                                 <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
@@ -483,13 +479,13 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 <div className="flex items-center gap-3 mb-3">
                                     <Icon icon="lucide:smartphone" className="w-6 h-6 text-primary-600" />
                                     <span className="font-medium text-gray-900 text-lg">
-                                        {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName}
+                                        {quoteDevice(quotation) || 'Your device'}
                                     </span>
                                 </div>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Service:</span>
-                                        <span className="font-medium">{quotation.deviceInfo?.repairServices?.join(', ')}</span>
+                                        <span className="font-medium">{quoteServices(quotation)}</span>
                                     </div>
                                     {quotation.serviceDetails?.estimatedDuration && (
                                         <div className="flex justify-between">
@@ -1413,11 +1409,12 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     {offer?.serviceOptions?.homeService && <p>✓ Home service available</p>}
                                 </div>
                             </div>
-                            {/* 
-                            {currentStep === 3 && (
+                            {/* The one payment button (step 3 = payment) */}
+                            {currentStep === 3 && !checkoutContent && (
                                 <button
-                                    onClick={handleSubmit(onSubmit)}
-                                    disabled={isProcessing || Object.keys(errors).length > 0}
+                                    type="button"
+                                    onClick={startCheckout}
+                                    disabled={isProcessing || paymentVerifying}
                                     className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
                                 >
                                     {isProcessing ? (
@@ -1428,11 +1425,11 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     ) : (
                                         <>
                                             <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                            Complete Payment
+                                            {paymentAlreadyDone ? 'Confirm Booking' : 'Pay Securely'}
                                         </>
                                     )}
                                 </button>
-                            )} */}
+                            )}
 
                             <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-gray-500">
                                 <div className="flex items-center gap-2">

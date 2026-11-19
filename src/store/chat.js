@@ -255,6 +255,21 @@ const chatSlice = createSlice({
             }
         },
 
+        // A quotation changed (edited, seen, replaced, expired, accepted, rejected, withdrawn):
+        // patch its card in whichever chat it is shown
+        updateQuotation: (state, action) => {
+            const { quotationId, patch } = action.payload;
+            if (!quotationId || !patch) return;
+            Object.values(state.messages).forEach((list) => {
+                (list || []).forEach((m) => {
+                    if (m.messageType !== 'quotation') return;
+                    const id = m.quotationData?.quotationId || m.quotationId?._id || m.quotationId;
+                    if (String(id) !== String(quotationId)) return;
+                    m.quotationData = { ...(m.quotationData || { quotationId }), ...patch };
+                });
+            });
+        },
+
         // Our messages reached the other person's device: grey double tick
         messagesDeliveredToOther: (state, action) => {
             const { chatId, myId, deliveredAt } = action.payload;
@@ -445,6 +460,7 @@ export const {
     addMessage,
     setMessageStatus,
     updateMessage,
+    updateQuotation,
     deleteMessageLocal,
     messagesDeliveredToOther,
     messagesReadByOther,

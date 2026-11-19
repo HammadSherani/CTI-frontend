@@ -14,6 +14,7 @@ import {
   messagesReadByOther,
   messagesDeliveredToOther,
   deleteMessageLocal,
+  updateQuotation,
   setTyping,
 } from '../store/chat';
 import { addNotification } from '@/store/notifications';
@@ -176,6 +177,17 @@ export const SocketProvider = ({ children }) => {
 
     newSocket.on('chat_list_updated', (data) => {
       dispatch(updateChatList(data));
+    });
+
+    // Quotation changed: update its card live (full data after an edit, otherwise just the status)
+    newSocket.on('quotation_updated', (data) => {
+      if (!data?.quotationId) return;
+      const patch = data.quotationData || Object.fromEntries(
+        ['status', 'validUntil', 'version', 'respondedAt', 'customerResponse', 'viewedAt', 'replacedBy']
+          .filter((k) => data[k] !== undefined)
+          .map((k) => [k, data[k]])
+      );
+      dispatch(updateQuotation({ quotationId: String(data.quotationId), patch }));
     });
 
     // Deleted for everyone (by them or me in another tab), or "for me" in another tab of mine

@@ -607,10 +607,10 @@ console.log("User Details in Order Confirmation", userDetails);
         ? (quotation.serviceDetails?.warranty?.duration || 'N/A')
         : offer.warranty.duration,
       deviceBrand: isQuotation
-        ? quotation.deviceInfo?.brandName
+        ? (quotation.deviceInfo?.brand?.name || (/^[a-f0-9]{24}$/i.test(String(quotation.deviceInfo?.brandName || '')) ? '' : quotation.deviceInfo?.brandName) || '')
         : job.deviceInfo.brand,
       deviceModel: isQuotation
-        ? quotation.deviceInfo?.modelName
+        ? (quotation.deviceInfo?.model?.name || (/^[a-f0-9]{24}$/i.test(String(quotation.deviceInfo?.modelName || '')) ? '' : quotation.deviceInfo?.modelName) || '')
         : job.deviceInfo.model,
       services: isQuotation
         ? (quotation.deviceInfo?.repairServices || 'N/A')

@@ -330,7 +330,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
 
     // ─── Price calculations ───────────────────────────────────────────────────────
     const partsTotal = isPartRequired
-        ? selectedParts.reduce((total, part) => total + Number(part.price || 0), 0)
+        // discounted price, same as the server charges
+        ? selectedParts.reduce((total, part) => total + discountedPrice(part), 0)
         : 0;
 
     const calculateSubtotal = () => (parseFloat(watchedBasePrice) || 0) + partsTotal;
