@@ -239,6 +239,38 @@ export default function QuotationPage() {
             )}
           </div>
         </div>
+
+        {/* Edit history: what was offered before each change */}
+        {Array.isArray(raw.revisions) && raw.revisions.length > 0 && (
+          <div className="px-6 pb-6">
+            <h2 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1">
+              <Icon icon="mdi:history" className="w-4 h-4" /> Edit history
+            </h2>
+            <ol className="border rounded-xl divide-y text-sm">
+              <li className="px-4 py-2.5 flex flex-wrap justify-between gap-2 bg-green-50/50">
+                <span className="font-medium text-gray-900">Version {q.version} <span className="text-xs font-normal text-green-700">(current)</span></span>
+                <span className="font-semibold">{money(q.subtotal, q.currency)}</span>
+              </li>
+              {[...raw.revisions].reverse().map((r) => {
+                const total = Number(r.pricing?.totalAmount) || (Number(r.pricing?.basePrice) || 0) + (Number(r.pricing?.partsPrice) || 0)
+                const services = (r.repairServices || []).map((s) => (typeof s === 'object' ? s.name : '')).filter(Boolean)
+                return (
+                  <li key={r.version} className="px-4 py-2.5">
+                    <div className="flex flex-wrap justify-between gap-2">
+                      <span className="text-gray-700">Version {r.version}</span>
+                      <span className="text-gray-500 line-through decoration-gray-300">{money(total, r.pricing?.currency || q.currency)}</span>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Changed {fmtDateTime(r.replacedAt)}
+                      {services.length > 0 && ` · ${services.join(', ')}`}
+                      {r.estimatedDuration && ` · ${r.estimatedDuration}${/^\d+$/.test(r.estimatedDuration) ? ' days' : ''}`}
+                    </p>
+                  </li>
+                )
+              })}
+            </ol>
+          </div>
+        )}
       </div>
     </div>
   )

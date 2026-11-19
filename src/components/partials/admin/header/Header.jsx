@@ -78,6 +78,7 @@ const primaryNavLinks = [
         items: [
           { name: "Partner Inquiries", icon: "mdi:handshake-outline", path: "/admin/partner-inquiries" },
           { name: "Job Board", icon: "mdi:briefcase-outline", path: "/admin/job-board" },
+          { name: "Quotations", icon: "mdi:receipt-text-outline", path: "/admin/quotations" },
           { name: "Ratings & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
           { name: "Disputes", icon: "mdi:gavel", path: "/admin/disputes" },
           { name: "Advertisement", icon: "mdi:advertisements", path: "/admin/advertisement" },

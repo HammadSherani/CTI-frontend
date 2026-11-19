@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Icon } from '@iconify/react'
 import axiosInstance from '@/config/axiosInstance'
 import handleError from '@/helper/handleError'
+import { STATUS_META, money } from '@/components/chat/quotationView'
 
 const fmtDateTime = (d) => d ? new Date(d).toLocaleString([], { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''
 const fmtTime = (d) => d ? new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ''
@@ -133,6 +134,48 @@ export default function ChatEvidence({ disputeId, chatId, token }) {
         Admin view. Users do not see deleted content; it is kept here only as evidence.
         {data.truncated && ' Showing the first 3000 messages.'}
       </p>
+
+      {/* Quotations in these chats, with every earlier version (edits) */}
+      {data.quotations?.length > 0 && (
+        <div className="bg-white rounded-xl border border-gray-200 p-4">
+          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-1">
+            <Icon icon="mdi:receipt-text-outline" className="w-4 h-4" /> Quotations ({data.quotations.length})
+          </h3>
+          <div className="space-y-3">
+            {data.quotations.map((qt) => {
+              const st = qt.isDeleted ? 'deleted' : qt.status
+              const meta = STATUS_META[st] || STATUS_META.sent
+              const device = `${qt.deviceInfo?.brand?.name || ''} ${qt.deviceInfo?.model?.name || ''}`.trim() || 'Device'
+              const services = (qt.deviceInfo?.repairServices || []).map((x) => x?.name).filter(Boolean).join(', ')
+              return (
+                <div key={qt._id} className="border rounded-lg p-3 text-sm">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-medium text-gray-900">{device}{services ? ` · ${services}` : ''}</span>
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-xs font-semibold ${meta.className}`}>
+                      <Icon icon={meta.icon} width={13} /> {meta.label}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Sent {fmtDateTime(qt.createdAt)} · version {qt.version || 1} · <span className="font-semibold text-gray-800">{money(qt.pricing?.totalAmount, qt.pricing?.currency || 'TRY')}</span>
+                    {qt.respondedAt ? ` · answered ${fmtDateTime(qt.respondedAt)}` : ''}
+                    {qt.isDeleted && qt.deletedAt ? ` · withdrawn ${fmtDateTime(qt.deletedAt)}` : ''}
+                  </p>
+                  {qt.customerResponse && <p className="text-xs text-red-700 mt-1">Customer: “{qt.customerResponse}”</p>}
+                  {qt.revisions?.length > 0 && (
+                    <ul className="mt-2 text-xs text-gray-600 border-l-2 border-amber-300 pl-2 space-y-0.5">
+                      {qt.revisions.map((r) => (
+                        <li key={r.version}>
+                          Version {r.version}: {money(r.pricing?.totalAmount, r.pricing?.currency || 'TRY')} (changed {fmtDateTime(r.replacedAt)})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Conversation */}
       <div className="bg-gray-50 rounded-xl border border-gray-200 p-4 max-h-[640px] overflow-y-auto">

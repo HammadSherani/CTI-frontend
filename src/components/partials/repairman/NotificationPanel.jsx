@@ -78,6 +78,12 @@ const NotificationPanel = ({ isOpen, onClose }) => {
         return '💰';
       case 'new_review':
         return '⭐';
+      case 'quotation_accepted':
+        return '✅';
+      case 'quotation_rejected':
+        return '❌';
+      case 'quotation_expired':
+        return '⌛';
       default:
         return '📢';
     }
