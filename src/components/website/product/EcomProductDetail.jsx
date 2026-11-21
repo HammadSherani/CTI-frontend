@@ -19,6 +19,7 @@ import Breadcrumbs from '../Breadcrumbs';
 import ProductGalleryModal from './ProductGalleryModal';
 import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common/ProductHoverVideo';
 import ProductActivityIndicator from '@/components/common/ProductActivityIndicator';
+import DeliveryPartners from '@/components/common/DeliveryPartners';
 
 export default function EcomProductDetail({ params }) {
   const router = useRouter();
@@ -173,18 +174,30 @@ export default function EcomProductDetail({ params }) {
             setSelectedAttributes(attrs);
           }
 
-          // Fetch related products
+          // Fetch related products (same category first, then mix in others)
           const catId = prod.categoryId?._id || prod.categoryId || prod.category?._id || prod.category;
+          let related = [];
           if (catId) {
             try {
               const rel = await axiosInstance.get(`/e-commerce/products?categoryIds=${catId}&limit=5`);
               if (rel.data && rel.data.success) {
-                setRelatedProducts((rel.data.data.products || []).filter(p => p._id !== prod._id).slice(0, 4));
+                related = (Array.isArray(rel.data.data) ? rel.data.data : (rel.data.data?.products || [])).filter(x => x._id !== prod._id).slice(0, 4);
               }
             } catch (e) {
               console.error("Failed to fetch related products", e);
             }
           }
+          if (related.length < 4) {
+            try {
+              const more = await axiosInstance.get('/e-commerce/products?limit=12');
+              const extra = (Array.isArray(more.data?.data) ? more.data.data : (more.data?.data?.products || []))
+                .filter(x => x._id !== prod._id && !related.some(r => r._id === x._id));
+              related = [...related, ...extra].slice(0, 4);
+            } catch (e) {
+              console.error("Failed to fetch fallback products", e);
+            }
+          }
+          setRelatedProducts(related);
         }
         if (revRes.success) setReviews(revRes.data);
       } catch (err) {
@@ -813,6 +826,8 @@ export default function EcomProductDetail({ params }) {
                   );
                 })()}
               </div>
+
+              <DeliveryPartners />
             </div>
           </div>
 

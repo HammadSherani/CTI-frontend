@@ -7,8 +7,87 @@ import Loader from '@/components/Loader';
 import { Icon } from '@iconify/react';
 import { useMultiLoading } from '@/hooks/useMultiloading';   
 import axiosInstance from '@/config/axiosInstance';
-import { useRouter } from '@/i18n/navigation';
-const DEFAULT_PROFILE_IMG = "https://via.placeholder.com/400x300?text=Repairman";
+import { Link } from '@/i18n/navigation';
+
+const DEFAULT_PROFILE_IMG =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300"><rect width="100%" height="100%" fill="#f3f4f6"/><text x="50%" y="50%" fill="#9ca3af" font-family="sans-serif" font-size="22" text-anchor="middle" dominant-baseline="middle">Repairman</text></svg>');
+
+const RepairmanCard = ({ repairman }) => {
+  const profile = repairman.repairmanProfile || {};
+  const photo = profile.profilePhoto || DEFAULT_PROFILE_IMG;
+  const name = profile.fullName || repairman.name || 'Repair Expert';
+  const shop = profile.shopName || '';
+  const location = [repairman.city?.name, repairman.state?.name].filter(Boolean).join(', ');
+  const years = Number(profile.yearsOfExperience) || 0;
+  const rating = Number(profile.rating) || 0;
+  const specs = (profile.specializations || []).filter(Boolean);
+  const href = `/repairmans/${repairman._id}`;
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300 flex flex-col">
+      <Link href={href} className="block h-64 w-full overflow-hidden bg-gray-100">
+        <img
+          src={photo}
+          alt={name}
+          className="w-full h-full object-cover object-top"
+          onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = DEFAULT_PROFILE_IMG; }}
+        />
+      </Link>
+
+      <div className="p-4 flex flex-col flex-1">
+        <div className="flex items-start justify-between gap-2 mb-1">
+          <div className="min-w-0">
+            <h3 className="font-semibold text-lg text-gray-900 leading-tight truncate">{name}</h3>
+            {shop && <p className="text-xs text-gray-500 truncate mt-0.5">{shop}</p>}
+          </div>
+          {location && (
+            <span className="text-xs text-orange-500 border border-orange-400 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0 mt-0.5">
+              {location}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-2 text-sm text-gray-600">
+          <div className="flex items-center gap-1">
+            <Icon icon="mdi:briefcase-check-outline" className="text-orange-500 text-base" />
+            <span>{years > 0 ? `${years}+ Years` : 'Experience N/A'}</span>
+          </div>
+          <div className="flex items-center gap-1">
+            <Icon icon="mdi:star" className="text-orange-500 text-base" />
+            <span>{rating > 0 ? `${rating.toFixed(1)} Rating` : 'New'}</span>
+          </div>
+          {profile.pickupService && (
+            <div className="flex items-center gap-1">
+              <Icon icon="mdi:truck-fast-outline" className="text-orange-500 text-base" />
+              <span>Pickup</span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5 mt-3 min-h-[28px]">
+          {(specs.length ? specs.slice(0, 3) : ['General Repair']).map((sp) => (
+            <span key={sp} className="text-[11px] bg-gray-100 text-gray-700 rounded-full px-2.5 py-0.5">{sp}</span>
+          ))}
+          {specs.length > 3 && (
+            <span className="text-[11px] text-gray-400 py-0.5">+{specs.length - 3} more</span>
+          )}
+        </div>
+
+        <div className="border-t border-gray-100 my-3 mt-auto" />
+
+        <div className="flex items-center justify-between">
+          <Link href={href} className="text-sm text-orange-500 font-medium hover:underline">
+            View Profile
+          </Link>
+          <Link href={href} className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
+            Book Now
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default function HireRepairman() {
   const { multiLoading, start, stop } = useMultiLoading();
@@ -18,10 +97,9 @@ export default function HireRepairman() {
   const [cities, setCities] = useState([]);
   const [repairmen, setRepairmen] = useState([]);
   const [pagination, setPagination] = useState({ total: 0 });
-const [page, setPage] = useState(1);
+  const [page, setPage] = useState(1);
   const [filters, setFilters] = useState({});
   const [loadingRepairmen, setLoadingRepairmen] = useState(false);
-const [currentPage, setCurrentPage] = useState(1);
   // Fetch Countries
   const fetchCountries = useCallback(async () => {
     start('countries');
@@ -70,7 +148,7 @@ const [currentPage, setCurrentPage] = useState(1);
   }, []);
 
   // Fetch Repairmen (with filters)
-  const fetchRepairmen = useCallback(async (appliedFilters = {}) => {
+  const fetchRepairmen = useCallback(async (appliedFilters = {}, pageNum = 1) => {
     setLoadingRepairmen(true);
     try {
       // Build query params
@@ -81,8 +159,8 @@ const [currentPage, setCurrentPage] = useState(1);
       if (appliedFilters.minRating) params.append('minRating', appliedFilters.minRating);
       if (appliedFilters.categories?.length) params.append('specializations', appliedFilters.categories.join(','));
 
-        params.append('page', currentPage);
-    params.append('limit', 10);
+      params.append('page', pageNum);
+      params.append('limit', 9);
 
       const res = await axiosInstance.get(`/public/repairmans?${params.toString()}`);
       
@@ -123,78 +201,6 @@ const [currentPage, setCurrentPage] = useState(1);
     if (filters.state) fetchCities(filters.state);
   }, [filters.state, fetchCities]);
 
-  // Safe image with fallback
- const RepairmanCard = ({ repairman }) => {
-  const profile = repairman.repairmanProfile || {};
-  const photo = profile.profilePhoto || DEFAULT_PROFILE_IMG;
-  const name = profile.fullName || repairman.name || "Repair Expert";
-  const shop = profile.shopName || "Mobile & Laptop Repair";
-  const location = `${repairman.city?.name || ''}${repairman.state?.name ? `, ${repairman.state.name}` : ''}`;
-  const experience = profile.yearsOfExperience ? `${profile.yearsOfExperience}+ Years` : '6+ Years';
-  const rating = profile.rating || 4.8;
-  const specs = profile.specializations?.length
-    ? profile.specializations.slice(0, 2).join(" • ")
-    : "General Repair";
-
-    const router = useRouter();
-    console.log("reparimen",repairmen)
-
-  return (
-    <div onClick={()=>router.push(`/repairmans/${repairman._id}`)} className="bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-md transition-all duration-300">
-      
-      {/* Photo — tall, full width */}
-      <div className="h-64 w-full overflow-hidden">
-        <img
-          src={photo}
-          alt={name}
-          className="w-full h-full object-cover object-top"
-          onError={(e) => { e.target.src = DEFAULT_PROFILE_IMG; }}
-        />
-      </div>
-
-      {/* Content */}
-      <div className="pt-4 p-2">
-        
-        {/* Name + Location badge */}
-        <div className="flex items-start justify-between gap-2 mb-1">
-          <h3 className="font-semibold text-lg text-gray-900 leading-tight">{name}</h3>
-          {location && (
-            <span className="text-xs text-orange-500 border border-orange-400 rounded-full px-2 py-0.5 whitespace-nowrap shrink-0 mt-0.5">
-              {location}
-            </span>
-          )}
-        </div>
-
-        {/* Specialty + Rating row */}
-        <div className="flex items-center gap-4 mt-2">
-          <div className="flex items-center gap-1 text-nowrap text-sm text-gray-600">
-            <Icon icon="mdi:shield-check-outline" className="text-orange-500 text-base" />
-            <span>Specialty : {experience}</span>
-          </div>
-          <div className="flex text-nowrap items-center gap-1 text-sm text-gray-600">
-            <Icon icon="mdi:star" className="text-orange-500 text-base" />
-            <span>{rating} Ratings</span>
-          </div>
-        </div>
-
-        {/* Divider */}
-        <div className="border-t border-gray-100 my-3" />
-
-        {/* Buttons */}
-        <div className="flex items-center justify-between">
-          <button className="text-sm text-orange-500 font-medium hover:underline">
-            View Profile
-          </button>
-          <button className="bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium px-5 py-2 rounded-lg transition-colors">
-            Book Now
-          </button>
-        </div>
-
-      </div>
-    </div>
-  );
-};
-
   return (
       <>
 
@@ -221,7 +227,7 @@ const [currentPage, setCurrentPage] = useState(1);
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-3xl font-bold text-gray-800">
                 Expert Repairmen 
-                <span className="text-primary-600 ml-2">({repairmen.length})</span>
+                <span className="text-primary-600 ml-2">({pagination.total ?? repairmen.length})</span>
               </h2>
               <p className="text-gray-500">Showing results based on your location and filters</p>
             </div>
@@ -247,7 +253,7 @@ const [currentPage, setCurrentPage] = useState(1);
         </div>
 
 
-{pagination.totalPages > 1 && (
+{(pagination.totalPages || 0) > 1 && (
   <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
     
     {/* Prev */}

@@ -450,6 +450,7 @@ function RepairmanDetail() {
     const [loading, setLoading] = useState(true);
     const [isOpen, setIsOpen] = useState(false);
     const [data, setData] = useState(null)
+    const [loadError, setLoadError] = useState(null);
     const [imagePreview, setImagePreview] = useState({ isOpen: false, src: '' });
     const params = useParams();
     const router = useRouter();
@@ -462,10 +463,13 @@ function RepairmanDetail() {
     const getRepairman = async () => {
         try {
             setLoading(true);
+            setLoadError(null);
             const { data } = await axiosInstance.get(`/public/repairmans/${id}`);
             setRepairman(data.data.repairman);
             setData(data.data);
         } catch (error) {
+            setRepairman(null);
+            setLoadError(error?.response?.status === 404 || error?.response?.status === 400 ? 'notfound' : 'network');
             handleError(error);
         } finally {
             setLoading(false);
@@ -530,21 +534,23 @@ function RepairmanDetail() {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <Icon icon="mdi:account-alert" className="w-24 h-24 text-gray-400 mx-auto mb-4" />
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Repairman Not Found</h3>
-                    <p className="text-gray-600 mb-4">The repairman you're looking for doesn't exist.</p>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">{loadError === 'network' ? 'Could not load profile' : 'Repairman Not Found'}</h3>
+                    <p className="text-gray-600 mb-4">{loadError === 'network' ? 'Something went wrong while loading this profile. Please try again.' : 'This repairman is unavailable or no longer exists.'}</p>
+                    {loadError === 'network' && (
+                        <button onClick={getRepairman} className="px-6 py-2 mr-3 border border-primary-600 text-primary-600 rounded-lg hover:bg-primary-50 transition-colors">Retry</button>
+                    )}
                     <button
-                        onClick={() => router.back()}
+                        onClick={() => router.push('/repairmans')}
                         className="px-6 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                     >
-                        Go Back
+                        Browse Repairmen
                     </button>
                 </div>
             </div>
         );
     }
 
-    console.log(repairman, "repairman details")
-    const profile = repairman.repairmanProfile;
+    const profile = repairman.repairmanProfile || {};
     const reviewStats = repairman.reviewStats;
     const reviews = repairman.reviews;
     const profileStatus = data?.profileStatus;
@@ -722,28 +728,6 @@ function RepairmanDetail() {
                 </div>
             </div>
 
-            {/* Alert for incomplete bank details */}
-            {profile && !profile.isPaymentInformationCompleted && (
-                <div className="container mx-auto px-6 -mt-4 mb-6 relative z-10">
-                    <div className="animate-slideDown">
-                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border-l-4 border-orange-500 rounded-xl p-4 shadow-lg">
-                            <div className="flex items-start gap-3">
-                                <div className="p-2 bg-orange-100 rounded-lg">
-                                    <Icon icon="heroicons:exclamation-triangle" className="w-5 h-5 text-orange-600" />
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="font-semibold text-gray-900 mb-1">Complete Your Bank Details</h4>
-                                    <p className="text-sm text-gray-600 mb-3">Add your bank information to start receiving payments</p>
-                                    <button className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium inline-flex items-center gap-2">
-                                        <Icon icon="heroicons:banknotes" className="w-4 h-4" />
-                                        Add Bank Details
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {/* Rest of the content */}
             <div className="container mx-auto px-6 pb-8 mt-8 mb-8">
@@ -875,27 +859,6 @@ function RepairmanDetail() {
                             </div>
                         </SectionCard>
 
-                        {/* Emergency Contact */}
-                        {(profile?.emergencyContactPerson || profile?.emergencyContactNumber) && (
-                            <SectionCard title="Emergency Contact" icon="heroicons:phone-arrow-up-right">
-                                <div className="space-y-3">
-                                    {profile.emergencyContactPerson && (
-                                        <InfoRow
-                                            icon="heroicons:user"
-                                            label="Contact Person"
-                                            value={profile.emergencyContactPerson}
-                                        />
-                                    )}
-                                    {profile.emergencyContactNumber && (
-                                        <InfoRow
-                                            icon="heroicons:phone"
-                                            label="Contact Number"
-                                            value={profile.emergencyContactNumber}
-                                        />
-                                    )}
-                                </div>
-                            </SectionCard>
-                        )}
 
                         {/* Services */}
                         <SectionCard title="Services" icon="heroicons:wrench-screwdriver">
@@ -920,21 +883,21 @@ function RepairmanDetail() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Member Since</span>
-                  <span className="text-sm font-medium">{user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
+                  <span className="text-sm font-medium">{repairman.createdAt ? new Date(repairman.createdAt).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'N/A'}</span>
                 </div>
                 <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-xs text-gray-500">Last Updated</span>
-                  <span className="text-sm font-medium">{user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}</span>
+                  <span className="text-sm font-medium">{repairman.updatedAt ? new Date(repairman.updatedAt).toLocaleDateString() : 'N/A'}</span>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
                   <div className="text-center p-2 bg-green-50 rounded-lg">
-                    <div className={`text-xs font-medium ${user.isEmailVerified ? 'text-green-600' : 'text-gray-400'}`}>
-                      {user.isEmailVerified ? '✓ Email Verified' : '○ Email Unverified'}
+                    <div className={`text-xs font-medium ${repairman.isEmailVerified ? 'text-green-600' : 'text-gray-400'}`}>
+                      {repairman.isEmailVerified ? '✓ Email Verified' : '○ Email Unverified'}
                     </div>
                   </div>
                   <div className="text-center p-2 bg-primary-50 rounded-lg">
-                    <div className={`text-xs font-medium ${user.isProfileComplete ? 'text-primary-600' : 'text-gray-400'}`}>
-                      {user.isProfileComplete ? '✓ Profile Complete' : '○ Profile Incomplete'}
+                    <div className={`text-xs font-medium ${repairman.isProfileComplete ? 'text-primary-600' : 'text-gray-400'}`}>
+                      {repairman.isProfileComplete ? '✓ Profile Complete' : '○ Profile Incomplete'}
                     </div>
                   </div>
                 </div>

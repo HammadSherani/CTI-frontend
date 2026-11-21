@@ -418,6 +418,15 @@ export default function CategoryInfoSections({ categorySlug, categoryName }) {
     <>
       <GradeExplained deviceType={deviceType} />
       <WhatComesWithPhone deviceType={deviceType} />
+
+      <section className="w-full mt-8">
+        <img
+          src="/assets/refurbish/new-vs-refurbished.jpg"
+          alt="New vs. Refurbished - Buy Smart. Buy Refurbished. Better for pocket, better for planet."
+          className="w-full rounded-3xl border border-gray-100 shadow-sm"
+          loading="lazy"
+        />
+      </section>
     </>
   );
 }

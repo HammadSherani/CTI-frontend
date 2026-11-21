@@ -6,9 +6,9 @@ export default function SubHeader({
 }) {
   return (
     <header
-      className="w-full text-white py-20 flex flex-col items-center gap-3 bg-cover bg-center"
+      className="w-full text-white py-20 flex flex-col items-center gap-3 bg-cover bg-center bg-gray-900"
       style={{
-        backgroundImage: "url('/assets/subheader.png')"
+        backgroundImage: "url('/assets/subHeader.png')"
       }}
     >
       <h1 className="text-3xl md:text-4xl font-bold text-center">

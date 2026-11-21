@@ -15,11 +15,14 @@ import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import RefurbishedSliderSection from './RefurbishedSliderSection';
 import CategoryInfoSections from './CategoryInfoSections';
+import RefurbishedTrust from './RefurbishedTrust';
+import RefurbishedVideos from './RefurbishedVideos';
 import ProductGalleryModal from '../product/ProductGalleryModal';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import { useSocket } from '@/contexts/SocketProvider';
 import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common/ProductHoverVideo';
 import ProductActivityIndicator from '@/components/common/ProductActivityIndicator';
+import DeliveryPartners from '@/components/common/DeliveryPartners';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -196,17 +199,27 @@ export default function RefurbishedProductDetail({ params }) {
             }
           }
 
-          // If nothing related was found by category or brand, fall back to top-selling products
-          if (categoryList.length === 0 && brandList.length === 0) {
+          // If few related products were found, mix in other refurbished products
+          const shownIds = new Set([prod._id, ...categoryList.map(x => x._id), ...brandList.map(x => x._id)]);
+          if (shownIds.size - 1 < 4) {
+            let pool = [];
             try {
               const topRes = await axiosInstance.get('/public/refurbished-devices/products/top-selling');
-              const topList = topRes.data?.data || [];
-              if (Array.isArray(topList)) {
-                setTopSellingFallback(topList.filter(p => p._id !== prod._id).slice(0, 4));
-              }
+              if (Array.isArray(topRes.data?.data)) pool = topRes.data.data;
             } catch (e) {
               console.error('Failed to fetch top-selling fallback products', e);
             }
+            if (pool.filter(x => !shownIds.has(x._id)).length < 4) {
+              try {
+                const allRes = await axiosInstance.get('/public/refurbished-devices/products', { params: { limit: 12 } });
+                if (Array.isArray(allRes.data?.data)) pool = [...pool, ...allRes.data.data];
+              } catch (e) {
+                console.error('Failed to fetch fallback products', e);
+              }
+            }
+            const seen = new Set(shownIds);
+            const fallback = pool.filter(x => (seen.has(x._id) ? false : (seen.add(x._id), true))).slice(0, 4);
+            setTopSellingFallback(fallback);
           }
         }
         if (revRes.success) setReviews(revRes.data);
@@ -815,6 +828,8 @@ export default function RefurbishedProductDetail({ params }) {
                   );
                 })()}
               </div>
+
+              <DeliveryPartners />
             </div>
           </div>
 
@@ -1197,6 +1212,8 @@ export default function RefurbishedProductDetail({ params }) {
       </div>
 
       <div className="mb-16 space-y-16 mt-10">
+        <RefurbishedTrust />
+
         <div className="max-w-6xl">
           <CategoryInfoSections
             categorySlug={productData.categoryId?.slug}
@@ -1255,6 +1272,8 @@ export default function RefurbishedProductDetail({ params }) {
           </div>
         </div>
 
+        <RefurbishedVideos />
+
         {/* Related products */}
         {(relatedProducts.length > 0 || relatedByBrand.length > 0 || topSellingFallback.length > 0) && (
           <div className="mt-12 pt-10 border-t border-gray-100">
@@ -1274,9 +1293,9 @@ export default function RefurbishedProductDetail({ params }) {
               />
             )}
 
-            {relatedProducts.length === 0 && relatedByBrand.length === 0 && topSellingFallback.length > 0 && (
+            {topSellingFallback.length > 0 && (
               <RefurbishedSliderSection
-                title="Top Selling Refurbished Products"
+                title={relatedProducts.length === 0 && relatedByBrand.length === 0 ? "Top Selling Refurbished Products" : "You May Also Like"}
                 products={topSellingFallback}
                 viewAllHref="/refurbish"
               />
