@@ -12,6 +12,17 @@ import { ServicesSkeleton } from "../skeletons/home";
 import axiosInstance from "@/config/axiosInstance";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { fetchHeaderData, buyLabel } from "./headerDataCache";
+
+// Repair services (same as the navbar "Services" menu), shown next to the buy categories.
+const REPAIR_SERVICES = [
+  { name: "Mobile Repair", image: "/assets/services/repair/mobile-repair.svg" },
+  { name: "Battery Replacement", image: "/assets/services/repair/battery-replacement.svg" },
+  { name: "Motherboard Repair", image: "/assets/services/repair/motherboard-repair.svg" },
+  { name: "Screen Repair", image: "/assets/services/repair/screen-repair.svg" },
+  { name: "Water Damage", image: "/assets/services/repair/water-damage.svg" },
+  { name: "Software Issues", image: "/assets/services/repair/software-issues.svg" },
+].map((r) => ({ ...r, _id: `repair-${r.name}`, href: "/mobile-repair" }));
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -58,12 +69,16 @@ const ServiceSection = () => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await axiosInstance.get("/public/sell-device/header-data");
-        if (response.data?.success) {
-          setCategories(response.data.data.buyRefurbished || []);
-        }
+        const data = await fetchHeaderData();
+        const buy = (data?.buyRefurbished || []).map((c) => ({
+          ...c,
+          name: buyLabel(c),
+          href: `/refurbish?category=${c.slug}`,
+        }));
+        setCategories([...buy, ...REPAIR_SERVICES]);
       } catch (error) {
-        console.error("Error fetching buy refurbished categories:", error);
+        console.error("Error fetching services:", error);
+        setCategories(REPAIR_SERVICES);
       } finally {
         setLoadingCategories(false);
       }
@@ -256,12 +271,12 @@ const ServiceSection = () => {
 
         {/* Buy Refurbished */}
         <ReusableCategoryGrid
-          sectionTag="Buy Refurbished"
+          sectionTag="Buy & Repair"
           titleHighlight="Our"
           title="Services"
           loading={loadingCategories}
           categories={categories}
-          onItemClick={(category) => router.push(`/refurbish?category=${category.slug}`)}
+          onItemClick={(item) => router.push(item.href)}
           cardClassName="bg-[#FF69000D] group-hover:bg-[#FF69001A] p-2"
           wrapperClassName="w-[100px] sm:w-[100px]"
         />

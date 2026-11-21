@@ -254,7 +254,7 @@ const ImagePreviewModal = ({ isOpen, imageSrc, onClose }) => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
                           onClick={() => onImageClick(item.images[0])}
                         />
-                        <div onClick={() => onImageClick?.(item.images[0])} className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
+                        <div onClick={() => onImageClick?.(item.images[0])} className="cursor-pointer absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all flex items-center justify-center opacity-0 group-hover:opacity-100">
                           <Icon icon="heroicons:eye" className="w-6 h-6 text-white" />
                         </div>
                         {item.images.length > 1 && (

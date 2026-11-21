@@ -2,6 +2,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { Icon } from "@iconify/react";
 import SectionTag from "./sectoinTag";
 
 const ReusableCategoryGrid = ({
@@ -52,15 +53,22 @@ const ReusableCategoryGrid = ({
               onClick={() => onItemClick(item)}
             >
               <div className={`w-[70px] h-[70px] sm:w-[90px] sm:h-[90px] rounded-2xl flex items-center justify-center mb-3 transition-colors duration-300 ${cardClassName}`}>
-                <div className="relative w-full h-full">
-                  <Image
-                    src={item.image || "https://via.placeholder.com/150"}
-                    alt={item.name || "Category"}
-                    fill
-                    sizes="100px"
-                    className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
+                {item.image ? (
+                  <div className="relative w-full h-full">
+                    <Image
+                      src={item.image}
+                      alt={item.name || "Category"}
+                      fill
+                      sizes="100px"
+                      className="object-contain drop-shadow-sm group-hover:scale-110 transition-transform duration-300"
+                    />
+                  </div>
+                ) : (
+                  <Icon
+                    icon={item.icon || "mdi:shape-outline"}
+                    className="w-9 h-9 sm:w-11 sm:h-11 text-primary-600 group-hover:scale-110 transition-transform duration-300"
                   />
-                </div>
+                )}
               </div>
               <span className="text-[11px] sm:text-xs font-semibold text-gray-800 text-center leading-tight">
                 {item.name}

@@ -117,7 +117,7 @@ const blogs = [
 export default function TechRepairGuide() {
   const router=useRouter()
   const ArticleCard = ({ item, isLarge = false }) => (
-    <div onClick={()=>router.push("blog/slug")} className={`group  rounded-2xl overflow-hidden shadow hover:scale-[1.02] transition-transform duration-300 ${isLarge ? 'col-span-1' : ''}`}>
+    <div onClick={()=>router.push("blog/slug")} className={`cursor-pointer group  rounded-2xl overflow-hidden shadow hover:scale-[1.02] transition-transform duration-300 ${isLarge ? 'col-span-1' : ''}`}>
       <div className="relative h-56">
         <Image
           src={item.image}
@@ -140,7 +140,7 @@ export default function TechRepairGuide() {
   );
 
   const BlogCard = ({ item }) => (
-    <div onClick={()=>router.push("blog/slug")} className="group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
+    <div onClick={()=>router.push("blog/slug")} className="cursor-pointer group bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
       <div className="relative h-52">
         <Image
           src={item.image}
@@ -163,7 +163,7 @@ export default function TechRepairGuide() {
   );
 
  const Blog2Card = ({ item }) => (
-    <div onClick={()=>router.push("blog/slug")} className="group grid grid-cols-12 bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
+    <div onClick={()=>router.push("blog/slug")} className="cursor-pointer group grid grid-cols-12 bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all">
       <div className="relative h-52 col-span-5">
         <Image
           src={item.image}

@@ -1451,22 +1451,12 @@ export default function AiShoppingAssistant() {
               if (!hasLoadedHistoryRef.current) setIsLoadingHistory(true);
               setIsOpen(true);
             }}
-            className="group flex items-center gap-3 rounded-full border border-slate-200/80 bg-white pl-1.5 pr-4 py-1.5 shadow-[0_12px_40px_-8px_rgba(15,23,42,0.2)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.28)]"
+            className="group relative flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-[0_12px_40px_-8px_rgba(15,23,42,0.35)] transition hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.45)]"
             aria-label="Open AI shopping assistant"
+            title="AI Assistant"
           >
-            <span className="relative flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-primary-500 to-primary-700 text-white shadow-md shadow-primary-300/40">
-              <span className="absolute inset-0 animate-ping rounded-full bg-primary-400/30" />
-              <Icon icon="mdi:robot-outline" className="relative text-xl" />
-            </span>
-            <span className="text-left">
-              <span className="block text-[10px] font-semibold uppercase tracking-wider text-primary-600">
-                AI Assistant
-              </span>
-              <span className="block text-sm font-semibold text-slate-900">Search products</span>
-            </span>
-            <span className="ml-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary-50 text-primary-600 transition group-hover:bg-primary-100">
-              <Icon icon="mdi:chevron-right" className="text-lg" />
-            </span>
+            <span className="absolute inset-0 animate-ping rounded-full bg-primary-400/30" />
+            <Icon icon="mdi:robot-outline" className="relative text-2xl" />
           </motion.button>
         )}
       </AnimatePresence>

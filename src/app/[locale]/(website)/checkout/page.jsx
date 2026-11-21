@@ -743,7 +743,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
                 <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <div onClick={() => setSaveCard(s => !s)} className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${saveCard ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
+                  <div onClick={() => setSaveCard(s => !s)} className={`cursor-pointer w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${saveCard ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
                     {saveCard && <Icon icon="mdi:check" className="text-white text-xs" />}
                   </div>
                   <span className="text-sm text-gray-600">Save this information for next time</span>
