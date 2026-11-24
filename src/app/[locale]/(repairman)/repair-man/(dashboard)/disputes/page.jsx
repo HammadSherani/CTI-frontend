@@ -6,6 +6,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { Link } from '@/i18n/navigation';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
 const TABS = [
   { id: 'active', label: 'Active' },
@@ -43,9 +44,13 @@ export default function RepairmanDisputesPage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const load = useCallback(async (nextPage = 1) => {
+  // silent: reload page 1 without the spinner (live updates)
+  const load = useCallback(async (nextPage = 1, silent = false) => {
     if (!token) return;
-    nextPage === 1 ? setLoading(true) : setLoadingMore(true);
+    if (!silent) {
+      if (nextPage === 1) setLoading(true);
+      else setLoadingMore(true);
+    }
     try {
       const { data } = await axiosInstance.get('/disputes/my-disputes', {
         params: { status: tab, page: nextPage, limit: 10 },
@@ -66,6 +71,9 @@ export default function RepairmanDisputesPage() {
   useEffect(() => {
     load(1);
   }, [load]);
+
+  // Live: a dispute about one of my jobs was opened, answered or resolved
+  useDisputeLive(null, () => load(1, true));
 
   const countFor = (id) => (id === 'active' ? stats.active : id === 'resolved' ? stats.resolved : stats.total);
 

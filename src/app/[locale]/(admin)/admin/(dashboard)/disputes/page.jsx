@@ -5,6 +5,7 @@ import {Link} from '@/i18n/navigation';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
 
 const CATEGORY_OPTIONS = [
@@ -61,8 +62,9 @@ const AdminDisputes = () => {
 
     const { token } = useSelector((state) => state.auth);
 
-    const fetchDisputes = async () => {
-        setLoading(true);
+    // silent: reload without the table spinner (live updates)
+    const fetchDisputes = async (options) => {
+        if (options?.silent !== true) setLoading(true);
         try {
             const params = new URLSearchParams();
 
@@ -98,6 +100,9 @@ const AdminDisputes = () => {
     useEffect(() => {
         fetchDisputes();
     }, [filters]);
+
+    // Live: new disputes, replies and status changes update the list and the counters
+    useDisputeLive(null, () => fetchDisputes({ silent: true }));
 
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({

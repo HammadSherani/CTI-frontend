@@ -12,6 +12,7 @@ import { Icon } from '@iconify/react'
 import { useMultiLoading } from '@/hooks/useMultiloading'
 import ChatEvidence from '@/components/admin/ChatEvidence'
 import DisputeEvidence from '@/components/partials/DisputeEvidence'
+import useDisputeLive from '@/hooks/useDisputeLive'
 
 function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
@@ -37,9 +38,10 @@ function DisputesDetail() {
   const messagesEndRef = useRef(null)
   const { multiloading, start, stop } = useMultiLoading()
 
-  const fetchData = async () => {
+  // silent: reload without the full-page loader (live updates)
+  const fetchData = async (options) => {
     try {
-      setLoading(true)
+      if (options?.silent !== true) setLoading(true)
       const { data } = await axiosInstance.get(`/disputes/admin/${id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -57,6 +59,9 @@ function DisputesDetail() {
   useEffect(() => {
     fetchData()
   }, [])
+
+  // Live: replies from the customer / repairman, status and refund changes
+  useDisputeLive({ disputeId: id }, () => fetchData({ silent: true }))
 
   useEffect(() => {
     scrollToBottom()
@@ -184,14 +189,14 @@ function DisputesDetail() {
         toast.success('Resolution applied successfully')
         setShowResolutionModal(false)
         setResolutionData({ resolutionType: '', refundAmount: 0, notes: '' })
-        fetchData()
+        fetchData({ silent: true })
       }
     } catch (error) {
       handleError(error)
       // Refund not confirmed by Iyzico: close the modal and show the confirm box on the page
       if (error?.response?.status === 502) {
         setShowResolutionModal(false)
-        fetchData()
+        fetchData({ silent: true })
       }
     } finally {
       setUpdating(false)
@@ -214,7 +219,7 @@ function DisputesDetail() {
       if (data.success) {
         toast.success(data.message)
         setConfirmNote('')
-        fetchData()
+        fetchData({ silent: true })
       }
     } catch (error) {
       handleError(error)
@@ -254,7 +259,7 @@ function DisputesDetail() {
         toast.success('Reply sent to both sides')
         setAdminMessage('')
         setAdminFiles([])
-        fetchData()
+        fetchData({ silent: true })
       }
     } catch (error) {
       handleError(error)
@@ -351,7 +356,7 @@ console.log('Quotation Data:', quotationData);
     }
   }
 )
-fetchData()
+fetchData({ silent: true })
       console.log(data,"status change response")
     } catch (error) {
       handleError(error)

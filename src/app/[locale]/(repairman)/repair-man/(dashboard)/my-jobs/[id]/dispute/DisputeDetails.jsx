@@ -111,7 +111,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                 toast.success('Message sent successfully');
                 setMessage('');
                 setEvidenceFiles([]);
-                fetchJobDetails();
+                fetchJobDetails({ silent: true });
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to send message';

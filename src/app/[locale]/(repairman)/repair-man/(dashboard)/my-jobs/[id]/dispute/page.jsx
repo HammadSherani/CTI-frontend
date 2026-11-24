@@ -8,6 +8,7 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 import DisputeDetails from './DisputeDetails';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
 
 function RepairmanDispute() {
@@ -22,9 +23,10 @@ function RepairmanDispute() {
 
 
 
-    const fetchJobDetails = async () => {
+    // silent: reload without the full-page loader (after a reply / live updates)
+    const fetchJobDetails = async (options) => {
         try {
-            setLoading(true);
+            if (options?.silent !== true) setLoading(true);
             const { data } = await axiosInstance.get(`/repairman/my-booking/${id}/detail`, {
                 headers: {
                     'Authorization': 'Bearer ' + token,
@@ -48,6 +50,9 @@ function RepairmanDispute() {
     useEffect(() => {
         fetchJobDetails();
     }, [id]);
+
+    // Live: new replies, status changes, the decision (also a dispute the customer just opened)
+    useDisputeLive({ disputeId: dispute?._id, bookingId: id }, () => fetchJobDetails({ silent: true }));
 
 
 

@@ -11,6 +11,7 @@ import DisputeDetails from './DisputeDetails';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
 import DisputeResolutionCard from '@/components/partials/DisputeResolutionCard';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
 const DISPUTE_CATEGORIES = [
     { value: 'payment_issue', label: 'Payment Issue' },
@@ -58,6 +59,9 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     useEffect(() => {
         scrollToBottom();
     }, [dispute?.responses?.length]);
+
+    // Live: new replies, a dispute opened by the repairman, the decision
+    useDisputeLive({ disputeId: dispute?._id, bookingId }, () => fetchJob?.({ silent: true }));
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -178,7 +182,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                 toast.success('Message sent successfully');
                 setMessage('');
                 setEvidenceFiles([]);
-                fetchJob();
+                fetchJob({ silent: true });
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to send message');

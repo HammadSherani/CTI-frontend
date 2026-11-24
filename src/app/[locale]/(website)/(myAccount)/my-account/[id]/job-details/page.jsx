@@ -86,8 +86,10 @@ function JobDetails() {
         return `${days} DAYS, ${hours} HOURS`;
     }, []);
 
-    const fetchJob = useCallback(async () => {
-        setLoading(true);
+    // silent: reload without the full-page loader (live dispute updates)
+    const fetchJob = useCallback(async (options) => {
+        const silent = options?.silent === true;
+        if (!silent) setLoading(true);
         try {
             const res = await axiosInstance.get(`/repair-jobs/my-jobs/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
