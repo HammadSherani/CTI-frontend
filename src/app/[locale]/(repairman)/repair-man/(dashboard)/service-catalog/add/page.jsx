@@ -39,10 +39,12 @@ const serviceSchema = yup.object().shape({
       .number()
       .required('Base price is required')
       .positive('Base price must be greater than 0')
+      .max(1000000, 'Base price cannot be more than 1,000,000')
       .typeError('Base price must be a number'),
     partsPrice: yup
       .number()
       .min(0, 'Parts price cannot be negative')
+      .max(1000000, 'Parts price cannot be more than 1,000,000')
       .typeError('Parts price must be a number')
       .default(0),
     // serviceCharges: yup

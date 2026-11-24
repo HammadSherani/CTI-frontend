@@ -38,10 +38,12 @@ const serviceSchema = yup.object().shape({
       .number()
       .required('Base price is required')
       .positive('Base price must be greater than 0')
+      .max(1000000, 'Base price cannot be more than 1,000,000')
       .typeError('Base price must be a number'),
     partsPrice: yup
       .number()
       .min(0, 'Parts price cannot be negative')
+      .max(1000000, 'Parts price cannot be more than 1,000,000')
       .typeError('Parts price must be a number')
       .default(0),
     // serviceCharges: yup
@@ -306,6 +308,11 @@ function EditServicePage() {
                   {serviceData.status === 'rejected' && (
                     <p className="text-sm text-red-700 mt-1">
                       Your service will be resubmitted for approval after updating.
+                    </p>
+                  )}
+                  {serviceData.status === 'approved' && (
+                    <p className="text-sm text-green-800 mt-1">
+                      If you change anything, the service is hidden from customers until an admin approves the changes.
                     </p>
                   )}
                 </div>

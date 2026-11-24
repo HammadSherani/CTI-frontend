@@ -80,6 +80,7 @@ const primaryNavLinks = [
           { name: "Job Board", icon: "mdi:briefcase-outline", path: "/admin/job-board" },
           { name: "Quotations", icon: "mdi:receipt-text-outline", path: "/admin/quotations" },
           { name: "Ratings & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
+          { name: "Repairman Services", icon: "mdi:tools", path: "/admin/service-catalog" },
           { name: "Disputes", icon: "mdi:gavel", path: "/admin/disputes" },
           { name: "Repairman Debts", icon: "mdi:cash-minus", path: "/admin/earnings/owed" },
           { name: "Advertisement", icon: "mdi:advertisements", path: "/admin/advertisement" },

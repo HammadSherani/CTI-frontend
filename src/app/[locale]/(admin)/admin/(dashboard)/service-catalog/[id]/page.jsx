@@ -60,7 +60,6 @@ function ServiceCatalogDetail() {
             toast.success(`Service ${newStatus} successfully!`)
         } catch (error) {
             handleError(error)
-            toast.error('Failed to update status')
         } finally {
             setIsUpdating(false)
         }
