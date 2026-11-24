@@ -1,4 +1,5 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { isTokenExpired, clearStoredSession } from "@/helper/authToken";
 
 const isClient = typeof window !== "undefined";
 
@@ -6,7 +7,14 @@ const loadAuthState = () => {
   if (!isClient) return null;
   try {
     const serializedState = localStorage.getItem("auth");
-    return serializedState ? JSON.parse(serializedState) : null;
+    const saved = serializedState ? JSON.parse(serializedState) : null;
+    // Session from an earlier visit whose token has expired: start as a guest instead of
+    // sending the old token (which would fail with "Invalid token")
+    if (saved?.token && isTokenExpired(saved.token)) {
+      clearStoredSession();
+      return null;
+    }
+    return saved;
   } catch (error) {
     console.error("Error loading auth state from localStorage:", error);
     return null;

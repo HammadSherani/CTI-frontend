@@ -122,10 +122,9 @@ function AuthGuard({ children, allowedRoles = [], redirectTo = null, requireAuth
 
   useEffect(() => {
     // Listen for unauthorized event from axios
-    const handleUnauthorized = (event) => {
-      console.log("Caught unauthorized event, redirecting to:", event.detail.redirect);
-      dispatch(clearAuth()); // Ensure Redux state is cleared
-      router.push(event.detail.redirect); // Use router.push for client-side navigation
+    // Session ended: clear it; the check below then sends this (login-only) page to the login page
+    const handleUnauthorized = () => {
+      dispatch(clearAuth());
     };
 
     if (typeof window !== "undefined") {
