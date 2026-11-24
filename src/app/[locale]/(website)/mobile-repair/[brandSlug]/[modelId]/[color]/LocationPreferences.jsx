@@ -329,8 +329,14 @@ export const LocationPreferences = ({
                   pattern="[0-9]*"
                   type="number"
                   placeholder="Enter ZIP code"
-                  className="w-full p-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className={`w-full p-2 text-sm border rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 ${errors.location?.zipCode ? 'border-red-300' : 'border-gray-300'}`}
                 />
+                {errors.location?.zipCode && (
+                  <p className="mt-1 text-xs text-red-600 flex items-center gap-1">
+                    <Icon icon="mdi:alert-circle" />
+                    {errors.location.zipCode.message}
+                  </p>
+                )}
               </div>
             )}
           />

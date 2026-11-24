@@ -667,8 +667,9 @@ function NavigationBar({ isHome, isScrolled }) {
     }))
   }));
 
+  // The phone category is named "Sell Phone" in the DB; in the buy menu it must read "Phone".
   const REFURBISHED = buyRefurbishedData.map(cat => ({
-    name: cat.name,
+    name: ['phone', 'mobile-phone'].includes(cat.slug) ? 'Phone' : String(cat.name || '').replace(/^sell\s+/i, ''),
     href: `/refurbish?category=${cat.slug}`,
     brands: (cat.brands || []).map(b => ({
       name: b.name,

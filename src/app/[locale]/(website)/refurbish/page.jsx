@@ -6,6 +6,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
+import { getCurrencySymbol } from '@/helper/currencyFormatter';
 import { useRouter } from '@/i18n/navigation';
 
 const PAGE_SIZE = 10;
@@ -39,6 +40,9 @@ export default function RefurbishListingPage() {
   });
   const [priceMin, setPriceMin] = useState(0);
   const [priceMax, setPriceMax] = useState(150000);
+  // Currency label inside the price inputs; read after mount (depends on localStorage).
+  const [currencySymbol, setCurrencySymbol] = useState('TRY');
+  useEffect(() => { setCurrencySymbol(getCurrencySymbol() || 'TRY'); }, []);
   const [localPriceMin, setLocalPriceMin] = useState(0);
   const [localPriceMax, setLocalPriceMax] = useState(150000);
 
@@ -383,24 +387,26 @@ export default function RefurbishListingPage() {
                   <div className="flex-1">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Min</span>
                     <div className="relative mt-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{currencySymbol}</span>
                       <input
                         type="number"
                         value={localPriceMin}
                         onChange={(e) => { setLocalPriceMin(Number(e.target.value)); }}
-                        className="w-full pl-6 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
+                        style={{ paddingLeft: `${18 + currencySymbol.length * 8}px` }}
+                        className="w-full pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
                       />
                     </div>
                   </div>
                   <div className="flex-1">
                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Max</span>
                     <div className="relative mt-1">
-                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-450 text-xs">$</span>
+                      <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{currencySymbol}</span>
                       <input
                         type="number"
                         value={localPriceMax}
                         onChange={(e) => { setLocalPriceMax(Number(e.target.value)); }}
-                        className="w-full pl-6 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
+                        style={{ paddingLeft: `${18 + currencySymbol.length * 8}px` }}
+                        className="w-full pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs text-gray-800 font-medium focus:outline-none focus:border-primary-400 transition-colors"
                       />
                     </div>
                   </div>

@@ -66,16 +66,24 @@ const schema = yup.object().shape({
 
     zipCode: yup
       .string()
-      .matches(/^[0-9]{4,10}$/, "Invalid zip code")
-      .min(4, "Zip code must be at least 4 digits")
-      .max(10, "Zip code must be at most 10 digits")
-      .nullable(),    coordinates: yup.array().of(yup.number().optional()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
+      .transform((v) => (v === '' || v === null || v === undefined ? undefined : String(v)))
+      .matches(/^[0-9]{4,10}$/, "ZIP code must be 4-10 digits")
+      .notRequired()
+      .nullable(),
+    coordinates: yup.array().of(yup.number().optional()).length(2, 'Coordinates must contain exactly two values').nullable().optional(),
   }),
  
   preferredDate: yup
     .date()
     .typeError("Invalid date")
-    .min(new Date(), "Preferred date must be in the future")
+    .test("not-in-past", "Preferred date cannot be in the past", (value) => {
+      if (!value) return true;
+      const today = new Date();
+      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+      const picked = new Date(value);
+      const pickedStr = `${picked.getUTCFullYear()}-${String(picked.getUTCMonth() + 1).padStart(2, "0")}-${String(picked.getUTCDate()).padStart(2, "0")}`;
+      return pickedStr >= todayStr;
+    })
     .required("Preferred date is required"),
   servicePreference: yup.string().required('Service preference is required'),
   selectedServices: yup.array().min(1, 'At least one service must be selected').required('Please select at least one service'),
@@ -296,11 +304,15 @@ const CreateRepairJobForm = () => {
       isValid = await trigger(['description', 'deviceInfo.warrantyStatus', 'urgency']);
       if (isValid) {
         setCurrentStep(3);
+      } else {
+        toast.error('Please fix the highlighted fields before continuing.');
       }
     } else if (currentStep === 3) {
       isValid = await trigger(['location', 'preferredDate', 'servicePreference']);
       if (isValid) {
         setCurrentStep(4);
+      } else {
+        toast.error('Please fix the highlighted fields before continuing.');
       }
     }
   };

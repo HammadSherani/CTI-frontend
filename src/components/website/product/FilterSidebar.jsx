@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import axiosInstance from "@/config/axiosInstance";
 import { Icon } from '@iconify/react';
-import { formatCurrency } from '@/helper/currencyFormatter';
+import { formatCurrency, getCurrencySymbol } from '@/helper/currencyFormatter';
 import SimpleBar from 'simplebar-react';
 import 'simplebar-react/dist/simplebar.min.css';
 
@@ -144,6 +144,11 @@ export default function FilterSidebar({
   const [selectedStockStatuses, setSelectedStockStatuses] = useState([]);
   const [selectedWarrantyTypes, setSelectedWarrantyTypes] = useState([]);
   const [rating, setRating] = useState(0);
+  // Currency label shown inside the price inputs ("TRY", "Rs", "$"). Read after mount
+  // (it depends on localStorage), and the left padding grows with the label's length.
+  const [currencySymbol, setCurrencySymbol] = useState('TRY');
+  useEffect(() => { setCurrencySymbol(getCurrencySymbol() || 'TRY'); }, []);
+  const priceInputPad = `${18 + currencySymbol.length * 8}px`;
   const [localPriceMin, setLocalPriceMin] = useState(MIN_PRICE);
   const [localPriceMax, setLocalPriceMax] = useState(MAX_PRICE);
   const [priceMin, setPriceMin] = useState(MIN_PRICE);
@@ -574,18 +579,20 @@ export default function FilterSidebar({
               </div>
               <div className="flex items-center gap-2 mt-4">
                 <div className="flex-1 relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{formatCurrency(0).replace(/[0-9.,]/g, '').trim()}</span>
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{currencySymbol}</span>
                   <input type="number" min={MIN_PRICE} max={localPriceMax - 10} value={localPriceMin}
                     onChange={e => setLocalPriceMin(Math.min(Number(e.target.value), localPriceMax - 10))}
-                    className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                    style={{ paddingLeft: priceInputPad }}
+                    className="w-full pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
                   />
                 </div>
                 <span className="text-gray-400 text-sm font-medium">–</span>
                 <div className="flex-1 relative">
-                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-sm">{formatCurrency(0).replace(/[0-9.,]/g, '').trim()}</span>
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-medium">{currencySymbol}</span>
                   <input type="number" min={localPriceMin + 10} max={MAX_PRICE} value={localPriceMax}
                     onChange={e => setLocalPriceMax(Math.max(Number(e.target.value), localPriceMin + 10))}
-                    className="w-full pl-6 pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
+                    style={{ paddingLeft: priceInputPad }}
+                    className="w-full pr-2 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-primary-400 font-medium"
                   />
                 </div>
               </div>

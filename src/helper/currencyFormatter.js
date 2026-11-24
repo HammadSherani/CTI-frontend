@@ -17,3 +17,6 @@ export const formatCurrency = (amount) => {
   // Fallback to USD
   return `$${val.toFixed(2)}`;
 };
+
+// Just the currency label (e.g. "TRY", "Rs", "$"), for input prefixes.
+export const getCurrencySymbol = () => formatCurrency(0).replace(/[0-9.,\s]/g, '');
