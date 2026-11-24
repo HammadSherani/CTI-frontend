@@ -54,8 +54,8 @@ function Header() {
   const dropdownLinks = [
     { name: "Profile Settings", path: "/repair-man/profile", icon: "solar:user-id-bold-duotone" },
     { name: "Service Catalog", path: "/repair-man/service-catalog", icon: "solar:settings-bold-duotone" },
-    { name: "Disputes", path: "/disputes", icon: "solar:shield-warning-bold-duotone" },
-    { name: "Earnings", path: "/earning", icon: "solar:graph-new-up-bold-duotone" },
+    { name: "Disputes", path: "/repair-man/disputes", icon: "solar:shield-warning-bold-duotone" },
+    { name: "Earnings", path: "/repair-man/earning", icon: "solar:graph-new-up-bold-duotone" },
     { name: "Help & Support", path: "/help-support", icon: "solar:question-circle-bold-duotone" },
     { name: "Sign Out", path: "/auth/logout", icon: "solar:logout-3-bold-duotone", isLogout: true },
   ];

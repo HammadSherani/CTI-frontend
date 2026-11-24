@@ -11,6 +11,7 @@ import StatusBadge from '@/components/partials/customer/Offer/StatusBadge'
 import { Icon } from '@iconify/react'
 import { useMultiLoading } from '@/hooks/useMultiloading'
 import ChatEvidence from '@/components/admin/ChatEvidence'
+import DisputeEvidence from '@/components/partials/DisputeEvidence'
 
 function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
@@ -23,6 +24,13 @@ function DisputesDetail() {
     refundAmount: 0,
     notes: ''
   })
+  const [financials, setFinancials] = useState(null)
+  const [preview, setPreview] = useState(null)
+  const [previewError, setPreviewError] = useState('')
+  const [adminMessage, setAdminMessage] = useState('')
+  const [adminFiles, setAdminFiles] = useState([])
+  const [sendingReply, setSendingReply] = useState(false)
+  const adminFileRef = useRef(null)
   const { id } = useParams()
   const { token } = useSelector((state) => state.auth)
   const router = useRouter()
@@ -38,6 +46,7 @@ function DisputesDetail() {
         }
       })
       setDispute(data.data)
+      setFinancials(data.financials || null)
     } catch (error) {
       handleError(error)
     } finally {
@@ -52,6 +61,31 @@ function DisputesDetail() {
   useEffect(() => {
     scrollToBottom()
   }, [dispute?.responses, dispute?.evidenceFiles])
+
+  // Live preview of who pays what for the chosen resolution (computed by the server)
+  const needsAmount = ['refund_partial', 'mutual_agreement'].includes(resolutionData.resolutionType)
+  useEffect(() => {
+    if (!showResolutionModal || !resolutionData.resolutionType) {
+      setPreview(null)
+      setPreviewError('')
+      return
+    }
+    const amount = needsAmount ? Number(resolutionData.refundAmount) || 0 : 0
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await axiosInstance.get(`/disputes/admin/${id}/preview`, {
+          params: { resolutionType: resolutionData.resolutionType, refundAmount: amount },
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        setPreview(data.data)
+        setPreviewError('')
+      } catch (error) {
+        setPreview(null)
+        setPreviewError(error?.response?.data?.message || 'Could not calculate this resolution')
+      }
+    }, 350)
+    return () => clearTimeout(timer)
+  }, [showResolutionModal, resolutionData.resolutionType, resolutionData.refundAmount])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -105,19 +139,35 @@ function DisputesDetail() {
       return
     }
 
-    if (resolutionData.resolutionType === 'refund_partial' && !resolutionData.refundAmount) {
+    if (resolutionData.resolutionType === 'refund_partial' && !(Number(resolutionData.refundAmount) > 0)) {
       toast.error('Please enter refund amount for partial refund')
       return
     }
+
+    if (!resolutionData.notes.trim()) {
+      toast.error('Please write a short note explaining the decision (both sides will see it)')
+      return
+    }
+
+    if (previewError) {
+      toast.error(previewError)
+      return
+    }
+
+    const refund = preview?.refundAmount || 0
+    const confirmText = refund > 0
+      ? `${currencySymbol}${refund} will be refunded to the customer's card now. This cannot be undone. Continue?`
+      : 'Apply this resolution? This cannot be undone.'
+    if (!window.confirm(confirmText)) return
 
     try {
       setUpdating(true)
       const payload = {
         resolutionType: resolutionData.resolutionType,
-        ...(resolutionData.resolutionType === 'refund_partial' && { 
-          refundAmount: parseFloat(resolutionData.refundAmount) 
+        ...(needsAmount && {
+          refundAmount: Number(resolutionData.refundAmount) || 0
         }),
-        ...(resolutionData.notes && { notes: resolutionData.notes })
+        resolutionNotes: resolutionData.notes.trim()
       }
 
       const { data } = await axiosInstance.post(
@@ -138,8 +188,78 @@ function DisputesDetail() {
       }
     } catch (error) {
       handleError(error)
+      // Refund not confirmed by Iyzico: close the modal and show the confirm box on the page
+      if (error?.response?.status === 502) {
+        setShowResolutionModal(false)
+        fetchData()
+      }
     } finally {
       setUpdating(false)
+    }
+  }
+
+  // After an unconfirmed refund: admin checked the Iyzico panel
+  const [confirmNote, setConfirmNote] = useState('')
+  const [confirming, setConfirming] = useState('')
+  const confirmRefund = async (outcome) => {
+    const question = outcome === 'refunded'
+      ? 'Confirm that the refund IS visible in the Iyzico panel? The dispute will be resolved without refunding again.'
+      : 'Confirm that the refund is NOT in the Iyzico panel? You can then resolve the dispute again.'
+    if (!window.confirm(question)) return
+    try {
+      setConfirming(outcome)
+      const { data } = await axiosInstance.post(`/disputes/${id}/confirm-refund`, { outcome, note: confirmNote.trim() }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (data.success) {
+        toast.success(data.message)
+        setConfirmNote('')
+        fetchData()
+      }
+    } catch (error) {
+      handleError(error)
+    } finally {
+      setConfirming('')
+    }
+  }
+
+  // Admin reply in the dispute conversation (both parties get a notification)
+  const handleAdminFiles = (e) => {
+    const picked = Array.from(e.target.files || []).filter((file) => {
+      const okType = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'].includes(file.type)
+      const okSize = file.size <= 5 * 1024 * 1024
+      if (!okType) toast.error(`${file.name}: only JPG, PNG, WEBP or PDF`)
+      else if (!okSize) toast.error(`${file.name} is larger than 5MB`)
+      return okType && okSize
+    })
+    setAdminFiles((prev) => [...prev, ...picked].slice(0, 5))
+    e.target.value = ''
+  }
+
+  const sendAdminReply = async () => {
+    const text = adminMessage.trim()
+    if (!text) {
+      toast.error('Please write a message')
+      return
+    }
+    try {
+      setSendingReply(true)
+      const form = new FormData()
+      form.append('message', text)
+      adminFiles.forEach((file) => form.append('evidence', file))
+      const { data } = await axiosInstance.post(`/disputes/${id}/admin-response`, form, {
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
+      })
+      if (data.success) {
+        toast.success('Reply sent to both sides')
+        setAdminMessage('')
+        setAdminFiles([])
+        fetchData()
+      }
+    } catch (error) {
+      handleError(error)
+    } finally {
+      setSendingReply(false)
     }
   }
 
@@ -213,8 +333,11 @@ console.log('Quotation Data:', quotationData);
     )
   }
 
-  const currencySymbol = dispute.bookingId?.bookingDetails?.pricing?.currency === 'TRY' ? '₺' : '$'
-  const totalAmount = dispute.bookingId?.bookingDetails?.pricing?.totalAmount || 0
+  const currency = financials?.currency || dispute.bookingId?.bookingDetails?.pricing?.currency || 'TRY'
+  const currencySymbol = currency === 'TRY' ? '₺' : currency === 'EUR' ? '€' : '$'
+  const totalAmount = financials?.paid ?? (dispute.bookingId?.bookingDetails?.pricing?.totalAmount || 0)
+  const refundable = financials?.refundable ?? totalAmount
+  const isResolved = ['resolved', 'closed'].includes(dispute.status)
 
   const handleStatusChange=async()=>{
      try {
@@ -269,7 +392,7 @@ fetchData()
             
             {dispute.status!=="open" && (
               <button   className={`px-4 py-2 bg-primary-600 rounded-full  text-white  hover:bg-primary-700 transition-colors font-medium text-sm opacity-75`}>
-              {dispute.status==="open" ? "Open" : dispute.status==="under_review" ? "Under Review" : "Resolved"}
+              {dispute.status==="open" ? "Open" : dispute.status==="under_review" ? "Under Review" : dispute.status==="resolving" ? "Resolving..." : "Resolved"}
             </button>
             )}
 
@@ -288,8 +411,8 @@ fetchData()
             </button>
             )}
        
-            <button disabled={dispute.status==="resolved"} title='Add Resolution'  onClick={() => setShowResolutionModal(true)}
-                 className="ml-2 px-4 py-2 flex items-center bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm">
+            <button disabled={isResolved || dispute.status==="resolving" || Boolean(dispute.pendingRefund?.amount)} title='Add Resolution'  onClick={() => setShowResolutionModal(true)}
+                 className="ml-2 px-4 py-2 flex items-center bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed">
                               <Icon icon="heroicons:plus" className="w-4 h-4 mr-1" />
 
               Add Resolution
@@ -298,6 +421,75 @@ fetchData()
 
 
           </div>
+
+          {/* Refund sent but not confirmed by Iyzico: admin must check and confirm */}
+          {dispute.pendingRefund?.amount > 0 && (
+            <div className="mb-4 rounded-lg border-2 border-red-300 bg-red-50 p-4">
+              <div className="flex items-start gap-3">
+                <Icon icon="heroicons:exclamation-triangle" className="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-red-900">Refund not confirmed</p>
+                  <p className="text-sm text-red-800 mt-1">
+                    A refund of {currencySymbol}{dispute.pendingRefund.amount} ({getResolutionTypeLabel(dispute.pendingRefund.resolutionType)}) was sent on{' '}
+                    {formatFullDate(dispute.pendingRefund.attemptedAt)}, but Iyzico did not answer. Open this payment in the Iyzico panel and check whether the refund is there.
+                  </p>
+                  <input
+                    type="text"
+                    value={confirmNote}
+                    onChange={(e) => setConfirmNote(e.target.value)}
+                    maxLength={500}
+                    placeholder="Optional note (e.g. what you saw in the Iyzico panel)"
+                    className="mt-3 w-full px-3 py-2 border border-red-200 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-300"
+                  />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => confirmRefund('refunded')}
+                      disabled={Boolean(confirming)}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {confirming === 'refunded' ? 'Saving...' : 'Refund is in Iyzico: finish the resolution'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => confirmRefund('not_refunded')}
+                      disabled={Boolean(confirming)}
+                      className="px-4 py-2 bg-white border border-red-300 text-red-700 rounded-lg text-sm font-medium hover:bg-red-100 disabled:opacity-50"
+                    >
+                      {confirming === 'not_refunded' ? 'Saving...' : 'Refund is not there: let me resolve again'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Deadlines (only while the dispute is active) */}
+          {['open', 'under_review', 'pending'].includes(dispute.status) && dispute.deadlines && (() => {
+            const now = new Date()
+            const otherId = dispute.againstUser?.userId?._id || dispute.againstUser?.userId
+            const answered = (dispute.responses || []).some((r) => String(r.respondedBy?.userId?._id || r.respondedBy?.userId) === String(otherId))
+            const respDue = dispute.deadlines.responseDeadline && new Date(dispute.deadlines.responseDeadline)
+            const resDue = dispute.deadlines.resolutionDeadline && new Date(dispute.deadlines.resolutionDeadline)
+            const fmt = (d) => d.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+            const overdue = resDue && resDue < now
+            return (
+              <div className={`mb-4 rounded-lg border px-4 py-3 text-sm flex flex-wrap gap-x-6 gap-y-1 ${overdue ? 'bg-red-50 border-red-200 text-red-800' : 'bg-amber-50 border-amber-200 text-amber-900'}`}>
+                {respDue && (
+                  <span>
+                    <strong className="capitalize">{dispute.againstUser?.userType}</strong> reply:{' '}
+                    {answered ? 'answered ✓' : respDue < now ? `no answer (was due ${fmt(respDue)})` : `due ${fmt(respDue)}`}
+                  </span>
+                )}
+                {resDue && (
+                  <span>
+                    Decision: {overdue ? <strong>overdue since {fmt(resDue)}</strong> : `due ${fmt(resDue)}`}
+                  </span>
+                )}
+                {dispute.isEscalated && <span className="font-semibold">Escalated</span>}
+              </div>
+            )
+          })()}
 
                    {updating && (
             <div className="mt-3 flex items-center justify-center text-primary-100">
@@ -331,16 +523,39 @@ fetchData()
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    {(dispute.resolution.resolutionType === 'refund_full' || 
-                      dispute.resolution.resolutionType === 'refund_partial') && (
+                    {dispute.resolution.refundAmount > 0 && (
                       <div className="bg-white rounded-lg p-4 border border-green-200">
-                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Refund Amount</span>
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Refunded to customer</span>
                         <p className="text-2xl font-bold text-green-600 mt-1">
-                          {currencySymbol}{dispute.resolution.refundAmount || totalAmount}
+                          {currencySymbol}{dispute.resolution.refundAmount}
                         </p>
-                        {dispute.resolution.resolutionType === 'refund_full' && (
-                          <p className="text-xs text-gray-600 mt-1">Full booking amount</p>
-                        )}
+                        <p className="text-xs text-gray-600 mt-1">
+                          {currencySymbol}{dispute.resolution.fromRepairman || 0} from the repairman
+                          {dispute.resolution.fromPlatform > 0 && `, ${currencySymbol}${dispute.resolution.fromPlatform} from the platform`}
+                        </p>
+                      </div>
+                    )}
+
+                    {['refund_partial', 'mutual_agreement', 'pay_repairman'].includes(dispute.resolution.resolutionType) && (
+                      <div className="bg-white rounded-lg p-4 border border-green-200">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Paid to repairman</span>
+                        <p className="text-2xl font-bold text-blue-600 mt-1">
+                          {currencySymbol}{dispute.resolution.repairmanPaid || 0}
+                        </p>
+                      </div>
+                    )}
+
+                    {(dispute.resolution.walletDebited > 0 || dispute.resolution.walletOwed > 0) && (
+                      <div className="bg-white rounded-lg p-4 border border-amber-200">
+                        <span className="text-xs font-medium text-gray-500 uppercase tracking-wide">Taken back from repairman wallet</span>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {currencySymbol}{dispute.resolution.walletDebited || 0}
+                          {dispute.resolution.walletOwed > 0 && (
+                            <span className="block text-amber-700 font-normal text-xs mt-1">
+                              {currencySymbol}{dispute.resolution.walletOwed} still owed (taken from the next earnings)
+                            </span>
+                          )}
+                        </p>
                       </div>
                     )}
 
@@ -354,13 +569,13 @@ fetchData()
                     )}
                   </div>
 
-                  {dispute.resolution.notes && (
+                  {(dispute.resolution.resolutionNotes || dispute.resolution.notes) && (
                     <div className="mt-4 pt-4 border-t border-green-200">
                       <span className="text-xs font-medium text-gray-500 uppercase tracking-wide block mb-2">
-                        Admin Notes
+                        Decision note (shown to both sides)
                       </span>
-                      <p className="text-sm text-gray-700 leading-relaxed">
-                        {dispute.resolution.notes}
+                      <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-line">
+                        {dispute.resolution.resolutionNotes || dispute.resolution.notes}
                       </p>
                     </div>
                   )}
@@ -395,11 +610,15 @@ fetchData()
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-blue-900 font-medium">Total Booking Amount</p>
-                      <p className="text-xs text-blue-700 mt-0.5">Maximum refundable amount</p>
+                      <p className="text-sm text-blue-900 font-medium">Refundable now</p>
+                      <p className="text-xs text-blue-700 mt-0.5">
+                        Paid {currencySymbol}{totalAmount}
+                        {financials?.alreadyRefunded > 0 && ` · already refunded ${currencySymbol}${financials.alreadyRefunded}`}
+                        {financials?.earning && ` · repairman earning ${currencySymbol}${financials.earning.netEarning} (${financials.earning.status})`}
+                      </p>
                     </div>
                     <p className="text-2xl font-bold text-blue-600">
-                      {currencySymbol}{totalAmount}
+                      {currencySymbol}{refundable}
                     </p>
                   </div>
                 </div>
@@ -444,11 +663,11 @@ fetchData()
                                 {getResolutionTypeLabel(type)}
                               </p>
                               <p className="text-xs text-gray-500 mt-0.5">
-                                {type === 'refund_full' && 'Refund the entire booking amount to the customer'}
-                                {type === 'refund_partial' && 'Refund a partial amount to the customer'}
-                                {type === 'pay_repairman' && 'Release payment to the repairman'}
-                                {type === 'no_action' && 'No financial action required'}
-                                {type === 'mutual_agreement' && 'Both parties have agreed on a resolution'}
+                                {type === 'refund_full' && 'Refund everything left to the customer. The repairman earns nothing for this job.'}
+                                {type === 'refund_partial' && 'Refund part of it. Taken from the repairman\'s earning first; the rest is paid out and the job closes.'}
+                                {type === 'pay_repairman' && 'No refund. The earning is released to the repairman and the job closes.'}
+                                {type === 'no_action' && 'Dismiss the dispute. The job continues where it was (confirm / auto-release).'}
+                                {type === 'mutual_agreement' && 'Both sides agreed: refund the agreed amount (0 allowed), pay out the rest, close the job.'}
                               </p>
                             </div>
                           </div>
@@ -459,10 +678,11 @@ fetchData()
                 </div>
 
                 {/* Refund Amount Input (Only for partial refund) */}
-                {resolutionData.resolutionType === 'refund_partial' && (
+                {needsAmount && (
                   <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Refund Amount <span className="text-red-500">*</span>
+                      {resolutionData.resolutionType === 'mutual_agreement' ? 'Agreed refund amount' : 'Refund Amount'}
+                      {resolutionData.resolutionType === 'refund_partial' && <span className="text-red-500"> *</span>}
                     </label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
@@ -471,7 +691,7 @@ fetchData()
                       <input
                         type="number"
                         min="0"
-                        max={totalAmount}
+                        max={refundable}
                         step="0.01"
                         value={resolutionData.refundAmount}
                         onChange={(e) => setResolutionData({ ...resolutionData, refundAmount: e.target.value })}
@@ -480,15 +700,48 @@ fetchData()
                       />
                     </div>
                     <p className="text-xs text-gray-600 mt-2">
-                      Maximum refundable: {currencySymbol}{totalAmount}
+                      Maximum refundable: {currencySymbol}{refundable}
                     </p>
                   </div>
                 )}
 
+                {/* What this resolution does with the money (server preview) */}
+                {resolutionData.resolutionType && (previewError ? (
+                  <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
+                    {previewError}
+                  </div>
+                ) : preview && (
+                  <div className="mb-6 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
+                    <p className="font-semibold text-gray-900 mb-2">What happens</p>
+                    <div className="grid grid-cols-2 gap-y-1.5">
+                      <span className="text-gray-600">Back to the customer&apos;s card</span>
+                      <span className="text-right font-semibold text-green-700">{currencySymbol}{preview.refundAmount}</span>
+                      {preview.refundAmount > 0 && (
+                        <>
+                          <span className="text-gray-600">from the repairman&apos;s earning</span>
+                          <span className="text-right">{currencySymbol}{preview.fromRepairman}</span>
+                          <span className="text-gray-600">from the platform (commission/parts)</span>
+                          <span className="text-right">{currencySymbol}{preview.fromPlatform}</span>
+                        </>
+                      )}
+                      <span className="text-gray-600">Repairman receives</span>
+                      <span className="text-right font-semibold text-blue-700">
+                        {preview.releasesEarning ? `${currencySymbol}${preview.repairmanGets}` : resolutionData.resolutionType === 'no_action' ? 'later (normal flow)' : `${currencySymbol}0`}
+                      </span>
+                    </div>
+                    {preview.earningAlreadyReleased && preview.fromRepairman > 0 && (
+                      <p className="mt-3 text-xs text-amber-700">
+                        The earning was already paid out, so {currencySymbol}{preview.fromRepairman} is taken back from the repairman&apos;s wallet. Whatever they already withdrew is recorded as owed and taken from their next earnings.
+                      </p>
+                    )}
+                  </div>
+                ))}
+
                 {/* Admin Notes */}
                 <div className="mb-6">
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Admin Notes (Optional)
+                    Decision note <span className="text-red-500">*</span>
+                    <span className="block text-xs font-normal text-gray-500">The customer and the repairman both see this.</span>
                   </label>
                   <textarea
                     value={resolutionData.notes}
@@ -512,7 +765,7 @@ fetchData()
                   </button>
                   <button
                     onClick={handleResolutionSubmit}
-                    disabled={updating || !resolutionData.resolutionType}
+                    disabled={updating || !resolutionData.resolutionType || !resolutionData.notes.trim() || Boolean(previewError)}
                     className="flex-1 px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium flex items-center justify-center"
                   >
                     {updating ? (
@@ -720,19 +973,24 @@ fetchData()
                         </span>
                       </div>
                       <p className="text-gray-700 leading-relaxed">{dispute.description}</p>
+                      <DisputeEvidence files={dispute.evidenceFiles} className="mt-3" />
                     </div>
                   </div>
 
                   {/* Responses */}
-                  {dispute.responses?.map((response, index) => (
-                    <div key={index} className="relative flex gap-4 mb-6">
-                      <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-400 to-primary-500 flex items-center justify-center shadow-lg shadow-primary-200">
-                        <Icon icon="heroicons:user" className="w-8 h-8 text-white" />
+                  {dispute.responses?.map((response, index) => {
+                    const fromAdmin = response.respondedBy?.userType === 'admin'
+                    return (
+                    <div key={response._id || index} className="relative flex gap-4 mb-6">
+                      <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg ${fromAdmin ? 'bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-emerald-200' : 'bg-gradient-to-br from-primary-400 to-primary-500 shadow-primary-200'}`}>
+                        <Icon icon={fromAdmin ? 'heroicons:shield-check' : 'heroicons:user'} className="w-8 h-8 text-white" />
                       </div>
-                      <div className="flex-1 bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+                      <div className={`flex-1 rounded-2xl p-5 border shadow-sm ${fromAdmin ? 'bg-emerald-50 border-emerald-200' : 'bg-white border-gray-200'}`}>
                         <div className="flex items-center justify-between mb-3">
                           <div>
-                            <h4 className="font-semibold text-gray-900">{response.respondedBy?.userId?.name}</h4>
+                            <h4 className="font-semibold text-gray-900">
+                              {fromAdmin ? `CTI Support${response.respondedBy?.userId?.name ? ` (${response.respondedBy.userId.name})` : ''}` : response.respondedBy?.userId?.name}
+                            </h4>
                             <p className="text-sm text-gray-500 flex items-center gap-2">
                               <span className="capitalize">{response.respondedBy?.userType}</span>
                               <span>•</span>
@@ -778,9 +1036,64 @@ fetchData()
                         )}
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
                 <div ref={messagesEndRef} />
+
+                {/* Admin reply box */}
+                {['resolved', 'closed', 'resolving'].includes(dispute.status) ? (
+                  <p className="text-sm text-gray-500 text-center bg-gray-50 border border-gray-200 rounded-xl py-3">
+                    This dispute is closed. No more messages can be sent.
+                  </p>
+                ) : (
+                  <div className="border border-gray-200 rounded-2xl p-4 bg-gray-50">
+                    <p className="text-sm font-semibold text-gray-800 mb-2">Reply as CTI Support</p>
+                    <p className="text-xs text-gray-500 mb-3">The customer and the repairman both see this message and get a notification.</p>
+                    {adminFiles.length > 0 && (
+                      <div className="mb-3 flex flex-wrap gap-2">
+                        {adminFiles.map((file, i) => (
+                          <span key={i} className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+                            <Icon icon={file.type.startsWith('image/') ? 'heroicons:photo' : 'heroicons:document-text'} className="w-4 h-4 text-gray-500" />
+                            <span className="max-w-[140px] truncate">{file.name}</span>
+                            <button type="button" onClick={() => setAdminFiles((prev) => prev.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700" aria-label="Remove file">
+                              <Icon icon="heroicons:x-mark" className="w-4 h-4" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <textarea
+                      value={adminMessage}
+                      onChange={(e) => setAdminMessage(e.target.value)}
+                      rows={3}
+                      maxLength={2000}
+                      placeholder="Ask a question or share an update..."
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none bg-white"
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => adminFileRef.current?.click()}
+                        disabled={sendingReply || adminFiles.length >= 5}
+                        className="flex items-center gap-1 text-sm text-gray-600 hover:text-primary-600 disabled:opacity-50"
+                      >
+                        <Icon icon="heroicons:paper-clip" className="w-5 h-5" />
+                        Attach (max 5)
+                      </button>
+                      <input ref={adminFileRef} type="file" multiple accept="image/jpeg,image/png,image/webp,application/pdf" className="hidden" onChange={handleAdminFiles} />
+                      <button
+                        type="button"
+                        onClick={sendAdminReply}
+                        disabled={sendingReply || !adminMessage.trim()}
+                        className="px-5 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm font-medium"
+                      >
+                        <Icon icon={sendingReply ? 'heroicons:arrow-path' : 'heroicons:paper-airplane'} className={`w-4 h-4 ${sendingReply ? 'animate-spin' : ''}`} />
+                        {sendingReply ? 'Sending...' : 'Send reply'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
