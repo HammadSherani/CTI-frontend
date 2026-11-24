@@ -81,6 +81,7 @@ const primaryNavLinks = [
           { name: "Quotations", icon: "mdi:receipt-text-outline", path: "/admin/quotations" },
           { name: "Ratings & Reviews", icon: "mdi:star-outline", path: "/admin/rating-and-reviews" },
           { name: "Disputes", icon: "mdi:gavel", path: "/admin/disputes" },
+          { name: "Repairman Debts", icon: "mdi:cash-minus", path: "/admin/earnings/owed" },
           { name: "Advertisement", icon: "mdi:advertisements", path: "/admin/advertisement" },
         ],
       },
