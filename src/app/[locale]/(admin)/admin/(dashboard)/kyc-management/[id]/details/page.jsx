@@ -4,11 +4,12 @@ import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { useParams } from 'next/navigation';
 import {useRouter} from '@/i18n/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import FieldReviewModal from '@/components/admin/FieldReviewModal';
+import { useSocket } from '@/contexts/SocketProvider';
 import Image from 'next/image';
 
 // Enhanced Input Field Component with Selection
@@ -356,6 +357,7 @@ function KycRepairmanDetail() {
   const { id } = useParams();
   const router = useRouter();
   const { token } = useSelector(state => state.auth);
+  const { socket } = useSocket() || {};
 
   const tabs = [
     { id: 'personal', label: 'Personal Info', icon: 'mdi:account', order: 1 },
@@ -369,27 +371,64 @@ function KycRepairmanDetail() {
   const currentTabIndex = tabs.findIndex(t => t.id === activeTab) + 1;
   const totalTabs = tabs.length;
 
-  const fetchRepairman = async () => {
+  // `silent` refreshes in the background (no full-page loader, and it never overwrites a
+  // status the admin is in the middle of choosing) — used by the live updates below.
+  const modalOpenRef = useRef(false);
+  modalOpenRef.current = showReasonModal || showReviewModal || showFieldReview;
+  const requestIdRef = useRef(0);
+
+  const fetchRepairman = useCallback(async ({ silent = false } = {}) => {
+    const requestId = ++requestIdRef.current;
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const response = await axiosInstance.get(`/admin/repairman/new-repairmans/${id}`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
-      console.log('API Response:', response.data);
+      if (requestId !== requestIdRef.current) return; // a newer request already won
       const repairmanData = response.data.data;
-      console.log('Repairman Data:', repairmanData);
       setData(repairmanData);
-      setSelectedStatus(repairmanData?.repairmanProfile?.kycStatus || 'pending');
+      if (!silent || !modalOpenRef.current) {
+        setSelectedStatus(repairmanData?.repairmanProfile?.kycStatus || 'pending');
+      }
     } catch (error) {
-      handleError(error);
+      if (!silent) handleError(error);
     } finally {
-      setLoading(false);
+      if (!silent && requestId === requestIdRef.current) setLoading(false);
     }
-  };
+  }, [id, token]);
 
   useEffect(() => {
     fetchRepairman();
-  }, []);
+  }, [fetchRepairman]);
+
+  // Live update: the repairman saved their profile (e.g. after a revision was requested)
+  useEffect(() => {
+    if (!socket) return;
+    const onUpdated = (payload) => {
+      if (payload?.repairmanId !== id) return;
+      fetchRepairman({ silent: true });
+      toast.info(
+        payload.wasInRevision
+          ? 'The repairman submitted the requested corrections — data refreshed.'
+          : 'The repairman updated their profile — data refreshed.'
+      );
+    };
+    socket.on('repairman_profile_updated', onUpdated);
+    return () => socket.off('repairman_profile_updated', onUpdated);
+  }, [socket, id, fetchRepairman]);
+
+  // Safety net (socket down / tab was in the background): refresh when the admin comes back.
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState === 'visible') fetchRepairman({ silent: true });
+    };
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      document.removeEventListener('visibilitychange', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [fetchRepairman]);
 
   const handleStatusChange = (e) => {
     const newStatus = e.target.value;

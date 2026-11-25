@@ -3,31 +3,15 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-const LOCALES = ["tr", "en"];
-const LOCALE_STORAGE_KEY = "preferredLocale";
+// The site always opens in Turkish. Switching to English is an explicit choice made with the
+// language switcher, which navigates straight to /en/... (so it does not depend on this page).
 const DEFAULT_LOCALE = "tr";
-
-const getPreferredLocale = () => {
-  if (typeof window === "undefined") {
-    return DEFAULT_LOCALE;
-  }
-
-  // If user has explicitly selected a locale before
-  const storedLocale = window.localStorage.getItem(LOCALE_STORAGE_KEY);
-  if (storedLocale && LOCALES.includes(storedLocale)) {
-    return storedLocale;
-  }
-
-  // By default always Turkish
-  return DEFAULT_LOCALE;
-};
 
 export default function Page() {
   const router = useRouter();
 
   useEffect(() => {
-    const locale = getPreferredLocale();
-    router.replace(`/${locale}`);
+    router.replace(`/${DEFAULT_LOCALE}`);
   }, [router]);
 
   return null;
