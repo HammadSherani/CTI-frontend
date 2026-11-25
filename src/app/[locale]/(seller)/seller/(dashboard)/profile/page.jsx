@@ -7,6 +7,17 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
+import {
+  SELLER_LIMITS as LIMITS,
+  getCountryRules,
+  getCountryPlaceholders,
+  getSelectedCountry,
+  validateSellerProfile,
+  cleanPhoneInput,
+  to12Hour,
+  to24Hour,
+  checkImageFile,
+} from "@/helper/sellerProfileRules";
 
 const SOCIAL_LINKS = [
   { key: "facebook", label: "Facebook", icon: "ri:facebook-fill", color: "#1877F2", placeholder: "https://facebook.com/yourpage" },
@@ -61,21 +72,33 @@ function InfoRow({ icon, label, value }) {
   );
 }
 
-function InputField({ label, type = "text", value, onChange, placeholder, icon, multiline, rows = 3 }) {
-  const base = "w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all bg-white";
+function FieldError({ message }) {
+  return message ? <p role="alert" className="text-red-500 text-xs mt-1">{message}</p> : null;
+}
+
+function InputField({ label, type = "text", value, onChange, placeholder, icon, multiline, rows = 3, maxLength, error, disabled, inputMode }) {
+  const base = `w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all disabled:bg-gray-100 disabled:cursor-not-allowed ${
+    error ? "border-red-400 bg-red-50/40 focus:ring-red-100" : "border-gray-200 bg-white focus:ring-primary-200 focus:border-primary-500"
+  }`;
   return (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">{label}</label>
+      <div className="flex items-end justify-between gap-2 mb-1.5">
+        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide">{label}</label>
+        {maxLength && !disabled && (
+          <span className="text-[11px] tabular-nums text-gray-400">{(value || "").length}/{maxLength}</span>
+        )}
+      </div>
       <div className="relative">
         {icon && !multiline && (
           <Icon icon={icon} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
         )}
         {multiline ? (
-          <textarea value={value} onChange={(e) => onChange(e.target.value)} rows={rows} placeholder={placeholder} className={`${base} resize-none`} />
+          <textarea value={value || ""} onChange={(e) => onChange(e.target.value)} rows={rows} maxLength={maxLength} disabled={disabled} placeholder={placeholder} className={`${base} resize-none`} />
         ) : (
-          <input type={type} value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className={`${base} ${icon ? "pl-9" : ""}`} />
+          <input type={type} inputMode={inputMode} value={value || ""} onChange={(e) => onChange(e.target.value)} maxLength={maxLength} disabled={disabled} placeholder={placeholder} className={`${base} ${icon ? "pl-9" : ""}`} />
         )}
       </div>
+      <FieldError message={error} />
     </div>
   );
 }
@@ -142,39 +165,52 @@ export default function SellerProfilePage() {
     fetchCountries();
   }, []);
 
+  const [loadingStates, setLoadingStates] = useState(false);
+  const [loadingCities, setLoadingCities] = useState(false);
+
   // Fetch states when country changes
   useEffect(() => {
-    const fetchStates = async () => {
-      if (!infoForm.country) {
-        setStates([]);
-        return;
-      }
-      try {
-        const res = await axiosInstance.get(`/public/states/country/${infoForm.country}`);
-        setStates(res.data?.data || []);
-      } catch (error) {
-        console.error("Error fetching states:", error);
-      }
-    };
-    fetchStates();
+    setStates([]);
+    if (!infoForm.country) return;
+    let cancelled = false;
+    setLoadingStates(true);
+    axiosInstance
+      .get(`/public/states/country/${infoForm.country}`)
+      .then((res) => !cancelled && setStates(res.data?.data || []))
+      .catch(() => !cancelled && toast.error("Failed to load states"))
+      .finally(() => !cancelled && setLoadingStates(false));
+    return () => { cancelled = true; };
   }, [infoForm.country]);
 
   // Fetch cities when state changes
   useEffect(() => {
-    const fetchCities = async () => {
-      if (!infoForm.state) {
-        setCities([]);
-        return;
-      }
-      try {
-        const res = await axiosInstance.get(`/public/cities/state/${infoForm.state}`);
-        setCities(res.data?.data || []);
-      } catch (error) {
-        console.error("Error fetching cities:", error);
-      }
-    };
-    fetchCities();
+    setCities([]);
+    if (!infoForm.state) return;
+    let cancelled = false;
+    setLoadingCities(true);
+    axiosInstance
+      .get(`/public/cities/state/${infoForm.state}`)
+      .then((res) => !cancelled && setCities(res.data?.data || []))
+      .catch(() => !cancelled && toast.error("Failed to load cities"))
+      .finally(() => !cancelled && setLoadingCities(false));
+    return () => { cancelled = true; };
   }, [infoForm.state]);
+
+  // Country picked on the website: used as the default and for formats until one is chosen here
+  const [siteCountry, setSiteCountry] = useState("Turkey");
+  useEffect(() => { setSiteCountry(getSelectedCountry()); }, []);
+
+  // Pre-select that country when the profile has none yet
+  useEffect(() => {
+    if (editSection !== "info" || infoForm.country) return;
+    const match = countries.find((c) => c.name?.toLowerCase() === siteCountry.toLowerCase());
+    if (match) setInfoForm((p) => ({ ...p, country: match._id }));
+  }, [editSection, infoForm.country, countries, siteCountry]);
+
+  // Errors: "attempted" turns on live checking after the first Save; server errors clear on typing
+  const [attempted, setAttempted] = useState(false);
+  const [serverErrors, setServerErrors] = useState({});
+  useEffect(() => { setServerErrors({}); }, [infoForm, socialForm, bankForm, schedForm]);
 
   const fetchSeller = async () => {
     try {
@@ -225,7 +261,8 @@ export default function SellerProfilePage() {
     });
     setSchedForm({
       workingDays: s.workingDays || [],
-      workingHours: s.workingHours || { start: "", end: "" },
+      // stored as "04:30 PM"; time inputs need "16:30"
+      workingHours: { start: to24Hour(s.workingHours?.start), end: to24Hour(s.workingHours?.end) },
     });
     setLogoPreview(s.profilePictureOrLogo || null);
     setLogoFile(null);
@@ -235,20 +272,42 @@ export default function SellerProfilePage() {
 
   useEffect(() => { fetchSeller(); }, []);
 
+  // The country decides phone / ZIP / IBAN formats: the one in the form, else the saved one, else the site's
+  const formCountry = editSection === "info" ? countries.find((c) => c._id === infoForm.country)?.name : null;
+  const countryName = formCountry || seller?.country?.name || siteCountry;
+  const rules = getCountryRules(countryName);
+  const hint = getCountryPlaceholders(countryName);
+
+  const buildPayload = (section) => {
+    if (section === "info") {
+      const { emailAddress, ...info } = infoForm; // email cannot be changed
+      return info;
+    }
+    if (section === "social") return { socialLinks: socialForm };
+    if (section === "bank") return { bankDetails: bankForm };
+    if (section === "schedule") {
+      const { start, end } = schedForm.workingHours;
+      return { workingDays: schedForm.workingDays, workingHours: { start: to12Hour(start), end: to12Hour(end) } };
+    }
+    return {}; // images only
+  };
+
+  const validate = (section) => validateSellerProfile(buildPayload(section), rules, { partial: true });
+  const errors = { ...serverErrors, ...(attempted && editSection ? validate(editSection) : {}) };
+
   const save = async (section) => {
+    const problems = validate(section);
+    const messages = Object.values(problems);
+    if (messages.length) {
+      setAttempted(true);
+      toast.error(messages.length === 1 ? messages[0] : `Please fix ${messages.length} fields. ${messages[0]}`);
+      return;
+    }
+
     setSaving(true);
     try {
-      const payload = {};
-      if (section === "info") Object.assign(payload, infoForm);
-      if (section === "social") payload.socialLinks = socialForm;
-      if (section === "bank") payload.bankDetails = bankForm;
-      if (section === "schedule") {
-        payload.workingDays = schedForm.workingDays;
-        payload.workingHours = schedForm.workingHours;
-      }
-
       const fd = new FormData();
-      fd.append("sellerProfile", JSON.stringify(payload));
+      fd.append("sellerProfile", JSON.stringify(buildPayload(section)));
       if (logoFile) fd.append("profilePictureOrLogo", logoFile);
       if (coverPhotoFile) fd.append("coverPhoto", coverPhotoFile);
 
@@ -260,17 +319,31 @@ export default function SellerProfilePage() {
         setSeller(data.data);
         seedForms(data.data);
         setEdit(null);
+        setAttempted(false);
+        window.dispatchEvent(new Event("seller-profile-updated")); // header shows the new name / logo
         toast.success("Profile updated!");
       }
     } catch (err) {
+      setServerErrors(err?.response?.data?.errors || {});
       handleError(err);
     } finally {
       setSaving(false);
     }
   };
 
-  const cancelEdit = () => { seedForms(seller); setEdit(null); };
-  const startEdit = (section) => { seedForms(seller); setEdit(section); };
+  const pickImage = (e, setFile, setPreview, section) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allows choosing the same file again
+    if (!file) return;
+    const problem = checkImageFile(file);
+    if (problem) return toast.error(problem);
+    setFile(file);
+    setPreview(URL.createObjectURL(file));
+    setEdit(section);
+  };
+
+  const cancelEdit = () => { seedForms(seller); setEdit(null); setAttempted(false); };
+  const startEdit = (section) => { seedForms(seller); setEdit(section); setAttempted(false); };
   const toggleDay = (day) =>
     setSchedForm((p) => ({
       ...p,
@@ -333,10 +406,7 @@ export default function SellerProfilePage() {
             </div>
           </div>
         </div>
-        <input ref={coverPhotoRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) { setCoverPhotoFile(f); setCoverPhotoPreview(URL.createObjectURL(f)); setEdit("coverPhoto"); }
-        }} />
+        <input ref={coverPhotoRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => pickImage(e, setCoverPhotoFile, setCoverPhotoPreview, "coverPhoto")} />
 
         <div className="max-w-5xl mx-auto px-4 md:px-8 pb-5">
           <div className="flex items-end gap-4 -mt-10 md:-mt-14">
@@ -356,10 +426,7 @@ export default function SellerProfilePage() {
                   <Icon icon="heroicons:camera" className="w-6 h-6 text-white" />
                 </div>
               </div>
-              <input ref={logoRef} type="file" accept="image/*" className="hidden" onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) { setLogoFile(f); setLogoPreview(URL.createObjectURL(f)); setEdit("logo"); }
-              }} />
+              <input ref={logoRef} type="file" accept=".jpg,.jpeg,.png,.webp" className="hidden" onChange={(e) => pickImage(e, setLogoFile, setLogoPreview, "logo")} />
             </div>
 
             {/* Store name + KYC badge */}
@@ -426,16 +493,14 @@ export default function SellerProfilePage() {
               {editSection === "info" ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Full Name" value={infoForm.fullName} onChange={(v) => setInfoForm((p) => ({ ...p, fullName: v }))} placeholder="Your full name" icon="heroicons:user" />
-                    <InputField label="Business / Store Name" value={infoForm.businessName} onChange={(v) => setInfoForm((p) => ({ ...p, businessName: v }))} placeholder="Store name" icon="heroicons:building-storefront" />
+                    <InputField label="Full Name" value={infoForm.fullName} onChange={(v) => setInfoForm((p) => ({ ...p, fullName: v }))} placeholder="Your full name" icon="heroicons:user" maxLength={LIMITS.fullName.max} error={errors.fullName} />
+                    <InputField label="Business / Store Name" value={infoForm.businessName} onChange={(v) => setInfoForm((p) => ({ ...p, businessName: v }))} placeholder="Store name" icon="heroicons:building-storefront" maxLength={LIMITS.businessName.max} error={errors.businessName} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Phone Number" value={infoForm.phoneNumber} onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: v }))} placeholder="+92 300 0000000" icon="heroicons:phone" />
-                    <div className="opacity-70 cursor-not-allowed">
-                      <InputField label="Email Address (Not Editable)" type="email" value={infoForm.emailAddress} onChange={() => { }} placeholder="store@email.com" icon="heroicons:envelope" disabled={true} />
-                    </div>
+                    <InputField label="Phone Number" type="tel" inputMode="tel" value={infoForm.phoneNumber} onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: cleanPhoneInput(v) }))} placeholder={hint.phone} icon="heroicons:phone" error={errors.phoneNumber} />
+                    <InputField label="Email Address (Not Editable)" type="email" value={infoForm.emailAddress} onChange={() => {}} icon="heroicons:envelope" disabled />
                   </div>
-                  <InputField label="Store Address" value={infoForm.storeAddress} onChange={(v) => setInfoForm((p) => ({ ...p, storeAddress: v }))} placeholder="Full store address" icon="heroicons:map-pin" />
+                  <InputField label="Store Address" value={infoForm.storeAddress} onChange={(v) => setInfoForm((p) => ({ ...p, storeAddress: v }))} placeholder={hint.address} icon="heroicons:map-pin" maxLength={LIMITS.storeAddress.max} error={errors.storeAddress} />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
@@ -451,6 +516,7 @@ export default function SellerProfilePage() {
                           value: c._id || c.id,
                         }))}
                       />
+                      <FieldError message={errors.country} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">State (Province)</label>
@@ -458,7 +524,8 @@ export default function SellerProfilePage() {
                         icon="heroicons:map"
                         value={infoForm.state || ""}
                         onChange={(val) => setInfoForm((p) => ({ ...p, state: val, city: "" }))}
-                        disabled={!infoForm.country}
+                        disabled={!infoForm.country || loadingStates}
+                        isLoading={loadingStates}
                         placeholder={!infoForm.country ? "Select Country first" : "Select State"}
                         searchable={true}
                         options={states.map((s) => ({
@@ -466,6 +533,7 @@ export default function SellerProfilePage() {
                           value: s._id || s.id,
                         }))}
                       />
+                      <FieldError message={errors.state} />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">City (District)</label>
@@ -473,7 +541,8 @@ export default function SellerProfilePage() {
                         icon="heroicons:building-office"
                         value={infoForm.city || ""}
                         onChange={(val) => setInfoForm((p) => ({ ...p, city: val }))}
-                        disabled={!infoForm.state}
+                        disabled={!infoForm.state || loadingCities}
+                        isLoading={loadingCities}
                         placeholder={!infoForm.state ? "Select State first" : "Select City"}
                         searchable={true}
                         options={cities.map((c) => ({
@@ -481,11 +550,12 @@ export default function SellerProfilePage() {
                           value: c._id || c.id,
                         }))}
                       />
+                      <FieldError message={errors.city} />
                     </div>
                   </div>
 
-                  <InputField label="ZIP / Postal Code" value={infoForm.zipCode} onChange={(v) => setInfoForm((p) => ({ ...p, zipCode: v }))} placeholder="Postal code" icon="heroicons:hashtag" />
-                  <InputField label="Store Description" multiline value={infoForm.storeDescription} onChange={(v) => setInfoForm((p) => ({ ...p, storeDescription: v }))} placeholder="Describe your store…" rows={4} />
+                  <InputField label="ZIP / Postal Code" value={infoForm.zipCode} onChange={(v) => setInfoForm((p) => ({ ...p, zipCode: v }))} placeholder={hint.zip} icon="heroicons:hashtag" maxLength={10} inputMode={rules.name ? "numeric" : "text"} error={errors.zipCode} />
+                  <InputField label="Store Description" multiline value={infoForm.storeDescription} onChange={(v) => setInfoForm((p) => ({ ...p, storeDescription: v }))} placeholder="Describe your store…" rows={4} maxLength={LIMITS.storeDescription.max} error={errors.storeDescription} />
                   <SaveBar onSave={() => save("info")} onCancel={cancelEdit} saving={saving} />
                 </div>
               ) : (
@@ -518,14 +588,14 @@ export default function SellerProfilePage() {
               {editSection === "bank" ? (
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Account Title" value={bankForm.accountTitle} onChange={(v) => setBankForm((p) => ({ ...p, accountTitle: v }))} placeholder="Account Title" icon="heroicons:user" />
-                    <InputField label="Account Number" value={bankForm.accountNumber} onChange={(v) => setBankForm((p) => ({ ...p, accountNumber: v }))} placeholder="Account Number" icon="heroicons:hashtag" />
+                    <InputField label="Account Title" value={bankForm.accountTitle} onChange={(v) => setBankForm((p) => ({ ...p, accountTitle: v }))} placeholder="Name on the account" icon="heroicons:user" maxLength={LIMITS.bankText.max} error={errors["bankDetails.accountTitle"]} />
+                    <InputField label="Account Number" inputMode="numeric" value={bankForm.accountNumber} onChange={(v) => setBankForm((p) => ({ ...p, accountNumber: v.replace(/[^\d\s-]/g, "") }))} placeholder="Digits only" icon="heroicons:hashtag" maxLength={32} error={errors["bankDetails.accountNumber"]} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Bank Name" value={bankForm.bankName} onChange={(v) => setBankForm((p) => ({ ...p, bankName: v }))} placeholder="Bank Name" icon="heroicons:building-library" />
-                    <InputField label="Branch Name" value={bankForm.branchName} onChange={(v) => setBankForm((p) => ({ ...p, branchName: v }))} placeholder="Branch Name" icon="heroicons:map-pin" />
+                    <InputField label="Bank Name" value={bankForm.bankName} onChange={(v) => setBankForm((p) => ({ ...p, bankName: v }))} placeholder={hint.bank} icon="heroicons:building-library" maxLength={LIMITS.bankText.max} error={errors["bankDetails.bankName"]} />
+                    <InputField label="Branch Name" value={bankForm.branchName} onChange={(v) => setBankForm((p) => ({ ...p, branchName: v }))} placeholder="Branch name" icon="heroicons:map-pin" maxLength={LIMITS.bankText.max} error={errors["bankDetails.branchName"]} />
                   </div>
-                  <InputField label="IBAN" value={bankForm.iban} onChange={(v) => setBankForm((p) => ({ ...p, iban: v }))} placeholder="IBAN" icon="heroicons:credit-card" />
+                  <InputField label="IBAN" value={bankForm.iban} onChange={(v) => setBankForm((p) => ({ ...p, iban: v.toUpperCase().replace(/[^A-Z0-9\s]/g, "") }))} placeholder={hint.iban} icon="heroicons:credit-card" maxLength={42} error={errors["bankDetails.iban"]} />
                   <SaveBar onSave={() => save("bank")} onCancel={cancelEdit} saving={saving} />
                 </div>
               ) : (
@@ -557,9 +627,11 @@ export default function SellerProfilePage() {
                         type="url"
                         value={socialForm[s.key]}
                         onChange={(e) => setSocialForm((p) => ({ ...p, [s.key]: e.target.value }))}
-                        placeholder={s.placeholder}
-                        className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 transition-all bg-white"
+                        placeholder={s.key === "whatsapp" ? hint.whatsapp : s.placeholder}
+                        maxLength={LIMITS.socialUrl.max}
+                        className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all bg-white ${errors[`socialLinks.${s.key}`] ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:ring-primary-200 focus:border-primary-500"}`}
                       />
+                      <FieldError message={errors[`socialLinks.${s.key}`]} />
                     </div>
                   ))}
                   <SaveBar onSave={() => save("social")} onCancel={cancelEdit} saving={saving} />
@@ -641,6 +713,7 @@ export default function SellerProfilePage() {
                       />
                     </div>
                   </div>
+                  <FieldError message={errors.workingDays || errors.workingHours} />
                   <SaveBar onSave={() => save("schedule")} onCancel={cancelEdit} saving={saving} />
                 </div>
               ) : (

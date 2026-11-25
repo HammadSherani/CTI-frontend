@@ -4,8 +4,9 @@ import { Controller } from "react-hook-form";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
 import { CustomDropdown } from "../admin/ecom/Dropdown";
+import { SELLER_LIMITS, cleanPhoneInput, getCountryPlaceholders, getSelectedCountry } from "@/helper/sellerProfileRules";
 
-export default function PersonalInformation({ control, errors, user, watch, setValue }) {
+export default function PersonalInformation({ control, errors, user, watch, setValue, onCountryName }) {
   const [countries, setCountries] = useState([]);
   const [states, setStates] = useState([]);
   const [cities, setCities] = useState([]);
@@ -16,6 +17,20 @@ export default function PersonalInformation({ control, errors, user, watch, setV
 
   const selectedCountry = watch("country");
   const selectedState = watch("state");
+
+  // Pre-select the country chosen on the website
+  useEffect(() => {
+    if (selectedCountry || !countries.length) return;
+    const site = getSelectedCountry().toLowerCase();
+    const match = countries.find((c) => c.name?.toLowerCase() === site);
+    if (match) setValue("country", match._id);
+  }, [selectedCountry, countries, setValue]);
+
+  const countryName = countries.find((c) => c._id === selectedCountry)?.name;
+  useEffect(() => {
+    if (countryName) onCountryName?.(countryName);
+  }, [countryName, onCountryName]);
+  const hint = getCountryPlaceholders(countryName || getSelectedCountry());
 
   // Fetch countries on mount
   useEffect(() => {
@@ -95,6 +110,7 @@ export default function PersonalInformation({ control, errors, user, watch, setV
             <input
               {...field}
               placeholder="Your full legal name"
+              maxLength={SELLER_LIMITS.fullName.max}
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
                 ${errors.fullName ? "border-red-400" : "border-gray-300"}`}
             />
@@ -153,8 +169,9 @@ export default function PersonalInformation({ control, errors, user, watch, setV
             <input
               {...field}
               type="tel"
-              placeholder="+92 or 03XX..."
-              onChange={(e) => field.onChange(e.target.value.replace(/[^0-9+\-\s]/g, ""))}
+              inputMode="tel"
+              placeholder={hint.phone}
+              onChange={(e) => field.onChange(cleanPhoneInput(e.target.value))}
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
                 ${errors.phoneNumber ? "border-red-400" : "border-gray-300"}`}
             />
@@ -173,7 +190,8 @@ export default function PersonalInformation({ control, errors, user, watch, setV
             <textarea
               {...field}
               rows={2}
-              placeholder="Full store address"
+              placeholder={hint.address}
+              maxLength={SELLER_LIMITS.storeAddress.max}
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all resize-none
                 ${errors.storeAddress ? "border-red-400" : "border-gray-300"}`}
             />
@@ -306,7 +324,8 @@ export default function PersonalInformation({ control, errors, user, watch, setV
           <Controller name="zipCode" control={control} render={({ field }) => (
             <input
               {...field}
-              placeholder="ZIP / Postal code"
+              placeholder={hint.zip}
+              maxLength={10}
               className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
                 ${errors.zipCode ? "border-red-400" : "border-gray-300"}`}
             />

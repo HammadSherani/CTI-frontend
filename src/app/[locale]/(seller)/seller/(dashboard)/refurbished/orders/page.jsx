@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
@@ -187,7 +188,7 @@ export default function RefurbishedOrdersPage() {
     {
       header: "Total",
       accessor: (row) => (
-        <span className="font-black text-gray-800 text-xs">${row.totalAmount?.toFixed(2)}</span>
+        <span className="font-black text-gray-800 text-xs">{formatCurrency(row.totalAmount)}</span>
       ),
     },
     {

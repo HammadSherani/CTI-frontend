@@ -193,7 +193,7 @@ function Actions({ data, loading }) {
       label: "Pending Documents",
       sub: "KYC / bank details",
       count: data?.pendingDocuments || 0,
-      href: "/seller/profile/edit-profile",
+      href: "/seller/profile",
       urgent: true,
     },
     {
@@ -298,6 +298,7 @@ function Actions({ data, loading }) {
 // SECTION 3 — ADVERTISING PERFORMANCE
 // ═══════════════════════════════════════════════════════════════════════════════
 function AdvertisingPerformance({ data, loading }) {
+  const { locale } = useParams();
   const metrics = [
     {
       label: "Impressions",
@@ -344,7 +345,7 @@ function AdvertisingPerformance({ data, loading }) {
             <p className="text-xs text-slate-400">Last 7 days · {data?.activeCampaigns || 0} active campaigns</p>
           </div>
         </div>
-        <Link href="/seller/ads"
+        <Link href={`/${locale}/seller/ads`}
           className="text-xs font-bold text-primary-600 hover:text-primary-700 flex items-center gap-1 px-3 py-1.5 bg-primary-50 rounded-xl transition-colors">
           Show All <Icon icon="mdi:arrow-right" className="w-3.5 h-3.5" />
         </Link>
@@ -689,7 +690,7 @@ export default function SellerDashboardPage() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           {[
             { label: "My Orders", icon: "solar:bag-heart-bold-duotone", href: `/${locale}/seller/order`, bg: "bg-primary-50", clr: "text-primary-600" },
-            { label: "My Products", icon: "solar:box-bold-duotone", href: `/${locale}/seller/products`, bg: "bg-emerald-50", clr: "text-emerald-600" },
+            { label: "My Products", icon: "solar:box-bold-duotone", href: `/${locale}/seller/product`, bg: "bg-emerald-50", clr: "text-emerald-600" },
             { label: "My Wallet", icon: "solar:wallet-money-bold-duotone", href: `/${locale}/seller/wallet`, bg: "bg-violet-50", clr: "text-violet-600" },
             { label: "My Ads", icon: "solar:megaphone-bold-duotone", href: `/${locale}/seller/ads`, bg: "bg-amber-50", clr: "text-amber-600" },
           ].map((q, i) => (

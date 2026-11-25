@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { useSelector } from 'react-redux';
@@ -396,7 +397,7 @@ export default function EnquiryDetailPage() {
               <InfoRow label="Order No" value={orderDoc.orderNo || query.orderNo} mono />
               <InfoRow label="Order Status" value={orderDoc.orderStatus} />
               {orderDoc.totalAmount != null && (
-                <InfoRow label="Amount" value={`$${Number(orderDoc.totalAmount).toFixed(2)}`} />
+                <InfoRow label="Amount" value={formatCurrency(orderDoc.totalAmount)} />
               )}
             </div>
           )}

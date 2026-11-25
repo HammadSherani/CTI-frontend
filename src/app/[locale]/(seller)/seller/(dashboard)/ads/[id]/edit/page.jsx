@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCurrency, getCurrencySymbol } from "@/helper/currencyFormatter";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams } from 'next/navigation';
@@ -10,7 +11,7 @@ import { toast } from 'react-toastify';
 import Image from 'next/image';
 
 const today = () => new Date().toISOString().split('T')[0];
-const fmtMoney = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
+const fmtMoney = (n) => formatCurrency(n);
 
 export default function EditAdCampaignPage() {
   const router    = useRouter();
@@ -339,12 +340,12 @@ export default function EditAdCampaignPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Daily Budget <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol()}</span>
                   <input
                     type="number" step="0.50" min={settings.minDailyBudget}
                     value={dailyBudget}
                     onChange={(e) => { setDailyBudget(e.target.value); setFormErrors(er => ({ ...er, dailyBudget: '' })); }}
-                    className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 ${formErrors.dailyBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+                    className={`w-full pl-14 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 ${formErrors.dailyBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
                   />
                 </div>
                 <ErrMsg field="dailyBudget" />
@@ -352,12 +353,12 @@ export default function EditAdCampaignPage() {
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">Total Budget <span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">{getCurrencySymbol()}</span>
                   <input
                     type="number" step="1" min={settings.minTotalBudget}
                     value={totalBudget}
                     onChange={(e) => { setTotalBudget(e.target.value); setFormErrors(er => ({ ...er, totalBudget: '' })); }}
-                    className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 ${formErrors.totalBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+                    className={`w-full pl-14 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 ${formErrors.totalBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
                   />
                 </div>
                 <ErrMsg field="totalBudget" />

@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
@@ -297,7 +298,7 @@ export default function SellerOrderPage() {
     },
     {
       header: "Total",
-      cell: (row) => <span className="font-bold text-emerald-600">${(row.sellerTotal || 0).toFixed(2)}</span>,
+      cell: (row) => <span className="font-bold text-emerald-600">{formatCurrency(row.sellerTotal)}</span>,
     },
     {
       header: "Status",

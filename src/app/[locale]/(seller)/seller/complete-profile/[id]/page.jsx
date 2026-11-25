@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useSelector, useDispatch } from "react-redux";
@@ -15,25 +15,46 @@ import DocumentUploads from "@/components/partials/seller/DocumentUploads";
 import ShippingOperations from "@/components/partials/seller/ShippingOperations";
 import BankDetails from "@/components/partials/seller/BankDetails";
 import { useParams, useSearchParams } from "next/navigation";
+import { getCountryRules, getSelectedCountry, validatePhone } from "@/helper/sellerProfileRules";
 
 // ─── Schemas ───────────────────────────────────────────────
+const currentRules = (testContext) => getCountryRules(testContext.options.context?.current || getSelectedCountry());
+
 const step2Schema = yup.object({
-  businessName: yup.string().required("Business name is required").min(2).max(100),
+  businessName: yup.string().required("Business name is required").min(2).max(80),
   storeDescription: yup.string().required("Store description is required").min(20).max(700),
   nationalIdOrTaxNumber: yup.string().required("Tax/National ID number is required").min(5).max(30),
   sellsRefurbishedDevices: yup.boolean().required(),
 });
 
 const step1Schema = yup.object({
-  fullName: yup.string().required("Full name is required").min(2).max(100),
+  fullName: yup
+    .string()
+    .required("Full name is required")
+    .min(2)
+    .max(60)
+    .matches(/^\p{L}[\p{L}\p{M}\s.'-]*$/u, "Full name can only contain letters, spaces, dots, apostrophes and hyphens"),
   gender: yup.string().required("Gender is required").oneOf(["Male", "Female", "Other"]),
   dob: yup.date().required("Date of birth is required").max(new Date(new Date().setFullYear(new Date().getFullYear() - 18)), "You must be at least 18 years old").typeError("Invalid date").min(new Date("1900-01-01"), "Date of birth is too far in the past"),
-  phoneNumber: yup.string().required("Phone number is required").matches(/^[0-9+\-\s]{7,15}$/, "Valid phone required"),
+  // formats depend on the selected country (passed in through the resolver context)
+  phoneNumber: yup
+    .string()
+    .required("Phone number is required")
+    .test("country-phone", "", function (value) {
+      const message = validatePhone(value, currentRules(this));
+      return message ? this.createError({ message }) : true;
+    }),
   storeAddress: yup.string().required("Store address is required").min(10).max(200),
   country: yup.string().required("Country is required"),   // ← add
   state: yup.string().required("State is required"),       // ← add
   city: yup.string().required("City is required"),
-  zipCode: yup.string().required("ZIP code is required").min(3).max(10),
+  zipCode: yup
+    .string()
+    .required("ZIP code is required")
+    .test("country-zip", "", function (value) {
+      const rules = currentRules(this);
+      return rules.zipPattern.test(String(value || "").trim()) || this.createError({ message: rules.zipMessage });
+    }),
 });
 
 const step3Schema = yup.object({
@@ -89,11 +110,21 @@ const step4Schema = yup.object({
 
 const step5Schema = yup.object({
   bankDetails: yup.object({
-    accountTitle: yup.string().required("Account title is required").min(2).max(100),
-    accountNumber: yup.string().required("Account number is required").min(5).max(30),
-    bankName: yup.string().required("Bank name is required").min(2).max(100),
-    branchName: yup.string().nullable(),
-    iban: yup.string().nullable(),
+    accountTitle: yup.string().required("Account title is required").min(2).max(60),
+    accountNumber: yup
+      .string()
+      .required("Account number is required")
+      .test("digits", "Account number must be 6 to 26 digits", (v) => /^\d{6,26}$/.test(String(v || "").replace(/[\s-]/g, ""))),
+    bankName: yup.string().required("Bank name is required").min(2).max(60),
+    branchName: yup.string().nullable().max(60),
+    iban: yup
+      .string()
+      .nullable()
+      .test("country-iban", "", function (value) {
+        const iban = String(value || "").replace(/\s/g, "").toUpperCase();
+        const rules = currentRules(this);
+        return !iban || rules.ibanPattern.test(iban) || this.createError({ message: rules.ibanMessage });
+      }),
   }),
 });
 
@@ -139,6 +170,12 @@ export default function SellerKycForm() {
     "Bank Details",
   ];
 
+  // Country picked on the website until the seller selects one in the form
+  const [countryName, setCountryName] = useState("");
+  const countryRef = useRef("");
+  countryRef.current = countryName;
+  useEffect(() => { setCountryName((name) => name || getSelectedCountry()); }, []);
+
   const {
     control,
     handleSubmit,
@@ -151,40 +188,36 @@ export default function SellerKycForm() {
   } = useForm({
     resolver: yupResolver(schemas[step - 1]),
     mode: "onChange",
+    context: countryRef,
     defaultValues: {
-      // Step 1
-      businessName: "My Awesome Store",
-      storeDescription: "my awesome store description goes here. It should be at least 20 characters long.",
-      nationalIdOrTaxNumber: "2345678901",
+      // Business
+      businessName: "",
+      storeDescription: "",
+      nationalIdOrTaxNumber: "",
       sellsRefurbishedDevices: false,
-      // Step 2
-      fullName: "Naveed Ahmed",
+      // Personal
+      fullName: "",
       gender: "Male",
-      dob: "30-05-1995",
-      phoneNumber: "03123456789",
-      storeAddress: "address line 1, address line 2, city, district, zip code",
+      dob: "",
+      phoneNumber: "",
+      storeAddress: "",
+      country: "",
+      state: "",
       city: "",
-      zipCode: "12345",
-      // Step 3
+      zipCode: "",
+      // Documents
       profilePictureOrLogo: null,
       nationalIdOrPassport: null,
       shopLicenseOrTaxCertificate: null,
       proofOfAddress: null,
-      // Step 4
+      // Shipping
       shippingMethod: "",
       workingDays: [],
       workingHours: { start: "", end: "" },
-      // Step 5
-      bankDetails: {
-        accountTitle: "Naveed Hassan",
-        accountNumber: "1234567890",
-        bankName: "Bank of America",
-        branchName: "Downtown Branch",
-        iban: "US90 1234 5678 9012 3456 7890",
-      },
+      // Bank
+      bankDetails: { accountTitle: "", accountNumber: "", bankName: "", branchName: "", iban: "" },
     },
   });
-
 
   const [sellerLoading, setSellerLoading] = useState(false);
   const [seller, setSeller] = useState(null);
@@ -407,14 +440,15 @@ const { token } = useSelector((state) => state.auth)
             <PersonalInformation
               control={control}
               errors={errors}
-              watch={watch}        // ← yeh add karo
-              setValue={setValue}  // ← yeh add karo
+              watch={watch}
+              setValue={setValue}
+              onCountryName={setCountryName}
             />
           )}
           {step === 2 && <BusinessInformation control={control} errors={errors} watch={watch} setValue={setValue} />}
           {step === 3 && <DocumentUploads control={control} errors={errors} setValue={setValue} watch={watch} />}
           {step === 4 && <ShippingOperations control={control} errors={errors} watch={watch} setValue={setValue} />}
-          {step === 5 && <BankDetails control={control} errors={errors} />}
+          {step === 5 && <BankDetails control={control} errors={errors} countryName={countryName} />}
 
           {/* Navigation */}
           <div className="flex justify-between items-center mt-8 pt-6 border-t border-gray-100">

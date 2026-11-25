@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCurrency, getCurrencySymbol } from "@/helper/currencyFormatter";
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSelector } from 'react-redux';
 import { useRouter } from '@/i18n/navigation';
@@ -10,7 +11,7 @@ import Image from 'next/image';
 
 /* ── helpers ─────────────────────────────────────────────────────── */
 const today    = () => new Date().toISOString().split('T')[0];
-const fmtMoney = (n) => `$${parseFloat(n || 0).toFixed(2)}`;
+const fmtMoney = (n) => formatCurrency(n);
 
 function stripCard(val) { return (val || '').replace(/\D/g, ''); }
 function fmtCardDisplay(raw) {
@@ -539,7 +540,7 @@ export default function CreateAdCampaignPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold text-slate-900 truncate">{prodTitle}</p>
-                          <p className="text-xs text-slate-500">${Number(displayPrice).toFixed(2)}</p>
+                          <p className="text-xs text-slate-500">{formatCurrency(displayPrice)}</p>
                         </div>
                         {selected && <Icon icon="mdi:check-circle" className="text-primary-600 w-4 h-4 flex-shrink-0" />}
                       </label>
@@ -607,7 +608,7 @@ export default function CreateAdCampaignPage() {
                 </div>
                 <div>
                   <p className="text-[10px] text-slate-500">Cost per click (CPC)</p>
-                  <p className="text-sm font-black text-slate-900">${(settings.costPerClick || 0).toFixed(2)}</p>
+                  <p className="text-sm font-black text-slate-900">{formatCurrency(settings.costPerClick)}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-1">
@@ -627,7 +628,7 @@ export default function CreateAdCampaignPage() {
                   Daily Budget <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">{getCurrencySymbol()}</span>
                   <input
                     type="number"
                     value={dailyBudget}
@@ -635,7 +636,7 @@ export default function CreateAdCampaignPage() {
                     min={settings.minDailyBudget}
                     step="0.50"
                     placeholder={`Min ${fmtMoney(settings.minDailyBudget)}`}
-                    className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.dailyBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+                    className={`w-full pl-14 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.dailyBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
                   />
                 </div>
                 <ErrMsg field="dailyBudget" />
@@ -645,7 +646,7 @@ export default function CreateAdCampaignPage() {
                   Total Budget <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm">{getCurrencySymbol()}</span>
                   <input
                     type="number"
                     value={totalBudget}
@@ -653,7 +654,7 @@ export default function CreateAdCampaignPage() {
                     min={settings.minTotalBudget}
                     step="1"
                     placeholder={`Min ${fmtMoney(settings.minTotalBudget)}`}
-                    className={`w-full pl-8 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.totalBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
+                    className={`w-full pl-14 pr-4 py-2.5 rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-400 ${formErrors.totalBudget ? 'border-red-400 bg-red-50' : 'border-slate-200 bg-slate-50'}`}
                   />
                 </div>
                 <ErrMsg field="totalBudget" />

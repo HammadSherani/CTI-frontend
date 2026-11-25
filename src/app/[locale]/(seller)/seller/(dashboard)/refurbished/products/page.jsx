@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import React, { useState, useEffect, useCallback } from "react";
 import { Icon } from "@iconify/react";
 import axiosInstance from "@/config/axiosInstance";
@@ -171,9 +172,9 @@ export default function RefurbishedProductsPage() {
         const v = row.variants?.find(x => x.isDefault) || row.variants?.[0];
         return (
           <div>
-            <span className="font-bold text-gray-900">${v?.sellingPrice?.toFixed(2) || "0.00"}</span>
+            <span className="font-bold text-gray-900">{formatCurrency(v?.sellingPrice)}</span>
             {v?.discountPrice && (
-              <p className="text-[11px] text-emerald-600 font-medium">${v.discountPrice.toFixed(2)} discounted</p>
+              <p className="text-[11px] text-emerald-600 font-medium">{formatCurrency(v.discountPrice)} discounted</p>
             )}
           </div>
         );

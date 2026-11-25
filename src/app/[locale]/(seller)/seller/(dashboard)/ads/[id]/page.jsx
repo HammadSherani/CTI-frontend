@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useParams, useRouter } from 'next/navigation';
@@ -187,7 +188,7 @@ export default function SellerCampaignDetailsPage() {
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Spend</p>
-                  <p className="text-xl font-black text-slate-900 mt-1">${(campaign.spentBudget || 0).toFixed(2)}</p>
+                  <p className="text-xl font-black text-slate-900 mt-1">{formatCurrency(campaign.spentBudget)}</p>
                 </div>
                 <div className="p-4 bg-slate-50 rounded-2xl">
                   <p className="text-[10px] font-bold text-slate-400 uppercase">CTR</p>
@@ -203,7 +204,7 @@ export default function SellerCampaignDetailsPage() {
               <div className="mt-8">
                 <div className="flex items-center justify-between text-xs mb-2">
                   <span className="font-semibold text-slate-700">Budget Usage</span>
-                  <span className="text-slate-500">${campaign.spentBudget?.toFixed(2)} / ${campaign.totalBudget?.toFixed(2)}</span>
+                  <span className="text-slate-500">{formatCurrency(campaign.spentBudget)} / {formatCurrency(campaign.totalBudget)}</span>
                 </div>
                 <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden">
                   <div 
@@ -280,11 +281,11 @@ export default function SellerCampaignDetailsPage() {
                 </li>
                 <li className="flex justify-between items-center">
                   <span className="text-xs text-slate-500">Daily Budget</span>
-                  <span className="text-xs font-bold text-slate-900">${campaign.dailyBudget?.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-slate-900">{formatCurrency(campaign.dailyBudget)}</span>
                 </li>
                 <li className="flex justify-between items-center">
                   <span className="text-xs text-slate-500">Total Budget</span>
-                  <span className="text-xs font-bold text-slate-900">${campaign.totalBudget?.toFixed(2)}</span>
+                  <span className="text-xs font-bold text-slate-900">{formatCurrency(campaign.totalBudget)}</span>
                 </li>
                 <li className="flex justify-between items-center">
                   <span className="text-xs text-slate-500">Start Date</span>

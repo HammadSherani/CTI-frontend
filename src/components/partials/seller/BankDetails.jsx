@@ -1,5 +1,6 @@
 "use client";
 import { Controller } from "react-hook-form";
+import { getCountryPlaceholders, getSelectedCountry } from "@/helper/sellerProfileRules";
 
 const fields = [
   { name: "bankDetails.accountTitle", label: "Account Title", placeholder: "Full name on account", requiprimary: true },
@@ -9,7 +10,10 @@ const fields = [
   { name: "bankDetails.iban", label: "IBAN", placeholder: "PKXX XXXX XXXX XXXX (optional)", requiprimary: false },
 ];
 
-export default function BankDetails({ control, errors }) {
+export default function BankDetails({ control, errors, countryName }) {
+  const hint = getCountryPlaceholders(countryName || getSelectedCountry());
+  const placeholders = { "bankDetails.bankName": hint.bank, "bankDetails.iban": `${hint.iban} (optional)` };
+
   const getError = (name) => {
     const parts = name.split(".");
     return parts?.reduce((obj, key) => obj?.[key], errors);
@@ -37,7 +41,7 @@ export default function BankDetails({ control, errors }) {
                 {label} {requiprimary && <span className="text-primary-500">*</span>}
               </label>
               <Controller name={name} control={control} render={({ field }) => (
-                <input {...field} placeholder={placeholder}
+                <input {...field} placeholder={placeholders[name] || placeholder} maxLength={name === "bankDetails.iban" ? 42 : name === "bankDetails.accountNumber" ? 32 : 60}
                   className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
                     ${err ? "border-primary-400" : "border-gray-300"}`} />
               )} />

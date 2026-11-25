@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency, getCurrencySymbol } from "@/helper/currencyFormatter";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
@@ -94,7 +95,8 @@ const Input = React.forwardRef(({ error, prefix, suffix, className = "", ...prop
     <input
       ref={ref}
       {...props}
-      className={`w-full h-11 ${prefix ? "pl-8" : "px-4"} ${suffix ? "pr-10" : "pr-4"} rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${error
+      style={prefix ? { paddingLeft: `${22 + String(prefix).length * 9}px` } : undefined}
+      className={`w-full h-11 ${prefix ? "" : "px-4"} ${suffix ? "pr-10" : "pr-4"} rounded-xl border text-sm focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all ${error
         ? "border-red-400 bg-red-50/40 focus:border-red-400"
         : "border-gray-200 focus:border-primary-500"
         } ${className}`}
@@ -155,7 +157,7 @@ function SimplePricing({ value, onChange, errors = {}, maxDiscount = 90 }) {
             step="0.01"
             min="0"
             max={LIMITS.priceMax}
-            prefix="$"
+            prefix={getCurrencySymbol()}
             value={price}
             onChange={(e) => set("price", e.target.value)}
             placeholder="0.00"
@@ -190,34 +192,34 @@ function SimplePricing({ value, onChange, errors = {}, maxDiscount = 90 }) {
           <div className="space-y-2 text-xs">
             <div className="flex justify-between items-center">
               <span className="text-gray-500">Your Base Price</span>
-              <span className="font-semibold text-gray-800">${Math.round(baseNum)}</span>
+              <span className="font-semibold text-gray-800">{formatCurrency(baseNum)}</span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-500 flex items-center gap-1">
                 Platform Fee ({PLATFORM_FEE_PCT}%)
                 <Icon icon="mdi:information-outline" className="w-3.5 h-3.5 text-gray-400" />
               </span>
-              <span className="font-semibold text-blue-600">+${Math.round(platformFee)}</span>
+              <span className="font-semibold text-blue-600">+{formatCurrency(platformFee)}</span>
             </div>
             <div className="border-t border-blue-200/60 pt-2 flex justify-between items-center">
               <span className="font-bold text-gray-700">Selling Price</span>
-              <span className="font-extrabold text-gray-900 text-sm">${Math.round(sellingPrice)}</span>
+              <span className="font-extrabold text-gray-900 text-sm">{formatCurrency(sellingPrice)}</span>
             </div>
             {hasDiscount && (
               <>
                 <div className="flex justify-between items-center pt-1">
                   <span className="text-gray-500">Discount ({discNum}%)</span>
-                  <span className="font-semibold text-red-500">-${Math.round(discountSavings)}</span>
+                  <span className="font-semibold text-red-500">-{formatCurrency(discountSavings)}</span>
                 </div>
                 <div className="border-t border-blue-200/60 pt-2 flex justify-between items-center">
                   <span className="font-bold text-emerald-700">Customer Pays</span>
-                  <span className="font-extrabold text-emerald-600 text-sm">${Math.round(finalPrice)}</span>
+                  <span className="font-extrabold text-emerald-600 text-sm">{formatCurrency(finalPrice)}</span>
                 </div>
               </>
             )}
           </div>
           <p className="text-[10px] text-gray-400 mt-3 leading-relaxed">
-            The platform fee is automatically added to your base price. Customers will see ${hasDiscount ? Math.round(finalPrice) : Math.round(sellingPrice)} as the product price.
+            The platform fee is automatically added to your base price. Customers will see {formatCurrency(hasDiscount ? finalPrice : sellingPrice)} as the product price.
           </p>
         </div>
       )}
@@ -717,8 +719,8 @@ export default function ProductForm({ mode = "create", initialData = null, admin
     const fee = bp > 0 ? Number((bp * 0.10).toFixed(2)) : 0;
     const sp = bp > 0 ? Number((bp + fee).toFixed(2)) : 0;
     return [
-      { label: "Base Price", value: bp > 0 ? `$${bp.toFixed(2)}` : "—" },
-      { label: "Selling Price", value: sp > 0 ? `$${sp.toFixed(2)}` : "—" },
+      { label: "Base Price", value: bp > 0 ? formatCurrency(bp) : "—" },
+      { label: "Selling Price", value: sp > 0 ? formatCurrency(sp) : "—" },
       { label: "Discount", value: (simplePricing.isDiscounted && simplePricing.discountPercentage) ? `${simplePricing.discountPercentage}%` : "—" },
       { label: "Stock", value: simplePricing.stock || "0" },
     ];

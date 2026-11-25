@@ -1,5 +1,6 @@
 "use client";
 
+import { formatCurrency } from "@/helper/currencyFormatter";
 import React, { useState, useEffect } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { Icon } from "@iconify/react";
@@ -249,7 +250,7 @@ export default function ViewProductPage({ params }) {
                       </td>
 
                       <td className="px-6 py-4 font-bold">
-                        ${v.price?.toFixed(2)}
+                        {formatCurrency(v.price)}
                       </td>
 
                       <td className="px-6 py-4">
@@ -290,7 +291,7 @@ export default function ViewProductPage({ params }) {
               <div>
                 <span className="text-xs text-gray-400 uppercase">Price</span>
                 <p className="text-xl font-bold">
-                  ${defaultVariant?.price || "0.00"}
+                  {formatCurrency(defaultVariant?.price)}
                 </p>
               </div>
 

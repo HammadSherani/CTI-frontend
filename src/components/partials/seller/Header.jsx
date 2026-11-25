@@ -107,6 +107,14 @@ function Header() {
 
   useEffect(() => setMounted(true), []);
 
+  /* bumps when the profile page saves, so the header shows the new name / logo */
+  const [profileVersion, setProfileVersion] = useState(0);
+  useEffect(() => {
+    const onUpdated = () => setProfileVersion((v) => v + 1);
+    window.addEventListener('seller-profile-updated', onUpdated);
+    return () => window.removeEventListener('seller-profile-updated', onUpdated);
+  }, []);
+
   useEffect(() => {
     if (!token) return;
     axiosInstance.get('/seller/profile/me-seller', { headers: { Authorization: `Bearer ${token}` } })
@@ -117,7 +125,7 @@ function Header() {
         }
       })
       .catch(() => { });
-  }, [token, pathname]);
+  }, [token, pathname, profileVersion]);
 
   const handleLogout = useCallback(() => dispatch(clearAuth()), [dispatch]);
 
