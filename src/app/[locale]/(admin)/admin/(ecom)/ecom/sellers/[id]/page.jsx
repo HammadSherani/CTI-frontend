@@ -121,6 +121,52 @@ function DocumentCard({ label, url }) {
   );
 }
 
+/* Explains what will happen before a seller is activated / deactivated */
+function ToggleSellerDialog({ name, isActive, loading, onConfirm, onCancel }) {
+  const effects = isActive
+    ? [
+        "All of this seller's products are hidden from the website",
+        "Customers cannot place new orders (including items already in their cart)",
+        "Running ads are paused",
+        "The seller cannot add or change products, ads or their profile",
+        "Existing orders, returns, history and wallet keep working",
+      ]
+    : [
+        "Products hidden by the deactivation become visible again",
+        "Ads paused by the deactivation resume (if still within date and budget)",
+        "The seller can add products and receive orders again",
+        "Anything that was already inactive stays inactive",
+      ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div role="dialog" aria-modal="true" className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+        <h3 className="text-lg font-bold text-gray-900">
+          {isActive ? "Deactivate" : "Activate"} {name}?
+        </h3>
+        <ul className="mt-3 list-disc pl-5 space-y-1.5 text-sm text-gray-600">
+          {effects.map((effect) => (
+            <li key={effect}>{effect}</li>
+          ))}
+        </ul>
+        <div className="mt-6 flex justify-end gap-3">
+          <button onClick={onCancel} disabled={loading} className="px-5 py-2 text-sm bg-gray-100 rounded-xl hover:bg-gray-200 disabled:opacity-50">
+            Cancel
+          </button>
+          <button
+            onClick={onConfirm}
+            disabled={loading}
+            className={`px-5 py-2 text-sm text-white rounded-xl flex items-center gap-2 disabled:opacity-60 ${isActive ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700"}`}
+          >
+            {loading && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin" />}
+            {loading ? "Please wait..." : isActive ? "Deactivate seller" : "Activate seller"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SellerDetailPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -131,6 +177,8 @@ export default function SellerDetailPage() {
   const [kycStatus, setKycStatus] = useState("pending");
   const [kycReason, setKycReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [confirmToggle, setConfirmToggle] = useState(false);
+  const [toggling, setToggling] = useState(false);
   const needsReason = kycStatus === "rejected" || kycStatus === "revision";
 
   const fetchSeller = useCallback(async () => {
@@ -153,6 +201,13 @@ export default function SellerDetailPage() {
   useEffect(() => {
     fetchSeller();
   }, [fetchSeller]);
+
+  // A reason belongs to one specific decision. Picking a different status (e.g. Reject -> Request
+  // Revision) must not carry the old reason over; going back to the saved status restores it.
+  const handleKycStatusChange = (nextStatus) => {
+    setKycStatus(nextStatus);
+    setKycReason(nextStatus === (seller?.kycStatus || "pending") ? seller?.kycReason || "" : "");
+  };
 
   const handleKycSubmit = async () => {
     if (needsReason && !kycReason.trim()) {
@@ -179,16 +234,20 @@ export default function SellerDetailPage() {
   };
 
   const handleToggleActive = async () => {
+    setToggling(true);
     try {
-      await axiosInstance.post(
+      const { data } = await axiosInstance.post(
         `/admin/e-commerce/seller/toggle/${id}`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success(`Seller ${seller.isActive ? "deactivated" : "activated"}`);
-      fetchSeller();
+      toast.success(data.message);
+      setSeller((prev) => ({ ...prev, isActive: data.data.isActive }));
+      setConfirmToggle(false);
     } catch (err) {
-      toast.error("Failed to update seller status");
+      toast.error(err?.response?.data?.message || "Failed to update seller status");
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -226,6 +285,15 @@ export default function SellerDetailPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {confirmToggle && (
+        <ToggleSellerDialog
+          name={sellerName}
+          isActive={seller.isActive}
+          loading={toggling}
+          onConfirm={handleToggleActive}
+          onCancel={() => !toggling && setConfirmToggle(false)}
+        />
+      )}
       {/* Top Bar */}
       <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
@@ -243,7 +311,7 @@ export default function SellerDetailPage() {
           <div className="flex items-center gap-2">
             <KycBadge status={seller.kycStatus} />
             <button
-              onClick={handleToggleActive}
+              onClick={() => setConfirmToggle(true)}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors
                 ${seller.isActive
                   ? "bg-red-50 text-red-600 hover:bg-red-100"
@@ -400,7 +468,7 @@ export default function SellerDetailPage() {
                   <label className="text-xs text-gray-500 mb-1.5 block">Update KYC Status</label>
                   <select
                     value={kycStatus}
-                    onChange={(e) => setKycStatus(e.target.value)}
+                    onChange={(e) => handleKycStatusChange(e.target.value)}
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 bg-gray-50 text-sm focus:outline-none focus:border-primary-400 focus:bg-white transition-colors"
                   >
                     <option value="pending">Pending</option>

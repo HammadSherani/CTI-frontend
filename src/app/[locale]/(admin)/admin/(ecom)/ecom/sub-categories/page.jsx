@@ -129,7 +129,7 @@ function SubCategoryModal({ mode, initial, categories, onClose, onSuccess }) {
               icon="mdi:shape" 
               options={categories.map(c => ({ _id: c._id, name: c.title }))} 
               value={form.categoryId} 
-              onChange={(val) => setForm(p => ({ ...p, categoryId: val }))} 
+              onChange={(val) => { setForm(p => ({ ...p, categoryId: val })); setErrors(p => ({ ...p, categoryId: "" })); }} 
             />
             {errors.categoryId && <p className="text-red-500 text-sm mt-1">{errors.categoryId}</p>}
           </div>

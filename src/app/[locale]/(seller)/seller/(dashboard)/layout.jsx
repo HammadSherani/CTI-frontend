@@ -6,7 +6,9 @@ import Header from '@/components/partials/seller/Header';
 import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useRouter } from '@/i18n/navigation';
+import { useRouter, usePathname } from '@/i18n/navigation';
+import { useSocket } from '@/contexts/SocketProvider';
+import { DeactivatedBanner, DeactivatedPage, isBlockedForDeactivatedSeller } from '@/components/partials/seller/SellerDeactivated';
 import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
 import React, { useEffect, useState } from 'react'
@@ -18,27 +20,41 @@ function SellerLayout({ children }) {
   const [seller,setSeller]=useState(null)
   const dispatch = useDispatch();
   const router = useRouter();
+  const pathname = usePathname();
+  const { socket } = useSocket() || {};
 
-  const fetchUserDetails = async () => {
+  // `silent` refreshes in the background (no full-page loader)
+  const fetchUserDetails = async ({ silent = false } = {}) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const { data } = await axiosInstance.get('/seller/profile/me', {
         headers: { 'Authorization': 'Bearer ' + token },
       });
       setSeller(data?.data)
       dispatch(setUserDetails(data.data));
     } catch (error) {
+      if (silent) return; // keep what is on screen if a background refresh fails
       handleError(error);
       dispatch(setUserDetails(""))
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
   useEffect(() => {
     fetchUserDetails();
   }, []);
-  
-  console.log(seller,"seller")
+
+  // Apply admin activate / deactivate right away (socket), or when the seller returns to the tab
+  useEffect(() => {
+    const refresh = () => fetchUserDetails({ silent: true });
+    socket?.on('seller_status_changed', refresh);
+    window.addEventListener('focus', refresh);
+    return () => {
+      socket?.off('seller_status_changed', refresh);
+      window.removeEventListener('focus', refresh);
+    };
+  }, [socket, token]);
+
   // ── Loading ────────────────────────────────────────────────────
   if (loading) {
     return <SmallLoader text='Loading' loading={loading} />;
@@ -47,7 +63,6 @@ function SellerLayout({ children }) {
   const kycStatus   = seller?.kycStatus;         // 'pending' | 'approved' | 'revision' | 'rejected'
   const kycCompleted = seller?.isKycCompleted;   // true | false
   const sellerId    = seller?.id // for redirect URL
-console.log(kycCompleted,'kycCompleted')
  if (!seller || !kycCompleted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
@@ -179,10 +194,13 @@ console.log(kycCompleted,'kycCompleted')
   }
 
   // ── 5. Approved — render dashboard normally ───────────────────
+  const isDeactivated = seller?.isActive === false;
+
   return (
     <div className='relative'>
       <Header />
-      {children}
+      {isDeactivated && <DeactivatedBanner />}
+      {isDeactivated && isBlockedForDeactivatedSeller(pathname) ? <DeactivatedPage /> : children}
       <Chat />
     </div>
   );

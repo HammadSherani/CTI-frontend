@@ -306,6 +306,8 @@ export default function SellerProfilePage() {
   }
 
   const kyc = KYC_META[seller.kycStatus] || KYC_META.pending;
+  // A deactivated seller can view the profile but not change it (the backend blocks it too)
+  const isLocked = seller.isActive === false;
 
   return (
     <div className="min-h-screen bg-gray-50/60">
@@ -316,14 +318,14 @@ export default function SellerProfilePage() {
           <div
             className="h-48 md:h-72 relative overflow-hidden group cursor-pointer rounded-b-2xl shadow-sm"
             style={coverPhotoPreview ? { background: `url(${coverPhotoPreview}) center/cover no-repeat` } : { background: "linear-gradient(135deg, #f97316 0%, #ef4444 45%, #6366f1 100%)" }}
-            onClick={() => coverPhotoRef.current?.click()}
-            title="Click to change cover photo"
+            onClick={() => !isLocked && coverPhotoRef.current?.click()}
+            title={isLocked ? undefined : "Click to change cover photo"}
           >
             {!coverPhotoPreview && (
               <div className="absolute inset-0 opacity-10"
                 style={{ backgroundImage: "radial-gradient(circle at 2px 2px, white 1px, transparent 0)", backgroundSize: "28px 28px" }} />
             )}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30">
+            <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 ${isLocked ? "hidden" : ""}`}>
               <div className="flex flex-col items-center text-white">
                 <Icon icon="heroicons:camera" className="w-8 h-8 mb-1" />
                 <span className="text-sm font-semibold">Change Cover Photo</span>
@@ -342,15 +344,15 @@ export default function SellerProfilePage() {
             <div className="relative flex-shrink-0">
               <div
                 className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-white shadow-xl bg-white overflow-hidden cursor-pointer group flex items-center justify-center relative"
-                onClick={() => logoRef.current?.click()}
-                title="Click to change profile photo"
+                onClick={() => !isLocked && logoRef.current?.click()}
+                title={isLocked ? undefined : "Click to change profile photo"}
               >
                 {logoPreview ? (
                   <img src={logoPreview} alt="Store logo" className="w-full h-full object-cover group-hover:opacity-75 transition-opacity" />
                 ) : (
                   <Icon icon="heroicons:building-storefront" className="w-12 h-12 text-gray-300" />
                 )}
-                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full">
+                <div className={`absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 rounded-full ${isLocked ? "hidden" : ""}`}>
                   <Icon icon="heroicons:camera" className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -419,7 +421,7 @@ export default function SellerProfilePage() {
             <SectionCard
               title="Store Information"
               icon="heroicons:building-storefront"
-              action={editSection !== "info" && <EditBtn onClick={() => startEdit("info")} />}
+              action={!isLocked && editSection !== "info" && <EditBtn onClick={() => startEdit("info")} />}
             >
               {editSection === "info" ? (
                 <div className="space-y-4">
@@ -511,7 +513,7 @@ export default function SellerProfilePage() {
             <SectionCard
               title="Bank Details"
               icon="heroicons:banknotes"
-              action={editSection !== "bank" && <EditBtn onClick={() => startEdit("bank")} />}
+              action={!isLocked && editSection !== "bank" && <EditBtn onClick={() => startEdit("bank")} />}
             >
               {editSection === "bank" ? (
                 <div className="space-y-4">
@@ -541,7 +543,7 @@ export default function SellerProfilePage() {
             <SectionCard
               title="Social Links"
               icon="heroicons:share"
-              action={editSection !== "social" && <EditBtn onClick={() => startEdit("social")} />}
+              action={!isLocked && editSection !== "social" && <EditBtn onClick={() => startEdit("social")} />}
             >
               {editSection === "social" ? (
                 <div className="space-y-3">
@@ -568,9 +570,11 @@ export default function SellerProfilePage() {
                     <div className="text-center py-8">
                       <Icon icon="heroicons:share" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                       <p className="text-sm text-gray-400">No social links added yet</p>
-                      <button onClick={() => startEdit("social")} className="mt-3 text-primary-600 text-sm font-semibold hover:underline">
-                        + Add social links
-                      </button>
+                      {!isLocked && (
+                        <button onClick={() => startEdit("social")} className="mt-3 text-primary-600 text-sm font-semibold hover:underline">
+                          + Add social links
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -602,7 +606,7 @@ export default function SellerProfilePage() {
             <SectionCard
               title="Working Schedule"
               icon="heroicons:clock"
-              action={editSection !== "schedule" && <EditBtn onClick={() => startEdit("schedule")} />}
+              action={!isLocked && editSection !== "schedule" && <EditBtn onClick={() => startEdit("schedule")} />}
             >
               {editSection === "schedule" ? (
                 <div className="space-y-5">
@@ -668,9 +672,11 @@ export default function SellerProfilePage() {
                     <div className="text-center py-8">
                       <Icon icon="heroicons:clock" className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                       <p className="text-sm text-gray-400">No schedule set yet</p>
-                      <button onClick={() => startEdit("schedule")} className="mt-3 text-primary-600 text-sm font-semibold hover:underline">
-                        + Add schedule
-                      </button>
+                      {!isLocked && (
+                        <button onClick={() => startEdit("schedule")} className="mt-3 text-primary-600 text-sm font-semibold hover:underline">
+                          + Add schedule
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

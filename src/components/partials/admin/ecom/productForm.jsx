@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
@@ -10,6 +10,8 @@ import axiosInstance from "@/config/axiosInstance";
 import { useSelector } from "react-redux";
 import { useRouter } from "@/i18n/navigation";
 import RichTextEditor from "./RichTextEditor";
+import { IMAGE_RULES, LIMITS, getVideoRules, htmlToText, moveItem, pickFiles, readApiError } from "./productFormRules";
+import { ImageUploader, VideoUploader, isFileDrag } from "./ProductMediaUploader";
 
 
 /* ══════════════════════════════════════════════════════════
@@ -19,25 +21,36 @@ const productSchema = yup.object({
   title: yup
     .string()
     .trim()
-    .min(3, "Title must be at least 3 characters")
-    .max(300, "Title too long")
-    .required("Title is required"),
-  shortDescription: yup.string().trim().max(500).nullable(),
+    .required("Title is required")
+    .min(LIMITS.titleMin, `Title must be at least ${LIMITS.titleMin} characters`)
+    .max(LIMITS.titleMax, `Title cannot be longer than ${LIMITS.titleMax} characters`),
+  shortDescription: yup
+    .string()
+    .trim()
+    .max(LIMITS.shortDescriptionMax, `Short description cannot be longer than ${LIMITS.shortDescriptionMax} characters`)
+    .nullable(),
   description: yup
     .string()
+    .required("Description is required")
     .test(
-      "html-min",
-      "Description must be at least 10 characters",
-      (val) => {
-        if (!val) return false;
-        return val.replace(/<[^>]*>/g, "").trim().length >= 10;
-      }
+      "text-min",
+      `Description must be at least ${LIMITS.descriptionMin} characters`,
+      (val) => htmlToText(val).length >= LIMITS.descriptionMin
     )
-    .required("Description is required"),
+    .test(
+      "text-max",
+      `Description cannot be longer than ${LIMITS.descriptionMax} characters`,
+      (val) => htmlToText(val).length <= LIMITS.descriptionMax
+    )
+    .max(LIMITS.descriptionHtmlMax, "Description has too much formatting. Remove some of it and try again."),
   categoryId: yup.string().required("Category is required"),
   subCategoryId: yup.string().nullable(),
   brandId: yup.string().nullable(),
-  modelNumber: yup.string().trim().required("Model number is required"),
+  modelNumber: yup
+    .string()
+    .trim()
+    .required("Model number is required")
+    .max(LIMITS.modelNumberMax, `Model number cannot be longer than ${LIMITS.modelNumberMax} characters`),
 });
 
 /* ══════════════════════════════════════════════════════════
@@ -50,6 +63,26 @@ const FieldError = ({ err }) =>
       {err.message}
     </p>
   ) : null;
+
+const Counter = ({ length, max }) => (
+  <span className={`text-[11px] tabular-nums ${length > max ? "text-red-500 font-bold" : "text-gray-400"}`}>
+    {length}/{max}
+  </span>
+);
+
+function FieldCounter({ control, name, max }) {
+  const value = useWatch({ control, name });
+  return <Counter length={(value || "").length} max={max} />;
+}
+
+const FieldLabel = ({ children, required, counter }) => (
+  <div className="flex items-end justify-between gap-2 mb-1">
+    <label className="block text-xs font-semibold text-gray-600">
+      {children} {required && <span className="text-red-500">*</span>}
+    </label>
+    {counter}
+  </div>
+);
 
 const Input = React.forwardRef(({ error, prefix, suffix, className = "", ...props }, ref) => (
   <div className="relative">
@@ -94,7 +127,7 @@ const CHEVRON = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/sv
 /* ══════════════════════════════════════════════════════════
    SIMPLE PRODUCT PRICING
 ══════════════════════════════════════════════════════════ */
-function SimplePricing({ value, onChange }) {
+function SimplePricing({ value, onChange, errors = {}, maxDiscount = 90 }) {
   const { price, stock, discountPercentage, isDiscounted } = value;
   const PLATFORM_FEE_PCT = 10;
 
@@ -121,13 +154,14 @@ function SimplePricing({ value, onChange }) {
             type="number"
             step="0.01"
             min="0"
+            max={LIMITS.priceMax}
             prefix="$"
             value={price}
             onChange={(e) => set("price", e.target.value)}
             placeholder="0.00"
-            error={!price}
+            error={errors.price}
           />
-          {!price && <p className="text-red-500 text-xs mt-1">Base price is required</p>}
+          <FieldError err={errors.price && { message: errors.price }} />
         </div>
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">
@@ -136,10 +170,13 @@ function SimplePricing({ value, onChange }) {
           <Input
             type="number"
             min="0"
+            max={LIMITS.stockMax}
             value={stock}
             onChange={(e) => set("stock", e.target.value)}
             placeholder="0"
+            error={errors.stock}
           />
+          <FieldError err={errors.stock && { message: errors.stock }} />
         </div>
       </div>
 
@@ -211,12 +248,14 @@ function SimplePricing({ value, onChange }) {
               <Input
                 type="number"
                 min="0"
-                max="99"
+                max={maxDiscount}
                 suffix="%"
                 value={discountPercentage}
                 onChange={(e) => set("discountPercentage", e.target.value)}
                 placeholder="0"
+                error={errors.discountPercentage}
               />
+              <FieldError err={errors.discountPercentage && { message: errors.discountPercentage }} />
             </div>
           </div>
         )}
@@ -239,6 +278,8 @@ export default function ProductForm({ mode = "create", initialData = null, admin
     watch,
     setValue,
     reset,
+    setError,
+    control,
     formState: { errors, dirtyFields },
   } = useForm({
     resolver: yupResolver(productSchema),
@@ -273,14 +314,26 @@ export default function ProductForm({ mode = "create", initialData = null, admin
   const [subCategories, setSubCategories] = useState([]);
   const [brands, setBrands] = useState([]);
 
+  /* ── Upload rules (mirrors the backend) ── */
+  const videoRules = getVideoRules(type);
+  const maxDiscount = type === "refurbished" ? 99 : 90;
+
+  /* Newly picked files, looked up by their preview URL, so removing a preview
+     always removes exactly that file from the upload. */
+  const fileMapRef = useRef(new Map());
+
   /* ── Images ── */
   const [previews, setPreviews] = useState(initialData?.images?.map((i) => i.url) || []);
-  const [files, setFiles] = useState([]);
   const [imgErr, setImgErr] = useState("");
 
   /* ── Videos (additive, optional) ── */
   const [videoPreviews, setVideoPreviews] = useState(initialData?.videos?.map((v) => v.url) || []);
-  const [videoFiles, setVideoFiles] = useState([]);
+  const [vidErr, setVidErr] = useState("");
+
+  /* ── Errors ── */
+  const [pricingErrors, setPricingErrors] = useState({});
+  const [formProblems, setFormProblems] = useState([]);
+  const problemsRef = useRef(null);
 
   /* ── Tags ── */
   const [tags, setTags] = useState(initialData?.tags || []);
@@ -326,13 +379,16 @@ export default function ProductForm({ mode = "create", initialData = null, admin
     const url = adminMode
       ? `/admin/e-commerce/product/subcategories/${watchCategory}`
       : `/seller/product/subcategories/${watchCategory}`;
+    let cancelled = false; // ignore the answer if the category changed meanwhile
     axiosInstance
       .get(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(({ data }) => setSubCategories(data.data || []))
-      .catch(() => toast.error("Failed to load subcategories"));
+      .then(({ data }) => {
+        if (cancelled) return;
+        setSubCategories(data.data || []);
+      })
+      .catch(() => !cancelled && toast.error("Failed to load subcategories"));
+    return () => { cancelled = true; };
   }, [watchCategory, token, adminMode, type]);
-
-
 
   const loadBrands = useCallback((subId) => {
     if (adminMode) return; // admin brands are loaded on mount (all brands, no subcategory filter)
@@ -367,82 +423,31 @@ export default function ProductForm({ mode = "create", initialData = null, admin
     }
   }, [watchSubCategory, loadBrands, type]);
 
+  /* Edit mode: pre-fill the form (the effects above load the matching dropdown options) */
   useEffect(() => {
-    if (!initialData || mode !== "edit") return;
+    if (!initialData) return;
+    reset({
+      title: initialData.title || "",
+      shortDescription: initialData.shortDescription || "",
+      description: initialData.description || "",
+      categoryId: initialData.categoryId?._id || initialData.categoryId || "",
+      subCategoryId: initialData.subCategoryId?._id || initialData.subCategoryId || "",
+      brandId: initialData.brandId?._id || initialData.brandId || "",
+      modelNumber: initialData.modelNumber || "",
+    });
+  }, [initialData, reset]);
 
-    const catId = initialData?.categoryId?._id || initialData?.categoryId || "";
-    const subId = initialData?.subCategoryId?._id || initialData?.subCategoryId || "";
-    const brandId = initialData?.brandId?._id || initialData?.brandId || "";
-
-    // Reset form
-      reset({
-        title: initialData?.title || "",
-        shortDescription: initialData?.shortDescription || "",
-        description: initialData?.description || "",
-        categoryId: catId,
-        subCategoryId: subId,
-        brandId: brandId,
-        modelNumber: initialData?.modelNumber || "",
-      });
-
-    // Load subcategories and brands for edit mode
-    if (type !== "refurbished" && catId) {
-      const subUrl = adminMode
-        ? `/admin/e-commerce/product/subcategories/${catId}`
-        : `/seller/product/subcategories/${catId}`;
-      axiosInstance
-        .get(subUrl, { headers: { Authorization: `Bearer ${token}` } })
-        .then(({ data }) => {
-          setSubCategories(data.data || []);
-          if (subId) loadBrands(subId);
-        });
-    }
-  }, [initialData, mode, reset, token, loadBrands, adminMode, type]);
-
-  /* ── Load subcategories ── */
-  useEffect(() => {
-    if (!watchCategory) {
-      setSubCategories([]);
-      if (!adminMode) setBrands([]);
-      return;
-    }
-    const url = adminMode
-      ? `/admin/e-commerce/product/subcategories/${watchCategory}`
-      : `/seller/product/subcategories/${watchCategory}`;
-    axiosInstance
-      .get(url, { headers: { Authorization: `Bearer ${token}` } })
-      .then(({ data }) => setSubCategories(data.data || []))
-      .catch(() => toast.error("Failed to load subcategories"));
-  }, [watchCategory, token, adminMode]);
-
-  /* ── Load brands when subcategory changes ── */
-  useEffect(() => {
-    loadBrands(watchSubCategory);
-  }, [watchSubCategory, loadBrands]);
-
-  /* ── Reset form for edit mode ── */
-  useEffect(() => {
-    if (initialData) {
-      const catId = initialData?.categoryId?._id || initialData?.categoryId || "";
-      const subId = initialData?.subCategoryId?._id || initialData?.subCategoryId || "";
-      const brandId = initialData?.brandId?._id || initialData?.brandId || "";
-
-      reset({
-        title: initialData?.title || "",
-        shortDescription: initialData?.shortDescription || "",
-        description: initialData?.description || "",
-        categoryId: catId,
-        subCategoryId: subId,
-        brandId: brandId,
-        modelNumber: initialData?.modelNumber || "",
-      });
-
-      // Explicitly load brands for pre-filled subcategory in edit mode
-      if (type !== "refurbished" && subId) {
-        loadBrands(subId);
-      }
-    }
-  }, [initialData, reset, loadBrands, type]);
+  /* Edit mode: a <select> can only show the saved value once its options are on screen,
+     so re-select it after each option list renders. */
+  const useSavedOption = (field, options) => {
+    useEffect(() => {
+      const savedId = initialData?.[field]?._id || initialData?.[field];
+      if (savedId && options.some((o) => o._id === savedId)) setValue(field, savedId);
+    }, [field, options]);
+  };
+  useSavedOption("categoryId", categories);
+  useSavedOption("subCategoryId", subCategories);
+  useSavedOption("brandId", brands);
 
   /* ── Admin mode: load all brands on mount (no subcategory filter) ── */
   useEffect(() => {
@@ -491,67 +496,114 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       .catch(() => toast.error("Failed to load sellers"));
   }, [adminMode, token]);
 
-  /* ── Image helpers ── */
-  const onFileChange = (e) => {
-    const picked = Array.from(e.target.files);
-    if (picked.length + previews.length > 5) {
-      toast.warning("Maximum 5 images allowed");
-      return;
-    }
-    setPreviews((p) => [...p, ...picked.map((f) => URL.createObjectURL(f))]);
-    setFiles((p) => [...p, ...picked]);
-    setImgErr("");
+  /* ── Image & video helpers ── */
+  const addFiles = (picked, rules, currentCount, setUrls, setErr) => {
+    const { urls, problems } = pickFiles(picked, rules, currentCount, fileMapRef.current);
+    if (urls.length) setUrls((p) => [...p, ...urls]);
+    setErr(problems.join("\n"));
+    if (problems.length) toast.error(problems[0]);
   };
 
-  const removeImage = (i) => {
-    const url = previews[i];
-    setPreviews((p) => p.filter((_, idx) => idx !== i));
-    if (url.startsWith("blob:")) {
-      setFiles((p) => {
-        const idx = p.findIndex((f) => URL.createObjectURL(f) === url);
-        return idx === -1 ? p : p.filter((_, fi) => fi !== idx);
-      });
-    }
+  const removeFile = (url, setUrls, setErr) => {
+    setUrls((p) => p.filter((u) => u !== url));
+    if (fileMapRef.current.delete(url)) URL.revokeObjectURL(url);
+    setErr("");
   };
 
-  /* ── Video helpers (additive) ── */
-  const onVideoChange = (e) => {
-    const picked = Array.from(e.target.files);
-    if (picked.length + videoPreviews.length > 3) {
-      toast.warning("Maximum 3 videos allowed");
-      return;
-    }
-    setVideoPreviews((p) => [...p, ...picked.map((f) => URL.createObjectURL(f))]);
-    setVideoFiles((p) => [...p, ...picked]);
+  const addImages = (picked) => addFiles(picked, IMAGE_RULES, previews.length, setPreviews, setImgErr);
+  const removeImage = (i) => removeFile(previews[i], setPreviews, setImgErr);
+  const moveImage = (from, to) => setPreviews((list) => moveItem(list, from, to)); // first = main image
+  const addVideos = (picked) => addFiles(picked, videoRules, videoPreviews.length, setVideoPreviews, setVidErr);
+  const removeVideo = (i) => removeFile(videoPreviews[i], setVideoPreviews, setVidErr);
+
+  /* Free preview memory when the form closes */
+  useEffect(() => {
+    const fileMap = fileMapRef.current;
+    return () => fileMap.forEach((_, url) => URL.revokeObjectURL(url));
+  }, []);
+
+  /* A file dropped outside an upload box must not make the browser open it and lose the form */
+  useEffect(() => {
+    const block = (e) => {
+      if (isFileDrag(e)) e.preventDefault();
+    };
+    window.addEventListener("dragover", block);
+    window.addEventListener("drop", block);
+    return () => {
+      window.removeEventListener("dragover", block);
+      window.removeEventListener("drop", block);
+    };
+  }, []);
+
+  /* ── Tags ── */
+  const addTag = () => {
+    const tag = tagInput.trim().toLowerCase().replace(/,/g, "");
+    if (!tag) return setTagInput("");
+    if (tags.length >= LIMITS.tagsMax) return toast.warning(`You can add at most ${LIMITS.tagsMax} tags`);
+    if (!tags.includes(tag)) setTags((p) => [...p, tag.slice(0, LIMITS.tagLengthMax)]);
+    setTagInput("");
   };
 
-  const removeVideo = (i) => {
-    const url = videoPreviews[i];
-    setVideoPreviews((p) => p.filter((_, idx) => idx !== i));
-    if (url.startsWith("blob:")) {
-      setVideoFiles((p) => {
-        const idx = p.findIndex((f) => URL.createObjectURL(f) === url);
-        return idx === -1 ? p : p.filter((_, fi) => fi !== idx);
-      });
+  const filesFor = (urls) => urls.map((u) => fileMapRef.current.get(u)).filter(Boolean);
+
+  /* ── Show every problem in one place ── */
+  const showProblems = (list) => {
+    setFormProblems(list);
+    toast.error(list.length === 1 ? list[0] : `${list.length} problems found. First: ${list[0]}`);
+    setTimeout(() => problemsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }), 50);
+  };
+
+  /* Checks for the fields that live outside react-hook-form */
+  const validateExtras = () => {
+    const problems = [];
+    const pricing = {};
+
+    if (mode === "create") {
+      const price = Number(simplePricing.price);
+      const stock = Number(simplePricing.stock || 0);
+      const discount = Number(simplePricing.discountPercentage || 0);
+
+      if (!simplePricing.price || !(price > 0)) pricing.price = "Base price is required and must be greater than 0";
+      else if (price > LIMITS.priceMax) pricing.price = `Price cannot be more than ${LIMITS.priceMax.toLocaleString()}`;
+      if (!Number.isInteger(stock) || stock < 0) pricing.stock = "Stock must be a whole number, 0 or more";
+      else if (stock > LIMITS.stockMax) pricing.stock = `Stock cannot be more than ${LIMITS.stockMax.toLocaleString()}`;
+      if (simplePricing.isDiscounted && !(discount > 0 && discount <= maxDiscount)) {
+        pricing.discountPercentage = `Discount must be between 1 and ${maxDiscount}%`;
+      }
+      problems.push(...Object.values(pricing));
+
+      if (previews.length === 0) {
+        const message = "At least 1 product image is required";
+        setImgErr(message);
+        problems.push(message);
+      }
     }
+
+    if (adminMode && mode === "create" && type !== "refurbished" && !selectedSellerId) {
+      problems.push("Please select a seller");
+    }
+
+    if (hasWarranty && !(Number.isInteger(warrantyMonths) && warrantyMonths >= 1 && warrantyMonths <= LIMITS.warrantyMonthsMax)) {
+      problems.push(`Warranty must be between 1 and ${LIMITS.warrantyMonthsMax} months`);
+    }
+
+    setPricingErrors(pricing);
+    return problems;
+  };
+
+  const onInvalid = (formErrors) => {
+    const fieldMessages = Object.values(formErrors).map((e) => e?.message).filter(Boolean);
+    showProblems([...fieldMessages, ...validateExtras()]);
   };
 
   /* ── Submit ── */
   const onSubmit = async (productData) => {
-    if (mode === "create" && previews.length === 0) {
-      setImgErr("At least 1 product image is required");
+    const problems = validateExtras();
+    if (problems.length) {
+      showProblems(problems);
       return;
     }
-
-    if (mode === "create" && (!simplePricing.price || Number(simplePricing.price) <= 0)) {
-      toast.error("Price is required");
-      return;
-    }
-
-    if (adminMode && mode === "create" && type !== "refurbished" && !selectedSellerId) {
-      toast.error("Please select a seller");
-      return;
-    }
+    setFormProblems([]);
 
     setSubmitting(true);
 
@@ -584,16 +636,16 @@ export default function ProductForm({ mode = "create", initialData = null, admin
           .filter((u) => !u.startsWith("blob:"))
           .forEach((u) => fd.append("existingImages", u));
 
-        videoPreviews
-          .filter((u) => !u.startsWith("blob:"))
-          .forEach((u) => fd.append("existingVideos", u));
+        const keptVideoUrls = videoPreviews.filter((u) => !u.startsWith("blob:"));
+        if (keptVideoUrls.length) keptVideoUrls.forEach((u) => fd.append("existingVideos", u));
+        else fd.append("existingVideos", "[]");
       }
 
 
-      files.forEach((f) => fd.append("images", f));
+      filesFor(previews).forEach((f) => fd.append("images", f));
 
       // Append new video files (optional)
-      videoFiles.forEach((f) => fd.append("videos", f));
+      filesFor(videoPreviews).forEach((f) => fd.append("videos", f));
 
       // Tags (sent as JSON string)
       fd.append("tags", JSON.stringify(tags));
@@ -640,7 +692,19 @@ export default function ProductForm({ mode = "create", initialData = null, admin
       }
     } catch (err) {
       console.error(err);
-      toast.error(err?.response?.data?.message || "Something went wrong. Please try again.");
+      const { messages, fieldErrors } = readApiError(err);
+
+      // Put each server message next to the field it belongs to
+      const formFields = ["title", "shortDescription", "description", "categoryId", "subCategoryId", "brandId", "modelNumber"];
+      const pricing = {};
+      Object.entries(fieldErrors).forEach(([field, message]) => {
+        if (formFields.includes(field)) setError(field, { type: "server", message });
+        else if (["price", "stock", "discountPercentage"].includes(field)) pricing[field] = message;
+        else if (field === "images") setImgErr(message);
+        else if (field === "videos") setVidErr(message);
+      });
+      setPricingErrors(pricing);
+      showProblems(messages);
     } finally {
       setSubmitting(false);
     }
@@ -662,11 +726,11 @@ export default function ProductForm({ mode = "create", initialData = null, admin
 
   const extraRows = mode === "create" ? [
     { label: "Images", value: `${previews.length}/5` },
-    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/3` : "None" },
+    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/${videoRules.maxCount}` : "None" },
     { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
   ] : [
     { label: "Images", value: "Managed in Variants" },
-    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/3` : "None" },
+    { label: "Videos", value: videoPreviews.length > 0 ? `${videoPreviews.length}/${videoRules.maxCount}` : "None" },
     { label: "Category", value: categories.find((c) => c._id === watchCategory)?.title || "—" },
   ];
 
@@ -706,7 +770,20 @@ export default function ProductForm({ mode = "create", initialData = null, admin
         </div>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <form onSubmit={handleSubmit(onSubmit, onInvalid)} noValidate>
+        {formProblems.length > 0 && (
+          <div ref={problemsRef} role="alert" className="mb-5 rounded-2xl border border-red-200 bg-red-50 p-4">
+            <p className="flex items-center gap-2 text-sm font-bold text-red-700">
+              <Icon icon="mdi:alert-circle" className="w-5 h-5" />
+              The product could not be saved. Please fix the following:
+            </p>
+            <ul className="mt-2 list-disc pl-9 text-sm text-red-600 space-y-1">
+              {formProblems.map((message) => (
+                <li key={message}>{message}</li>
+              ))}
+            </ul>
+          </div>
+        )}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* LEFT COLUMN */}
           <div className="xl:col-span-2 space-y-5">
@@ -714,30 +791,25 @@ export default function ProductForm({ mode = "create", initialData = null, admin
             <Card>
               <CardTitle icon="mdi:information-outline">Basic Information</CardTitle>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <Input {...register("title")} error={errors.title} placeholder="e.g. Premium Cotton T-Shirt" />
+                <FieldLabel required counter={<FieldCounter control={control} name="title" max={LIMITS.titleMax} />}>Title</FieldLabel>
+                <Input {...register("title")} maxLength={LIMITS.titleMax} error={errors.title} placeholder="e.g. Premium Cotton T-Shirt" />
                 <FieldError err={errors.title} />
               </div>
  
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">
-                    Model Number <span className="text-red-500">*</span>
-                  </label>
-                  <Input {...register("modelNumber")} error={errors.modelNumber} placeholder="e.g. MOD-1234" />
+                  <FieldLabel required counter={<FieldCounter control={control} name="modelNumber" max={LIMITS.modelNumberMax} />}>Model Number</FieldLabel>
+                  <Input {...register("modelNumber")} maxLength={LIMITS.modelNumberMax} error={errors.modelNumber} placeholder="e.g. MOD-1234" />
                   <FieldError err={errors.modelNumber} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1">Short Description</label>
-                  <Input {...register("shortDescription")} placeholder="One-line summary..." />
+                  <FieldLabel counter={<FieldCounter control={control} name="shortDescription" max={LIMITS.shortDescriptionMax} />}>Short Description</FieldLabel>
+                  <Input {...register("shortDescription")} maxLength={LIMITS.shortDescriptionMax} error={errors.shortDescription} placeholder="One-line summary..." />
+                  <FieldError err={errors.shortDescription} />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1">
-                  Description <span className="text-red-500">*</span>
-                </label>
+                <FieldLabel required counter={<Counter length={htmlToText(watchDescription).length} max={LIMITS.descriptionMax} />}>Description</FieldLabel>
                 <RichTextEditor
                   value={watchDescription}
                   onChange={(val) =>
@@ -812,6 +884,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                         <option key={s._id} value={s._id}>{s.title}</option>
                       ))}
                     </select>
+                    <FieldError err={errors.subCategoryId} />
                   </div>
                 )}
                 <div>
@@ -827,7 +900,8 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                       <option key={b._id} value={b._id}>{b.title || b.name}</option>
                     ))}
                   </select>
-                  {!adminMode && type !== "refurbished" && (
+                  <FieldError err={errors.brandId} />
+                  {!adminMode && type !== "refurbished" && initialData?._id && (
                     <button
                       type="button"
                       onClick={() => router.push(`/seller/product/${initialData._id}/variants`)}
@@ -836,7 +910,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                       Manage Variants →
                     </button>
                   )}
-                  {(adminMode || type === "refurbished") && (
+                  {(adminMode || type === "refurbished") && initialData?._id && (
                     <button
                       type="button"
                       onClick={() => {
@@ -859,7 +933,12 @@ export default function ProductForm({ mode = "create", initialData = null, admin
             {/* Pricing & Variants */}
             {mode === "create" ? (
               <div className="animate-in fade-in slide-in-from-top-4 duration-500">
-                <SimplePricing value={simplePricing} onChange={setSimplePricing} />
+                <SimplePricing
+                  value={simplePricing}
+                  onChange={(next) => { setSimplePricing(next); setPricingErrors({}); }}
+                  errors={pricingErrors}
+                  maxDiscount={maxDiscount}
+                />
               </div>
             ) : (
               <Card>
@@ -906,42 +985,19 @@ export default function ProductForm({ mode = "create", initialData = null, admin
             {mode === "create" && (
               <Card>
                 <div className="flex items-center justify-between">
-                  <CardTitle icon="mdi:image-multiple-outline">Product Images</CardTitle>
-                  <span className="text-xs text-gray-400">{previews.length}/5</span>
+                  <CardTitle icon="mdi:image-multiple-outline">
+                    Product Images <span className="text-red-500">*</span>
+                  </CardTitle>
+                  <span className="text-xs text-gray-400">{previews.length}/{IMAGE_RULES.maxCount}</span>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-                  {previews.map((url, i) => (
-                    <div key={i} className="relative group aspect-square rounded-xl border border-gray-100 overflow-hidden bg-gray-50">
-                      <img src={url} alt="" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-all" />
-                      <button
-                        type="button"
-                        onClick={() => removeImage(i)}
-                        className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Icon icon="mdi:close" className="w-3 h-3" />
-                      </button>
-                      {i === 0 && (
-                        <span className="absolute bottom-1 left-1 px-1.5 py-0.5 bg-black/60 text-white text-[9px] rounded font-medium">
-                          Main
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                  {previews.length < 5 && (
-                    <label className="aspect-square flex flex-col items-center justify-center border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-400 hover:bg-primary-50/30 cursor-pointer transition-all group">
-                      <Icon icon="mdi:plus" className="w-6 h-6 text-gray-300 group-hover:text-primary-400" />
-                      <span className="text-[10px] text-gray-400 mt-1">Add</span>
-                      <input type="file" multiple accept="image/*" className="hidden" onChange={onFileChange} />
-                    </label>
-                  )}
-                </div>
-                {imgErr && (
-                  <p className="text-red-500 text-xs mt-2 flex items-center gap-1">
-                    <Icon icon="mdi:alert-circle-outline" className="w-3.5 h-3.5" />
-                    {imgErr}
-                  </p>
-                )}
+                <ImageUploader
+                  urls={previews}
+                  rules={IMAGE_RULES}
+                  error={imgErr}
+                  onFiles={addImages}
+                  onRemove={removeImage}
+                  onMove={moveImage}
+                />
               </Card>
             )}
 
@@ -950,64 +1006,19 @@ export default function ProductForm({ mode = "create", initialData = null, admin
               <div className="flex items-center justify-between">
                 <CardTitle icon="mdi:video-outline">Product Videos</CardTitle>
                 <span className="text-xs text-gray-400">
-                  {videoPreviews.length}/3
+                  {videoPreviews.length}/{videoRules.maxCount}
                   <span className="ml-1.5 px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[9px] font-bold">OPTIONAL</span>
                 </span>
               </div>
 
-              {/* Video previews */}
-              {videoPreviews.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-2">
-                  {videoPreviews.map((url, i) => (
-                    <div key={i} className="relative group rounded-xl overflow-hidden border border-gray-100 bg-gray-900">
-                      <video
-                        src={url}
-                        className="w-full h-28 object-cover opacity-90"
-                        muted
-                        preload="metadata"
-                      />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-all rounded-xl" />
-                      <button
-                        type="button"
-                        onClick={() => removeVideo(i)}
-                        className="absolute top-1.5 right-1.5 p-1 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                      >
-                        <Icon icon="mdi:close" className="w-3 h-3" />
-                      </button>
-                      <div className="absolute bottom-1.5 left-1.5 flex items-center gap-1">
-                        <Icon icon="mdi:play-circle-outline" className="w-4 h-4 text-white/80" />
-                        <span className="text-[9px] text-white/70 font-medium">Video {i + 1}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Upload button */}
-              {videoPreviews.length < 3 && (
-                <label className="flex flex-col items-center justify-center gap-2 p-4 border-2 border-dashed border-gray-200 rounded-xl hover:border-primary-400 hover:bg-primary-50/20 cursor-pointer transition-all group">
-                  <div className="w-10 h-10 rounded-xl bg-gray-100 group-hover:bg-primary-100 flex items-center justify-center transition-colors">
-                    <Icon icon="mdi:video-plus-outline" className="w-5 h-5 text-gray-400 group-hover:text-primary-500" />
-                  </div>
-                  <div className="text-center">
-                    <p className="text-xs font-semibold text-gray-600 group-hover:text-primary-600">Click to upload video</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">MP4, WebM, MOV — up to 50MB each</p>
-                  </div>
-                  <input
-                    type="file"
-                    multiple
-                    accept="video/mp4,video/webm,video/quicktime,video/mkv"
-                    className="hidden"
-                    onChange={onVideoChange}
-                  />
-                </label>
-              )}
-
-              {videoPreviews.length === 0 && (
-                <p className="text-xs text-gray-400 mt-1">
-                  Videos help buyers see the product in action. You can add up to 3.
-                </p>
-              )}
+              <VideoUploader
+                urls={videoPreviews}
+                rules={videoRules}
+                error={vidErr}
+                getFile={(url) => fileMapRef.current.get(url)}
+                onFiles={addVideos}
+                onRemove={removeVideo}
+              />
             </Card>
 
             {/* Tags & Warranty */}
@@ -1023,21 +1034,18 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === ",") {
                         e.preventDefault();
-                        const t = tagInput.trim().toLowerCase().replace(/,/g, "");
-                        if (t && !tags.includes(t)) setTags(p => [...p, t]);
-                        setTagInput("");
+                        addTag();
                       }
                     }}
+                    maxLength={LIMITS.tagLengthMax}
+                    disabled={tags.length >= LIMITS.tagsMax}
                     placeholder="Type a tag and press Enter…"
                     className="flex-1 h-9 px-3 text-xs rounded-xl border border-gray-200 focus:outline-none focus:border-primary-400 focus:ring-1 focus:ring-primary-400/10 transition-all"
                   />
                   <button
                     type="button"
-                    onClick={() => {
-                      const t = tagInput.trim().toLowerCase();
-                      if (t && !tags.includes(t)) setTags(p => [...p, t]);
-                      setTagInput("");
-                    }}
+                    onClick={addTag}
+                    disabled={tags.length >= LIMITS.tagsMax}
                     className="h-9 px-3 bg-primary-600 text-white rounded-xl text-xs font-bold hover:bg-primary-700 transition-all"
                   >
                     Add
@@ -1056,7 +1064,9 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                     ))}
                   </div>
                 )}
-                <p className="text-[10px] text-gray-400">e.g. gaming, premium, sale, refurbished</p>
+                <p className="text-[10px] text-gray-400">
+                  e.g. gaming, premium, sale • {tags.length}/{LIMITS.tagsMax} tags, up to {LIMITS.tagLengthMax} characters each
+                </p>
               </div>
 
               {/* Warranty */}
@@ -1083,7 +1093,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                     <input
                       type="number"
                       min={1}
-                      max={120}
+                      max={LIMITS.warrantyMonthsMax}
                       value={warrantyMonths}
                       onChange={(e) => setWarrantyMonths(Number(e.target.value))}
                       className="w-24 h-9 px-3 text-sm text-center font-bold rounded-xl border border-gray-200 focus:outline-none focus:border-emerald-400 transition-all"
@@ -1153,7 +1163,7 @@ export default function ProductForm({ mode = "create", initialData = null, admin
                 Tips
               </p>
               <ul className="text-xs text-amber-600 space-y-1.5 leading-relaxed">
-                <li>• The first image becomes the main display image.</li>
+                <li>• The first image is the main one — drag images or press ★ to change it.</li>
                 <li>• You can add variants after creating the product.</li>
               </ul>
             </div>
