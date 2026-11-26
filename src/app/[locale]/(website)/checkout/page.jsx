@@ -24,6 +24,10 @@ const toTurkishMobile = (value) => {
   return /^5\d{9}$/.test(digits) ? digits : '';
 };
 
+// Card details stay in memory only: they are never written to (or read from) the browser's storage
+const CARD_FIELDS = ['cardHolder', 'cardNumber', 'expiry', 'cvv'];
+const withoutCard = (data) => Object.fromEntries(Object.entries(data).filter(([key]) => !CARD_FIELDS.includes(key)));
+
 // ── Yup Validation Schema ─────────────────────────────────────────────────────
 const checkoutSchema = yup.object().shape({
   firstName: yup.string().required('First Name is required'),
@@ -134,7 +138,6 @@ export default function CheckoutPage() {
   const [orderSuccess, setOrderSuccess] = useState(null);
 
   const [paymentMethod, setPaymentMethod] = useState();
-  const [saveCard, setSaveCard] = useState(false);
 
   // ── Form State ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -175,6 +178,31 @@ export default function CheckoutPage() {
     [form.countryCode, form.stateCode]
   );
 
+  // ── Districts the courier accepts (the static list also has names that are not districts) ──
+  const [courierDistricts, setCourierDistricts] = useState({ province: '', names: [] });
+
+  useEffect(() => {
+    if (!form.state) return undefined;
+    let cancelled = false;
+    axiosInstance
+      .get('/e-commerce/geo/districts', { params: { province: form.state } })
+      .then(({ data }) => {
+        if (!cancelled && data.data?.length) setCourierDistricts({ province: form.state, names: data.data });
+      })
+      .catch(() => { }); // the static list stays in use
+    return () => { cancelled = true; };
+  }, [form.state]);
+
+  const fromCourier = courierDistricts.province === form.state && courierDistricts.names.length > 0;
+  const districtNames = fromCourier ? courierDistricts.names : cityList.map(c => c.name);
+
+  // a name saved earlier that is not a district has to be chosen again
+  useEffect(() => {
+    if (fromCourier && form.city && !courierDistricts.names.includes(form.city)) {
+      setForm(f => ({ ...f, city: '' }));
+    }
+  }, [fromCourier, courierDistricts, form.city]);
+
   // ── Persist form to localStorage ─────────────────────────────────────────────
   useEffect(() => {
     const savedForm = localStorage.getItem('checkout_form_data');
@@ -183,7 +211,7 @@ export default function CheckoutPage() {
         const parsed = JSON.parse(savedForm);
         setForm(f => ({
           ...f,
-          ...parsed,
+          ...withoutCard(parsed), // also ignores a card saved by the earlier version
           countryCode: parsed.countryCode || 'TR',
           country: parsed.country || 'Turkey',
           email: auth?.user?.email || parsed.email || '',
@@ -196,7 +224,7 @@ export default function CheckoutPage() {
   }, [auth?.user]);
 
   useEffect(() => {
-    localStorage.setItem('checkout_form_data', JSON.stringify(form));
+    localStorage.setItem('checkout_form_data', JSON.stringify(withoutCard(form)));
   }, [form]);
 
   // ── Load items (Buy Now vs Cart) ──────────────────────────────────────────────
@@ -644,16 +672,16 @@ export default function CheckoutPage() {
 
               {/* ── City Dropdown ── */}
               <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">City / District (İlçe) *</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5">District (İlçe) *</label>
                 <div className="relative">
                   <Icon icon="mdi:city-variant-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base z-10 pointer-events-none" />
-                  {cityList.length > 0 ? (
+                  {districtNames.length > 0 ? (
                     <Select
-                      options={cityList.map(c => ({ value: c.name, label: c.name }))}
-                      value={cityList.filter(c => c.name === form.city).map(c => ({ value: c.name, label: c.name }))[0] || null}
+                      options={districtNames.map(name => ({ value: name, label: name }))}
+                      value={districtNames.includes(form.city) ? { value: form.city, label: form.city } : null}
                       onChange={handleCityChange}
                       styles={customSelectStyles(errors.city)}
-                      placeholder="Search City…"
+                      placeholder="Search district…"
                       isClearable
                       className="text-sm"
                     />
@@ -748,12 +776,6 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 </div>
-                <label className="flex items-center gap-2.5 cursor-pointer select-none">
-                  <div onClick={() => setSaveCard(s => !s)} className={`cursor-pointer w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${saveCard ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
-                    {saveCard && <Icon icon="mdi:check" className="text-white text-xs" />}
-                  </div>
-                  <span className="text-sm text-gray-600">Save this information for next time</span>
-                </label>
               </div>
             )}
           </div>

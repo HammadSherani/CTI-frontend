@@ -273,11 +273,11 @@ export default function SellerWalletPage() {
             icon="mdi:clock-outline"
             iconBg="bg-amber-100"
             iconColor="text-amber-600"
-            sub={overview?.holdDays === 0
+            sub={overview?.holdInstant
               ? 'Releases instantly in test mode'
               : overview?.nextReleaseAt
-                ? `Next release ${fmtD(overview.nextReleaseAt)}`
-                : `Releases after ${overview?.holdDays ?? 20} days`}
+                ? `Next release ${fmtD(overview.nextReleaseAt)}, ${new Date(overview.nextReleaseAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`
+                : `Releases after ${overview?.holdLabel ?? '20 days'}`}
           />
           <StatCard
             label="Total Earned"
@@ -323,7 +323,7 @@ export default function SellerWalletPage() {
         <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-start gap-3">
           <Icon icon="mdi:information-outline" className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
           <p className="text-sm text-blue-700">
-            <span className="font-bold">How earnings work:</span> Once an order is delivered, your earnings are held for <strong>{overview?.holdDays ?? 20} days</strong>. After that, earnings move to Available Balance only when the invoice is approved and there is no active return. Platform commission ({fmt(w.totalPlatformFees)} lifetime) is deducted before crediting your balance.
+            <span className="font-bold">How earnings work:</span> Once an order is delivered, your earnings are held for <strong>{overview?.holdLabel ?? '20 days'}</strong>. After that, earnings move to Available Balance only when the invoice is approved and there is no active return. Platform commission ({fmt(w.totalPlatformFees)} lifetime) is deducted before crediting your balance.
           </p>
         </div>
 
@@ -335,7 +335,7 @@ export default function SellerWalletPage() {
               <p className="font-bold text-base">Action Required: Upload Invoices</p>
               <p className="mt-1">
                 You have <strong>{fmt(w.pendingBalance)}</strong> on hold. 
-                Even if the hold period ({overview?.holdDays ?? 20} days) has ended, these funds <strong>will not</strong> move to your Available Balance until you upload the invoices for these orders and they are approved by the Admin.
+                Even if the hold period ({overview?.holdLabel ?? '20 days'}) has ended, these funds <strong>will not</strong> move to your Available Balance until you upload the invoices for these orders and they are approved by the Admin.
               </p>
               <button 
                 onClick={() => router.push('/seller/order')} 

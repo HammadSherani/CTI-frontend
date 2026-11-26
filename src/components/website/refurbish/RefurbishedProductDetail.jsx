@@ -664,7 +664,7 @@ export default function RefurbishedProductDetail({ params }) {
                         </span>
                       )}
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug [overflow-wrap:anywhere]">
                       {productData?.title}
                     </h1>
                   </div>
@@ -683,7 +683,7 @@ export default function RefurbishedProductDetail({ params }) {
                   </button>
                 </div>
                 {productData?.shortDescription && (
-                  <p className="text-xs md:text-sm text-gray-500 mt-2 font-medium leading-relaxed max-w-xl">
+                  <p className="text-xs md:text-sm text-gray-500 mt-2 font-medium leading-relaxed max-w-xl [overflow-wrap:anywhere]">
                     {productData.shortDescription}
                   </p>
                 )}
@@ -839,7 +839,7 @@ export default function RefurbishedProductDetail({ params }) {
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Product Information</h2>
                 <div
-                  className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px]"
+                  className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px] [overflow-wrap:anywhere]"
                   dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(productData.description) }}
                 />
               </div>

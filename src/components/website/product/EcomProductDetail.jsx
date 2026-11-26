@@ -14,6 +14,7 @@ import { formatCurrency } from '@/helper/currencyFormatter';
 import StarRating from '../StarRating';
 import ImageZoom from '../ImageZoom';
 import ReviewCard from '../ReviewCard';
+import ProductReviewModal from '../ProductReview';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import ProductGalleryModal from './ProductGalleryModal';
@@ -31,17 +32,12 @@ export default function EcomProductDetail({ params }) {
   const [loading, setLoading] = useState(true);
   const [reviews, setReviews] = useState([]);
   const [canReview, setCanReview] = useState(false);
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [showFullStoreDesc, setShowFullStoreDesc] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
-  const [reviewImages, setReviewImages] = useState([]);
-  const [reviewVideo, setReviewVideo] = useState(null);
-  const [editingReview, setEditingReview] = useState(null);
   const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [askLoading, setAskLoading] = useState(false);
@@ -150,6 +146,11 @@ export default function EcomProductDetail({ params }) {
 
     return () => { cancelled = true; };
   }, [params.slug, token]);
+
+  // "Review Now" on the order page opens the window straight away
+  useEffect(() => {
+    if (canReview && new URLSearchParams(window.location.search).get('review') === '1') setReviewOpen(true);
+  }, [canReview]);
 
   useEffect(() => {
     async function loadData() {
@@ -385,64 +386,6 @@ export default function EcomProductDetail({ params }) {
     }
   };
 
-  const handleMediaUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const images = files.filter(f => f.type.startsWith('image/'));
-    const videos = files.filter(f => f.type.startsWith('video/'));
-
-    if (images.length > 0) {
-      if (reviewImages.length + images.length > 5) {
-        toast.error('Maximum 5 images allowed');
-        return;
-      }
-      setReviewImages(prev => [...prev, ...images]);
-    }
-
-    if (videos.length > 0) {
-      const file = videos[0];
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error('Video must be less than 50MB');
-        return;
-      }
-      setReviewVideo(file);
-    }
-  };
-
-  const handleAddReview = async () => {
-    if (!token) { toast.error('Please log in to submit a review'); return; }
-    if (!reviewRating) {
-      toast.error('Please select a rating (stars)');
-      return;
-    }
-
-    try {
-      setSubmittingReview(true);
-      const formData = new FormData();
-      if (reviewRating) formData.append('rating', reviewRating);
-      if (reviewText.trim()) formData.append('comment', reviewText);
-      reviewImages.forEach(file => formData.append('images', file));
-      if (reviewVideo) formData.append('video', reviewVideo);
-
-      const { data } = await axiosInstance.post(
-        `/e-commerce/products/${params.slug}/reviews`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-      );
-      if (data.success) {
-        toast.success('Review submitted successfully!');
-        setReviews([data.data, ...reviews]);
-        setReviewText('');
-        setReviewRating(0);
-        setReviewImages([]);
-        setReviewVideo(null);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error submitting review');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
   const handleDeleteReview = async (reviewId) => {
     if (!token) return;
     setDeletingReviewId(reviewId);
@@ -462,54 +405,13 @@ export default function EcomProductDetail({ params }) {
     }
   };
 
-  const handleUpdateReview = async ({ rating, comment, removeImages, removeVideo, newImages, newVideo }) => {
-    if (!token || !editingReview) return;
-    try {
-      setSubmittingReview(true);
-      const formData = new FormData();
-      if (rating) formData.append('rating', rating);
-      if (comment !== undefined) formData.append('comment', comment);
-      if (removeVideo) formData.append('removeVideo', 'true');
-      if (removeImages?.length) removeImages.forEach(url => formData.append('removeImages', url));
-      if (newImages?.length) newImages.forEach(f => formData.append('images', f));
-      if (newVideo) formData.append('video', newVideo);
-
-      const { data } = await axiosInstance.patch(
-        `/e-commerce/products/${params.slug}/reviews/${editingReview._id}`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } }
-      );
-      if (data.success) {
-        setReviews(prev => prev.map(r => r._id === editingReview._id ? data.data : r));
-        setEditingReview(null);
-        toast.success('Review updated');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update review');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const handleSubmitEnquiry = async (subject, message) => {
-    const sellerId = productData?.sellerId;
-    if (!sellerId) { toast.error('Seller information not available'); return; }
-    setAskLoading(true);
-    try {
-      const { data } = await axiosInstance.post(
-        `/customer/hire-repairman`,
-        { sellerId, subject, message, productId: productData._id, hiringType: 'seller-enquiry' },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success('Your enquiry was sent successfully!');
-        setShowAskModal(false);
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send enquiry');
-    } finally {
-      setAskLoading(false);
-    }
+  // a saved review shows at once, with the new average
+  const handleReviewSaved = (saved) => {
+    const next = [saved, ...reviews.filter((r) => r._id !== saved._id)];
+    setReviews(next);
+    const rated = next.filter((r) => r.rating);
+    const average = rated.length ? Math.round((rated.reduce((sum, r) => sum + r.rating, 0) / rated.length) * 10) / 10 : 0;
+    setProductData((prev) => ({ ...prev, ratings: { average, count: next.length } }));
   };
 
   // Rating breakdown
@@ -635,7 +537,7 @@ export default function EcomProductDetail({ params }) {
             </div>
 
             {/* Product Details */}
-            <div className="flex flex-col gap-5">
+            <div className="flex flex-col gap-5 min-w-0">
               <div>
                 <div className="flex items-start justify-between gap-4 w-full">
                   <div className="flex-1 min-w-0">
@@ -651,7 +553,7 @@ export default function EcomProductDetail({ params }) {
                         </span>
                       )}
                     </div>
-                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug">
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 leading-snug [overflow-wrap:anywhere]">
                       {productData?.title}
                     </h1>
                   </div>
@@ -670,7 +572,7 @@ export default function EcomProductDetail({ params }) {
                   </button>
                 </div>
                 {productData?.shortDescription && (
-                  <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-xl">
+                  <p className="text-gray-500 text-sm mt-2 leading-relaxed max-w-xl [overflow-wrap:anywhere]">
                     {productData.shortDescription}
                   </p>
                 )}
@@ -841,7 +743,7 @@ export default function EcomProductDetail({ params }) {
             <div>
               <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Product Information</h2>
               <div
-                className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px]"
+                className="prose prose-sm max-w-none prose-headings:text-gray-900 prose-li:marker:text-primary-500 text-gray-600 leading-relaxed text-[13px] [overflow-wrap:anywhere]"
                 dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(productData?.description || '') }}
               />
             </div>
@@ -1087,7 +989,7 @@ export default function EcomProductDetail({ params }) {
 
         {/* Reviews */}
         <div className="max-w-6xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Ratings & Reviews</h2>
+          <h2 id="reviews" className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Ratings & Reviews</h2>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
@@ -1111,6 +1013,20 @@ export default function EcomProductDetail({ params }) {
                     ))}
                   </div>
                 </div>
+                {canReview ? (
+                  <button
+                    type="button"
+                    onClick={() => setReviewOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold transition-colors cursor-pointer"
+                  >
+                    <Icon icon="solar:star-bold-duotone" className="w-4 h-4" />
+                    {userReview ? 'Edit your review' : 'Add Review'}
+                  </button>
+                ) : (
+                  <p className="text-xs text-gray-500 text-center">
+                    {token ? 'You can add a review after your order for this product is delivered.' : 'Log in to review a product you bought.'}
+                  </p>
+                )}
               </div>
 
             </div>
@@ -1164,6 +1080,15 @@ export default function EcomProductDetail({ params }) {
       )}
 
       {/* Modals */}
+      {reviewOpen && (
+        <ProductReviewModal
+          slug={params.slug}
+          productTitle={productData?.title}
+          review={userReview}
+          onClose={() => setReviewOpen(false)}
+          onSaved={handleReviewSaved}
+        />
+      )}
       <ProductGalleryModal
         isOpen={isGalleryOpen}
         onClose={() => setIsGalleryOpen(false)}

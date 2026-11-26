@@ -11,6 +11,7 @@ import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems } from '@/components/website/ReturnItemPicker';
+import { OrderItemReviewButton } from '@/components/website/ProductReview';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
@@ -719,6 +720,11 @@ export default function OrderDetailPage() {
                         </span>
                         <span className="text-xs text-gray-400">{formatCurrency(item.price || 0)} each</span>
                       </div>
+                      {/* one button per delivered product */}
+                      {!isRefurbishedMode && order.orderStatus === 'delivered' && product?.slug &&
+                        order.items.findIndex((other) => other.productId?.slug === product.slug) === order.items.indexOf(item) && (
+                          <OrderItemReviewButton slug={product.slug} productTitle={product.title} />
+                        )}
                     </div>
                     <div className="text-right flex-shrink-0 self-center">
                       <p className="font-bold text-gray-900">{formatCurrency(itemTotal)}</p>
@@ -960,7 +966,7 @@ export default function OrderDetailPage() {
                 type="button"
                 onClick={() => {
                   localStorage.setItem(reviewPrompt.promptKey, 'true');
-                  router.push(`/product/${reviewPrompt.productSlug}`);
+                  router.push(`/product/${reviewPrompt.productSlug}?review=1`);
                 }}
                 className="flex-1 rounded-xl bg-primary-600 py-3 text-sm font-bold text-white hover:bg-primary-700"
               >
