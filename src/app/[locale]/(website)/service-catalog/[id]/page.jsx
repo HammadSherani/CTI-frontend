@@ -9,6 +9,8 @@ import handleError from '@/helper/handleError';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useChat } from '@/hooks/useChat';
 import { addChat } from '@/store/chat';
+import { toast } from 'react-toastify';
+import { TIME_WINDOWS, isoDay } from '@/components/website/serviceRequests/requestUi';
 
 const money = (n) => `₺${Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 })}`;
 
@@ -23,6 +25,8 @@ export default function ServiceDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [starting, setStarting] = useState(false);
+  const [booking, setBooking] = useState(null); // booking form values while open
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -60,6 +64,31 @@ export default function ServiceDetailsPage() {
       handleError(error);
     } finally {
       setStarting(false);
+    }
+  };
+
+  const openBooking = () => {
+    if (!user || !token) {
+      router.push('/auth/login');
+      return;
+    }
+    setBooking({ delivery: 'drop-off', pickupAddress: '', preferredDate: isoDay(1), timeWindow: 'morning', note: '' });
+  };
+
+  const sendBooking = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    try {
+      const { data } = await axiosInstance.post('/service-requests', { serviceId: service._id, ...booking }, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      toast.success(data.message || 'Request sent');
+      setBooking(null);
+      router.push('/my-account/service-requests');
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setSending(false);
     }
   };
 
@@ -168,11 +197,24 @@ export default function ServiceDetailsPage() {
               <p className="text-3xl font-bold text-gray-900 mt-5">{money(service.pricing?.total)}</p>
               <p className="text-xs text-gray-500">Fixed price set by the repairman</p>
 
+              {canChat && service.canBook && (
+                <button type="button" onClick={openBooking}
+                  className="mt-5 w-full py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 flex items-center justify-center gap-2">
+                  <Icon icon="heroicons:calendar-days" className="w-5 h-5" />
+                  {user ? 'Book this service' : 'Log in to book'}
+                </button>
+              )}
+              {canChat && service.canBook && (
+                <p className="text-xs text-gray-500 mt-2">
+                  No payment now. The repairman confirms the time within 24 hours, then you pay to confirm the booking.
+                  {service.pickupAvailable ? ' Pickup is available.' : ''}
+                </p>
+              )}
               {canChat && (
                 <button type="button" onClick={startChat} disabled={starting}
-                  className="mt-5 w-full py-3 bg-primary-600 text-white rounded-lg font-medium hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center gap-2">
+                  className={`${service.canBook ? 'mt-3 border border-gray-300 text-gray-700 hover:bg-gray-50' : 'mt-5 bg-primary-600 text-white hover:bg-primary-700'} w-full py-2.5 rounded-lg font-medium disabled:opacity-50 flex items-center justify-center gap-2 text-sm`}>
                   <Icon icon="heroicons:chat-bubble-left-right" className="w-5 h-5" />
-                  {starting ? 'Opening chat...' : user ? 'Chat with the repairman' : 'Log in to contact the repairman'}
+                  {starting ? 'Opening chat...' : user ? 'Ask the repairman a question' : 'Log in to contact the repairman'}
                 </button>
               )}
               <Link href={`/repairmans/${service.repairman?._id}`}
@@ -186,6 +228,73 @@ export default function ServiceDetailsPage() {
           </aside>
         </div>
       </div>
+
+      {booking && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" role="dialog" aria-modal="true">
+          <form onSubmit={sendBooking} className="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Book: {service.title}</h2>
+              <p className="text-sm text-gray-600">{money(service.pricing?.total)}{service.pickupAvailable ? ' + pickup charge if you choose pickup' : ''}</p>
+            </div>
+
+            <fieldset>
+              <legend className="text-sm font-medium text-gray-700 mb-2">How does the device get to the repairman?</legend>
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer">
+                  <input type="radio" name="delivery" checked={booking.delivery === 'drop-off'} onChange={() => setBooking({ ...booking, delivery: 'drop-off' })} className="mt-1" />
+                  <span className="text-sm"><span className="font-medium">I bring it</span><span className="block text-xs text-gray-500">The repairman sends you the address when accepting.</span></span>
+                </label>
+                {service.pickupAvailable && (
+                  <label className="flex items-start gap-3 p-3 border rounded-lg cursor-pointer">
+                    <input type="radio" name="delivery" checked={booking.delivery === 'pickup'} onChange={() => setBooking({ ...booking, delivery: 'pickup' })} className="mt-1" />
+                    <span className="text-sm"><span className="font-medium">Pick it up from me</span><span className="block text-xs text-gray-500">The repairman tells you the pickup charge when accepting.</span></span>
+                  </label>
+                )}
+              </div>
+            </fieldset>
+
+            {booking.delivery === 'pickup' && (
+              <label className="block text-sm">
+                <span className="block text-gray-700 mb-1">Pickup address <span className="text-red-500">*</span></span>
+                <textarea rows={2} required minLength={5} maxLength={300} value={booking.pickupAddress}
+                  onChange={(e) => setBooking({ ...booking, pickupAddress: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </label>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="text-sm">
+                <span className="block text-gray-700 mb-1">Preferred day</span>
+                <input type="date" required min={isoDay(0)} max={isoDay(60)} value={booking.preferredDate}
+                  onChange={(e) => setBooking({ ...booking, preferredDate: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500" />
+              </label>
+              <label className="text-sm">
+                <span className="block text-gray-700 mb-1">Time</span>
+                <select value={booking.timeWindow} onChange={(e) => setBooking({ ...booking, timeWindow: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary-500">
+                  {Object.entries(TIME_WINDOWS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select>
+              </label>
+            </div>
+
+            <label className="block text-sm">
+              <span className="block text-gray-700 mb-1">Note for the repairman (optional)</span>
+              <textarea rows={2} maxLength={500} value={booking.note} placeholder="e.g. the screen is cracked at the top"
+                onChange={(e) => setBooking({ ...booking, note: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary-500" />
+            </label>
+
+            <p className="text-xs text-gray-500">Nothing is charged now. You pay after the repairman accepts (within 24 hours).</p>
+            <div className="flex gap-3">
+              <button type="button" onClick={() => setBooking(null)} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+              <button type="submit" disabled={sending} className="flex-1 py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50">
+                {sending ? 'Sending...' : 'Send request'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

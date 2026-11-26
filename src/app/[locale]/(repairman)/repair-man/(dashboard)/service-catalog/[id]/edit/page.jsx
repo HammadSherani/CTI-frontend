@@ -33,6 +33,7 @@ const serviceSchema = yup.object().shape({
   //   .required('Please select a service type')
   //   .oneOf(['home', 'shop', 'pickup'], 'Invalid service type'),
   city: yup.string().optional(),
+  pickupAvailable: yup.boolean().default(false),
   pricing: yup.object().shape({
     basePrice: yup
       .number()
@@ -88,6 +89,7 @@ function EditServicePage() {
       },
       // serviceType: '',
       city: '',
+      pickupAvailable: false,
       pricing: {
         basePrice: '',
         partsPrice: 0,
@@ -154,6 +156,7 @@ function EditServicePage() {
           },
           // serviceType: service.serviceType || '',
           city: service.city || '',
+          pickupAvailable: Boolean(service.pickupAvailable),
           pricing: {
             basePrice: service.pricing?.basePrice || 0,
             partsPrice: service.pricing?.partsPrice || 0,
@@ -383,6 +386,28 @@ function EditServicePage() {
                       {errors.description.message}
                     </p>
                   )}
+                </div>
+
+                {/* Pickup */}
+                <div>
+                  <Controller
+                    name="pickupAvailable"
+                    control={control}
+                    render={({ field }) => (
+                      <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(field.value)}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="mt-1 h-4 w-4 text-primary-600 rounded border-gray-300"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-800">I can pick up the device from the customer</span>
+                          <span className="block text-xs text-gray-500">You tell the customer the pickup charge when you accept their booking.</span>
+                        </span>
+                      </label>
+                    )}
+                  />
                 </div>
 
                 {/* City */}

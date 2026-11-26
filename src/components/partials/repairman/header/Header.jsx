@@ -40,6 +40,8 @@ function Header() {
 
     { name: "My Offers", path: "/repair-man/my-offers", icon: "solar:hand-shake-bold-duotone" },
 
+    { name: "Requests", path: "/repair-man/service-requests", icon: "solar:calendar-mark-bold-duotone" },
+
     { name: "My Jobs", path: "/repair-man/my-jobs", icon: "solar:case-bold-duotone" },
 
     { name: "Reviews", path: "/repair-man/reviews", icon: "solar:star-bold-duotone" },

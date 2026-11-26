@@ -1039,12 +1039,21 @@ console.log(currentJobs,"current jobs")
                     <h1 className="text-3xl font-bold text-gray-900">My Repair Jobs</h1>
                     <p className="text-gray-600 mt-1">Manage and track your device repair requests</p>
                   </div>
-                  <Link href="/mobile-repair">
-                    <Button className="mt-4 sm:mt-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
-                      <Icon icon="mdi:plus" className="w-5 h-5" />
-                      Post Job
-                    </Button>
-                  </Link>
+                  <div className="flex flex-wrap gap-2 mt-4 sm:mt-0">
+                    <Link
+                      href="/my-account/service-requests"
+                      className="px-5 py-3 border border-gray-300 hover:bg-gray-50 text-gray-800 font-semibold rounded-lg transition-colors flex items-center gap-2"
+                    >
+                      <Icon icon="mdi:calendar-check" className="w-5 h-5" />
+                      Service Bookings
+                    </Link>
+                    <Link href="/mobile-repair">
+                      <Button className="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-lg shadow-sm transition-colors flex items-center gap-2">
+                        <Icon icon="mdi:plus" className="w-5 h-5" />
+                        Post Job
+                      </Button>
+                    </Link>
+                  </div>
                 </div>
 
                 {/* Tab Menu */}

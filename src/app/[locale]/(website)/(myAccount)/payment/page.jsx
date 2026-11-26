@@ -190,6 +190,13 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                 // Paid earlier but the booking was never created: only confirmation is left.
                 setPaymentAlreadyDone(Boolean(data.paymentCompleted));
                 setOrderData(data.quotation);
+                // Pickup-only quotation (e.g. a service-catalog booking): pickup is already chosen
+                // and the customer's address is known
+                const sd = data.quotation?.serviceDetails;
+                if (sd?.isPickup && !sd?.isDropoff) {
+                    setIsPickupSelected(true);
+                    if (sd.pickupLocation?.address) setPickupAddress(sd.pickupLocation.address);
+                }
             } catch (error) {
                 handleError(error);
             } finally {
