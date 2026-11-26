@@ -6,7 +6,7 @@ import { toast } from "react-toastify";
 import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { Icon } from "@iconify/react";
-import {link} from '@/i18n/navigation';
+import { Link } from '@/i18n/navigation';
 import { useParams } from "next/navigation";
 import { formatCurrency as fmt } from "@/helper/currencyFormatter";
 export default function WithdrawDetails() {
@@ -116,6 +116,32 @@ export default function WithdrawDetails() {
               {data.status}
             </span>
           </div>
+
+          {/* The repairman owes money from a dispute refund: check before paying out */}
+          {data.debt?.owedAmount > 0 && (
+            <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 p-4">
+              <div className="flex items-start gap-3">
+                <Icon icon="solar:danger-triangle-bold-duotone" className="text-2xl text-amber-600 flex-shrink-0" />
+                <div className="min-w-0">
+                  <p className="font-semibold text-amber-900">This repairman owes {fmt(data.debt.owedAmount)}</p>
+                  <p className="text-sm text-amber-800 mt-1">
+                    A customer was refunded after a dispute and the money could not be taken from the wallet.
+                    Consider this before approving the withdrawal (you can reject it with a note).
+                  </p>
+                  {data.debt.sources?.length > 0 && (
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {data.debt.sources.map((s) => (
+                        <li key={s.id}>
+                          <Link href={`/admin/disputes/${s.id}`} className="text-primary-700 underline font-medium">{s.disputeId}</Link>
+                          <span className="text-amber-800"> · refund {fmt(s.refundAmount)} · owed {fmt(s.owedFromThis)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Verification Alerts */}

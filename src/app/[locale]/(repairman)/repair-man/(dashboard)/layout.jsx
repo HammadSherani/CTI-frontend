@@ -3,6 +3,7 @@
 import FieldCorrections from '@/components/admin/FieldCorrection';
 import Chat from '@/components/chat/GlobalChat'
 import Header from '@/components/partials/repairman/header/Header'
+import NewJobToastListener from '@/components/partials/repairman/NewJobToastListener'
 import SmallLoader from '@/components/SmallLoader';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
@@ -146,6 +147,7 @@ function RepairmanLayout({ children }) {
   return (
     <div className='relative '>
       <Header />
+      <NewJobToastListener />
       {children}
       <Chat />
     </div>

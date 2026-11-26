@@ -16,6 +16,10 @@ export default function NotificationListener() {
         return;
       }
 
+      // Chat pushes are only for when the site is closed; with the site open the chat itself
+      // shows the message (unread badge + sound), so don't add them to the bell too
+      if (payload?.data?.type === 'chat_message') return;
+
       const { title, body } = payload.notification;
 
       console.log('📬 Foreground notification received:', payload);

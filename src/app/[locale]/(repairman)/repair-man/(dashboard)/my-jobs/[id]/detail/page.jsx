@@ -8,6 +8,39 @@ import { useParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import { useSelector } from 'react-redux';
 
+// Where the repairman's payment for this job stands (waiting for customer / released / on hold)
+function PayoutBanner({ payout }) {
+  if (!payout) return null;
+  const fmt = (d) => new Date(d).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+
+  if (payout.status === 'closed') {
+    return (
+      <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-3 py-2 text-sm text-green-800">
+        <Icon icon="mdi:cash-check" className="w-5 h-5" />
+        Payment released to your wallet{payout.closedByRole === 'system' ? ' (auto-confirmed)' : ''}{payout.closedAt ? ` · ${fmt(payout.closedAt)}` : ''}
+      </div>
+    );
+  }
+  if (payout.onHold && ['completed', 'delivered'].includes(payout.status)) {
+    return (
+      <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
+        <Icon icon="mdi:alert-octagon" className="w-5 h-5" />
+        Payment on hold: the customer raised a dispute.
+      </div>
+    );
+  }
+  if (['completed', 'delivered'].includes(payout.status)) {
+    return (
+      <div className="mt-3 inline-flex items-center gap-2 rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-800">
+        <Icon icon="mdi:timer-sand" className="w-5 h-5" />
+        Waiting for the customer to confirm.
+        {payout.autoReleaseAt && <> Payment releases automatically on <strong>{fmt(payout.autoReleaseAt)}</strong>.</>}
+      </div>
+    );
+  }
+  return null;
+}
+
 function JobDetailPage() {
   const [job, setJob] = useState({});
   const [loading, setLoading] = useState(true);
@@ -115,9 +148,14 @@ function JobDetailPage() {
     ? (quotationInfo.deviceInfo?.repairServices || [])
     : (jobInfo.services || []);
 
+  // Services can be populated objects ({ _id, name }) or plain strings — show their names
+  const serviceNames = services
+    .map((s) => (typeof s === 'string' ? s : s?.name || s?.title || ''))
+    .filter(Boolean);
+
   // 🔥 If no services found and no jobInfo, use a default
-  const displayServices = services.length > 0 
-    ? services 
+  const displayServices = serviceNames.length > 0
+    ? serviceNames
     : (hasJobInfo ? ['Repair Service'] : ['Direct Message Booking']);
 
   return (
@@ -135,6 +173,7 @@ function JobDetailPage() {
             </button>
             <h1 className="text-3xl font-bold text-gray-900">Job Details</h1>
             <p className="text-gray-600">View complete job information</p>
+            <PayoutBanner payout={job.payout} />
           </div>
           <div className="flex items-center gap-3">
             <div className={`px-4 py-2 rounded-full border ${getStatusColor(tracking.currentLocation)}`}>

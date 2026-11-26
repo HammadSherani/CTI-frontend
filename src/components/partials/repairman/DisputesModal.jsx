@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
+import { Icon } from '@iconify/react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { useSelector } from 'react-redux';
@@ -24,12 +25,16 @@ const DISPUTE_SCHEMA = yup.object({
     description: yup
         .string()
         .required('Description is required')
-        .min(5, 'Description must be at least 20 characters')
-        .max(1000, 'Description cannot exceed 1000 characters')
+        .trim()
+        .min(10, 'Description must be at least 10 characters')
+        .max(500, 'Description cannot exceed 500 characters')
 });
 
 function DisputesModal({ isOpen, onClose, bookingId }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Optional photos / documents sent with the dispute
+  const [files, setFiles] = useState([]);
+  const fileRef = useRef(null);
 
   const {
     register,
@@ -58,6 +63,7 @@ function DisputesModal({ isOpen, onClose, bookingId }) {
   const handleClose = () => {
     if (!isSubmitting) {
       reset();
+      setFiles([]);
       onClose();
     }
   };
@@ -66,20 +72,22 @@ function DisputesModal({ isOpen, onClose, bookingId }) {
     setIsSubmitting(true);
 
     try {
-      const { data } = await axiosInstance.post('/disputes/create', {
-        bookingId,
-        category: formData.category,
-        description: formData.description.trim()
-      }, {
+      const body = new FormData();
+      body.append('bookingId', bookingId);
+      body.append('category', formData.category);
+      body.append('description', formData.description.trim());
+      files.forEach((file) => body.append('evidence', file));
+      const { data } = await axiosInstance.post('/disputes/create', body, {
         headers: {
           'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'multipart/form-data'
         }
       });
 
       if (data.success) {
         toast.success('Dispute created successfully');
         reset();
+        setFiles([]);
         onClose(); // Modal close on success
       }
     } catch (error) {
@@ -172,10 +180,68 @@ function DisputesModal({ isOpen, onClose, bookingId }) {
                     <p className="text-sm text-red-600">{errors.description.message}</p>
                   )}
                 </div>
-                <p className={`text-sm ${watchDescription.length > 1000 ? 'text-red-600' : 'text-gray-500'}`}>
-                  {watchDescription.length}/1000
+                <p className={`text-sm ${watchDescription.length > 500 ? 'text-red-600' : 'text-gray-500'}`}>
+                  {watchDescription.length}/500
                 </p>
               </div>
+            </div>
+
+            {/* Evidence (optional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Photos or documents <span className="text-gray-400 font-normal">(optional, up to 5)</span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {files.map((file, index) => (
+                  <div key={`${file.name}-${index}`} className="relative w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                    {file.type.startsWith('image/') ? (
+                      <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="text-center px-1">
+                        <Icon icon="heroicons:document-text" className="w-6 h-6 text-gray-500 mx-auto" />
+                        <span className="block text-[10px] text-gray-600 truncate w-16">{file.name}</span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center"
+                      aria-label="Remove file"
+                    >
+                      <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+                {files.length < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    disabled={isSubmitting}
+                    className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600 flex flex-col items-center justify-center text-xs disabled:opacity-50"
+                  >
+                    <Icon icon="heroicons:camera" className="w-6 h-6 mb-1" />
+                    Add
+                  </button>
+                )}
+              </div>
+              <input
+                ref={fileRef}
+                type="file"
+                multiple
+                accept="image/jpeg,image/jpg,image/png,application/pdf"
+                className="hidden"
+                onChange={(e) => {
+                  const picked = Array.from(e.target.files || []).filter((file) => {
+                    const okType = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(file.type);
+                    const okSize = file.size <= 5 * 1024 * 1024;
+                    if (!okType) toast.error(`${file.name}: only JPG, PNG or PDF`);
+                    else if (!okSize) toast.error(`${file.name} is larger than 5MB`);
+                    return okType && okSize;
+                  });
+                  setFiles((prev) => [...prev, ...picked].slice(0, 5));
+                  e.target.value = '';
+                }}
+              />
             </div>
 
             {/* Important Notice */}

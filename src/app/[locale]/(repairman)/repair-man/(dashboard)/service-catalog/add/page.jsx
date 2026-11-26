@@ -34,15 +34,18 @@ const serviceSchema = yup.object().shape({
   city: yup
     .string()
     .optional(),
+  pickupAvailable: yup.boolean().default(false),
   pricing: yup.object().shape({
     basePrice: yup
       .number()
       .required('Base price is required')
       .positive('Base price must be greater than 0')
+      .max(1000000, 'Base price cannot be more than 1,000,000')
       .typeError('Base price must be a number'),
     partsPrice: yup
       .number()
       .min(0, 'Parts price cannot be negative')
+      .max(1000000, 'Parts price cannot be more than 1,000,000')
       .typeError('Parts price must be a number')
       .default(0),
     // serviceCharges: yup
@@ -83,6 +86,7 @@ function AddService() {
       },
       // serviceType: '',
       city: '',
+      pickupAvailable: false,
       pricing: {
         basePrice: '',
         partsPrice: 0,
@@ -277,6 +281,28 @@ function AddService() {
                       {errors.description.message}
                     </p>
                   )}
+                </div>
+
+                {/* Pickup */}
+                <div>
+                  <Controller
+                    name="pickupAvailable"
+                    control={control}
+                    render={({ field }) => (
+                      <label className="flex items-start gap-3 p-3 rounded-lg border border-gray-200 cursor-pointer hover:bg-gray-50">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(field.value)}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                          className="mt-1 h-4 w-4 text-primary-600 rounded border-gray-300"
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-gray-800">I can pick up the device from the customer</span>
+                          <span className="block text-xs text-gray-500">You tell the customer the pickup charge when you accept their booking.</span>
+                        </span>
+                      </label>
+                    )}
+                  />
                 </div>
 
                 {/* City */}

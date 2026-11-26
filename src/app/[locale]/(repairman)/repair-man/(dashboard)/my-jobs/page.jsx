@@ -245,7 +245,7 @@ const JobCard = ({ booking, handleMessageSend }) => {
           </p>
           {showMore && (
             <span
-              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}`)}
+              onClick={() => router.push(`/repair-man/my-jobs/${booking._id}/detail`)}
               className="text-orange-500 cursor-pointer hover:underline text-sm"
             >
               more

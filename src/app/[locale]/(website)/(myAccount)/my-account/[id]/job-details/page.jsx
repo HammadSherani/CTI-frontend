@@ -2,7 +2,7 @@
 
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useRouter } from '@/i18n/navigation';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -14,6 +14,8 @@ import { LoadingSpinner } from '@/components/partials/customer/LoadingSpinner';
 import { UrgencyBadge } from '@/components/partials/customer/Offer/UrgencyBadge';
 import { ExpandableDescription } from '@/components/partials/customer/Offer/ExpandableDescription';
 import Disputes from './Disputes';
+import CustomerPartsStatus from './CustomerPartsStatus';
+import RateRepairCard from './RateRepairCard';
 import { toast } from 'react-toastify';
 import Loader from '@/components/Loader';
 
@@ -21,7 +23,25 @@ import Loader from '@/components/Loader';
 function JobDetails() {
     const [job, setJob] = useState(null);
     const [offers, setOffers] = useState([]);
+    const [partsOrder, setPartsOrder] = useState(null);
+    // Opened from a notification: scroll to and briefly highlight that offer
+    const searchParams = useSearchParams();
+    const targetOfferId = searchParams.get('offerId');
+    const [highlightOfferId, setHighlightOfferId] = useState(null);
+    useEffect(() => {
+        if (!targetOfferId || !offers.some((o) => String(o?._id) === targetOfferId)) return undefined;
+        const el = document.getElementById(`offer-${targetOfferId}`);
+        if (!el) return undefined;
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        setHighlightOfferId(targetOfferId);
+        const t = setTimeout(() => setHighlightOfferId(null), 3000);
+        return () => clearTimeout(t);
+    }, [targetOfferId, offers]);
     const [booking, setBooking] = useState(null);
+    // Customer's review of this repair (null = not reviewed yet)
+    const [review, setReview] = useState(null);
+    // Opened from a 'rate your repair' notification (?review=1) or right after closing the job
+    const [focusReview, setFocusReview] = useState(searchParams.get('review') === '1');
     const [dispute, setDispute] = useState(null);
     const [statistics, setStatistics] = useState(null);
     const [activeTab, setActiveTab] = useState('details');
@@ -66,8 +86,10 @@ function JobDetails() {
         return `${days} DAYS, ${hours} HOURS`;
     }, []);
 
-    const fetchJob = useCallback(async () => {
-        setLoading(true);
+    // silent: reload without the full-page loader (live dispute updates)
+    const fetchJob = useCallback(async (options) => {
+        const silent = options?.silent === true;
+        if (!silent) setLoading(true);
         try {
             const res = await axiosInstance.get(`/repair-jobs/my-jobs/${id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
@@ -82,6 +104,8 @@ function JobDetails() {
             if (type === 'job_posting') {
                 setJob(job);
                 setBooking(booking || null);
+                setPartsOrder(res.data.data.partsOrder || null);
+                setReview(res.data.data.review || null);
                 setStatistics(statistics || null);
                 setDispute(dispute || null);
                 setQuotation(null);
@@ -97,6 +121,8 @@ function JobDetails() {
             } else if (type === 'quotation_booking') {
                 setJob(null);
                 setBooking(booking);
+                setPartsOrder(res.data.data.partsOrder || null);
+                setReview(res.data.data.review || null);
                 setQuotation(quotation);
                 setRepairman(repairman);
                 setStatistics(statistics || null);
@@ -230,7 +256,9 @@ function JobDetails() {
 
             if (data?.success) {
                 await fetchJob();
-                toast.success(data.message);
+                toast.success('Job closed. Please take a moment to rate your repairman below.');
+                setFocusReview(false);
+                setTimeout(() => setFocusReview(true), 50);
             } else {
                 toast.error(data?.message || 'Failed to close job.');
             }
@@ -319,22 +347,45 @@ function JobDetails() {
                     </div>
                 </div>
 
-                {currentStatus === 'delivered' && (
+                {/* Uses the booking status (the job itself only goes to "completed"), for job and chat bookings */}
+                {booking && ['completed', 'delivered'].includes(booking.status) && (
                     <div className="mt-4 p-4 mb-4 bg-primary-50 border border-primary-200 rounded-md">
-                        <p className="text-sm text-primary-800 leading-relaxed mb-3">
-                            Your repairman has delivered the device. Please review it carefully, and if everything is satisfactory,
-                            click the button below to <span className="font-semibold">close this job</span>.
+                        <p className="text-sm text-primary-800 leading-relaxed mb-1">
+                            Your repairman has {booking.status === 'delivered' ? 'delivered the device' : 'completed the repair'}. Please review it carefully, and if everything is satisfactory,
+                            click the button below to <span className="font-semibold">confirm and close this job</span>. This releases the payment to the repairman.
                         </p>
+                        {booking.autoReleaseAt && (
+                            <p className="text-xs text-primary-700 mb-3">
+                                If you do nothing, the job will be confirmed automatically on{' '}
+                                <strong>{new Date(booking.autoReleaseAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</strong>.
+                                Not happy with the repair? Raise a dispute before then and the payment stays on hold.
+                            </p>
+                        )}
 
                         <button
                             onClick={() => handleCloseJob(booking._id)}
                             className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-md transition duration-200"
                         >
-                            Close Job
+                            Confirm &amp; Close Job
                         </button>
                     </div>
                 )}
 
+
+                {booking?.status === 'closed' && (
+                    <RateRepairCard
+                        booking={booking}
+                        review={review}
+                        token={token}
+                        highlight={focusReview}
+                        repairmanName={
+                            repairman?.repairmanProfile?.shopName || repairman?.name ||
+                            booking.repairmanId?.repairmanProfile?.shopName || booking.repairmanId?.name ||
+                            offers[0]?.repairmanId?.repairmanProfile?.shopName || offers[0]?.repairmanId?.name
+                        }
+                        onSubmitted={(r) => { setReview(r || null); setFocusReview(false); }}
+                    />
+                )}
 
                 {!canAcceptOffers && dataType === 'job_posting' && (
                     <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -472,10 +523,6 @@ function JobDetails() {
                                 </div>
 
                                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
-                                    <div>
-                                        <span className="text-sm text-gray-500">Max Offers</span>
-                                        <p className="font-semibold">{job.maxOffers}</p>
-                                    </div>
                                     <div>
                                         <span className="text-sm text-gray-500">Current Offers</span>
                                         <p className="font-semibold">{shouldShowOffers ? job.offers?.length || offersCount : 'Hidden'}</p>
@@ -618,22 +665,28 @@ function JobDetails() {
                                 {job?.selectedOffer ? 'Selected Offer' : 'Offers'}
                             </h2>
                             <span className="text-sm text-gray-500">
-                                {job?.selectedOffer ? 'This offer has been accepted' : `${offersCount} of ${job?.maxOffers} offers received`}
+                                {job?.selectedOffer ? 'This offer has been accepted' : `${offersCount} ${offersCount === 1 ? "offer" : "offers"} received`}
                             </span>
                         </div>
 
                         {offersCount > 0 ? (
                             <div className="space-y-6">
                                 {offers.map((offer, index) => (
-                                    <OfferCard
+                                    // id lets a notification link (?offerId=...) scroll to this offer
+                                    <div
                                         key={offer._id || index}
-                                        offer={offer}
-                                        index={index}
-                                        onAcceptOffer={handleAcceptOffer}
-                                        isSubmitting={isSubmittingOffer}
-                                        submittingOfferId={submittingOfferId}
-                                        job={job}
-                                    />
+                                        id={offer._id ? `offer-${offer._id}` : undefined}
+                                        className={`scroll-mt-28 rounded-xl transition-shadow duration-700 ${highlightOfferId && String(offer._id) === highlightOfferId ? 'ring-2 ring-primary-500 shadow-lg' : ''}`}
+                                    >
+                                        <OfferCard
+                                            offer={offer}
+                                            index={index}
+                                            onAcceptOffer={handleAcceptOffer}
+                                            isSubmitting={isSubmittingOffer}
+                                            submittingOfferId={submittingOfferId}
+                                            job={job}
+                                        />
+                                    </div>
                                 ))}
                             </div>
                         ) : (
@@ -697,6 +750,7 @@ function JobDetails() {
                 ) : activeTab === 'booking' && booking ? (
                     <div className="bg-white border border-gray-200 rounded-lg p-8">
                         <BookingDetails booking={booking} job={job} />
+                        {partsOrder && <CustomerPartsStatus partsOrder={partsOrder} />}
 
                         {/* <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div className="space-y-4">

@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import handleError from '@/helper/handleError';
+import { nextPartsOrderStatuses, PARTS_ORDER_STATUS_LABELS } from '@/constant/partsOrderStatus';
 
 function PartsOrderPage() {
     const [orders, setOrders] = useState([]);
@@ -19,61 +20,59 @@ function PartsOrderPage() {
     const [submitSuccess, setSubmitSuccess] = useState('');
     const { token } = useSelector((state) => state.auth);
 const [actionLoading, setActionLoading] = useState(null);
-    useEffect(() => {
-        fetchOrders();
-    }, []);
+    // Server-side pagination: filters/search run on the backend, counts feed the stats cards
+    const PAGE_SIZE = 10;
+    const [page, setPage] = useState(1);
+    const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
+    const [counts, setCounts] = useState({});
+    const [debouncedSearch, setDebouncedSearch] = useState('');
 
     useEffect(() => {
-        applyFilters();
-    }, [orders, searchTerm, filterStatus, filterPayment]);
+        const t = setTimeout(() => setDebouncedSearch(searchTerm.trim()), 400);
+        return () => clearTimeout(t);
+    }, [searchTerm]);
+
+    // A new filter/search starts again from page 1
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedSearch, filterStatus, filterPayment]);
+
+    useEffect(() => {
+        fetchOrders();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page, debouncedSearch, filterStatus, filterPayment]);
+
+    // `orders` and `filteredOrders` both hold the current page (kept for the existing table code)
+    useEffect(() => {
+        setFilteredOrders(orders);
+    }, [orders]);
 
     const fetchOrders = async () => {
         try {
             setLoading(true);
             const response = await axiosInstance.get(`/admin/parts-orders`, {
+                params: {
+                    page,
+                    limit: PAGE_SIZE,
+                    status: filterStatus,
+                    paymentStatus: filterPayment,
+                    search: debouncedSearch || undefined,
+                },
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
 
             setOrders(response.data.data || []);
+            setPagination(response.data.pagination || { page: 1, totalPages: 1, total: (response.data.data || []).length });
+            setCounts(response.data.counts || {});
         } catch (error) {
             console.error('Error fetching orders:', error);
             handleError(error);
-            // setSubmitError('Failed to load orders');
             toast.error('Failed to load orders');
         } finally {
             setLoading(false);
         }
-    };
-
-    const applyFilters = () => {
-        let filtered = [...orders];
-
-        // Search filter (by order number or customer name)
-        if (searchTerm) {
-            filtered = filtered.filter(order =>
-                order.orderNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.customer?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                order.customer?.email?.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-        }
-
-        // Order status filter
-        if (filterStatus !== 'all') {
-            filtered = filtered.filter(order =>
-                order.orderStatus?.toLowerCase() === filterStatus.toLowerCase()
-            );
-        }
-
-        // Payment status filter
-        if (filterPayment !== 'all') {
-            filtered = filtered.filter(order =>
-                order.paymentStatus?.toLowerCase() === filterPayment.toLowerCase()
-            );
-        }
-
-        setFilteredOrders(filtered);
     };
 
    
@@ -90,6 +89,7 @@ const [actionLoading, setActionLoading] = useState(null);
         );
 
         toast.success(res.data.message || "Order status updated!");
+        fetchOrders(); // refresh counts
 
         // ✅ Update locally instead of refetch
         setOrders(prev =>
@@ -101,7 +101,8 @@ const [actionLoading, setActionLoading] = useState(null);
         );
 
     } catch (error) {
-        toast.error("Failed to update order status");
+        // Show the server reason (e.g. a status step that is not allowed)
+        toast.error(error?.response?.data?.message || "Failed to update order status");
     } finally {
         setActionLoading(null);
     }
@@ -109,7 +110,7 @@ const [actionLoading, setActionLoading] = useState(null);
 
     const updatePaymentStatus = async (orderId, newPaymentStatus) => {
         try {
-            const res = await axiosInstance.put(`/admin/parts/parts-orders/${orderId}`,
+            const res = await axiosInstance.put(`/admin/parts-orders/${orderId}`,
                 { paymentStatus: newPaymentStatus },
                 {
                     headers: {
@@ -122,7 +123,7 @@ const [actionLoading, setActionLoading] = useState(null);
         } catch (error) {
             console.error('Update payment status error:', error);
             setSubmitError('Failed to update payment status. Please try again.');
-            toast.error('Failed to update payment status');
+            toast.error(error?.response?.data?.message || "Failed to update payment status");
         }
     };
 
@@ -184,8 +185,8 @@ const [actionLoading, setActionLoading] = useState(null);
 
         toast.success(res.data.message || "Order deleted successfully!");
 
-        // ✅ Remove locally
-        setOrders(prev => prev.filter(order => order._id !== orderId));
+        // Reload the page so counts and pagination stay correct
+        fetchOrders();
 
     } catch (error) {
         toast.error("Failed to delete order");
@@ -247,7 +248,7 @@ const [actionLoading, setActionLoading] = useState(null);
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Orders</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : orders.length}
+                                    {loading ? '...' : (counts.all ?? 0)}
                                 </p>
                             </div>
                         </div>
@@ -261,7 +262,7 @@ const [actionLoading, setActionLoading] = useState(null);
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Pending</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : orders.filter(order => order.orderStatus?.toLowerCase() === 'pending').length}
+                                    {loading ? '...' : (counts.pending ?? 0)}
                                 </p>
                             </div>
                         </div>
@@ -275,7 +276,7 @@ const [actionLoading, setActionLoading] = useState(null);
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Confirmed</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : orders.filter(order => order.orderStatus?.toLowerCase() === 'confirmed').length}
+                                    {loading ? '...' : (counts.confirmed ?? 0)}
                                 </p>
                             </div>
                         </div>
@@ -289,7 +290,7 @@ const [actionLoading, setActionLoading] = useState(null);
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Delivered</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : orders.filter(order => order.orderStatus?.toLowerCase() === 'delivered').length}
+                                    {loading ? '...' : (counts.delivered ?? 0)}
                                 </p>
                             </div>
                         </div>
@@ -449,15 +450,17 @@ const [actionLoading, setActionLoading] = useState(null);
                                                         disabled={actionLoading === order._id}
                                                         className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(order.orderStatus)} border-0 ${actionLoading === order._id ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'} focus:outline-none focus:ring-2 focus:ring-primary-500`}
                                                     >
-                                                        <option value="pending">Pending</option>
-                                                        <option value="confirmed">Confirmed</option>
-                                                        <option value="processing">Processing</option>
-                                                        <option value="ready-for-pickup">Ready for Pickup</option>
-                                                        <option value="shipped">Shipped</option>
-                                                        <option value="delivered">Delivered</option>
-                                                        <option value="cancelled">Cancelled</option>
-                                                        <option value="returned">Returned</option>
+                                                        {/* Only the current status and the allowed next steps */}
+                                                        {[order.orderStatus, ...nextPartsOrderStatuses(order.orderStatus)].map((s) => (
+                                                            <option key={s} value={s}>{PARTS_ORDER_STATUS_LABELS[s] || s}</option>
+                                                        ))}
                                                     </select>
+                                                    {order.isReceived && (
+                                                        <div className="mt-1 flex items-center gap-1 text-[11px] font-medium text-green-700">
+                                                            <Icon icon="mdi:hand-okay" className="w-3.5 h-3.5" />
+                                                            Received by repairman
+                                                        </div>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className={`text-sm text-center p-1 rounded-md text-gray-500 ${getPaymentStatusColor(order.paymentStatus)}`}>
@@ -522,6 +525,33 @@ const [actionLoading, setActionLoading] = useState(null);
                                                 Create your first order
                                             </Link>
                                         )}
+                                    </div>
+                                )}
+
+                                {/* Pagination */}
+                                {pagination.totalPages > 1 && (
+                                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-6 py-4 border-t border-gray-100">
+                                        <p className="text-sm text-gray-500">
+                                            Page {pagination.page} of {pagination.totalPages} · {pagination.total} orders
+                                        </p>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => setPage((p) => Math.max(p - 1, 1))}
+                                                disabled={loading || page <= 1}
+                                                className="px-3 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Previous
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setPage((p) => Math.min(p + 1, pagination.totalPages))}
+                                                disabled={loading || page >= pagination.totalPages}
+                                                className="px-3 py-1.5 rounded-md border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                            >
+                                                Next
+                                            </button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

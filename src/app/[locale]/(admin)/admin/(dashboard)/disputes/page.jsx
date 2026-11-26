@@ -5,7 +5,20 @@ import {Link} from '@/i18n/navigation';
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
+
+const CATEGORY_OPTIONS = [
+    ['payment_issue', 'Payment issue'], ['quality_of_work', 'Quality of work'], ['service_not_provided', 'Service not provided'],
+    ['damaged_property', 'Damaged property'], ['unprofessional_behavior', 'Unprofessional behavior'], ['cancellation_issue', 'Cancellation issue'],
+    ['unfair_rating', 'Unfair rating'], ['late_payment', 'Late payment'], ['rude_behavior', 'Rude behavior'],
+    ['cancellation_after_arrival', 'Cancellation after arrival'], ['fake_request', 'Fake request'], ['other', 'Other']
+];
+const RESOLUTION_LABELS = {
+    refund_full: 'Full refund', refund_partial: 'Partial refund', mutual_agreement: 'Mutual agreement',
+    pay_repairman: 'Paid repairman', no_action: 'No action'
+};
+const label = (v) => String(v || '').replace(/_/g, ' ');
 
 const AdminDisputes = () => {
     const [disputes, setDisputes] = useState([]);
@@ -14,9 +27,13 @@ const AdminDisputes = () => {
         total: 0,
         open: 0,
         under_review: 0,
+        resolving: 0,
         resolved: 0,
-        closed: 0
+        closed: 0,
+        overdue: 0,
+        escalated: 0
     });
+    const [searchText, setSearchText] = useState('');
     const [pagination, setPagination] = useState({
         currentPage: 1,
         totalPages: 1,
@@ -27,6 +44,7 @@ const AdminDisputes = () => {
         status: '',
         priority: '',
         category: '',
+        attention: '',
         search: '',
         page: 1,
         limit: 20,
@@ -34,16 +52,26 @@ const AdminDisputes = () => {
         sortOrder: 'desc'
     });
 
+    // Search waits until typing stops (one request instead of one per key)
+    useEffect(() => {
+        const t = setTimeout(() => {
+            setFilters((prev) => (prev.search === searchText.trim() ? prev : { ...prev, search: searchText.trim(), page: 1 }));
+        }, 400);
+        return () => clearTimeout(t);
+    }, [searchText]);
+
     const { token } = useSelector((state) => state.auth);
 
-    const fetchDisputes = async () => {
-        setLoading(true);
+    // silent: reload without the table spinner (live updates)
+    const fetchDisputes = async (options) => {
+        if (options?.silent !== true) setLoading(true);
         try {
             const params = new URLSearchParams();
 
             if (filters.status) params.append('status', filters.status);
             if (filters.priority) params.append('priority', filters.priority);
             if (filters.category) params.append('category', filters.category);
+            if (filters.attention) params.append('attention', filters.attention);
             if (filters.search) params.append('search', filters.search);
             params.append('page', filters.page);
             params.append('limit', filters.limit);
@@ -73,6 +101,9 @@ const AdminDisputes = () => {
         fetchDisputes();
     }, [filters]);
 
+    // Live: new disputes, replies and status changes update the list and the counters
+    useDisputeLive(null, () => fetchDisputes({ silent: true }));
+
     const handleFilterChange = (key, value) => {
         setFilters(prev => ({
             ...prev,
@@ -92,6 +123,7 @@ const AdminDisputes = () => {
         const statusColors = {
             open: 'bg-yellow-100 text-yellow-800',
             under_review: 'bg-blue-100 text-blue-800',
+            resolving: 'bg-purple-100 text-purple-800',
             resolved: 'bg-green-100 text-green-800',
             closed: 'bg-gray-100 text-gray-800'
         };
@@ -125,33 +157,32 @@ const AdminDisputes = () => {
                     <p className="text-gray-600 mt-2">Manage and resolve booking disputes</p>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Total Disputes</div>
-                        <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Open</div>
-                        <div className="text-2xl font-bold text-yellow-600">{stats.open}</div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Under Review</div>
-                        <div className="text-2xl font-bold text-blue-600">{stats.under_review}</div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Resolved</div>
-                        <div className="text-2xl font-bold text-green-600">{stats.resolved}</div>
-                    </div>
-                    <div className="bg-white rounded-lg shadow p-4">
-                        <div className="text-sm text-gray-600">Closed</div>
-                        <div className="text-2xl font-bold text-gray-600">{stats.closed}</div>
-                    </div>
+                {/* Stats Cards (click to filter) */}
+                <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+                    {[
+                        { key: 'total', label: 'Total', color: 'text-gray-900', set: { status: '', attention: '' } },
+                        { key: 'open', label: 'Open', color: 'text-yellow-600', set: { status: 'open', attention: '' } },
+                        { key: 'under_review', label: 'Under review', color: 'text-blue-600', set: { status: 'under_review', attention: '' } },
+                        { key: 'overdue', label: 'Overdue', color: 'text-red-600', set: { status: '', attention: 'overdue' } },
+                        { key: 'escalated', label: 'Escalated', color: 'text-orange-600', set: { status: '', attention: 'escalated' } },
+                        { key: 'resolving', label: 'Resolving', color: 'text-purple-600', set: { status: 'resolving', attention: '' } },
+                        { key: 'resolved', label: 'Resolved', color: 'text-green-600', set: { status: 'resolved', attention: '' } },
+                    ].map((c) => (
+                        <button
+                            key={c.key}
+                            type="button"
+                            onClick={() => setFilters((prev) => ({ ...prev, ...c.set, page: 1 }))}
+                            className="bg-white rounded-lg shadow p-4 text-left hover:ring-2 hover:ring-primary-200 transition"
+                        >
+                            <div className="text-sm text-gray-600">{c.label}</div>
+                            <div className={`text-2xl font-bold ${c.color}`}>{stats[c.key] ?? 0}</div>
+                        </button>
+                    ))}
                 </div>
 
                 {/* Filters */}
                 <div className="bg-white rounded-lg shadow p-4 mb-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                         {/* Search */}
                         <div className="md:col-span-2">
                             <label className="block  text-sm font-medium text-gray-700 mb-2">
@@ -160,8 +191,8 @@ const AdminDisputes = () => {
                             <input
                                 type="text"
                                 placeholder="Search by ID or description..."
-                                value={filters.search}
-                                onChange={(e) => handleFilterChange('search', e.target.value)}
+                                value={searchText}
+                                onChange={(e) => setSearchText(e.target.value)}
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             />
                         </div>
@@ -179,8 +210,26 @@ const AdminDisputes = () => {
                                 <option value="">All Status</option>
                                 <option value="open">Open</option>
                                 <option value="under_review">Under Review</option>
+                                <option value="resolving">Resolving</option>
                                 <option value="resolved">Resolved</option>
                                 <option value="closed">Closed</option>
+                            </select>
+                        </div>
+
+                        {/* Needs attention */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Needs attention
+                            </label>
+                            <select
+                                value={filters.attention}
+                                onChange={(e) => handleFilterChange('attention', e.target.value)}
+                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                            >
+                                <option value="">Any</option>
+                                <option value="overdue">Past resolution deadline</option>
+                                <option value="no_response">Other side did not answer</option>
+                                <option value="escalated">Escalated</option>
                             </select>
                         </div>
 
@@ -212,30 +261,28 @@ const AdminDisputes = () => {
                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                             >
                                 <option value="">All Categories</option>
-                                <option value="rude_behavior">Rude Behavior</option>
-                                <option value="payment_issue">Payment Issue</option>
-                                <option value="service_quality">Service Quality</option>
-                                <option value="cancellation">Cancellation</option>
-                                <option value="refund">Refund Request</option>
-                                <option value="other">Other</option>
+                                {CATEGORY_OPTIONS.map(([value, text]) => (
+                                    <option key={value} value={value}>{text}</option>
+                                ))}
                             </select>
                         </div>
                     </div>
 
                     {/* Clear Filters Button */}
-                    {(filters.status || filters.priority || filters.category || filters.search) && (
+                    {(filters.status || filters.priority || filters.category || filters.search || filters.attention) && (
                         <div className="mt-4">
                             <button
-                                onClick={() => setFilters({
+                                onClick={() => { setSearchText(''); setFilters({
                                     status: '',
                                     priority: '',
                                     category: '',
+                                    attention: '',
                                     search: '',
                                     page: 1,
                                     limit: 20,
                                     sortBy: 'createdAt',
                                     sortOrder: 'desc'
-                                })}
+                                }); }}
                                 className="px-4 py-2 text-sm text-primary-600 hover:text-primary-700 font-medium"
                             >
                                 Clear All Filters
@@ -267,6 +314,9 @@ const AdminDisputes = () => {
                                     </th> */}
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Status
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Outcome
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Created At
@@ -323,7 +373,7 @@ const AdminDisputes = () => {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className="text-sm text-gray-600 capitalize">
-                                                    {dispute.category?.replace('_', ' ')}
+                                                    {label(dispute.category)}
                                                 </span>
                                             </td>
                                             {/* <td className="px-6 py-4 whitespace-nowrap">
@@ -333,8 +383,27 @@ const AdminDisputes = () => {
                                             </td> */}
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadge(dispute.status)}`}>
-                                                    {dispute.status?.replace('_', ' ').toUpperCase()}
+                                                    {label(dispute.status).toUpperCase()}
                                                 </span>
+                                                <div className="mt-1 flex flex-wrap gap-1">
+                                                    {dispute.isOverdue && <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-red-100 text-red-700">Overdue</span>}
+                                                    {dispute.noResponse && <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-orange-100 text-orange-700">No answer</span>}
+                                                    {dispute.isEscalated && !dispute.isOverdue && <span className="px-2 py-0.5 text-[11px] font-semibold rounded bg-orange-100 text-orange-700">Escalated</span>}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                                {dispute.resolution?.resolutionType ? (
+                                                    <>
+                                                        <div className="text-gray-900">{RESOLUTION_LABELS[dispute.resolution.resolutionType] || label(dispute.resolution.resolutionType)}</div>
+                                                        {dispute.resolution.refundAmount > 0 && (
+                                                            <div className="text-xs text-green-700">₺{dispute.resolution.refundAmount} refunded</div>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <span className="text-xs text-gray-500">
+                                                        {dispute.deadlines?.resolutionDeadline ? `Due ${new Date(dispute.deadlines.resolutionDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : '—'}
+                                                    </span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                                                 {new Date(dispute.createdAt).toLocaleDateString('en-US', {

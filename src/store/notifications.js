@@ -16,6 +16,8 @@ const notificationsSlice = createSlice({
       state.isLoading = false;
     },
     addNotification: (state, action) => {
+      // The same notification can arrive twice (socket reconnect, FCM + socket)
+      if (action.payload?._id && state.list.some(n => String(n._id) === String(action.payload._id))) return;
       state.list.unshift(action.payload); // Latest first
       if (!action.payload.isRead) state.unreadCount++;
     },

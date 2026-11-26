@@ -24,3 +24,20 @@ messaging.onBackgroundMessage((payload) => {
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
+// Tapping a notification opens its page (chat pushes carry ?openChat=<id>), reusing an open tab
+self.addEventListener('notificationclick', (event) => {
+  const data = event.notification?.data || {};
+  const link = data.link || (data.FCM_MSG && data.FCM_MSG.data && data.FCM_MSG.data.link) || '/';
+  event.notification.close();
+  event.waitUntil((async () => {
+    const url = new URL(link, self.location.origin).href;
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const sameSite = windows.find((w) => new URL(w.url).origin === new URL(url).origin);
+    if (sameSite) {
+      await sameSite.focus();
+      if ('navigate' in sameSite) return sameSite.navigate(url);
+      return undefined;
+    }
+    return clients.openWindow(url);
+  })());
+});

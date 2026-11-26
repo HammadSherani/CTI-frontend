@@ -302,13 +302,16 @@ export default function MeetOurProfessionals() {
                           >
                             Book Appointment
                           </button>
-                          <button
-                            onClick={() => handleChat(pro)}
-                            className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-200 hover:border-primary-500 hover:text-primary-500 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-105"
-                            aria-label="Chat with professional"
-                          >
-                            <Icon icon="mdi:chat-outline" width={18} className="sm:w-5" />
-                          </button>
+                          {/* Chat only for logged-in customers */}
+                          {user?.role === 'customer' && (
+                            <button
+                              onClick={() => handleChat(pro)}
+                              className="w-10 h-10 sm:w-12 sm:h-12 border border-gray-200 hover:border-primary-500 hover:text-primary-500 rounded-xl flex items-center justify-center transition-all duration-300 flex-shrink-0 hover:scale-105"
+                              aria-label="Chat with professional"
+                            >
+                              <Icon icon="mdi:chat-outline" width={18} className="sm:w-5" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
