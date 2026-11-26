@@ -51,15 +51,7 @@ function getConversationTitle(messages) {
 function formatPrice(value, currency = 'TRY') {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount) || amount <= 0) return 'Price on request';
-  try {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-      maximumFractionDigits: 0,
-    }).format(amount);
-  } catch {
-    return `${currency} ${amount.toLocaleString('en-US')}`;
-  }
+  return amount.toFixed(2) + ' ' + currency;
 }
 
 function getProductRoute(product) {
@@ -393,6 +385,7 @@ function sanitizeInternalPath(raw) {
     return null;
   }
   path = path.replace(/^\/(en|tr|ur|ar)(?=\/|$)/i, '') || '/';
+  if (/\.\.|%2e|%2f|%5c|\\/i.test(path)) return null;
   if (!path.startsWith('/')) return null;
   return ALLOWED_PATH_PREFIXES.some((p) => path === p || path.startsWith(`${p}/`)) ? path : null;
 }
@@ -401,8 +394,10 @@ function sanitizeInternalPath(raw) {
 
 const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProductClick, onJobClick, onLoginClick }) {
   const isUser = message.role === 'user';
-  const hasProducts = Array.isArray(message.products) && message.products.length > 0;
-  const hasJobs = Array.isArray(message.jobs) && message.jobs.length > 0;
+  const products = (message.products || []).filter(Boolean);
+  const jobs = (message.jobs || []).filter(Boolean);
+  const hasProducts = products.length > 0;
+  const hasJobs = jobs.length > 0;
 
   const renderFormattedContent = (content) => {
     if (!content) return '';
@@ -493,7 +488,7 @@ const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProd
           : 'rounded-bl-md bg-white text-slate-800 shadow-sm ring-1 ring-slate-100'
           }`}
       >
-        <p className="whitespace-pre-wrap text-[13.5px] leading-relaxed">
+        <p dir="auto" className="whitespace-pre-wrap break-words text-[13.5px] leading-relaxed [overflow-wrap:anywhere]">
           {renderFormattedContent(message.content)}
         </p>
 
@@ -516,7 +511,7 @@ const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProd
             </div>
             {/* Horizontal Carousel Slider */}
             <div className="flex w-full gap-3 overflow-x-auto pb-2.5 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 snap-x snap-mandatory">
-              {message.products.map((product) => (
+              {products.map((product) => (
                 <div key={product.id || product._id || product.slug} className="w-[210px] shrink-0 snap-start">
                   <AssistantProductCard
                     product={product}
@@ -536,7 +531,7 @@ const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProd
             </div>
             {/* Horizontal Carousel Slider */}
             <div className="flex w-full gap-3 overflow-x-auto pb-2.5 pt-0.5 scrollbar-thin scrollbar-thumb-slate-200 snap-x snap-mandatory">
-              {message.jobs.map((job) => (
+              {jobs.map((job) => (
                 <div key={job.id || job._id} className="w-[210px] shrink-0 snap-start">
                   <AssistantJobCard
                     job={job}
@@ -629,6 +624,8 @@ export default function AiShoppingAssistant() {
 
   // Keep the assistant open across the full-page reload triggered by the
   // language switcher (restore on mount, persist on every open/close).
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
+
   const hasRestoredOpenRef = useRef(false);
   useEffect(() => {
     try {
@@ -694,7 +691,9 @@ export default function AiShoppingAssistant() {
       setConversations([createConversation('New chat')]);
       setActiveConversationId(null);
       setIsHistoryOpen(false);
+      hasLoadedHistoryRef.current = false;
     }
+    if (isHydrated && !prevHasTokenRef.current && hasToken && isOpen) fetchConversations();
     prevHasTokenRef.current = hasToken;
   }, [hasToken, isHydrated]);
 
@@ -774,6 +773,7 @@ export default function AiShoppingAssistant() {
   };
 
   const resetChat = async () => {
+    handleStopGeneration();
     const targetId = activeConversation?.id || conversations[0]?.id;
     if (targetId && targetId.length === 24) {
       try {
@@ -982,7 +982,7 @@ export default function AiShoppingAssistant() {
             };
           })
         );
-        if (data?.conversationId) setActiveConversationId(data.conversationId);
+        if (data?.conversationId) setActiveConversationId((current) => (current === targetId || !current ? data.conversationId : current));
         return;
       }
 
@@ -999,7 +999,7 @@ export default function AiShoppingAssistant() {
         const { value, done } = await reader.read();
         if (done) break;
 
-        buffer += decoder.decode(value, { stream: true });
+        buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, '\n');
 
         let boundary = buffer.indexOf('\n\n');
         while (boundary !== -1) {
@@ -1168,7 +1168,16 @@ export default function AiShoppingAssistant() {
                   );
                 }
                 if (data.conversationId) {
-                  setActiveConversationId(data.conversationId);
+                  setActiveConversationId((current) => (current === targetId || !current ? data.conversationId : current));
+                }
+                if (data.sessionExpired) {
+                  const chatId = data.conversationId || targetId;
+                  setConversations((current) =>
+                    current.map((c) => (c.id === chatId ? { ...c, messages: [...c.messages, {
+                      id: createId(), role: 'assistant', content: 'Your login has expired. Please log in again to keep this chat.',
+                      showLoginButton: true, products: [], jobs: [], createdAt: new Date().toISOString(),
+                    }] } : c))
+                  );
                 }
                 isDone = true;
               }
@@ -1178,6 +1187,11 @@ export default function AiShoppingAssistant() {
           }
           boundary = buffer.indexOf('\n\n');
         }
+      }
+      if (!isDone) {
+        const interrupted = new Error('The answer was interrupted. Please try again.');
+        interrupted.isReadable = true;
+        throw interrupted;
       }
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -1220,6 +1234,9 @@ export default function AiShoppingAssistant() {
         {isOpen ? (
           <motion.div
             key="assistant-panel"
+            role="dialog"
+            aria-label="CTI Assistant"
+            onKeyDown={(e) => { if (e.key === 'Escape' && !showConfirmModal) handleClose(); }}
             initial={{ opacity: 0, y: 20, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.97 }}
@@ -1307,7 +1324,7 @@ export default function AiShoppingAssistant() {
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-3.5">
+                  <div className="space-y-3.5" role="log" aria-live="polite">
                     <AnimatePresence initial={false}>
                       {messages.map((message) => (
                         <AssistantBubble
@@ -1406,13 +1423,14 @@ export default function AiShoppingAssistant() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                       e.preventDefault();
                       sendMessage(e);
                     }
                   }}
                   rows={1}
                   maxLength={MAX_MESSAGE_LENGTH}
+                  aria-label="Message to the assistant"
                   placeholder="Ask about phones, prices, stock…"
                   className="max-h-28 min-h-[40px] flex-1 resize-none bg-transparent px-2.5 py-2 text-[13.5px] text-slate-900 outline-none placeholder:text-slate-400"
                 />

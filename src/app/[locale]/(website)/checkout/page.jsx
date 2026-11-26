@@ -152,9 +152,9 @@ export default function CheckoutPage() {
     postalCode: '',
     // Card
     cardHolder: auth?.user?.firstName || auth?.user?.name || '',
-    cardNumber: '5528790000000008',
-    expiry: '12/30',
-    cvv: '123',
+    cardNumber: '',
+    expiry: '',
+    cvv: '',
   });
 
   // ── All countries list (static, from country-state-city) ────────────────────

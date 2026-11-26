@@ -40,6 +40,10 @@ export const fetchCart = createAsyncThunk(
   }
 );
 
+const withReason = (error) => {
+  throw new Error(error?.response?.data?.message || error.message);
+};
+
 export const addToCart = createAsyncThunk(
   "cart/add",
   async ({ product, variantId, quantity = 1 }, { getState }) => {
@@ -54,7 +58,7 @@ export const addToCart = createAsyncThunk(
         "/e-commerce/cart/my-cart/items",
         { productId: product._id, variantId: vId, quantity },
         { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
+      ).catch(withReason);
       return res.data.data?.items || [];
     }
     if (typeof window !== "undefined") {
@@ -87,7 +91,7 @@ export const updateCartItem = createAsyncThunk(
         "/e-commerce/cart/my-cart/items",
         { productId: product._id, variantId: vId, delta },
         { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
+      ).catch(withReason);
       return res.data.data?.items || [];
     }
     if (typeof window !== "undefined") {

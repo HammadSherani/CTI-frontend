@@ -11,6 +11,7 @@ import { CustomDropdown } from '@/components/partials/admin/ecom/Dropdown';
 import SearchInput from '@/components/SearchInput';
 import { useSearchParams } from 'next/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems } from '@/components/website/ReturnItemPicker';
 
 const RETURN_STATUS_CFG = {
   requested: { label: 'Pending Review', bg: 'bg-blue-100 text-blue-700' },
@@ -25,6 +26,8 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   const [reason, setReason] = useState('');
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  // marketplace orders: { [position of the item in the order]: units to return }
+  const [units, setUnits] = useState(() => initialReturnUnits(order));
   
   // Refurbished items state
   // Stores { [itemKey]: { selected: boolean, quantity: number, reason: string } }
@@ -80,8 +83,14 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   };
 
   const handleStandardSubmit = () => {
+    const items = selectedReturnItems(units);
+    if (!items.length) {
+      toast.warn('Please select at least one item to return');
+      return;
+    }
     const formData = new FormData();
     formData.append('reason', reason.trim());
+    formData.append('items', JSON.stringify(items));
     images.forEach(image => formData.append('images', image));
     onSubmit(order._id, formData);
   };
@@ -168,6 +177,9 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
             </div>
           ) : (
             <div>
+              <div className="mb-3">
+                <ReturnItemPicker order={order} units={units} onChange={setUnits} />
+              </div>
               <label className="text-xs font-bold text-gray-500 uppercase block mb-1">
                 Reason for Return <span className="text-red-500">*</span>
               </label>
@@ -175,7 +187,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                 rows={4}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Describe why you want to return this order..."
+                placeholder="Describe why you want to return these items..."
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
               />
               <div className="mt-3">
@@ -292,7 +304,7 @@ export default function MyOrdersPage() {
         const list = res.data.data || [];
         const map = {};
         list.forEach((r) => {
-          if (r.orderId) map[r.orderId.toString()] = r;
+          if (r.orderId) (map[r.orderId.toString()] ||= []).push(r);
         });
         setExistingReturns(map);
         setReturnsList(list);
@@ -909,8 +921,11 @@ export default function MyOrdersPage() {
                                         </button>
                                       )}
                                       {order.orderStatus === 'delivered' && (() => {
-                                        const existingReturn = existingReturns[order._id?.toString()];
-                                        if (existingReturn) {
+                                        const orderReturns = existingReturns[order._id?.toString()] || [];
+                                        const existingReturn = orderReturns[0];
+                                        // marketplace orders can be returned in parts
+                                        const more = !isRefurbishedMode && canRequestReturn(order, orderReturns);
+                                        if (existingReturn && !more) {
                                           const cfg = RETURN_STATUS_CFG[existingReturn.returnStatus] || { label: existingReturn.returnStatus, bg: 'bg-gray-100 text-gray-600' };
                                           return (
                                             <div className={`w-full py-2 px-4 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 ${cfg.bg}`}>
@@ -919,14 +934,22 @@ export default function MyOrdersPage() {
                                             </div>
                                           );
                                         }
+                                        if (!isRefurbishedMode && !more) return null; // return period over
                                         return (
-                                          <button
-                                            onClick={(e) => { e.stopPropagation(); setReturnModal(order); }}
-                                            className="w-full bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
-                                          >
-                                            <Icon icon="mdi:package-variant-closed-remove" className="w-4 h-4" />
-                                            Request Return
-                                          </button>
+                                          <>
+                                            {existingReturn && (
+                                              <div className="w-full text-center text-xs font-semibold text-gray-500">
+                                                Last return: {RETURN_STATUS_CFG[existingReturn.returnStatus]?.label || existingReturn.returnStatus}
+                                              </div>
+                                            )}
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); setReturnModal(order); }}
+                                              className="w-full bg-amber-50 text-amber-700 hover:bg-amber-100 font-medium py-2 px-4 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm"
+                                            >
+                                              <Icon icon="mdi:package-variant-closed-remove" className="w-4 h-4" />
+                                              {existingReturn ? 'Return More Items' : 'Request Return'}
+                                            </button>
+                                          </>
                                         );
                                       })()}
                                     </div>
@@ -989,6 +1012,7 @@ export default function MyOrdersPage() {
       </> }
 
       <ReturnRequestModal
+        key={returnModal?._id || 'closed'} // a fresh form for every order
         order={returnModal}
         onClose={() => setReturnModal(null)}
         onSubmit={handleRequestReturn}

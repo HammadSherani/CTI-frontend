@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 import { formatCurrency } from '@/helper/currencyFormatter';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems } from '@/components/website/ReturnItemPicker';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
@@ -218,6 +219,8 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   const [reason, setReason] = useState('');
   const [images, setImages] = useState([]);
   const [imagePreviews, setImagePreviews] = useState([]);
+  // marketplace orders: { [position of the item in the order]: units to return }
+  const [units, setUnits] = useState(() => initialReturnUnits(order));
   const [selectedItems, setSelectedItems] = useState({});
 
   useEffect(() => {
@@ -270,8 +273,14 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
   };
 
   const handleStandardSubmit = () => {
+    const items = selectedReturnItems(units);
+    if (!items.length) {
+      toast.warn('Please select at least one item to return');
+      return;
+    }
     const formData = new FormData();
     formData.append('reason', reason.trim());
+    formData.append('items', JSON.stringify(items));
     images.forEach(image => formData.append('images', image));
     onSubmit(formData);
   };
@@ -352,11 +361,14 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
             </div>
           ) : (
             <div>
+              <div className="mb-3">
+                <ReturnItemPicker order={order} units={units} onChange={setUnits} />
+              </div>
               <textarea
                 rows={4}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Describe why you want to return this order..."
+                placeholder="Describe why you want to return these items..."
                 className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none resize-none focus:ring-2 focus:ring-primary-500"
               />
               <div className="mt-3">
@@ -450,7 +462,7 @@ export default function OrderDetailPage() {
   const [enquiryLoading, setEnquiryLoading] = useState(false);
   const [returnModal, setReturnModal]   = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
-  const [existingReturn, setExistingReturn] = useState(null);
+  const [orderReturns, setOrderReturns] = useState([]); // newest first
   const [cancelling, setCancelling]     = useState(false);
   const [reviewPrompt, setReviewPrompt] = useState(null);
 
@@ -500,8 +512,7 @@ export default function OrderDetailPage() {
       const { data } = await axiosInstance.get(getReturnsUrl, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success && data.data?.length > 0) setExistingReturn(data.data[0]);
-      else setExistingReturn(null);
+      setOrderReturns(data.success ? data.data || [] : []);
     } catch {}
   }, [id, token, isRefurbishedMode]);
 
@@ -545,7 +556,7 @@ export default function OrderDetailPage() {
       if (data.success) {
         toast.success('Return request submitted');
         setReturnModal(false);
-        setExistingReturn(data.data);
+        fetchReturnStatus();
         fetchOrder();
       } else toast.error(data.message);
     } catch (err) {
@@ -862,40 +873,45 @@ export default function OrderDetailPage() {
 
             {/* Request Return / Return Status (delivered only) */}
             {order.orderStatus === 'delivered' && (() => {
-              if (existingReturn) {
-                const cfg = RETURN_STATUS_CFG[existingReturn.returnStatus] || {
-                  label: existingReturn.returnStatus,
-                  bg: 'bg-gray-50 text-gray-600 border-gray-200',
-                  icon: 'solar:refresh-bold-duotone',
-                };
-                return (
-                  <div className={`w-full flex flex-col gap-1 px-4 py-3 rounded-xl border text-sm ${cfg.bg}`}>
-                    <div className="flex items-center gap-2 font-semibold">
-                      <Icon icon={cfg.icon} className="w-4 h-4" />
-                      {cfg.label}
-                    </div>
-                    <p className="text-xs opacity-75">
-                      Return #{existingReturn.returnNo || '—'} · {existingReturn.createdAt ? new Date(existingReturn.createdAt).toLocaleDateString() : ''}
-                    </p>
-                    {existingReturn.returnStatus === 'rejected' && (
-                      <button
-                        onClick={() => setReturnModal(true)}
-                        className="mt-1 text-xs underline underline-offset-2 opacity-80 hover:opacity-100 text-left"
-                      >
-                        Submit new return request
-                      </button>
-                    )}
-                  </div>
-                );
-              }
+              // refurbished orders keep one request at a time, marketplace orders can be returned in parts
+              const latest = orderReturns[0];
+              const shown = isRefurbishedMode ? orderReturns.slice(0, 1) : orderReturns;
+              const canAsk = isRefurbishedMode
+                ? !latest || latest.returnStatus === 'rejected'
+                : canRequestReturn(order, orderReturns);
               return (
-                <button
-                  onClick={() => setReturnModal(true)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-semibold rounded-xl text-sm transition-colors"
-                >
-                  <Icon icon="solar:inbox-in-bold-duotone" className="w-4 h-4" />
-                  Request Return
-                </button>
+                <>
+                  {shown.map((ret) => {
+                    const cfg = RETURN_STATUS_CFG[ret.returnStatus] || {
+                      label: ret.returnStatus,
+                      bg: 'bg-gray-50 text-gray-600 border-gray-200',
+                      icon: 'solar:refresh-bold-duotone',
+                    };
+                    return (
+                      <div key={ret._id || ret.returnNo} className={`w-full flex flex-col gap-1 px-4 py-3 rounded-xl border text-sm ${cfg.bg}`}>
+                        <div className="flex items-center gap-2 font-semibold">
+                          <Icon icon={cfg.icon} className="w-4 h-4" />
+                          {cfg.label}
+                        </div>
+                        <p className="text-xs opacity-75">
+                          Return #{ret.returnNo || '—'} · {ret.createdAt ? new Date(ret.createdAt).toLocaleDateString() : ''}
+                        </p>
+                        {!isRefurbishedMode && ret.productName && (
+                          <p className="text-xs opacity-75">{ret.productName} · {formatCurrency(ret.price || 0)}</p>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {canAsk && (
+                    <button
+                      onClick={() => setReturnModal(true)}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-semibold rounded-xl text-sm transition-colors"
+                    >
+                      <Icon icon="solar:inbox-in-bold-duotone" className="w-4 h-4" />
+                      {latest ? 'Request Another Return' : 'Request Return'}
+                    </button>
+                  )}
+                </>
               );
             })()}
           </div>

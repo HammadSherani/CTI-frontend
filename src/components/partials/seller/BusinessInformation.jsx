@@ -1,5 +1,4 @@
 "use client";
-import { Controller } from "react-hook-form";
 import KycField from "./KycField";
 import { SELLER_LIMITS, TR_RULES, digitsOnly } from "@/helper/sellerProfileRules";
 
@@ -21,25 +20,6 @@ export default function BusinessInformation({ control, errors }) {
           placeholder={TR_RULES.idExample} hint="Digits only, without spaces or dashes" inputMode="numeric"
           filter={digitsOnly} maxLength={TR_RULES.idMax}
         />
-
-        {/* Sells Refurbished */}
-        <div className="flex items-center gap-3 pt-6">
-          <Controller name="sellsRefurbishedDevices" control={control} render={({ field }) => (
-            <button
-              type="button"
-              role="switch"
-              aria-checked={Boolean(field.value)}
-              aria-label="Sells refurbished devices"
-              onClick={() => field.onChange(!field.value)}
-              className={`relative w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0
-                ${field.value ? "bg-primary-600" : "bg-gray-300"}`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200
-                ${field.value ? "translate-x-5" : "translate-x-0"}`} />
-            </button>
-          )} />
-          <span className="text-sm text-gray-700">Sells refurbished devices</span>
-        </div>
 
         <KycField
           control={control} errors={errors} name="storeDescription" label="Store Description" required textarea rows={4}

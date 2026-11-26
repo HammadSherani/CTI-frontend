@@ -333,7 +333,6 @@ export function sellerToKycForm(seller) {
     businessName: seller.businessName || "",
     storeDescription: seller.storeDescription || "",
     nationalIdOrTaxNumber: seller.nationalIdOrTaxNumber || "",
-    sellsRefurbishedDevices: Boolean(seller.sellsRefurbishedDevices),
     profilePictureOrLogo: seller.profilePictureOrLogo || null,
     nationalIdOrPassport: seller.nationalIdOrPassport || null,
     shopLicenseOrTaxCertificate: seller.shopLicenseOrTaxCertificate || null,

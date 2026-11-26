@@ -332,9 +332,14 @@ export default function EcomProductDetail({ params }) {
       return;
     }
     if (isCartLoading) return;
-    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity }));
-    if (isCartAdded) toast.info(`${productData.title} removed from cart!`);
-    else toast.success(`${productData.title} added to cart!`);
+    const removing = isCartAdded;
+    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity }))
+      .unwrap()
+      .then(() => {
+        if (removing) toast.info(`${productData.title} removed from cart!`);
+        else toast.success(`${productData.title} added to cart!`);
+      })
+      .catch((error) => toast.error(error?.message || 'Could not update the cart'));
   };
 
   const handleToggleWishlist = () => {

@@ -780,7 +780,6 @@ export default function SellerProfilePage() {
                     ),
                   },
                   { label: "Account Active", node: seller.isActive ? <span className="text-green-600 font-semibold text-xs">✓ Active</span> : <span className="text-red-500 font-semibold text-xs">✕ Inactive</span> },
-                  { label: "Sells Refurbished", node: <span className={`text-xs font-semibold ${seller.sellsRefurbishedDevices ? "text-primary-600" : "text-gray-400"}`}>{seller.sellsRefurbishedDevices ? "Yes" : "No"}</span> },
                   { label: "Commission Rate", node: <span className="text-xs font-semibold text-gray-700">{seller.commissionRate ?? 10}%</span> },
                   { label: "Shipping Method", node: <span className="text-xs font-medium text-gray-700 capitalize">{seller.shippingMethod || "Not set"}</span> },
                 ].map(({ label, node }) => (

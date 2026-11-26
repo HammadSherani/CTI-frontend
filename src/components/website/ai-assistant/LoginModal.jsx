@@ -46,6 +46,13 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
     },
   });
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen, onClose]);
+
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {

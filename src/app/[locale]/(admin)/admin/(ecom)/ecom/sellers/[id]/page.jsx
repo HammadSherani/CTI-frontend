@@ -409,7 +409,6 @@ export default function SellerDetailPage() {
                   <InfoRow label="Shipping Method" value={seller.shippingMethod} />
                 </div>
                 <div className="sm:pl-4 sm:border-l sm:border-gray-50">
-                  <InfoRow label="Refurbished Devices" value={seller.sellsRefurbishedDevices ? "Yes" : "No"} />
                   <InfoRow label="Working Days" value={seller.workingDays?.join(", ")} />
                   <InfoRow
                     label="Working Hours"
@@ -531,12 +530,6 @@ export default function SellerDetailPage() {
                 <div className="flex items-center justify-between py-2 border-b border-gray-50">
                   <span className="text-xs text-gray-500">KYC Status</span>
                   <span className="text-xs font-semibold text-gray-700 capitalize">{seller.kycStatus || "—"}</span>
-                </div>
-                <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                  <span className="text-xs text-gray-500">Sells Refurbished</span>
-                  <span className="text-xs font-semibold text-gray-700">
-                    {seller.sellsRefurbishedDevices ? "Yes" : "No"}
-                  </span>
                 </div>
                 <div className="flex items-center justify-between py-2">
                   <span className="text-xs text-gray-500">Member Since</span>

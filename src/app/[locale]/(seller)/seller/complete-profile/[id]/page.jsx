@@ -72,7 +72,6 @@ export default function SellerKycForm() {
       businessName: "",
       storeDescription: "",
       nationalIdOrTaxNumber: "",
-      sellsRefurbishedDevices: false,
       // Personal
       fullName: "",
       gender: "Male",
@@ -201,7 +200,6 @@ export default function SellerKycForm() {
         zipCode: all.zipCode,
         nationalIdOrTaxNumber: all.nationalIdOrTaxNumber,
         businessName: all.businessName,
-        sellsRefurbishedDevices: all.sellsRefurbishedDevices,
         storeDescription: all.storeDescription,
         shippingMethod: all.shippingMethod,
         workingDays: all.workingDays,

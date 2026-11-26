@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
 import { fetchRefurbishedCart, updateRefurbishedCartItem, removeRefurbishedFromCart } from '@/store/refurbishedCart';
 import { formatCurrency } from '@/helper/currencyFormatter';
+import { toast } from 'react-toastify';
 
 // ── Order Summary Sidebar Component ──
 function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
@@ -73,7 +74,9 @@ export default function CartPage() {
     if (isRefurbished) {
       dispatch(updateRefurbishedCartItem({ product: item.productId, variantId: item.variantId, delta }));
     } else {
-      dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }));
+      dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }))
+        .unwrap()
+        .catch((error) => toast.error(error?.message || 'Could not update the quantity'));
     }
   };
 
