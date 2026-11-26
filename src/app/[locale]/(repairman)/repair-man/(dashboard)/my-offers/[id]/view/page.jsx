@@ -4,7 +4,10 @@ import { useMultiLoading } from '@/hooks/useMultiloading';
 import { useParams } from 'next/navigation';
 import {useRouter} from '@/i18n/navigation';
 import React, { useEffect, useState } from 'react'
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import { useChat } from '@/hooks/useChat';
+import { addChat } from '@/store/chat';
+import handleError from '@/helper/handleError';
 import { motion } from 'framer-motion';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
@@ -16,6 +19,9 @@ function OfferDetailPage() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const { token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { openChat, selectChat } = useChat();
+  const [chatOpening, setChatOpening] = useState(false);
   const {multiloading, start, stop } = useMultiLoading();
 
   const offerDetailsFetch = async () => {
@@ -104,14 +110,48 @@ function OfferDetailPage() {
     }
   }, [id, token]);
 
-  const handleChatWithCustomer = () => {
-    toast.info('Redirecting to chat with customer...');
-  // router.push(`/chat?userId=${job.customerId?._id}&jobId=${job._id}`);
-};
+  // Opens the chat panel right away, then creates/loads the conversation with the customer
+  const handleChatWithCustomer = async () => {
+    const customer = offerData?.job?.customerId;
+    const customerId = customer?._id || customer;
+    if (!customerId || !token || chatOpening) return;
+
+    openChat();
+    setChatOpening(true);
+    try {
+      const { data } = await axiosInstance.post(
+        '/chat/start',
+        {
+          repairmanId: customerId, // for a repairman, this field carries the customer's id
+          jobId: offerData?.job?._id,
+          offerId: offerData?.offerDetails?._id || id,
+        },
+        { headers: { Authorization: 'Bearer ' + token } }
+      );
+      const chat = data?.chat;
+      if (!chat?._id) return;
+      dispatch(addChat({
+        id: chat._id,
+        chatId: chat._id,
+        name: chat.user?.name || customer?.name,
+        avatar: chat.user?.avatar,
+        userId: chat.user?._id || customerId,
+        lastMessage: '',
+        timestamp: new Date().toISOString(),
+        online: false,
+      }));
+      selectChat({ id: chat._id, name: chat.user?.name || customer?.name, avatar: chat.user?.avatar });
+    } catch (error) {
+      handleError(error);
+    } finally {
+      setChatOpening(false);
+    }
+  };
 
 const handleStartJob = () => {
-  // API call to start the job
-  router.push(`/repair-man/my-jobs/${job._id}/start`);
+  // Accepted offers become bookings in My Jobs (there is no /my-jobs/[jobId]/start page);
+  // the work is started from there with "Update Status"
+  router.push('/repair-man/my-jobs');
 };
 
   // Status badge component

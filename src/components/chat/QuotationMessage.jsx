@@ -1,6 +1,9 @@
 "use client"
 
-import React, { useState } from 'react';
+// Quotation card inside the chat.
+// Customer (open quote): Accept & Pay / Reject. Repairman (open quote): Edit / Withdraw.
+// Status, validity countdown and price update live (socket "quotation_updated").
+import React, { useEffect, useMemo, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
@@ -9,508 +12,257 @@ import { Link } from '@/i18n/navigation';
 import { useChat } from '@/hooks/useChat';
 import QuotationForm from './QuotationForm';
 import { toast } from 'react-toastify';
+import { toQuotationView, money, timeLeft, fmtDateTime } from './quotationView';
 
 const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
     const { token, user } = useSelector((state) => state.auth);
-    const [acceptLoading, setAcceptLoading] = useState(false);
-    const [rejectLoading, setRejectLoading] = useState(false);
+    const { closeChat } = useChat();
+    const [rejecting, setRejecting] = useState(false);
+    const [showReject, setShowReject] = useState(false);
+    const [rejectReason, setRejectReason] = useState('');
     const [showDetails, setShowDetails] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [deleting, setDeleting] = useState(false);
+    const [, setTick] = useState(0);
 
-    const { closeChat } = useChat()
-
-    // Parse quotation data from message
     const quotationData = message.quotationData || {};
-    const {
-        deviceInfo = {},
-        partsQuality = '',
-        pricing = {},
-        serviceDetails = {},
-        repairmanNotes = quotationData.repairmanNotes,
-        validUntil = quotationData.validUntil,
-        status = quotationData.status || 'sent'
-        // requi
-    } = quotationData;
+    const q = useMemo(() => toQuotationView(quotationData), [quotationData]);
 
+    // keep the "time left" fresh
+    useEffect(() => {
+        if (!q.isOpen || !q.validUntil) return undefined;
+        const t = setInterval(() => setTick((n) => n + 1), 60 * 1000);
+        return () => clearInterval(t);
+    }, [q.isOpen, q.validUntil]);
 
-    const {
-        description,
-        estimatedDuration,
-        serviceType,
-        warranty,
-        isPickup = false,
-        isDropoff = false,
-        pickupLocation = {},
-        dropoffLocation = {},
-        requiredParts = {}
-    } = serviceDetails;
+    const isCustomer = user?.role === 'customer' && !isOwner;
+    const isRepairmanOwner = user?.role === 'repairman' && isOwner;
+    const left = q.isOpen ? timeLeft(q.validUntil) : null;
 
-    // Extract device info
-    const { brandName = '', modelName = '', repairServices = [] } = deviceInfo;
-
-    // ✅ Calculate subtotal and grand total
-    const basePrice = pricing.basePrice || 0;
-    const partsPrice = pricing.partsPrice || 0;
-    const serviceCharges = pricing.serviceCharges || 0;
-    const subtotal = basePrice + partsPrice;
-    const grandTotal = subtotal + serviceCharges;
-
-    const handleQuotationResponse = async (action, customerResponse = '') => {
-        // Set appropriate loading state based on action
-        if (action === 'accepted') {
-            setAcceptLoading(true);
-        } else if (action === 'rejected') {
-            setRejectLoading(true);
-        }
-
+    const reject = async () => {
         try {
-            const response = await axiosInstance.post(
-                `/chat/quotation/${message?.quotationData?.quotationId}/respond`,
-                {
-                    action,
-                    customerResponse
-                },
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
+            setRejecting(true);
+            await axiosInstance.post(
+                `/chat/quotation/${q.id}/respond`,
+                { action: 'rejected', customerResponse: rejectReason.trim().slice(0, 200) },
+                { headers: { Authorization: `Bearer ${token}` } }
             );
-
-            if (response.data.success) {
-                console.log(`Quotation ${action}ed successfully`);
-            }
+            toast.success('Quotation rejected');
+            setShowReject(false);
+            onQuotationUpdate?.();
         } catch (error) {
-            console.error(`Error ${action}ing quotation:`, error);
             handleError(error);
         } finally {
-            // Reset loading states
-            setAcceptLoading(false);
-            setRejectLoading(false);
+            setRejecting(false);
         }
     };
 
-    const getStatusColor = (status) => {
-        switch (status) {
-            case 'sent': return 'text-primary-600 bg-primary-50';
-            case 'viewed': return 'text-yellow-600 bg-yellow-50';
-            case 'accepted': return 'text-green-600 bg-green-50';
-            case 'rejected': return 'text-red-600 bg-red-50';
-            case 'expired': return 'text-gray-600 bg-gray-50';
-            default: return 'text-gray-600 bg-gray-50';
-        }
-    };
-
-    const getServiceTypeLabel = (type) => {
-        switch (type) {
-            case 'drop-off': return 'Drop-off Service';
-            case 'pickup': return 'Pickup Service';
-            case 'home-service': return 'Home Service';
-            default: return type;
-        }
-    };
-
-
-
-
-    const handleDelete = async ({ quotationId }) => {
-        if (!confirm('Are you sure you want to delete this quotation?')) return;
-        console.log('Deleting quotation with ID:', quotationId);
+    const withdraw = async () => {
+        if (!confirm('Withdraw this quotation? The customer will no longer be able to accept it.')) return;
         try {
             setDeleting(true);
-            await axiosInstance.delete(`/chat/delete-single-quotation/${quotationId}`, {
-                headers: { Authorization: `Bearer ${token}` }
+            await axiosInstance.delete(`/chat/delete-single-quotation/${q.id}`, {
+                headers: { Authorization: `Bearer ${token}` },
             });
-            toast.success('Quotation deleted');
+            toast.success('Quotation withdrawn');
             onQuotationUpdate?.();
         } catch (err) {
             handleError(err);
         } finally {
             setDeleting(false);
         }
-    }
+    };
 
-    const isExpired = quotationData.validUntil && new Date() > new Date(quotationData.validUntil);
-    const canRespond = !isOwner && user?.role === 'customer' && status === 'sent' && !isExpired;
-    const isAnyButtonLoading = acceptLoading || rejectLoading;
+    const muted = !q.isOpen && q.status !== 'accepted';
 
     return (
-        <div className={`max-w-[95%] ${isOwner ? 'ml-auto' : 'mr-auto'} mb-4`}>
-            <div className={`bg-white border-2 rounded-lg shadow-md overflow-hidden ${isOwner ? 'border-primary-200' : 'border-green-200'
-                }`}>
+        <div className={`flex ${isOwner ? 'justify-end' : 'justify-start'} mb-3`}>
+            <div className={`w-[300px] max-w-full bg-white border rounded-xl shadow-sm overflow-hidden ${muted ? 'opacity-80' : ''}`}>
                 {/* Header */}
-                <div className={`px-4 py-3 ${isOwner ? 'bg-primary-50' : 'bg-green-50'} border-b`}>
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                            <Icon icon="mdi:receipt" width={20} className="text-gray-600" />
-                            <span className="font-semibold text-gray-800">
-                                {isOwner ? 'Quotation Sent' : 'Quotation Received'}
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            {/* Edit / Delete for non-customer roles */}
-                            {user?.role && user.role !== 'customer' && (
-                                <>
-                                    <button
-                                        onClick={() => setShowEditModal(true)}
-                                        className="p-1 hover:bg-gray-200 rounded"
-                                        title="Edit Quotation"
-                                    >
-                                        <Icon icon="mdi:pencil" width={16} />
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete({ quotationId: quotationData.quotationId })}
-                                        disabled={deleting}
-                                        className="p-1 hover:bg-gray-200 rounded"
-                                        title="Delete Quotation"
-                                    >
-                                        {deleting ? <div className="animate-spin h-4 w-4 border-b-2 border-gray-600 rounded-full" /> : <Icon icon="mdi:trash" width={16} />}
-                                    </button>
-                                </>
-                            )}
-
-                            <button
-                                onClick={() => router.push(`/quotation/${quotationData.quotationId}`)}
-                                className="p-1 hover:bg-gray-200 rounded"
-                                title="View Quotation"
-                            >
-                                <Icon icon="mdi:eye" width={16} />
-                            </button>
-                            <button
-                                onClick={() => setShowDetails(!showDetails)}
-                                className="p-1 hover:bg-gray-200 rounded"
-                            >
-                                <Icon
-                                    icon={showDetails ? "mdi:chevron-up" : "mdi:chevron-down"}
-                                    width={16}
-                                />
-                            </button>
-
-                        </div>
+                <div className={`px-3 py-2.5 border-b flex items-center justify-between gap-2 ${isOwner ? 'bg-primary-50' : 'bg-green-50'}`}>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <Icon icon="mdi:receipt-text-outline" width={20} className="text-gray-600 shrink-0" />
+                        <span className="font-semibold text-gray-800 text-sm truncate">
+                            {isOwner ? 'Quotation sent' : 'Quotation'}
+                            {q.version > 1 && <span className="ml-1 text-[11px] font-normal text-gray-500">(updated)</span>}
+                        </span>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                        {isRepairmanOwner && q.isOpen && (
+                            <>
+                                <button onClick={() => setShowEditModal(true)} className="p-1 hover:bg-white rounded" title="Edit quotation">
+                                    <Icon icon="mdi:pencil" width={16} />
+                                </button>
+                                <button onClick={withdraw} disabled={deleting} className="p-1 hover:bg-white rounded" title="Withdraw quotation">
+                                    {deleting
+                                        ? <span className="block animate-spin h-4 w-4 border-2 border-gray-300 border-t-gray-600 rounded-full" />
+                                        : <Icon icon="mdi:trash-can-outline" width={16} />}
+                                </button>
+                            </>
+                        )}
+                        {q.id && (
+                            <Link href={`/quotation/${q.id}`} onClick={() => closeChat()} className="p-1 hover:bg-white rounded" title="Open full quotation">
+                                <Icon icon="mdi:open-in-new" width={16} />
+                            </Link>
+                        )}
                     </div>
                 </div>
 
-                {/* Content */}
-                <div className="p-4">
-                    {/* Device Information */}
-                    {(brandName || modelName) && (
-                        <div className="bg-primary-50 rounded-lg p-3 mb-3">
-                            <div className="flex items-center gap-2 mb-2">
-                                <Icon icon="mdi:cellphone" width={18} className="text-primary-600" />
-                                <span className="font-semibold text-primary-900">Device Information</span>
-                            </div>
-                            <div className="text-sm">
-                                <p className="font-medium text-gray-800">
-                                    {brandName} {modelName}
+                <div className="p-3 space-y-3">
+                    {/* Status + time left */}
+                    <div className="flex items-center justify-between gap-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[11px] font-semibold ${q.statusMeta.className}`}>
+                            <Icon icon={q.statusMeta.icon} width={13} />
+                            {q.statusMeta.label}
+                        </span>
+                        {left && (
+                            <span className="text-[11px] text-gray-500 flex items-center gap-1">
+                                <Icon icon="mdi:clock-outline" width={13} /> {left}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Device + services */}
+                    {(q.brandName || q.modelName || q.services.length > 0) && (
+                        <div>
+                            {(q.brandName || q.modelName) && (
+                                <p className="font-semibold text-gray-900 flex items-center gap-1.5">
+                                    <Icon icon="mdi:cellphone" width={17} className="text-primary-600" />
+                                    {q.brandName} {q.modelName}
                                 </p>
-                                {repairServices && repairServices.length > 0 && (
-                                    <div className="mt-2">
-                                        <span className="text-gray-600 text-xs">Services Required:</span>
-                                        <div className="flex flex-wrap gap-1 mt-1">
-                                            {repairServices.map((service, index) => (
-                                                <span
-                                                    key={index}
-                                                    className="px-2 py-1 bg-white text-primary-700 text-xs font-medium rounded-full border border-primary-200"
-                                                >
-                                                    {service}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            )}
+                            {q.services.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1.5">
+                                    {q.services.map((s) => (
+                                        <span key={s} className="px-2 py-0.5 bg-primary-50 text-primary-700 text-[11px] font-medium rounded-full border border-primary-100">{s}</span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
 
-                    {/* Service Description */}
-                    {description && (
-                        <div className="mb-3">
-                            <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">Description</span>
-                            <p className="text-gray-700 text-sm mt-1 leading-relaxed">
-                                {description}
+                    {/* Price */}
+                    <div className="bg-gray-50 rounded-lg p-2.5 text-sm space-y-1">
+                        <div className="flex justify-between"><span className="text-gray-600">Repair service</span><span>{money(q.basePrice, q.currency)}</span></div>
+                        {q.partsPrice > 0 && (
+                            <div className="flex justify-between"><span className="text-gray-600">Parts</span><span>{money(q.partsPrice, q.currency)}</span></div>
+                        )}
+                        <div className="flex justify-between font-bold text-gray-900 border-t pt-1.5 mt-1">
+                            <span>Total</span><span className="text-green-700">{money(q.subtotal, q.currency)}</span>
+                        </div>
+                        {q.pickupAvailable && q.pickupCharge > 0 && (
+                            <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                                <Icon icon="mdi:truck-outline" width={13} />
+                                Optional pickup: +{money(q.pickupCharge, q.currency)} if you choose pickup at checkout
                             </p>
-                        </div>
-                    )}
-
-                    {/* ✅ Pricing Summary - Updated */}
-                    <div className="bg-gray-50 rounded-lg p-3 mb-3">
-                        {/* Base Price */}
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-sm text-gray-600">Base Price:</span>
-                            <span className="font-medium">TRY {basePrice.toFixed(2)}</span>
-                        </div>
-
-                        {/* Parts Price */}
-                        {partsPrice > 0 && (
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Parts Cost:</span>
-                                <span className="font-medium">TRY {partsPrice.toFixed(2)}</span>
-                            </div>
-                        )}
-
-                        {/* Parts Quality */}
-                        {partsQuality && (
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-gray-600">Parts Quality:</span>
-                                <span className="font-medium capitalize">
-                                    {partsQuality.replace(/-/g, ' ')}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Subtotal */}
-                        <div className="border-t pt-2 mt-2 mb-2">
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold text-gray-700">Subtotal:</span>
-                                <span className="font-semibold text-gray-800">
-                                    TRY {subtotal.toFixed(2)}
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Service Charges (if applicable) */}
-                        {serviceCharges > 0 && (
-                            <div className="flex justify-between items-center mb-2">
-                                <span className="text-sm text-primary-600 flex items-center gap-1">
-                                    <Icon icon="mdi:truck" width={14} />
-                                    Service Charges:
-                                </span>
-                                <span className="font-medium text-primary-600">
-                                    +TRY {serviceCharges.toFixed(2)}
-                                </span>
-                            </div>
-                        )}
-
-                        {/* Grand Total */}
-                        <div className="border-t pt-2 mt-2 bg-green-50 -mx-3 -mb-3 px-3 py-3">
-                            <div className="flex justify-between items-center">
-                                <span className="font-bold text-gray-800">Grand Total:</span>
-                                <span className="text-xl font-bold text-green-600">
-                                    TRY {grandTotal.toFixed(2)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Quick Info */}
-                    <div className="grid grid-cols-2 gap-3 text-sm mb-3">
-                        {estimatedDuration && (
-                            <div>
-                                <span className="text-gray-500 text-xs">Duration:</span>
-                                <p className="font-medium">{estimatedDuration} days</p>
-                            </div>
-                        )}
-                        {serviceType && (
-                            <div>
-                                <span className="text-gray-500 text-xs">Service Type:</span>
-                                <p className="font-medium">{getServiceTypeLabel(serviceType)}</p>
-                            </div>
                         )}
                     </div>
 
+                    {/* Short facts */}
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                        {q.estimatedDuration && (
+                            <div><p className="text-gray-500">Time</p><p className="font-medium text-gray-800">{q.estimatedDuration}{/^\d+$/.test(q.estimatedDuration) ? ' days' : ''}</p></div>
+                        )}
+                        <div><p className="text-gray-500">Service</p><p className="font-medium text-gray-800">{q.pickupAvailable ? 'Pickup or drop-off' : 'Drop-off'}</p></div>
+                        {q.warranty && (
+                            <div><p className="text-gray-500">Warranty</p><p className="font-medium text-gray-800">{q.warranty}{/^\d+$/.test(String(q.warranty)) ? ' days' : ''}</p></div>
+                        )}
+                        {q.partsQuality && q.isPartRequired && (
+                            <div><p className="text-gray-500">Parts quality</p><p className="font-medium text-gray-800 capitalize">{q.partsQuality.replace(/-/g, ' ')}</p></div>
+                        )}
+                    </div>
 
-                    {/* Service Location Info */}
-                    {(isDropoff && dropoffLocation?.address) && (
-                        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
-                            <div className="flex items-start gap-2">
-                                <Icon icon="mdi:map-marker" width={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
-                                <div className="flex-1">
-                                    <span className="text-xs font-medium text-blue-800 uppercase tracking-wide block mb-1">
-                                        Drop-off Location
-                                    </span>
-                                    <p className="text-sm text-blue-900 font-medium">
-                                        {dropoffLocation.address}
-                                    </p>
-                                    <p className="text-xs text-blue-700 mt-1">
-                                        Please drop off your device at this address
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {isPickup && serviceCharges > 0 && (
-                        <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-3">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="mdi:truck" width={18} className="text-green-600" />
-                                <div className="flex-1">
-                                    <span className="text-xs font-medium text-green-800 uppercase tracking-wide block mb-1">
-                                        Pickup Service Available
-                                    </span>
-                                    <p className="text-sm text-green-900">
-                                        Device will be picked up from your location
-                                    </p>
-                                    <p className="text-xs text-green-700 mt-1">
-                                        Pickup charges: TRY {serviceCharges.toFixed(2)}
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {validUntil && (
-                        <div className={`p-3 rounded-lg mb-3 ${new Date() > new Date(validUntil)
-                            ? 'bg-red-50 border border-red-200'
-                            : 'bg-primary-50 border border-primary-200'
-                            }`}>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <Icon
-                                        icon={new Date() > new Date(validUntil) ? "mdi:clock-alert" : "mdi:clock-outline"}
-                                        width={16}
-                                        className={new Date() > new Date(validUntil) ? "text-red-600" : "text-primary-600"}
-                                    />
-                                    <span className={`text-sm font-medium ${new Date() > new Date(validUntil) ? "text-red-700" : "text-primary-700"
-                                        }`}>
-                                        {new Date() > new Date(validUntil) ? "Expired" : "Valid Until"}
-                                    </span>
-                                </div>
-                                <span className={`text-sm font-semibold ${new Date() > new Date(validUntil) ? "text-red-700" : "text-primary-700"
-                                    }`}>
-                                    {new Date(validUntil).toLocaleDateString()} at{' '}
-                                    {new Date(validUntil).toLocaleTimeString([], {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                    })}
-                                </span>
-                            </div>
-                        </div>
-                    )}
-
-                    <p className='cursor-pointer text-sm w-fit hover:underline' onClick={() => setShowDetails(!showDetails)}>
-                        See More Details
-                    </p>
+                    <button type="button" className="text-xs font-medium text-primary-600 hover:underline flex items-center gap-1" onClick={() => setShowDetails((v) => !v)}>
+                        {showDetails ? 'Hide details' : 'More details'}
+                        <Icon icon={showDetails ? 'mdi:chevron-up' : 'mdi:chevron-down'} width={15} />
+                    </button>
 
                     {showDetails && (
-                        <div className="mt-4 pt-4 border-t space-y-3">
-                            {/* {requiredParts?.} */}
-
-
-                            {warranty && (
+                        <div className="space-y-2.5 text-sm border-t pt-2.5">
+                            {q.description && (
+                                <div><p className="text-[11px] uppercase tracking-wide text-gray-500">Description</p><p className="text-gray-700 whitespace-pre-wrap">{q.description}</p></div>
+                            )}
+                            {q.parts.length > 0 && (
                                 <div>
-                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Warranty</span>
-                                    <p className="font-medium text-sm mt-1">
-                                        {typeof warranty === 'object'
-                                            ? `${warranty.duration} days - ${warranty.description}`
-                                            : `${warranty} days`
-                                        }
-                                    </p>
+                                    <p className="text-[11px] uppercase tracking-wide text-gray-500">Parts included</p>
+                                    <ul className="text-gray-700 list-disc ml-4">
+                                        {q.parts.map((p, i) => <li key={`${p.name}-${i}`}>{p.name}</li>)}
+                                    </ul>
                                 </div>
                             )}
-
-                            {repairmanNotes && (
+                            {q.dropoffAddress && (
                                 <div>
-                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Additional Notes</span>
-                                    <p className="text-gray-700 text-sm mt-1">{repairmanNotes}</p>
+                                    <p className="text-[11px] uppercase tracking-wide text-gray-500">Drop-off address</p>
+                                    <p className="text-gray-700 flex items-start gap-1"><Icon icon="mdi:map-marker" width={15} className="mt-0.5 text-primary-600 shrink-0" />{q.dropoffAddress}</p>
                                 </div>
                             )}
-
-                            {isDropoff && dropoffLocation?.address && (
-                                <div>
-                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Drop-off Address</span>
-                                    <div className="flex items-start gap-2 mt-1">
-                                        <Icon icon="mdi:map-marker" width={16} className="text-primary-600 mt-1" />
-                                        <p className="text-gray-700 text-sm">{dropoffLocation.address}</p>
-                                    </div>
-                                </div>
+                            {q.notes && (
+                                <div><p className="text-[11px] uppercase tracking-wide text-gray-500">Notes</p><p className="text-gray-700 whitespace-pre-wrap">{q.notes}</p></div>
                             )}
-
-
-                            {validUntil && (
-                                <div>
-                                    <span className="text-gray-500 text-xs font-medium uppercase tracking-wide">Quote Validity</span>
-                                    <p className="font-medium text-gray-700 text-sm mt-1">
-                                        Until {new Date(validUntil).toLocaleDateString()} at{' '}
-                                        {new Date(validUntil).toLocaleTimeString([], {
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                        })}
-                                    </p>
-                                </div>
-                            )}
-
-                            {serviceCharges > 0 && (
-                                <div className="bg-primary-50 p-3 rounded-lg">
-                                    <span className="text-gray-600 text-xs font-medium uppercase tracking-wide block mb-2">
-                                        Price Breakdown
-                                    </span>
-                                    <div className="space-y-1 text-sm">
-                                        <div className="flex justify-between">
-                                            <span className="text-gray-600">Service Cost:</span>
-                                            <span>TRY {subtotal.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between text-primary-600">
-                                            <span>Pickup Charges:</span>
-                                            <span>TRY {serviceCharges.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between font-semibold border-t pt-1">
-                                            <span>Total:</span>
-                                            <span>TRY {grandTotal.toFixed(2)}</span>
-                                        </div>
-                                    </div>
-                                </div>
+                            {q.validUntil && (
+                                <p className="text-xs text-gray-500">Valid until {fmtDateTime(q.validUntil)}</p>
                             )}
                         </div>
                     )}
 
-                    {canRespond && (
-                        <div className="mt-4 pt-4 border-t">
-                            <div className="flex gap-3">
-                                <button
-                                    disabled={isAnyButtonLoading}
-                                    className="flex-1 bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
-                                >
-                                    <Link
-                                        href={`/payment?quotationId=${message?.quotationData?.quotationId}`}
-                                        onClick={() => closeChat()}
-                                        className='flex items-center gap-1'
-                                    >
-                                        {acceptLoading ? (
-                                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        ) : (
-                                            <>
-                                                <Icon icon="mdi:check" width={16} />
-                                                Accept & Pay
-                                            </>
-                                        )}
-                                    </Link>
-                                </button>
-                                <button
-                                    onClick={() => handleQuotationResponse('rejected')}
-                                    disabled={isAnyButtonLoading}
-                                    className="flex-1 flex-wrap bg-red-600 text-white py-2 px-2 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-sm font-medium transition-opacity"
-                                >
-                                    {rejectLoading ? (
-                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                    ) : (
-                                        <>
-                                            <Icon icon="mdi:close" width={16} />
-                                            Reject
-                                        </>
-                                    )}
+                    {/* Customer actions */}
+                    {isCustomer && q.isOpen && !showReject && (
+                        <div className="flex gap-2 pt-1">
+                            <Link
+                                href={`/payment?quotationId=${q.id}`}
+                                onClick={() => closeChat()}
+                                className="flex-1 bg-green-600 hover:bg-green-700 text-white py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-1"
+                            >
+                                <Icon icon="mdi:check" width={16} /> Accept & Pay
+                            </Link>
+                            <button
+                                onClick={() => setShowReject(true)}
+                                className="flex-1 border border-red-200 text-red-600 hover:bg-red-50 py-2 rounded-md text-sm font-semibold flex items-center justify-center gap-1"
+                            >
+                                <Icon icon="mdi:close" width={16} /> Reject
+                            </button>
+                        </div>
+                    )}
+                    {isCustomer && q.isOpen && showReject && (
+                        <div className="space-y-2 pt-1">
+                            <textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                maxLength={200}
+                                rows={2}
+                                placeholder="Reason (optional), e.g. price too high"
+                                className="w-full border border-gray-200 rounded-md px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-300"
+                            />
+                            <div className="flex gap-2">
+                                <button onClick={() => setShowReject(false)} className="flex-1 py-1.5 rounded-md text-sm text-gray-600 hover:bg-gray-100">Cancel</button>
+                                <button onClick={reject} disabled={rejecting} className="flex-1 py-1.5 rounded-md text-sm font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-60">
+                                    {rejecting ? 'Rejecting…' : 'Reject quotation'}
                                 </button>
                             </div>
                         </div>
                     )}
 
-                    {(status === 'accepted' || status === 'rejected') && (
-                        <div className="mt-3 p-3 rounded-lg bg-gray-50 text-center">
-                            <span className={`text-sm font-medium ${status === 'accepted' ? 'text-green-600' : 'text-red-600'
-                                }`}>
-                                {status === 'accepted' ? '✓' : '✗'} Quotation {status} by customer
-                            </span>
-                        </div>
+                    {/* Outcome */}
+                    {q.status === 'accepted' && (
+                        <p className="text-sm font-medium text-green-700 bg-green-50 rounded-md px-2 py-1.5 flex items-center gap-1">
+                            <Icon icon="mdi:check-circle" width={16} /> Accepted and paid{q.respondedAt ? ` · ${fmtDateTime(q.respondedAt)}` : ''}
+                        </p>
+                    )}
+                    {q.status === 'rejected' && (
+                        <p className="text-sm text-red-700 bg-red-50 rounded-md px-2 py-1.5">
+                            Rejected by the customer{q.customerResponse ? `: "${q.customerResponse}"` : ''}
+                        </p>
+                    )}
+                    {q.status === 'replaced' && (
+                        <p className="text-xs text-amber-700">A newer quotation was sent in this chat. Please use that one.</p>
+                    )}
+                    {q.status === 'expired' && (
+                        <p className="text-xs text-gray-500">{isRepairmanOwner ? 'This quotation expired. Send a new one if the customer is still interested.' : 'This quotation has expired. Ask the repairman for a new one.'}</p>
                     )}
                 </div>
 
-                {/* Footer with timestamp */}
-                <div className="px-4 py-2 bg-gray-50 border-t">
-                    <span className="text-xs text-gray-500">
-                        {new Date(message.timestamp || message.createdAt).toLocaleDateString()} at{' '}
-                        {new Date(message.timestamp || message.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        })}
-                    </span>
+                <div className="px-3 py-1.5 bg-gray-50 border-t text-[11px] text-gray-500">
+                    {fmtDateTime(message.timestamp || message.createdAt)}
                 </div>
             </div>
 
@@ -518,11 +270,10 @@ const QuotationMessage = ({ message, isOwner, chatId, onQuotationUpdate }) => {
                 <QuotationForm
                     chatId={chatId}
                     onClose={() => setShowEditModal(false)}
-                    onSuccess={(q) => {
+                    onSuccess={() => {
                         setShowEditModal(false);
                         onQuotationUpdate?.();
                     }}
-                    // pass initial data so QuotationForm can prefill and perform edit
                     initialData={quotationData}
                     isEdit={true}
                 />

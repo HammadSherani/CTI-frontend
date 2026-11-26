@@ -80,14 +80,8 @@ export const useChat = () => {
   const handleSetInputText = useCallback((text) => {
     if (!chatState.currentUser) return;
     dispatch(setInputText(text));
-    
-    // Typing indicators
-    if (text.trim() && chatState.selectedChat && connected) {
-      startTyping(chatState.selectedChat.id);
-    } else if (chatState.selectedChat && connected) {
-      stopTyping(chatState.selectedChat.id);
-    }
-  }, [dispatch, chatState.currentUser, chatState.selectedChat, connected, startTyping, stopTyping]);
+    // Typing indicator is sent (throttled) by ChatView
+  }, [dispatch, chatState.currentUser]);
 
   const handleSetSelectedFiles = useCallback((files) => {
     if (!chatState.currentUser) return;
@@ -157,17 +151,9 @@ export const useChat = () => {
   const handleMarkAsRead = useCallback((chatId) => {
     dispatch(markChatAsRead(chatId));
     
-    // Also mark on server via socket
-    if (connected && chatState.messages[chatId]) {
-      const messageIds = chatState.messages[chatId]
-        .filter(msg => msg.senderType !== user?.role)
-        .map(msg => msg.messageId || msg._id);
-      
-      if (messageIds.length > 0) {
-        markMessagesRead(chatId, messageIds);
-      }
-    }
-  }, [dispatch, connected, chatState.messages, user?.role, markMessagesRead]);
+    // Server marks everything the other person sent in this chat as read
+    if (connected) markMessagesRead(chatId);
+  }, [dispatch, connected, markMessagesRead]);
 
   // Fetch chat list
   const fetchChatList = useCallback(async () => {

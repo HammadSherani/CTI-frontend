@@ -8,12 +8,11 @@ const MessageBar = React.memo(({ onClick }) => {
     // Direct Redux selector for real-time updates
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
     const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
-    console.log('MessageBar rendered with totalUnreadCount:', totalUnreadCount);
 
     return (
         <div
             onClick={onClick}
-            className="w-[360px] h-12 bg-[#0E1014] text-white flex items-center justify-between px-4 rounded-t-md shadow-md cursor-pointer relative"
+            className="w-[min(360px,calc(100vw-16px))] h-12 bg-[#0E1014] text-white flex items-center justify-between px-4 rounded-t-md shadow-md cursor-pointer relative"
         >
             <span className="text-sm font-medium">Messages</span>
             <div className="flex items-center gap-4">

@@ -159,10 +159,14 @@ function UpdateStatus() {
   };
 
   const getValidStatusTransitions = (currentStatus) => {
+    // Keep in sync with the backend (myBookingController.canTransitionToStatus).
+    // Offer bookings start as 'pending'. If parts are still on the way, the backend
+    // refuses in_progress/completed and asks for "Parts needed" instead.
     const transitions = {
-      'confirmed': ['scheduled', 'in_progress', 'cancelled'],
+      'pending': ['scheduled', 'in_progress', 'parts_needed', 'cancelled'],
+      'confirmed': ['scheduled', 'in_progress', 'parts_needed', 'cancelled'],
       'repairman_notified': ['scheduled', 'in_progress', 'cancelled'],
-      'scheduled': ['in_progress', 'cancelled'],
+      'scheduled': ['in_progress', 'parts_needed', 'cancelled'],
       'in_progress': ['parts_needed', 'quality_check', 'completed', 'cancelled'],
       'parts_needed': ['in_progress', 'cancelled'],
       'quality_check': ['completed', 'in_progress', 'cancelled'],

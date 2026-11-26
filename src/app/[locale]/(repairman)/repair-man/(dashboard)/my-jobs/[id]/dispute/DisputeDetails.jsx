@@ -6,6 +6,8 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
+import DisputeResolutionCard from '@/components/partials/DisputeResolutionCard';
+import DisputeEvidence from '@/components/partials/DisputeEvidence';
 
 const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
     const [evidenceFiles, setEvidenceFiles] = useState([]);
@@ -109,7 +111,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                 toast.success('Message sent successfully');
                 setMessage('');
                 setEvidenceFiles([]);
-                fetchJobDetails();
+                fetchJobDetails({ silent: true });
             }
         } catch (error) {
             const errorMessage = error.response?.data?.message || 'Failed to send message';
@@ -134,11 +136,17 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
     const getUserColor = (userType) => {
         if (userType === 'repairman') return { bg: 'bg-violet-100', text: 'text-violet-700', border: 'border-violet-200', bubble: 'bg-violet-50 border-violet-200', name: 'text-violet-900' };
         if (userType === 'customer') return { bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200', bubble: 'bg-blue-50 border-blue-200', name: 'text-blue-900' };
+        if (userType === 'admin') return { bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200', bubble: 'bg-emerald-50 border-emerald-200', name: 'text-emerald-900' };
         return { bg: 'bg-gray-100', text: 'text-gray-700', border: 'border-gray-200', bubble: 'bg-gray-50 border-gray-200', name: 'text-gray-900' };
     };
 
+    const isClosed = ['resolved', 'closed'].includes(dispute.status);
+
     return (
         <div className="space-y-6">
+            {dispute.status === 'resolved' && (
+                <DisputeResolutionCard dispute={dispute} viewer="repairman" currency={bookingDetails?.pricing?.currency || 'TRY'} />
+            )}
             {/* Dispute Header Card */}
    <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden transition-all duration-300 hover:shadow-xl">
     
@@ -294,6 +302,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                                         </span>
                                     </div>
                                     <p className="text-sm text-gray-800 leading-relaxed">{dispute.description}</p>
+                                    <DisputeEvidence files={dispute.evidenceFiles} className="mt-3" />
                                 </div>
                             </div>
                         </div>
@@ -304,7 +313,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                             .sort((a, b) => new Date(a.respondedAt) - new Date(b.respondedAt))
                             .map((response, index) => {
                                 const userType = response.respondedBy?.userType;
-                                const name = response.respondedBy?.userId?.name || 'Unknown';
+                                const name = userType === 'admin' ? 'CTI Support' : (response.respondedBy?.userId?.name || 'Unknown');
                                 const colors = getUserColor(userType);
                                 const hasFiles = response.evidenceFiles && response.evidenceFiles.length > 0;
 
@@ -372,7 +381,12 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                         <div ref={messagesEndRef} />
                     </div>
 
-                    {/* ── Chat Input Area ── */}
+                    {/* ── Chat Input Area ── (closed once the dispute is decided) */}
+                    {isClosed ? (
+                    <div className="border-t border-gray-200 bg-gray-50 p-4 text-sm text-gray-500 text-center">
+                        This dispute is closed. No more messages can be sent.
+                    </div>
+                    ) : (
                     <div className="border-t border-gray-200 bg-white p-4">
                         {/* Selected files preview */}
                         {evidenceFiles.length > 0 && (
@@ -451,6 +465,7 @@ const DisputeDetails = ({ dispute, job, fetchJobDetails }) => {
                             Enter to send • Shift+Enter for new line • Max 5 files (5MB each)
                         </p>
                     </div>
+                    )}
                 </div>
             </div>
 

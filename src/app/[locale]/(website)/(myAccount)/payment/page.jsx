@@ -11,32 +11,67 @@ import { toast } from 'react-toastify';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
-import { max } from 'date-fns';
+import IyzicoCheckoutForm from '@/components/payment/IyzicoCheckoutForm';
 
-const cardSchema = yup.object().shape({
-    cardNumber: yup
-        .string()
-        .required('Card number is required')
-        .test('valid-card', 'Please enter a valid 16-digit card number', (value) => {
-            if (!value) return false;
-            return /^\d{4}\s\d{4}\s\d{4}\s\d{4}$/.test(value);
-        }),
-    expiryDate: yup
-        .string()
-        .required('Expiry date is required')
-        .matches(
-            /^(0[1-9]|1[0-2])\/\d{4}$/,
-            'Please enter a valid expiry date (MM/YYYY)'
-        ),
-    cvv: yup
-        .string()
-        .required('CVV is required')
-        .matches(/^\d{3,4}$/, 'Please enter a valid CVV (3-4 digits)'),
-    cardHolder: yup
-        .string()
-        .required('Cardholder name is required')
-        .min(2, 'Please enter a valid cardholder name')
-});
+// After Iyzico sends the customer back (?payment=failed|verifying|pending), show the right state.
+function usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone }) {
+    const searchParams = useSearchParams();
+    const status = searchParams.get('payment');
+    const reason = searchParams.get('reason');
+
+    useEffect(() => {
+        if (status === 'failed') {
+            toast.error(reason || 'Payment failed. Please try again.', { toastId: 'payment-return' });
+        } else if (status === 'verifying') {
+            setPaymentVerifying(true);
+        } else if (status === 'pending') {
+            setPaymentAlreadyDone(true);
+            toast.warning('Payment received, but your booking is not confirmed yet. Please click "Confirm Booking".', { toastId: 'payment-return' });
+        }
+    }, [status, reason, setPaymentVerifying, setPaymentAlreadyDone]);
+}
+
+// Card entry happens inside Iyzico's hosted form (with 3D Secure); we only start it.
+function SecureCheckoutPanel({ checkoutContent, isProcessing, disabled, paymentAlreadyDone, onStart, onCancel }) {
+    if (checkoutContent) {
+        return (
+            <div>
+                <IyzicoCheckoutForm content={checkoutContent} />
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                    Cancel and go back
+                </button>
+            </div>
+        );
+    }
+
+    if (paymentAlreadyDone) {
+        return (
+            <p className="text-sm text-gray-600">
+                Your payment has been received. Use &quot;Confirm Booking&quot; to finish your booking. You will not be charged again.
+            </p>
+        );
+    }
+
+    // Only information here: the single "Pay Securely" button is in the Order Summary
+    return (
+        <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <Icon icon="lucide:shield-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
+            <div className="text-sm text-gray-600">
+                <p className="font-semibold text-gray-800">Secure card payment by iyzico</p>
+                <p>
+                    {isProcessing
+                        ? 'Preparing your secure payment form…'
+                        : <>Press <span className="font-semibold">Pay Securely</span> in the order summary. You will enter your card details in iyzico&apos;s secure form and confirm with your bank (3D Secure). Your card details never reach our servers.</>}
+                </p>
+            </div>
+        </div>
+    );
+}
+
 
 
 const userDetailsSchema = yup.object().shape({
@@ -88,6 +123,17 @@ const userDetailsSchema = yup.object().shape({
         .max(200, 'Address cannot exceed 200 characters'),
 });
 
+// Brand / model / services arrive as populated objects ({ name }); show their names
+// (a bare database id is never shown as a name)
+const isDbId = (v) => typeof v === 'string' && /^[a-f0-9]{24}$/i.test(v);
+const quoteName = (v) => {
+    const name = v && typeof v === 'object' ? v.name : v;
+    return name && !isDbId(name) ? name : '';
+};
+const quoteServices = (q) => (q?.deviceInfo?.repairServices || []).map(quoteName).filter(Boolean).join(', ');
+const quoteDevice = (q) =>
+    `${quoteName(q?.deviceInfo?.brand) || quoteName(q?.deviceInfo?.brandName)} ${quoteName(q?.deviceInfo?.model) || quoteName(q?.deviceInfo?.modelName)}`.trim();
+
 function QuotationPayment({ quotationId, jobId, token, router }) {
     const [orderData, setOrderData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -96,20 +142,35 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     const [discount, setDiscount] = useState(0);
     const [isPickupSelected, setIsPickupSelected] = useState(false);
     const [pickupAddress, setPickupAddress] = useState('');
+    const [paymentAlreadyDone, setPaymentAlreadyDone] = useState(false);
+    const [paymentVerifying, setPaymentVerifying] = useState(false);
 
-    const { register, handleSubmit, formState: { errors }, setValue } = useForm({
-        resolver: yupResolver(cardSchema),
-        mode: 'onChange',
-        defaultValues: {
-            cardNumber: '',
-            expiryDate: '',
-            cvv: '',
-            cardHolder: ''
+    const [checkoutContent, setCheckoutContent] = useState(null);
+    const { locale } = useParams();
+
+    usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone });
+
+    // Payment already went through; accepting the quotation creates the booking (no new charge).
+    const completePendingBooking = async () => {
+        setIsProcessing(true);
+        try {
+            await axiosInstance.post(
+                `/chat/quotation/${quotationId}/respond`,
+                {
+                    action: 'accepted',
+                    isPickup: isPickupSelected,
+                    pickupAddress: isPickupSelected ? pickupAddress.trim() : ''
+                },
+                { headers: { Authorization: `Bearer ${token}` } }
+            );
+            toast.success('Booking confirmed!');
+            router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
+        } catch (error) {
+            handleError(error);
+        } finally {
+            setIsProcessing(false);
         }
-    });
-
-
-
+    };
 
     useEffect(() => {
         const fetchQuotationData = async () => {
@@ -120,12 +181,22 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (response.data.data.paymentCompleted) {
+                const data = response.data.data;
+                if (data.paymentCompleted && data.bookingCompleted) {
                     router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
                     return;
                 }
 
-                setOrderData(response.data.data.quotation);
+                // Paid earlier but the booking was never created: only confirmation is left.
+                setPaymentAlreadyDone(Boolean(data.paymentCompleted));
+                setOrderData(data.quotation);
+                // Pickup-only quotation (e.g. a service-catalog booking): pickup is already chosen
+                // and the customer's address is known
+                const sd = data.quotation?.serviceDetails;
+                if (sd?.isPickup && !sd?.isDropoff) {
+                    setIsPickupSelected(true);
+                    if (sd.pickupLocation?.address) setPickupAddress(sd.pickupLocation.address);
+                }
             } catch (error) {
                 handleError(error);
             } finally {
@@ -136,54 +207,42 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
         fetchQuotationData();
     }, [quotationId, token, router, jobId]);
 
-    const onSubmit = async (formData) => {
+    // Opens the secure Iyzico form; the server validates everything and fixes the amount.
+    const startCheckout = async () => {
+        if (paymentVerifying) {
+            toast.info('Your payment is being verified. Please refresh this page in a few minutes.');
+            return;
+        }
+        if (paymentAlreadyDone) {
+            return completePendingBooking();
+        }
         if (isPickupSelected && !pickupAddress.trim()) {
             toast.error('Please enter pickup address');
             return;
         }
 
         setIsProcessing(true);
-
         try {
-            const config = {
-                headers: { Authorization: `Bearer ${token}` },
-                params: {
-                    quotationId,
-                    jobId,
-                    ...(isPickupSelected && {
-                        isPickup: true,
-                        pickupAddress: pickupAddress.trim()
-                    })
-                },
-            };
-
-            const { status, data } = await axiosInstance.post('/customer/payments/process',
+            const { data } = await axiosInstance.post(
+                '/customer/payments/checkout/init',
                 {
-                    cardNumber: formData.cardNumber.replace(/\s/g, ''), // spaces remove
-                    cardHolder: formData.cardHolder,
-                    expireMonth: formData.expiryDate.split('/')[0].padStart(2, '0'), // ✅ Ensure 2 digits (01-12)
-                    expireYear: formData.expiryDate.split('/')[1].slice(-2), // ✅ Get last 2 digits (2030 → 30)
-                    cvc: formData.cvv
+                    isPickup: isPickupSelected,
+                    pickupAddress: isPickupSelected ? pickupAddress.trim() : '',
+                    locale
                 },
-                config);
+                {
+                    params: { quotationId },
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
 
-            if (status !== 200) {
-                throw new Error(data?.message || "Payment failed!");
+            if (data?.data?.alreadyPaid) {
+                toast.success(data.message);
+                router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
+                return;
             }
 
-            toast.success(data?.message || "Payment successful!");
-
-            try {
-                await axiosInstance.post(
-                    `/chat/quotation/${quotationId}/respond`,
-                    { action: "accepted" },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                );
-            } catch (err) {
-                console.warn("Chat update failed:", err);
-                handleError(err);
-            }
-            router.push(`/payment/order-confirmation?quotationId=${quotationId}`);
+            setCheckoutContent(data.data.checkoutFormContent);
         } catch (error) {
             handleError(error);
         } finally {
@@ -191,36 +250,6 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
         }
     };
 
-
-    const handleCardInput = (e) => {
-        const { name, value } = e.target;
-
-        if (name === 'cardNumber') {
-            const formattedValue =
-                value
-                    .replace(/\D/g, '')
-                    .match(/.{1,4}/g)
-                    ?.join(' ')
-                    .slice(0, 19) || value;
-
-            setValue(name, formattedValue, { shouldValidate: true });
-
-        } else if (name === 'expiryDate') {
-            // Supports MM/YYYY
-            const numbersOnly = value.replace(/\D/g, '').slice(0, 6); // 2 digits month + 4 digits year
-
-            let formattedValue = numbersOnly;
-
-            if (numbersOnly.length > 2) {
-                formattedValue = numbersOnly.slice(0, 2) + "/" + numbersOnly.slice(2);
-            }
-
-            setValue(name, formattedValue, { shouldValidate: true });
-
-        } else {
-            setValue(name, value, { shouldValidate: true });
-        }
-    };
 
 
     if (loading) {
@@ -267,6 +296,34 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
+                {paymentVerifying && (
+                    <div className="mb-6 flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <Icon icon="lucide:clock" className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-amber-800">Verifying your payment</p>
+                            <p className="text-sm text-amber-700">Please do not pay again. If the payment went through, your booking will be confirmed automatically. Refresh this page in a few minutes.</p>
+                        </div>
+                    </div>
+                )}
+
+                {paymentAlreadyDone && !paymentVerifying && (
+                    <div className="mb-6 flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+                        <Icon icon="lucide:circle-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-semibold text-green-800">Payment already received</p>
+                            <p className="text-sm text-green-700">Your booking was not finalized. You won&apos;t be charged again, just confirm the booking.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={completePendingBooking}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-60"
+                        >
+                            {isProcessing ? 'Confirming...' : 'Confirm Booking'}
+                        </button>
+                    </div>
+                )}
+
                 <div className="mb-6 bg-primary-50 border border-primary-200 rounded-lg p-4">
                     <div className="flex items-center gap-2">
                         <Icon icon="lucide:info" className="w-5 h-5 text-primary-600" />
@@ -289,12 +346,12 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                     </div>
                                     <div className="flex-1">
                                         <h3 className="font-semibold text-gray-900 text-lg">
-                                            {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName} Repair
+                                            {quoteDevice(quotation) ? `${quoteDevice(quotation)} Repair` : 'Device Repair'}
                                         </h3>
                                         <p className="text-sm text-gray-600 mb-3">{quotation.serviceDetails?.description}</p>
                                         <div className="flex items-center gap-4 text-sm flex-wrap">
                                             <span className="bg-gray-50 text-primary-700 px-3 py-1 rounded-full">
-                                                {quotation.deviceInfo?.repairServices?.join(', ')}
+                                                {quoteServices(quotation)}
                                             </span>
                                             {/* {quotation.serviceDetails?.warranty?.duration && (
                                                 <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-full text-xs">
@@ -400,116 +457,21 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                             </div>
                         )}
 
-                        {/* Payment Form */}
-                        <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg shadow-sm p-8 border border-gray-100">
+                        {/* Payment (Iyzico hosted form: card + 3D Secure never touch our servers) */}
+                        <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-100">
                             <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-3">
                                 <Icon icon="lucide:credit-card" className="w-6 h-6 text-primary-600" />
                                 Payment Method
                             </h2>
-
-                            {selectedPaymentMethod === 'card' && (
-                                <div className="space-y-6">
-                                    <div>
-                                        <label htmlFor="cardNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                                            Card Number
-                                        </label>
-                                        <div className="relative">
-                                            <input
-                                                type="text"
-                                                id="cardNumber"
-                                                {...register('cardNumber')}
-                                                onChange={handleCardInput}
-                                                placeholder="1234 5678 9012 3456"
-                                                maxLength="19"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardNumber ? 'border-red-500' : 'border-gray-200'}`}
-                                            />
-                                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                <Icon icon="lucide:credit-card" className="w-6 h-6 text-gray-400" />
-                                            </div>
-                                        </div>
-                                        {errors.cardNumber && (
-                                            <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                                                <Icon icon="lucide:alert-circle" className="w-4 h-4" />
-                                                {errors.cardNumber.message}
-                                            </p>
-                                        )}
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div>
-                                            <label
-                                                htmlFor="expiryDate"
-                                                className="block text-sm font-semibold text-gray-700 mb-2"
-                                            >
-                                                Expiry Date
-                                            </label>
-
-                                            <input
-                                                type="text"
-                                                id="expiryDate"
-                                                {...register('expiryDate')}
-                                                onChange={handleCardInput}
-                                                placeholder="MM/YYYY"
-                                                maxLength="7"  // updated for 4-digit year
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.expiryDate ? 'border-red-500' : 'border-gray-200'
-                                                    }`}
-                                            />
-
-                                            {errors.expiryDate && (
-                                                <p className="text-red-500 text-xs mt-2">
-                                                    {errors.expiryDate.message}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <label htmlFor="cvv" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                CVV
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="cvv"
-                                                {...register('cvv')}
-                                                placeholder="123"
-                                                maxLength="4"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cvv ? 'border-red-500' : 'border-gray-200'}`}
-                                            />
-                                            {errors.cvv && <p className="text-red-500 text-xs mt-2">{errors.cvv.message}</p>}
-                                        </div>
-                                        <div>
-                                            <label htmlFor="cardHolder" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Card Holder
-                                            </label>
-                                            <input
-                                                type="text"
-                                                id="cardHolder"
-                                                {...register('cardHolder')}
-                                                placeholder="John Doe"
-                                                className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardHolder ? 'border-red-500' : 'border-gray-200'}`}
-                                            />
-                                            {errors.cardHolder && <p className="text-red-500 text-xs mt-2">{errors.cardHolder.message}</p>}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            <button
-                                onClick={handleSubmit(onSubmit)}
-                                disabled={isProcessing || Object.keys(errors).length > 0}
-                                className="w-full - bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-10 flex items-center justify-center gap-3"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                        Complete Payment
-                                    </>
-                                )}
-                            </button>
-                        </form>
+                            <SecureCheckoutPanel
+                                checkoutContent={checkoutContent}
+                                isProcessing={isProcessing}
+                                disabled={paymentVerifying}
+                                paymentAlreadyDone={paymentAlreadyDone}
+                                onStart={startCheckout}
+                                onCancel={() => setCheckoutContent(null)}
+                            />
+                        </div>
                     </div>
 
                     {/* Order Summary */}
@@ -524,13 +486,13 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 <div className="flex items-center gap-3 mb-3">
                                     <Icon icon="lucide:smartphone" className="w-6 h-6 text-primary-600" />
                                     <span className="font-medium text-gray-900 text-lg">
-                                        {quotation.deviceInfo?.brandName} {quotation.deviceInfo?.modelName}
+                                        {quoteDevice(quotation) || 'Your device'}
                                     </span>
                                 </div>
                                 <div className="space-y-2 text-sm">
                                     <div className="flex justify-between">
                                         <span className="text-gray-600">Service:</span>
-                                        <span className="font-medium">{quotation.deviceInfo?.repairServices?.join(', ')}</span>
+                                        <span className="font-medium">{quoteServices(quotation)}</span>
                                     </div>
                                     {quotation.serviceDetails?.estimatedDuration && (
                                         <div className="flex justify-between">
@@ -616,23 +578,25 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 </div>
                             </div>
 
-                            <button
-                                onClick={handleSubmit(onSubmit)}
-                                disabled={isProcessing || Object.keys(errors).length > 0}
-                                className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
-                            >
-                                {isProcessing ? (
-                                    <>
-                                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        Processing...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                        Complete Payment
-                                    </>
-                                )}
-                            </button>
+                            {!checkoutContent && (
+                                <button
+                                    onClick={startCheckout}
+                                    disabled={isProcessing || paymentVerifying}
+                                    className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
+                                >
+                                    {isProcessing ? (
+                                        <>
+                                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon icon="lucide:shield-check" className="w-6 h-6" />
+                                            {paymentAlreadyDone ? 'Confirm Booking' : 'Pay Securely'}
+                                        </>
+                                    )}
+                                </button>
+                            )}
 
                             <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-gray-500">
                                 <div className="flex items-center gap-2">
@@ -661,17 +625,13 @@ function OfferPayment({ offerId, jobId, token, router }) {
     const [isPickupSelected, setIsPickupSelected] = useState(false);
     const [pickupAddress, setPickupAddress] = useState('');
     const [currentStep, setCurrentStep] = useState(1); // Step tracking
+    const [paymentAlreadyDone, setPaymentAlreadyDone] = useState(false);
+    const [paymentVerifying, setPaymentVerifying] = useState(false);
 
-    const { register, handleSubmit, formState: { errors }, setValue } = useForm({
-        resolver: yupResolver(cardSchema),
-        mode: 'onChange',
-        defaultValues: {
-            cardNumber: '',
-            expiryDate: '',
-            cvv: '',
-            cardHolder: ''
-        }
-    });
+    const [checkoutContent, setCheckoutContent] = useState(null);
+    const { locale } = useParams();
+
+    usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone });
 
     const {
         register: registerUser,
@@ -703,11 +663,16 @@ function OfferPayment({ offerId, jobId, token, router }) {
                     headers: { Authorization: `Bearer ${token}` },
                 });
 
-                if (response.data.data.paymentCompleted) {
+                const data = response.data.data;
+
+                if (data.paymentCompleted && data.bookingCompleted) {
+                    router.push(`/payment/order-confirmation?jobId=${jobId}&offerId=${offerId}`);
                     return;
                 }
 
-                setOrderData(response.data.data);
+                // Paid earlier but the booking step failed: only the booking needs finishing.
+                setPaymentAlreadyDone(Boolean(data.paymentCompleted));
+                setOrderData(data);
             } catch (error) {
                 handleError(error);
             } finally {
@@ -743,51 +708,43 @@ function OfferPayment({ offerId, jobId, token, router }) {
         }
     };
 
-    const onSubmit = async (formData) => {
+    // The offer's "can start by" date is often in the past by the time the customer pays,
+    // so never send a stale date: fall back to tomorrow.
+    const getScheduledDate = () => {
+        const canStartBy = orderData?.offer?.availability?.canStartBy;
+        const date = canStartBy ? new Date(canStartBy) : null;
+        if (date && !isNaN(date.getTime()) && date > new Date()) {
+            return date.toISOString();
+        }
+        return new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    };
+
+    const selectOffer = (userDetails) =>
+        axiosInstance.post(
+            `/repair-jobs/${jobId}/select-offer`,
+            {
+                offerId,
+                scheduledDate: getScheduledDate(),
+                isPickUp: isPickupSelected,
+                pickUpAddress: isPickupSelected ? pickupAddress : '',
+                userDetails
+            },
+            {
+                headers: { Authorization: `Bearer ${token}` }
+            }
+        );
+
+    // Payment already went through earlier, only the booking step is pending.
+    const completePendingBooking = async () => {
+        if (isPickupSelected && !pickupAddress.trim()) {
+            toast.error('Please enter pickup address');
+            return;
+        }
         setIsProcessing(true);
-
         try {
-            // Get validated user details
-            const userDetails = getUserValues();
-
-            // Step 1: Process Payment
-            const paymentResponse = await axiosInstance.post(
-                '/customer/payments/process',
-                {
-                    cardNumber: formData.cardNumber.replace(/\s/g, ''),
-                    cardHolder: formData.cardHolder,
-                    expireMonth: formData.expiryDate.split('/')[0].padStart(2, '0'),
-                    expireYear: formData.expiryDate.split('/')[1].slice(-2),
-                    cvc: formData.cvv,
-                    userDetails: {
-                        ...userDetails,
-                        pickupAddress: isPickupSelected ? pickupAddress : ''
-                    }
-                },
-                {
-                    params: { offerId, jobId },
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            // Step 2: Select Offer with pickup details
-            await axiosInstance.post(
-                `/repair-jobs/${jobId}/select-offer`,
-                {
-                    offerId,
-                    scheduledDate: offer?.availability?.canStartBy,
-                    isPickUp: isPickupSelected,
-                    pickUpAddress: isPickupSelected ? pickupAddress : '',
-                    userDetails
-                },
-                {
-                    headers: { Authorization: `Bearer ${token}` }
-                }
-            );
-
-            toast.success(paymentResponse.data.message || "Payment successful!");
+            await selectOffer(getUserValues());
+            toast.success('Booking confirmed!');
             router.push(`/payment/order-confirmation?jobId=${jobId}&offerId=${offerId}`);
-
         } catch (error) {
             handleError(error);
         } finally {
@@ -795,31 +752,44 @@ function OfferPayment({ offerId, jobId, token, router }) {
         }
     };
 
-    const handleCardInput = (e) => {
-        const { name, value } = e.target;
+    // Opens the secure Iyzico form; the server validates everything and fixes the amount.
+    const startCheckout = async () => {
+        if (paymentVerifying) {
+            toast.info('Your payment is being verified. Please refresh this page in a few minutes.');
+            return;
+        }
+        if (paymentAlreadyDone) {
+            return completePendingBooking();
+        }
 
-        if (name === 'cardNumber') {
-            const formattedValue =
-                value
-                    .replace(/\D/g, '')
-                    .match(/.{1,4}/g)
-                    ?.join(' ')
-                    .slice(0, 19) || value;
+        setIsProcessing(true);
+        try {
+            const { data } = await axiosInstance.post(
+                '/customer/payments/checkout/init',
+                {
+                    userDetails: getUserValues(),
+                    isPickUp: isPickupSelected,
+                    pickUpAddress: isPickupSelected ? pickupAddress : '',
+                    scheduledDate: getScheduledDate(),
+                    locale
+                },
+                {
+                    params: { offerId, jobId },
+                    headers: { Authorization: `Bearer ${token}` }
+                }
+            );
 
-            setValue(name, formattedValue, { shouldValidate: true });
-
-        } else if (name === 'expiryDate') {
-            const numbersOnly = value.replace(/\D/g, '').slice(0, 6);
-            let formattedValue = numbersOnly;
-
-            if (numbersOnly.length > 2) {
-                formattedValue = numbersOnly.slice(0, 2) + '/' + numbersOnly.slice(2);
+            if (data?.data?.alreadyPaid) {
+                toast.success(data.message);
+                router.push(`/payment/order-confirmation?jobId=${jobId}&offerId=${offerId}`);
+                return;
             }
 
-            setValue(name, formattedValue, { shouldValidate: true });
-
-        } else {
-            setValue(name, value, { shouldValidate: true });
+            setCheckoutContent(data.data.checkoutFormContent);
+        } catch (error) {
+            handleError(error);
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -860,6 +830,34 @@ function OfferPayment({ offerId, jobId, token, router }) {
     return (
         <div className="min-h-screen bg-gray-50/40 p-4 sm:p-6">
             <div className="max-w-7xl mx-auto">
+                {paymentVerifying && (
+                    <div className="mb-6 max-w-3xl mx-auto flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4">
+                        <Icon icon="lucide:clock" className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                        <div>
+                            <p className="font-semibold text-amber-800">Verifying your payment</p>
+                            <p className="text-sm text-amber-700">Please do not pay again. If the payment went through, your booking will be confirmed automatically. Refresh this page in a few minutes.</p>
+                        </div>
+                    </div>
+                )}
+
+                {paymentAlreadyDone && !paymentVerifying && (
+                    <div className="mb-6 max-w-3xl mx-auto flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4">
+                        <Icon icon="lucide:circle-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-semibold text-green-800">Payment already received</p>
+                            <p className="text-sm text-green-700">Your booking was not finalized. You won&apos;t be charged again, just confirm the booking.</p>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={completePendingBooking}
+                            disabled={isProcessing}
+                            className="px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-60"
+                        >
+                            {isProcessing ? 'Confirming...' : 'Confirm Booking'}
+                        </button>
+                    </div>
+                )}
+
                 {/* Progress Steps */}
                 <div className="mb-8 max-w-3xl mx-auto rounded-lg  py-2">
                     <div className="flex items-center justify-between relative">
@@ -1289,153 +1287,35 @@ function OfferPayment({ offerId, jobId, token, router }) {
                             </div>
                         )}
 
-                        {/* STEP 3: Payment Form */}
+                        {/* STEP 3: Payment (Iyzico hosted form: card + 3D Secure never touch our servers) */}
                         {currentStep === 3 && (
-                            <form onSubmit={handleSubmit(onSubmit)} className="bg-white rounded-lg shadow-sm p-8 border border-gray-100 animate-fadeIn">
+                            <div className="bg-white rounded-lg shadow-sm p-8 border border-gray-100 animate-fadeIn">
                                 <div className="flex items-center justify-between mb-6">
-
-                                    {/* Left Side Title */}
                                     <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
                                         <Icon icon="lucide:credit-card" className="w-6 h-6 text-primary-600" />
                                         Payment Method
                                     </h2>
-
-                                    {/* Right Side Button */}
-                                    <button
-                                        type="button"
-                                        onClick={handlePrevStep}
-                                        className="inline-flex items-center gap-2 px-5 py-2.5 
-               bg-gray-100 text-gray-700 font-medium rounded-lg 
-               hover:bg-gray-200 active:scale-95 transition-all duration-200"
-                                    >
-                                        <Icon icon="lucide:arrow-left" className="w-4 h-4" />
-                                        Back
-                                    </button>
-
+                                    {!checkoutContent && (
+                                        <button
+                                            type="button"
+                                            onClick={handlePrevStep}
+                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 active:scale-95 transition-all duration-200"
+                                        >
+                                            <Icon icon="lucide:arrow-left" className="w-4 h-4" />
+                                            Back
+                                        </button>
+                                    )}
                                 </div>
 
-
-                                {selectedPaymentMethod === 'card' && (
-                                    <div className="space-y-6">
-
-                                        <div>
-                                            <label htmlFor="cardNumber" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                Card Number
-                                            </label>
-                                            <div className="relative">
-                                                <input
-                                                    type="text"
-                                                    id="cardNumber"
-                                                    {...register('cardNumber')}
-                                                    onChange={handleCardInput}
-                                                    placeholder="1234 5678 9012 3456"
-                                                    maxLength="19"
-                                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardNumber ? 'border-red-500' : 'border-gray-200'
-                                                        }`}
-                                                />
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                                    <Icon icon="lucide:credit-card" className="w-6 h-6 text-gray-400" />
-                                                </div>
-                                            </div>
-                                            {errors.cardNumber && (
-                                                <p className="text-red-500 text-sm mt-2 flex items-center gap-1">
-                                                    <Icon icon="lucide:alert-circle" className="w-4 h-4" />
-                                                    {errors.cardNumber.message}
-                                                </p>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-3 gap-4">
-                                            <div>
-                                                <label
-                                                    htmlFor="expiryDate"
-                                                    className="block text-sm font-semibold text-gray-700 mb-2"
-                                                >
-                                                    Expiry Date
-                                                </label>
-
-                                                <input
-                                                    type="text"
-                                                    id="expiryDate"
-                                                    {...register('expiryDate')}
-                                                    onChange={handleCardInput}
-                                                    placeholder="MM/YYYY"
-                                                    maxLength="7"
-                                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.expiryDate ? 'border-red-500' : 'border-gray-200'
-                                                        }`}
-                                                />
-
-                                                {errors.expiryDate && (
-                                                    <p className="text-red-500 text-xs mt-2">
-                                                        {errors.expiryDate.message}
-                                                    </p>
-                                                )}
-                                            </div>
-
-                                            <div>
-                                                <label htmlFor="cvv" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                    CVV
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="cvv"
-                                                    {...register('cvv')}
-                                                    placeholder="123"
-                                                    maxLength="4"
-                                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cvv ? 'border-red-500' : 'border-gray-200'
-                                                        }`}
-                                                />
-                                                {errors.cvv && <p className="text-red-500 text-xs mt-2">{errors.cvv.message}</p>}
-                                            </div>
-                                            <div>
-                                                <label htmlFor="cardHolder" className="block text-sm font-semibold text-gray-700 mb-2">
-                                                    Card Holder
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    id="cardHolder"
-                                                    {...register('cardHolder')}
-                                                    placeholder="John Doe"
-                                                    className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-200 focus:border-primary-500 ${errors.cardHolder ? 'border-red-500' : 'border-gray-200'
-                                                        }`}
-                                                />
-                                                {errors.cardHolder && <p className="text-red-500 text-xs mt-2">{errors.cardHolder.message}</p>}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-
-                                {currentStep === 3 && (
-                                    <button
-                                        onClick={handleSubmit(onSubmit)}
-                                        disabled={isProcessing || Object.keys(errors).length > 0}
-                                        className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                                Processing...
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                                Complete Payment
-                                            </>
-                                        )}
-                                    </button>
-                                )}
-
-                                {/* <div className="flex gap-4 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={handlePrevStep}
-                                        className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-all flex items-center justify-center gap-2"
-                                    >
-                                        <Icon icon="lucide:arrow-left" className="w-5 h-5" />
-                                        Back
-                                    </button>
-                                </div> */}
-                            </form>
+                                <SecureCheckoutPanel
+                                    checkoutContent={checkoutContent}
+                                    isProcessing={isProcessing}
+                                    disabled={paymentVerifying}
+                                    paymentAlreadyDone={paymentAlreadyDone}
+                                    onStart={startCheckout}
+                                    onCancel={() => setCheckoutContent(null)}
+                                />
+                            </div>
                         )}
                     </div>
 
@@ -1536,11 +1416,12 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     {offer?.serviceOptions?.homeService && <p>✓ Home service available</p>}
                                 </div>
                             </div>
-                            {/* 
-                            {currentStep === 3 && (
+                            {/* The one payment button (step 3 = payment) */}
+                            {currentStep === 3 && !checkoutContent && (
                                 <button
-                                    onClick={handleSubmit(onSubmit)}
-                                    disabled={isProcessing || Object.keys(errors).length > 0}
+                                    type="button"
+                                    onClick={startCheckout}
+                                    disabled={isProcessing || paymentVerifying}
                                     className="w-full bg-gradient-to-r from-primary-600 to-primary-600 text-white py-4 rounded-xl font-semibold hover:from-primary-700 hover:to-primary-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg mt-6 flex items-center justify-center gap-3"
                                 >
                                     {isProcessing ? (
@@ -1551,11 +1432,11 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     ) : (
                                         <>
                                             <Icon icon="lucide:shield-check" className="w-6 h-6" />
-                                            Complete Payment
+                                            {paymentAlreadyDone ? 'Confirm Booking' : 'Pay Securely'}
                                         </>
                                     )}
                                 </button>
-                            )} */}
+                            )}
 
                             <div className="mt-6 pt-4 border-t flex items-center justify-center gap-6 text-sm text-gray-500">
                                 <div className="flex items-center gap-2">

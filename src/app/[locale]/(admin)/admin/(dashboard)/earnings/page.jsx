@@ -113,6 +113,25 @@ function AdminEarningPage() {
           </div>
         </div>
 
+        {/* Money repairmen owe from dispute refunds */}
+        {data.owed?.total > 0 && (
+          <Link
+            href="/admin/earnings/owed"
+            className="mb-6 flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-amber-50 p-4 hover:bg-amber-100 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Icon icon="mdi:cash-minus" className="text-2xl text-amber-600" />
+              <div>
+                <p className="font-semibold text-amber-900">Repairmen owe {fmt(data.owed.total)}</p>
+                <p className="text-sm text-amber-800">
+                  {data.owed.repairmen} repairman{data.owed.repairmen === 1 ? '' : 'en'} · from dispute refunds, taken from their next earnings
+                </p>
+              </div>
+            </div>
+            <Icon icon="solar:arrow-right-bold" className="text-xl text-amber-700" />
+          </Link>
+        )}
+
         {/* Revenue Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-6">
           <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

@@ -206,7 +206,10 @@ const getTimeAgo = (createdAt) => {
 
             {/* Content */}
             <div className="flex gap-4 mb-1">
-               <div className="text-gray-500  text-md font-bold ml-5">TRY {job.budget?.min?.toLocaleString()} – {job.budget?.max?.toLocaleString()}</div>
+               <div className="text-gray-500  text-md font-bold ml-5">
+                 <span className="font-medium text-gray-400 text-sm mr-1">Customer budget:</span>
+                 <span translate="no" className="notranslate">TRY {job.budget?.min?.toLocaleString()} – {job.budget?.max?.toLocaleString()}</span>
+               </div>
           {console.log(job,"jobs")}
            {job.createdAt && (
               <div className="text-orange-400 text-sm  font-medium">
@@ -251,6 +254,47 @@ const getTimeAgo = (createdAt) => {
 
 
 
+
+      {/* What this repairman offered */}
+      {offer?.pricing && (() => {
+        const currency = offer.pricing.currency || 'TRY';
+        const fmt = (n) => `${currency} ${Number(n || 0).toLocaleString()}`;
+        const base = Number(offer.pricing.basePrice) || 0;
+        const parts = Number(offer.pricing.partsEstimate) || 0;
+        const total = Number(offer.pricing.totalPrice) || base + parts;
+        // Same rule as the bid form: 5% commission on the base price; parts are paid to the admin
+        const youReceive = base - base * 0.05;
+        return (
+          <div className="mx-6 mb-2 rounded-xl border border-primary-200 bg-primary-50/60 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-primary-600">Your Offer</p>
+                <p translate="no" className="notranslate text-2xl font-bold text-gray-900">{fmt(total)}</p>
+              </div>
+              {offer.estimatedTime?.value && (
+                <div className="flex items-center gap-1 text-sm text-gray-600">
+                  <Icon icon="heroicons:clock" className="w-4 h-4" />
+                  {offer.estimatedTime.value} {offer.estimatedTime.unit || 'days'}
+                </div>
+              )}
+            </div>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+              <div className="flex justify-between sm:block rounded-lg bg-white px-3 py-2">
+                <span className="text-gray-500">Service price</span>
+                <p translate="no" className="notranslate font-semibold text-gray-900">{fmt(base)}</p>
+              </div>
+              <div className="flex justify-between sm:block rounded-lg bg-white px-3 py-2">
+                <span className="text-gray-500">Parts (from admin)</span>
+                <p translate="no" className="notranslate font-semibold text-gray-900">{parts > 0 ? fmt(parts) : '—'}</p>
+              </div>
+              <div className="flex justify-between sm:block rounded-lg bg-white px-3 py-2">
+                <span className="text-gray-500">You&apos;ll receive</span>
+                <p translate="no" className="notranslate font-semibold text-green-600">{fmt(youReceive)}</p>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
         {/* Footer */}
 <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col gap-3">

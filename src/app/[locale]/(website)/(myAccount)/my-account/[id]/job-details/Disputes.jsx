@@ -10,6 +10,8 @@ import axiosInstance from '@/config/axiosInstance';
 import DisputeDetails from './DisputeDetails';
 import { Icon } from '@iconify/react';
 import Image from 'next/image';
+import DisputeResolutionCard from '@/components/partials/DisputeResolutionCard';
+import useDisputeLive from '@/hooks/useDisputeLive';
 
 const DISPUTE_CATEGORIES = [
     { value: 'payment_issue', label: 'Payment Issue' },
@@ -26,8 +28,9 @@ const DISPUTE_SCHEMA = yup.object({
     description: yup
         .string()
         .required('Description is required')
-        .min(5, 'Description must be at least 5 characters')
-        .max(1000, 'Description cannot exceed 1000 characters')
+        .trim()
+        .min(10, 'Description must be at least 10 characters')
+        .max(500, 'Description cannot exceed 500 characters')
 });
 
 const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
@@ -37,6 +40,9 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     const [isSendingMessage, setIsSendingMessage] = useState(false);
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null);
+    // Files attached to a NEW dispute (photos of the problem, receipts)
+    const [createFiles, setCreateFiles] = useState([]);
+    const createFileRef = useRef(null);
 
     const { register, handleSubmit, formState: { errors }, reset, watch } = useForm({
         resolver: yupResolver(DISPUTE_SCHEMA),
@@ -53,6 +59,9 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     useEffect(() => {
         scrollToBottom();
     }, [dispute?.responses?.length]);
+
+    // Live: new replies, a dispute opened by the repairman, the decision
+    useDisputeLive({ disputeId: dispute?._id, bookingId }, () => fetchJob?.({ silent: true }));
 
     // ── Helpers ──────────────────────────────────────────────────────────────
 
@@ -79,6 +88,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
             ? respondedBy.userId?._id
             : respondedBy?.userId;
         const userType = respondedBy?.userType;
+        if (userType === 'admin') return { name: 'CTI Support', userType: 'admin' };
 
         if (
             dispute?.raisedBy?.userId?._id === userId ||
@@ -106,6 +116,11 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
             bg: 'bg-violet-100', text: 'text-violet-700',
             bubble: 'bg-violet-50 border-violet-200', name: 'text-violet-900',
             badge: 'bg-violet-100 text-violet-700',
+        };
+        if (userType === 'admin') return {
+            bg: 'bg-emerald-100', text: 'text-emerald-700',
+            bubble: 'bg-emerald-50 border-emerald-200', name: 'text-emerald-900',
+            badge: 'bg-emerald-100 text-emerald-700',
         };
         if (userType === 'customer') return {
             bg: 'bg-blue-100', text: 'text-blue-700',
@@ -167,7 +182,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                 toast.success('Message sent successfully');
                 setMessage('');
                 setEvidenceFiles([]);
-                fetchJob();
+                fetchJob({ silent: true });
             }
         } catch (error) {
             toast.error(error.response?.data?.message || 'Failed to send message');
@@ -188,16 +203,18 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
     const onSubmit = async (formData) => {
         setIsSubmitting(true);
         try {
-            const { data } = await axiosInstance.post('/disputes/create', {
-                bookingId,
-                category: formData.category,
-                description: formData.description.trim()
-            }, {
-                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+            const body = new FormData();
+            body.append('bookingId', bookingId);
+            body.append('category', formData.category);
+            body.append('description', formData.description.trim());
+            createFiles.forEach((file) => body.append('evidence', file));
+            const { data } = await axiosInstance.post('/disputes/create', body, {
+                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
             });
 
             if (data.success) {
                 toast.success('Dispute created successfully');
+                setCreateFiles([]);
                 fetchJob();
                 reset();
             }
@@ -252,6 +269,21 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                                         🚨 Dispute Opened · {formatCategory(dispute.category)}
                                     </span>
                                     <p className="text-sm text-gray-800 leading-relaxed">{dispute.description}</p>
+                                    {dispute.evidenceFiles?.length > 0 && (
+                                        <div className="mt-3 flex flex-wrap gap-2">
+                                            {dispute.evidenceFiles.map((file, i) => (
+                                                <a key={file._id || i} href={file.fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+                                                    {file.fileType === 'image' ? (
+                                                        <img src={file.fileUrl} alt={`Evidence ${i + 1}`} className="w-20 h-20 object-cover rounded-lg border border-orange-200 hover:opacity-90" />
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 bg-white border border-orange-200 rounded-lg px-3 py-2 text-xs text-primary-700">
+                                                            <Icon icon="heroicons:document-text" className="w-4 h-4" /> View file
+                                                        </span>
+                                                    )}
+                                                </a>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -432,9 +464,27 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
 
     const commonInputClasses = `w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed transition-colors`;
 
+    // Resolved: show the decision. Only a dismissed dispute ("no action") can be raised again.
+    const resolved = dispute?.status === 'resolved' && dispute?.resolution?.resolutionType;
+    const canRaiseAgain = !resolved || dispute.resolution.resolutionType === 'no_action';
+    if (status === 'cancelled' && !resolved) {
+        return (
+            <div className="bg-gray-50 py-3 px-4">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-sm text-gray-600">
+                    This booking was cancelled, so a dispute cannot be opened.
+                </div>
+            </div>
+        );
+    }
+
     return (
-        <div className="bg-gray-50 py-3 px-4">
+        <div className="bg-gray-50 py-3 px-4 space-y-4">
+            {resolved && <DisputeResolutionCard dispute={dispute} viewer="customer" />}
+            {canRaiseAgain && (
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                {resolved && (
+                    <p className="text-sm text-gray-600 mb-4">Still having a problem with this repair? You can open a new dispute.</p>
+                )}
                 <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
                     {/* Category */}
@@ -474,10 +524,69 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                                 ? <p className="text-sm text-red-600">{errors.description.message}</p>
                                 : <span />
                             }
-                            <p className={`text-sm ${watchDescription.length > 1000 ? 'text-red-600' : 'text-gray-500'}`}>
-                                {watchDescription.length}/1000
+                            <p className={`text-sm ${watchDescription.length > 500 ? 'text-red-600' : 'text-gray-500'}`}>
+                                {watchDescription.length}/500
                             </p>
                         </div>
+                    </div>
+
+                    {/* Evidence (optional) */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Photos or documents <span className="text-gray-400 font-normal">(optional, up to 5)</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {createFiles.map((file, index) => (
+                                <div key={`${file.name}-${index}`} className="relative w-20 h-20 rounded-lg border border-gray-200 bg-gray-50 overflow-hidden flex items-center justify-center">
+                                    {file.type.startsWith('image/') ? (
+                                        <img src={URL.createObjectURL(file)} alt={file.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <div className="text-center px-1">
+                                            <Icon icon="heroicons:document-text" className="w-6 h-6 text-gray-500 mx-auto" />
+                                            <span className="block text-[10px] text-gray-600 truncate w-16">{file.name}</span>
+                                        </div>
+                                    )}
+                                    <button
+                                        type="button"
+                                        onClick={() => setCreateFiles((prev) => prev.filter((_, i) => i !== index))}
+                                        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white flex items-center justify-center"
+                                        aria-label="Remove file"
+                                    >
+                                        <Icon icon="heroicons:x-mark" className="w-3 h-3" />
+                                    </button>
+                                </div>
+                            ))}
+                            {createFiles.length < 5 && (
+                                <button
+                                    type="button"
+                                    onClick={() => createFileRef.current?.click()}
+                                    disabled={isSubmitting}
+                                    className="w-20 h-20 rounded-lg border-2 border-dashed border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600 flex flex-col items-center justify-center text-xs disabled:opacity-50"
+                                >
+                                    <Icon icon="heroicons:camera" className="w-6 h-6 mb-1" />
+                                    Add
+                                </button>
+                            )}
+                        </div>
+                        <input
+                            ref={createFileRef}
+                            type="file"
+                            multiple
+                            accept="image/jpeg,image/jpg,image/png,application/pdf"
+                            className="hidden"
+                            onChange={(e) => {
+                                const picked = Array.from(e.target.files || []).filter((file) => {
+                                    const okType = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'].includes(file.type);
+                                    const okSize = file.size <= 5 * 1024 * 1024;
+                                    if (!okType) toast.error(`${file.name}: only JPG, PNG or PDF`);
+                                    else if (!okSize) toast.error(`${file.name} is larger than 5MB`);
+                                    return okType && okSize;
+                                });
+                                setCreateFiles((prev) => [...prev, ...picked].slice(0, 5));
+                                e.target.value = '';
+                            }}
+                        />
+                        <p className="mt-1 text-xs text-gray-500">Photos of the problem help our team decide faster. JPG, PNG or PDF, max 5MB each.</p>
                     </div>
 
                     {/* Notice */}
@@ -517,6 +626,7 @@ const Disputes = ({ bookingId, status, dispute, fetchJob }) => {
                     </div>
                 </form>
             </div>
+            )}
         </div>
     );
 };

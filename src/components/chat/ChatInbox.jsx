@@ -2,14 +2,22 @@
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { Icon } from '@iconify/react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
-import {
-    loadUserChats,
-    resetUnreadCount
-} from '../../store/chat';
 import { useSocket } from '@/contexts/SocketProvider';
+import { fetchChatListInto, prefetchChatMessages } from '@/services/chatApi';
+
+// Today: time; this week: weekday; older: date
+const listTime = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    const now = new Date();
+    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const days = (now - d) / 86400000;
+    if (days < 7) return d.toLocaleDateString([], { weekday: 'short' });
+    return d.toLocaleDateString();
+};
 
 const LoadingSpinner = () => (
     <div className="flex items-center justify-center py-8">
@@ -20,92 +28,65 @@ const LoadingSpinner = () => (
 const ChatInbox = ({ onSelectChat, onClose }) => {
     const chats = useSelector((state) => state.chat.chats);
     const unreadCounts = useSelector((state) => state.chat.unreadCounts);
-    const selectedChat = useSelector((state) => state.chat.selectedChat);
+    const onlineUsers = useSelector((state) => state.chat.onlineUsers);
+    const typing = useSelector((state) => state.chat.typing);
     
     const { user, token } = useSelector((state) => state.auth);
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    // New-message sound preference (kept in this browser)
+    const [soundOn, setSoundOn] = useState(() => {
+        try { return localStorage.getItem('chatSound') !== 'off'; } catch { return true; }
+    });
     
-    const { socket, connected } = useSocket();
+    const { connected } = useSocket();
+    const store = useStore();
+
+    // Load the newest chats' messages in the background so opening them is instant
+    const prefetch = useCallback((chatId) => {
+        prefetchChatMessages(dispatch, store.getState, token, chatId);
+    }, [dispatch, store, token]);
+
+    const topChatIds = (chats || []).slice(0, 5).map((c) => c?.chatId || c?.id).filter(Boolean).join(',');
+    useEffect(() => {
+        if (!topChatIds) return undefined;
+        // small delay so the list itself renders first
+        const t = setTimeout(() => topChatIds.split(',').forEach(prefetch), 300);
+        return () => clearTimeout(t);
+    }, [topChatIds, prefetch]);
 
     useEffect(() => {
         if (!token) return;
         
-        // Fetch on mount to ensure we have the latest chats
+        // Quiet refresh whenever the inbox opens (the list already on screen stays visible)
         fetchChatList();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
-
 
     const fetchChatList = useCallback(async () => {
         if (!token) return;
-
         setLoading(true);
         try {
-            const { data } = await axiosInstance.get("/chat/list", {
-                headers: { Authorization: `Bearer ${token}` },
-            });
-
-            const processedChats = (data.chats || []).map(chat => ({
-                ...chat,
-                id: chat.chatId
-            }));
-
-            const unreadCountsFromAPI = {};
-            data.chats.forEach(chat => {
-                if (chat.unreadCount > 0) {
-                    unreadCountsFromAPI[chat.chatId] = chat.unreadCount;
-                }
-            });
-
-            dispatch(loadUserChats({
-                chats: processedChats,
-                unreadCounts: unreadCountsFromAPI
-            }));
-
+            await fetchChatListInto(dispatch, token);
         } catch (error) {
-            handleError(error);
+            // background refresh: only complain when there is nothing to show
+            if (!chats?.length) handleError(error);
         } finally {
             setLoading(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token, dispatch]);
 
-    // Manual refresh function 
-    const refreshChats = useCallback(async () => {
-        await fetchChatList();
-    }, [fetchChatList]);
-
-    //  NEW: Socket listeners for real-time updates
-    useEffect(() => {
-        if (socket && connected) {
-            const handleNewMessage = (data) => {
-                // Update chat list without full refresh
-                console.log('New message received, updating chat list:', data);
-            };
-
-            const handleChatUpdate = (data) => {
-                console.log('Chat updated:', data);
-            };
-
-            socket.on('new_message', handleNewMessage);
-            socket.on('chat_updated', handleChatUpdate);
-
-            return () => {
-                socket.off('new_message', handleNewMessage);
-                socket.off('chat_updated', handleChatUpdate);
-            };
-        }
-    }, [socket, connected]);
+    // Live updates (new messages, unread, read, typing, online) come through the socket into the store
 
     const filteredChats = chats?.filter(chat =>
         chat?.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
     const handleChatSelect = useCallback((chat) => {
-        console.log('Selected chat object:', chat);
-        console.log('Chat ID:', chat.chatId);
-
         onSelectChat({
+            otherUserId: chat.otherUser?._id,
             id: chat.chatId,
             chatId: chat.chatId,
             name: chat.otherUser?.name,
@@ -117,27 +98,37 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
     }, [onSelectChat]);
 
     return (
-        <div className="w-96 bg-white rounded-lg shadow-xl overflow-hidden border border-gray-200 h-[500px]">
+        // flex column: header/search keep their size, the list takes the rest and scrolls,
+        // so the last chat is never cut off below the box
+        <div className="w-screen h-[100dvh] sm:w-96 sm:h-[500px] sm:max-h-[calc(100vh-2rem)] bg-white sm:rounded-lg shadow-xl overflow-hidden sm:border border-gray-200 flex flex-col">
             <div className="bg-[#0E1014] text-white px-4 py-3 flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Messages</h2>
                 <div className="flex gap-4 items-center">
-                    {/*  NEW: Manual refresh button */}
-                    <button 
-                        onClick={refreshChats}
-                        className="hover:opacity-80 transition-opacity"
-                        disabled={loading}
+                    {/* No refresh button: the list updates live over the socket and reloads itself on reconnect */}
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const next = !soundOn;
+                            setSoundOn(next);
+                            try { localStorage.setItem('chatSound', next ? 'on' : 'off'); } catch { /* ignore */ }
+                        }}
+                        className="hover:opacity-80"
+                        aria-label={soundOn ? 'Mute message sound' : 'Turn message sound on'}
+                        title={soundOn ? 'Sound on' : 'Sound off'}
                     >
-                        <Icon 
-                            icon="mdi:refresh" 
-                            width={20} 
-                            className={loading ? 'animate-spin' : ''} 
-                        />
+                        <Icon icon={soundOn ? 'mdi:volume-high' : 'mdi:volume-off'} width={19} />
                     </button>
-                    <div className={`w-2 h-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
-                        title={connected ? 'Connected' : 'Disconnected'} />
                     <Icon icon="mdi:chevron-down" width={20} onClick={onClose} className="cursor-pointer" />
                 </div>
             </div>
+
+            {/* Connection lost: thin strip under the header (keeps the header tidy) */}
+            {!connected && (
+                <div className="flex items-center justify-center gap-2 px-3 py-1 bg-yellow-50 border-b border-yellow-200 text-[12px] text-yellow-800" role="status">
+                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-yellow-300 border-t-yellow-700" />
+                    Connecting…
+                </div>
+            )}
 
             <div className="flex items-center px-4 py-3 border-b">
                 <div className="flex items-center bg-gray-100 rounded-full w-full px-3 py-1.5">
@@ -147,7 +138,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                         placeholder="Search chats..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-transparent ml-2 outline-none w-full"
+                        className="bg-transparent ml-2 outline-none w-full text-base sm:text-sm"
                     />
                 </div>
                 <Icon icon="mdi:tune-variant" width={24} className="ml-2 text-pink-500" />
@@ -157,8 +148,9 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                 <span>Chats ({filteredChats.length})</span>
             </div>
 
-            <div className="overflow-y-auto max-h-[400px]">
-                {loading ? (
+            <div className="flex-1 min-h-0 overflow-y-auto pb-2">
+                {/* Spinner only on the very first load; later refreshes keep the list on screen */}
+                {loading && filteredChats.length === 0 && !searchTerm ? (
                     <LoadingSpinner />
                 ) : (!filteredChats || filteredChats.length === 0) ? (
                     <div className="text-center py-8 text-gray-500">
@@ -178,6 +170,8 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                         <div
                             key={chat?.chatId || chat?._id}
                             onClick={() => handleChatSelect(chat)}
+                            onMouseEnter={() => prefetch(chat?.chatId || chat?.id)}
+                            onTouchStart={() => prefetch(chat?.chatId || chat?.id)}
                             className="flex items-start px-4 py-3 hover:bg-gray-50 cursor-pointer relative transition-colors"
                         >
                             <div className="relative">
@@ -190,7 +184,7 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                                     }}
                                 />
                                 <span
-                                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${chat?.online ? 'bg-green-500' : 'bg-gray-400'}`}
+                                    className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${onlineUsers.includes(String(chat?.otherUser?._id)) ? 'bg-green-500' : 'bg-gray-400'}`}
                                 />
                             </div>
                             <div className="ml-3 flex-1">
@@ -206,18 +200,13 @@ const ChatInbox = ({ onSelectChat, onClose }) => {
                                             <Icon icon="mdi:check-decagram" className="text-primary-500" width={16} />
                                         )}
                                     </div>
-                                    <span className="text-xs text-gray-400">
-                                        {chat?.lastMessage && typeof chat.lastMessage === 'object' && chat.lastMessage.timestamp ?
-                                            new Date(chat.lastMessage.timestamp).toLocaleDateString() :
-                                            chat?.lastMessage?.createdAt ?
-                                                new Date(chat.lastMessage.createdAt).toLocaleDateString() :
-                                                (chat?.lastMessage ? 'Now' : '')
-                                        }
+                                    <span className={`text-xs shrink-0 ${unreadCounts[chat?.chatId] > 0 ? 'text-pink-600 font-semibold' : 'text-gray-400'}`}>
+                                        {listTime(chat?.lastMessage?.timestamp || chat?.lastMessage?.createdAt || chat?.updatedAt)}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center">
-                                    <p className="text-sm text-gray-700 truncate max-w-[200px]">
-                                        {chat?.lastMessage 
+                                    <p className={`text-sm truncate max-w-[200px] ${typing[chat?.chatId] ? 'text-green-600 italic' : unreadCounts[chat?.chatId] > 0 ? 'text-gray-900 font-semibold' : 'text-gray-700'}`}>
+                                        {typing[chat?.chatId] ? 'typing…' : chat?.lastMessage 
                                             ? (typeof chat.lastMessage === 'object' 
                                                 ? (chat.lastMessage.content || 'Media message') 
                                                 : chat.lastMessage)

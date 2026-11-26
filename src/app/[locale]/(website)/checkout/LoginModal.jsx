@@ -39,7 +39,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
 
       if (response.data.requiresVerification) {
         toast.info("Email not verified. Redirecting...");
-        router.push(`/auth/verify-email?email=${resData.email}&userId=${resData.userId}`);
+        router.push(`/auth/verify-otp?email=${resData.email}&userId=${resData.userId}`);
         return;
       }
 
@@ -65,7 +65,7 @@ export default function LoginModal({ isOpen, onClose, onSuccess }) {
     } catch (error) {
       if(error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
         const { email: errEmail, userId } = error.response.data.data;
-        router.push(`/auth/verify-email?email=${errEmail}&userId=${userId}`);
+        router.push(`/auth/verify-otp?email=${errEmail}&userId=${userId}`);
         return;
       }
       toast.error(error.response?.data?.message || 'Login failed');

@@ -4,6 +4,14 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { useSelector } from "react-redux";
 
+// Price after the part's discount — what the customer pays for this part
+export const discountedPrice = (part) => {
+    if (!part) return 0;
+    if (part.finalPrice != null) return Number(part.finalPrice) || 0;
+    const price = Number(part.price) || 0;
+    return Math.round((price - (price * (Number(part.discount) || 0)) / 100) * 100) / 100;
+};
+
 function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow = false, setPartsArray, initialSelectedParts = [] }) {
     const [parts, setParts] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -35,32 +43,26 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
     const { token } = useSelector((state) => state.auth);
     const limit = 20;
 
-    // ✅ SYNC selectedParts to parent automatically whenever it changes
-    useEffect(() => {
-        if (setPartsArray && typeof setPartsArray === 'function') {
-            console.log('🔄 Syncing selectedParts to parent:', selectedParts);
-            setPartsArray(selectedParts);
-        }
-    }, [selectedParts, setPartsArray]);
-
-    // Modal open/close - load initial parts once
+    // The selection is a draft: it starts from the parts already in the bid each time the modal
+    // opens, and is only written back to the bid on "Confirm" ("Cancel" discards it).
+    // (It used to sync live, which wiped the bid's parts with an empty list on mount.)
     useEffect(() => {
         if (isOpen) {
             fetchFilterOptions();
             setCurrentPage(1);
             fetchParts();
-            
-            // ✅ Load initial selected parts only once when modal opens
-            if (!hasLoadedInitial && initialSelectedParts && initialSelectedParts.length > 0) {
-                console.log('📥 Loading initialSelectedParts on modal open:', initialSelectedParts.length, 'parts');
-                setSelectedParts([...initialSelectedParts]);
-                setHasLoadedInitial(true);
-            }
+            setSelectedParts(Array.isArray(initialSelectedParts) ? [...initialSelectedParts] : []);
+            setHasLoadedInitial(true);
         } else {
-            // Reset when modal closes
             setHasLoadedInitial(false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen, jobId, isQuotationFlow]);
+
+    const handleConfirm = () => {
+        if (typeof setPartsArray === 'function') setPartsArray(selectedParts);
+        onClose();
+    };
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -175,8 +177,8 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
     };
 
     // ✅ Updated handlePartSelect - using _id consistently
-    const handlePartSelect = (part) => {
-        event.stopPropagation();
+    const handlePartSelect = (part, e) => {
+        e?.stopPropagation();
         console.log('📦 Part selected:', part._id, part.name);
         
         const selectedPartData = {
@@ -189,17 +191,21 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
             partType: part.partType,
             warranty: part.warranty,
             condition: part.condition,
-            price: part.price,
+            // Customers pay the discounted price; the backend uses the same number
+            price: discountedPrice(part),
+            finalPrice: discountedPrice(part),
+            originalPrice: part.price,
+            discount: part.discount || 0,
             sku: part.sku,
         };
 
         setSelectedParts(prev => {
-            const isAlreadySelected = prev.some(p => p._id === part._id);
+            const isAlreadySelected = prev.some(p => String(p._id || p.id) === String(part._id));
 
             let updatedParts;
             if (isAlreadySelected) {
                 console.log('❌ Removing part:', part._id);
-                updatedParts = prev.filter(p => p._id !== part._id);
+                updatedParts = prev.filter(p => String(p._id || p.id) !== String(part._id));
             } else {
                 console.log('✅ Adding part:', part._id);
                 updatedParts = [...prev, selectedPartData];
@@ -210,24 +216,10 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
         });
     };
 
-    const isPartSelected = (partId) => {
-        // Check by _id first
-        let isSelected = selectedParts.some(p => p._id === partId);
-        
-        // If not found and we have parts, also try to match by name + brand + model as fallback
-        if (!isSelected && selectedParts.length > 0 && parts.length > 0) {
-            const currentPart = parts.find(p => p._id === partId);
-            if (currentPart) {
-                isSelected = selectedParts.some(p => 
-                    p.name === currentPart.name && 
-                    p.brand?._id === currentPart.brand?._id && 
-                    p.model?._id === currentPart.model?._id
-                );
-            }
-        }
-        
-        return isSelected;
-    };
+    // Match by id only: different parts can share the same name/brand/model, and matching on
+    // those made unselected duplicates look "Selected" while the count stayed lower.
+    const isPartSelected = (partId) =>
+        selectedParts.some(p => String(p._id || p.id) === String(partId));
 
     if (!isOpen) return null;
 
@@ -245,7 +237,8 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
                                 Select the parts you need for this {jobId ? 'job' : 'quotation'}
                                 {selectedParts.length > 0 && (
                                     <span className="ml-2 text-primary-600 font-semibold">
-                                        ({selectedParts.length} selected)
+                                        {/* keyed so Google Translate can't freeze the number */}
+                                        <span key={`sel-${selectedParts.length}`}>({selectedParts.length} selected)</span>
                                     </span>
                                 )}
                             </p>
@@ -504,9 +497,14 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
                                                     <div className="border-t border-gray-100 pt-3">
                                                         <div className="flex items-center justify-between mb-3">
                                                             <div>
-                                                                <p className="text-xs text-gray-500">Repairman Price</p>
-                                                                <p className="text-xl font-bold text-primary-600">
-                                                                    {formatPrice(part.price)}
+                                                                <p className="text-xs text-gray-500">Part Price</p>
+                                                                <p translate="no" className="notranslate text-xl font-bold text-primary-600">
+                                                                    {formatPrice(discountedPrice(part))}
+                                                                    {part.discount > 0 && (
+                                                                        <span className="ml-2 text-sm font-normal text-gray-400 line-through">
+                                                                            {formatPrice(part.price)}
+                                                                        </span>
+                                                                    )}
                                                                 </p>
                                                             </div>
                                                             {part.rating > 0 && (
@@ -518,7 +516,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
                                                         </div>
 
                                                         <button
-                                                            onClick={() => handlePartSelect(part)}
+                                                            onClick={(e) => handlePartSelect(part, e)}
                                                             className={`w-full font-medium py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2 ${isSelected
                                                                 ? 'bg-green-600 hover:bg-green-700 text-white'
                                                                 : 'bg-primary-600 hover:bg-primary-700 text-white'
@@ -528,7 +526,7 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
                                                                 icon={isSelected ? "heroicons:check-circle" : "heroicons:plus"}
                                                                 className="w-5 h-5"
                                                             />
-                                                            {isSelected ? 'Selected' : 'Add to Bid'}
+                                                            <span key={isSelected ? 'selected' : 'add'}>{isSelected ? 'Selected' : 'Add to Bid'}</span>
                                                         </button>
                                                     </div>
                                                 </div>
@@ -583,13 +581,13 @@ function PartModal({ isOpen, onClose, children, jobId, chatId, isQuotationFlow =
                             Cancel
                         </button>
                         <button
-                            onClick={onClose}
+                            onClick={handleConfirm}
                             type="button"
-                            disabled={selectedParts.length === 0}
+                            disabled={selectedParts.length === 0 && !(initialSelectedParts?.length > 0)}
                             className="flex-1 px-4 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                         >
                             <Icon icon="heroicons:check-circle" className="w-5 h-5" />
-                            Confirm ({selectedParts.length} parts)
+                            <span key={`confirm-${selectedParts.length}`}>Confirm ({selectedParts.length} {selectedParts.length === 1 ? 'part' : 'parts'})</span>
                         </button>
                     </div>
                 </div>

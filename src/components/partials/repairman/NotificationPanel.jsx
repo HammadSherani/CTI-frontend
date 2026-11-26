@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import useNotifications from '@/hooks/useNotifications';
 import { useRouter,Link } from '@/i18n/navigation';
@@ -24,10 +24,27 @@ const NotificationPanel = ({ isOpen, onClose }) => {
   const auth = useSelector((state) => state.auth);
   const userRole = auth?.userType || auth?.user?.role;
 
+  // Notifications that were unread when the panel was opened: stay highlighted while it is open
+  const [newIds, setNewIds] = useState(() => new Set());
+
+  // Opening the panel = "seen": clear the bell count (saved on the server so it stays cleared after refresh)
   useEffect(() => {
-    if (isOpen) {
-      fetchNotifications();
-    }
+    if (!isOpen) return undefined;
+    let cancelled = false;
+    (async () => {
+      const data = await fetchNotifications();
+      if (cancelled) return;
+      const fresh = data?.notifications || notifications;
+      const unread = fresh.filter((n) => !n.isRead).map((n) => String(n._id));
+      if (unread.length) {
+        setNewIds(new Set(unread));
+        markAllAsRead();
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleNotificationClick = (notification) => {
@@ -36,8 +53,8 @@ const NotificationPanel = ({ isOpen, onClose }) => {
     }
     
     const url = getRedirectUrl(userRole, notification.type, notification.data);
-    router.push(url);
-    
+    if (url) router.push(url);
+
     onClose();
   };
 
@@ -55,6 +72,18 @@ const NotificationPanel = ({ isOpen, onClose }) => {
         return '❌';
       case 'job_cancelled':
         return '🚫';
+      case 'parts_order_update':
+        return '📦';
+      case 'earning_released':
+        return '💰';
+      case 'new_review':
+        return '⭐';
+      case 'quotation_accepted':
+        return '✅';
+      case 'quotation_rejected':
+        return '❌';
+      case 'quotation_expired':
+        return '⌛';
       default:
         return '📢';
     }
@@ -125,7 +154,11 @@ const NotificationPanel = ({ isOpen, onClose }) => {
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h3 className="font-semibold text-gray-900">
-          Notifications {unreadCount > 0 && `(${unreadCount})`}
+          Notifications{' '}
+          {/* keyed + notranslate: Google Translate otherwise freezes this number (e.g. "(3)" after Clear all) */}
+          {unreadCount > 0 && (
+            <span key={`unread-${unreadCount}`} translate="no" className="notranslate">({unreadCount})</span>
+          )}
         </h3>
         <div className="flex space-x-2">
           {unreadCount > 0 && (
@@ -154,7 +187,8 @@ const NotificationPanel = ({ isOpen, onClose }) => {
       </div>
 
       <div className="max-h-96 overflow-y-auto">
-        {isLoading ? (
+        {/* Only show the loader on the very first load; afterwards the list is already live */}
+        {isLoading && notifications.length === 0 ? (
           <div className="px-4 py-8 text-center text-gray-500">
             Loading...
           </div>
@@ -168,7 +202,7 @@ const NotificationPanel = ({ isOpen, onClose }) => {
               key={notification._id}
               onClick={() => handleNotificationClick(notification)}
               className={`px-4 py-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 ${
-                !notification.isRead ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
+                !notification.isRead || newIds.has(String(notification._id)) ? 'bg-primary-50 border-l-4 border-l-primary-500' : ''
               }`}
             >
               <div className="flex items-start space-x-3">

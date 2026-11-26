@@ -4,7 +4,7 @@ import axiosInstance from '@/config/axiosInstance'
 import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { Icon } from '@iconify/react'
-import { useRouter } from '@/i18n/navigation'
+import { useRouter, Link } from '@/i18n/navigation'
 import { motion } from 'framer-motion'
 import TopUpModal from '@/components/partials/repairman/TopUpModal'
 import handleError from '@/helper/handleError'
@@ -274,8 +274,10 @@ function RepairmanEarning() {
     totalWithdrawn = 0,
     pendingAmount = 0,
     lockedAmount = 0,
+    owedAmount = 0,
     currency = 'TRY'
   } = wallet || {}
+  const debtSources = earningsData?.debt?.sources || []
 
   //  Payment info check
   const isPaymentInfoComplete = paymentInfo?.isPaymentInformationCompleted || false
@@ -363,6 +365,40 @@ function RepairmanEarning() {
             Refresh
           </button>
         </div>
+
+        {/* Amount owed from dispute refunds */}
+        {owedAmount > 0 && (
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Icon icon="solar:danger-triangle-bold-duotone" className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-amber-900">
+                  You owe {formatCurrency(owedAmount, currency)}
+                </p>
+                <p className="text-sm text-amber-800 mt-1">
+                  A customer was refunded after a dispute, but this money had already been withdrawn from your wallet.
+                  It is taken automatically from your next earnings. You do not need to do anything.
+                </p>
+                {debtSources.length > 0 && (
+                  <ul className="mt-3 space-y-1.5">
+                    {debtSources.map((s) => (
+                      <li key={s.id} className="text-sm text-amber-900 flex flex-wrap items-center gap-x-2">
+                        <Link href={`/repair-man/my-jobs/${s.bookingId}/dispute`} className="font-medium underline hover:text-amber-700">
+                          {s.disputeId}
+                        </Link>
+                        <span className="text-amber-800">
+                          refund {formatCurrency(s.refundAmount, currency)}
+                          {' · '}taken from wallet {formatCurrency(s.takenFromWallet, currency)}
+                          {' · '}owed {formatCurrency(s.owedFromThis, currency)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/*  Payment Info Warning Banner */}
         {!isPaymentInfoComplete && (

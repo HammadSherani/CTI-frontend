@@ -8,7 +8,7 @@ import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
-import PartModal from '@/app/[locale]/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
+import PartModal, { discountedPrice } from '@/app/[locale]/(repairman)/repair-man/(dashboard)/job-board/[id]/PartModal';
 import { useMultiLoading } from '@/hooks/useMultiloading';
 
 const quotationSchema = yup.object().shape({
@@ -123,6 +123,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
             serviceType: 'drop-off',
             warranty: '',
             repairmanNotes: '',
+            validityHours: 24,
             repairServices: []
         }
     });
@@ -262,6 +263,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                 setValue('serviceType', svcDetails.serviceType || initialData.serviceType || 'drop-off');
                 setValue('warranty', svcDetails.warranty?.duration ?? initialData.warranty ?? '');
                 setValue('repairmanNotes', initialData.repairmanNotes || '');
+                setValue('validityHours', Number(initialData.validityHours) || 24);
                 setValue('dropoffAddress', svcDetails.dropoffLocation?.address || initialData.dropoffAddress || '');
 
                 // Parts
@@ -328,7 +330,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
 
     // ─── Price calculations ───────────────────────────────────────────────────────
     const partsTotal = isPartRequired
-        ? selectedParts.reduce((total, part) => total + Number(part.price || 0), 0)
+        // discounted price, same as the server charges
+        ? selectedParts.reduce((total, part) => total + discountedPrice(part), 0)
         : 0;
 
     const calculateSubtotal = () => (parseFloat(watchedBasePrice) || 0) + partsTotal;
@@ -349,7 +352,7 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
         setLoading(true);
         try {
             const calculatedPartsPrice = isPartRequired
-                ? selectedParts.reduce((total, part) => total + Number(part.price || 0), 0)
+                ? selectedParts.reduce((total, part) => total + discountedPrice(part), 0) // same rule as the backend
                 : 0;
 
             const requiredPartIds = isPartRequired
@@ -371,6 +374,8 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                 estimatedDuration: data.estimatedDuration.toString(),
                 ...(data.warranty && { warranty: data.warranty.toString() }),
                 ...(data.repairmanNotes && { repairmanNotes: data.repairmanNotes.trim() }),
+                // how long the customer has to accept
+                validityHours: Number(data.validityHours) || 24,
                 ...(data.serviceType === 'pickup' && {
                     serviceType: 'pickup',
                     serviceCharges: parseFloat(data.serviceCharges) || 0,
@@ -881,6 +886,31 @@ const QuotationForm = ({ chatId, onClose, onSuccess, initialData = null, isEdit 
                                     <p className="text-red-500 text-xs mt-1">{errors.warranty.message}</p>
                                 )}
                             </div>
+                        </div>
+
+                        {/* ── Valid for ── */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Quotation valid for
+                            </label>
+                            <Controller
+                                name="validityHours"
+                                control={control}
+                                render={({ field }) => (
+                                    <select
+                                        {...field}
+                                        onChange={(e) => field.onChange(Number(e.target.value))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                                    >
+                                        <option value={24}>24 hours</option>
+                                        <option value={72}>3 days</option>
+                                        <option value={168}>7 days</option>
+                                    </select>
+                                )}
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                {isEdit ? 'Saving changes starts this period again.' : 'After this the customer can no longer accept it.'}
+                            </p>
                         </div>
 
                         {/* ── Additional Notes ── */}

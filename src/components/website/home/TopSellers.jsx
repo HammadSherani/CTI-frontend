@@ -260,13 +260,16 @@ export default function TopSellers() {
                           >
                             Visit Store
                           </button>
-                          <button
-                            onClick={() => handleChat(pro)}
-                            className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors border border-gray-200"
-                            aria-label="Chat with seller"
-                          >
-                            <Icon icon="mdi:chat-outline" width={18} />
-                          </button>
+                          {/* Chat only for logged-in customers */}
+                          {user?.role === 'customer' && (
+                            <button
+                              onClick={() => handleChat(pro)}
+                              className="w-10 h-10 bg-gray-50 hover:bg-gray-100 text-gray-600 rounded-xl flex items-center justify-center transition-colors border border-gray-200"
+                              aria-label="Chat with seller"
+                            >
+                              <Icon icon="mdi:chat-outline" width={18} />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

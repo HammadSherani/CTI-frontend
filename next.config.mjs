@@ -5,6 +5,12 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.js");
 
 const nextConfig = {
+  experimental: {
+    // Turbopack's on-disk dev cache (.next/dev/cache) kept getting stale/corrupted on this
+    // Windows setup after restarts, making every nested route 404 until .next was deleted.
+    // Keep the dev cache in memory only.
+    turbopackFileSystemCacheForDev: false,
+  },
   serverExternalPackages: ["isomorphic-dompurify", "jspdf", "jspdf-autotable", "firebase", "cloudinary", "resend"],
   allowedDevOrigins: ["192.168.176.1", "192.168.1.9"],
   images: {

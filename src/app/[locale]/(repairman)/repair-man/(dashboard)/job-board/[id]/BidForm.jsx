@@ -148,7 +148,8 @@ export default function BidForm({
     const pickupCharges = watchedValues.serviceOptions?.pickupAvailable ? (parseFloat(watchedValues.serviceOptions.pickupCharge) || 0) : 0;
     const totalPrice = baseTotal;
     const platformFee = (basePrice * platformFeePercentage) / 100;
-    const netAmount = totalPrice - platformFee;
+    // Parts are supplied by the admin, so their price is not part of the repairman's earning
+    const netAmount = basePrice - platformFee;
     const characterCount = watchedValues.description?.length || 0;
     const minCharacters = 1;
 
@@ -419,7 +420,7 @@ export default function BidForm({
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-3">
-                                                        <span className="text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</span>
+                                                        <span translate="no" className="notranslate text-sm font-bold text-primary-600">₺{part.price?.toLocaleString()}</span>
                                                         <button
                                                             type="button"
                                                             onClick={() => handleRemovePart(part._id || part.id)}
@@ -519,19 +520,19 @@ export default function BidForm({
                             <div className="space-y-2.5 text-sm">
                                 <div className="flex justify-between py-1">
                                     <span className="text-gray-600">Base service price:</span>
-                                    <span className="font-medium">₺{basePrice.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate font-medium">₺{basePrice.toFixed(2)}</span>
                                 </div>
 
                                 {selectedParts.length > 0 && (
                                     <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
                                         <div className="flex justify-between py-1 mb-2">
                                             <span className="text-gray-700 font-medium">Parts breakdown:</span>
-                                            <span className="font-medium">₺{totalPartsPrice.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate font-medium">₺{totalPartsPrice.toFixed(2)}</span>
                                         </div>
                                         {selectedParts.map((part) => (
                                             <div key={part.id} className="flex justify-between py-1 pl-4 text-xs">
                                                 <span className="text-gray-600">• {part.name}</span>
-                                                <span className="text-gray-600">₺{part.price?.toFixed(2)}</span>
+                                                <span translate="no" className="notranslate text-gray-600">₺{part.price?.toFixed(2)}</span>
                                             </div>
                                         ))}
                                         <div className="mt-2 pt-2 border-t border-blue-200">
@@ -546,7 +547,7 @@ export default function BidForm({
 
                                 <div className="flex justify-between py-2 bg-gray-50 -mx-2 px-2 rounded-lg">
                                     <span className="text-gray-900 font-semibold">Subtotal:</span>
-                                    <span className="text-gray-900 font-bold text-lg">₺{baseTotal.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate text-gray-900 font-bold text-lg">₺{baseTotal.toFixed(2)}</span>
                                 </div>
 
                                 {watchedValues.serviceOptions?.pickupAvailable && pickupCharges > 0 && (
@@ -564,7 +565,7 @@ export default function BidForm({
                                         </div>
                                         <div className="flex justify-between items-center mt-2 pt-2 border-t border-blue-200">
                                             <span className="text-sm font-semibold text-blue-900">Pickup Charges:</span>
-                                            <span className="text-sm font-bold text-blue-900">₺{pickupCharges.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate text-sm font-bold text-blue-900">₺{pickupCharges.toFixed(2)}</span>
                                         </div>
                                     </div>
                                 )}
@@ -573,15 +574,27 @@ export default function BidForm({
                                     <div className="mt-3 p-3 bg-primary-100 border-2 border-primary-400 rounded-lg">
                                         <div className="flex justify-between items-center">
                                             <span className="font-bold text-primary-900">Total (with Pickup):</span>
-                                            <span className="font-bold text-primary-900 text-xl">₺{totalWithPickup.toFixed(2)}</span>
+                                            <span translate="no" className="notranslate font-bold text-primary-900 text-xl">₺{totalWithPickup.toFixed(2)}</span>
                                         </div>
                                     </div>
+                                )}
+
+                                {totalPartsPrice > 0 && (
+
+                                    <div className="mt-4 flex justify-between py-1">
+
+                                        <span className="text-gray-600">Parts (supplied by admin, paid to admin):</span>
+
+                                        <span translate="no" className="notranslate text-red-600 font-medium">-₺{totalPartsPrice.toFixed(2)}</span>
+
+                                    </div>
+
                                 )}
 
                                 <div className="mt-4 pt-3 border-t-2 border-gray-300">
                                     <div className="flex justify-between py-1">
                                         <span className="text-gray-600">Platform commission ({platformFeePercentage}% on base price only):</span>
-                                        <span className="text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
+                                        <span translate="no" className="notranslate text-red-600 font-medium">-₺{platformFee.toFixed(2)}</span>
                                     </div>
                                 </div>
 
@@ -589,12 +602,12 @@ export default function BidForm({
 
                                 <div className="flex justify-between py-2 bg-green-50 -mx-2 px-2 rounded-lg">
                                     <span className="text-gray-900 font-semibold">You'll receive:</span>
-                                    <span className="text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
+                                    <span translate="no" className="notranslate text-green-600 font-bold text-lg">₺{netAmount.toFixed(2)}</span>
                                 </div>
                             </div>
                             <div className="mt-3 pt-3 border-t border-gray-200">
                                 <p className="text-xs text-gray-500 italic">
-                                    * {platformFeePercentage}% commission applies only to base service price, not on parts
+                                    * {platformFeePercentage}% commission applies only to the base service price. Parts are supplied by the admin, so the parts amount goes to the admin, not to you.
                                 </p>
                             </div>
                         </div>

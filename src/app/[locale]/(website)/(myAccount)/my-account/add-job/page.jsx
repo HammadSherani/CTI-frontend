@@ -849,29 +849,6 @@ export default function CreateRepairJobForm() {
                     )}
                   />
                 </div>
-                <div>
-                  <Controller
-                    name="maxOffers"
-                    control={control}
-                    render={({ field }) => (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Maximum Offers</label>
-                        <div className="relative">
-                          <input
-                            {...field}
-                            type="number"
-                            min="1"
-                            max="20"
-                            placeholder="10"
-                            className="w-full p-2.5 pl-9 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 border-gray-200"
-                          />
-                          <Icon icon="mdi:numeric" className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400 text-base" />
-                        </div>
-                        <p className="mt-1 text-xs text-gray-500">1-20 offers</p>
-                      </div>
-                    )}
-                  />
-                </div>
 
                 {/* Manual Coordinates Input */}
                 {/* <div>
