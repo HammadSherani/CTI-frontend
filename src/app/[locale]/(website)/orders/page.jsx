@@ -11,7 +11,7 @@ import { CustomDropdown } from '@/components/partials/admin/ecom/Dropdown';
 import SearchInput from '@/components/SearchInput';
 import { useSearchParams } from 'next/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
-import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems } from '@/components/website/ReturnItemPicker';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
 
 const RETURN_STATUS_CFG = {
   requested: { label: 'Pending Review', bg: 'bg-blue-100 text-blue-700' },
@@ -21,7 +21,7 @@ const RETURN_STATUS_CFG = {
 };
 
 function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
-  const isRefurbished = order?.orderNo?.startsWith('REF-');
+  const isRefurbished = order?.orderNo?.startsWith('REF-') || order?.orderId?.startsWith('REF-');
   
   const [reason, setReason] = useState('');
   const [images, setImages] = useState([]);
@@ -46,7 +46,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
         const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
         initial[key] = {
           selected: false,
-          quantity: item.quantity || 1,
+          quantity: remainingUnits(item),
           reason: ''
         };
       });
@@ -61,7 +61,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
     order.items.forEach(item => {
       const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
       const state = selectedItems[key];
-      if (state?.selected) {
+      if (state?.selected && remainingUnits(item) > 0) {
         itemsToReturn.push({
           productId: item.productId?._id || item.productId,
           variantId: item.variantId?._id || item.variantId,
@@ -114,7 +114,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
           {isRefurbished ? (
             <div className="space-y-4">
               <p className="text-xs font-bold text-gray-500 uppercase">Select items and quantity to return:</p>
-              {order.items.map(item => {
+              {order.items.filter(item => remainingUnits(item) > 0).map(item => {
                 const prod = item.productId || {};
                 const variant = item.variantId || {};
                 const key = `${prod._id || prod}-${variant._id || variant}`;
@@ -151,7 +151,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                             }))}
                             className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500 font-semibold"
                           >
-                            {Array.from({ length: item.quantity }, (_, i) => i + 1).map(q => (
+                            {Array.from({ length: remainingUnits(item) }, (_, i) => i + 1).map(q => (
                               <option key={q} value={q}>{q}</option>
                             ))}
                           </select>
@@ -923,8 +923,8 @@ export default function MyOrdersPage() {
                                       {order.orderStatus === 'delivered' && (() => {
                                         const orderReturns = existingReturns[order._id?.toString()] || [];
                                         const existingReturn = orderReturns[0];
-                                        // marketplace orders can be returned in parts
-                                        const more = !isRefurbishedMode && canRequestReturn(order, orderReturns);
+                                        // orders can be returned in parts
+                                        const more = canRequestReturn(order, orderReturns);
                                         if (existingReturn && !more) {
                                           const cfg = RETURN_STATUS_CFG[existingReturn.returnStatus] || { label: existingReturn.returnStatus, bg: 'bg-gray-100 text-gray-600' };
                                           return (
@@ -934,7 +934,7 @@ export default function MyOrdersPage() {
                                             </div>
                                           );
                                         }
-                                        if (!isRefurbishedMode && !more) return null; // return period over
+                                        if (!more) return null; // return period over
                                         return (
                                           <>
                                             {existingReturn && (

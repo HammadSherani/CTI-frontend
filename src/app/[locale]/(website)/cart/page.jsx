@@ -72,7 +72,9 @@ export default function CartPage() {
 
   const updateQty = (item, delta, isRefurbished) => {
     if (isRefurbished) {
-      dispatch(updateRefurbishedCartItem({ product: item.productId, variantId: item.variantId, delta }));
+      dispatch(updateRefurbishedCartItem({ product: item.productId, variantId: item.variantId, delta }))
+        .unwrap()
+        .catch((error) => toast.error(error?.message || 'Could not update the quantity'));
     } else {
       dispatch(updateCartItem({ product: item.productId, variantId: item.variantId, delta }))
         .unwrap()

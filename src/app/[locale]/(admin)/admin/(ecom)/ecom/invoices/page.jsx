@@ -306,7 +306,7 @@ export default function AdminInvoicesPage() {
                           {/* View Order */}
                           {inv.orderId && (
                             <a
-                              href={`/admin/ecom/orders/${inv.orderId._id}`}
+                              href={inv.orderId.isRefurbished ? `/admin/refurbished/orders/${inv.orderId._id}` : `/admin/ecom/orders/${inv.orderId._id}`}
                               title="View Order"
                               className="w-7 h-7 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center transition-colors"
                             >

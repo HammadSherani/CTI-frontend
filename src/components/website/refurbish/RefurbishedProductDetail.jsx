@@ -380,8 +380,10 @@ export default function RefurbishedProductDetail({ params }) {
       product: productData,
       variantId: selectedVariant._id,
       quantity,
-    }));
-    toast.success(`${productData.title} added to cart!`);
+    }))
+      .unwrap()
+      .then(() => toast.success(`${productData.title} added to cart!`))
+      .catch((error) => toast.error(error?.message || 'Could not add to cart'));
   };
 
   const handleToggleWishlist = () => {

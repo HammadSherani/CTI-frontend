@@ -1,6 +1,6 @@
 'use client';
 
-// Partial returns for marketplace orders: the customer picks the items and how many of each.
+// Partial returns: the customer picks the items and how many of each.
 import { formatCurrency } from '@/helper/currencyFormatter';
 
 const RETURN_WINDOW_DAYS = 14;
@@ -20,7 +20,7 @@ export function canRequestReturn(order, returns = []) {
   const deadline = returnDeadlineOf(order);
   if (deadline && Date.now() > deadline.getTime()) return false;
   // a request made before partial returns covers the whole order
-  if (returns.some((r) => r.returnStatus !== 'rejected' && !r.items?.length)) return false;
+  if (returns.some((r) => r.returnStatus !== 'rejected' && (!r.items?.length || r.items.some((i) => i.itemIndex === undefined)))) return false;
   return !!order.items?.some((item) => remainingUnits(item) > 0);
 }
 

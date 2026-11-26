@@ -35,6 +35,11 @@ export const fetchRefurbishedCart = createAsyncThunk(
   }
 );
 
+// keep the server's reason (e.g. "Only 2 left in stock") so the page can show it
+const withReason = (error) => {
+  throw new Error(error?.response?.data?.message || error.message);
+};
+
 export const addRefurbishedToCart = createAsyncThunk(
   "refurbishedCart/add",
   async ({ product, variantId, quantity = 1 }, { getState }) => {
@@ -50,7 +55,7 @@ export const addRefurbishedToCart = createAsyncThunk(
         "/refurbished/cart/my-cart/items",
         { productId: pId, variantId: vId, quantity },
         { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
+      ).catch(withReason);
       return res.data.data?.items || [];
     }
     if (typeof window !== "undefined") {
@@ -85,7 +90,7 @@ export const updateRefurbishedCartItem = createAsyncThunk(
         "/refurbished/cart/my-cart/items",
         { productId: pId, variantId: vId, delta },
         { headers: { Authorization: `Bearer ${auth.token}` } }
-      );
+      ).catch(withReason);
       return res.data.data?.items || [];
     }
     if (typeof window !== "undefined") {

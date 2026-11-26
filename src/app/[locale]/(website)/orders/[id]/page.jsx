@@ -10,7 +10,7 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 import { formatCurrency } from '@/helper/currencyFormatter';
-import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems } from '@/components/website/ReturnItemPicker';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
 import { OrderItemReviewButton } from '@/components/website/ProductReview';
 
 /* ══════════════════════════════════════════
@@ -237,7 +237,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
         const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
         initial[key] = {
           selected: false,
-          quantity: item.quantity || 1,
+          quantity: remainingUnits(item),
           reason: ''
         };
       });
@@ -252,7 +252,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
     order.items.forEach(item => {
       const key = `${item.productId?._id || item.productId}-${item.variantId?._id || item.variantId}`;
       const state = selectedItems[key];
-      if (state?.selected) {
+      if (state?.selected && remainingUnits(item) > 0) {
         itemsToReturn.push({
           productId: item.productId?._id || item.productId,
           variantId: item.variantId?._id || item.variantId,
@@ -299,7 +299,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
           {isRefurbished ? (
             <div className="space-y-4">
               <p className="text-xs font-bold text-gray-500 uppercase">Select items and quantity to return:</p>
-              {order.items.map(item => {
+              {order.items.filter(item => remainingUnits(item) > 0).map(item => {
                 const prod = item.productId || {};
                 const variant = item.variantId || {};
                 const key = `${prod._id || prod}-${variant._id || variant}`;
@@ -336,7 +336,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                             }))}
                             className="w-full bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none focus:ring-2 focus:ring-primary-500 font-semibold"
                           >
-                            {Array.from({ length: item.quantity }, (_, i) => i + 1).map(q => (
+                            {Array.from({ length: remainingUnits(item) }, (_, i) => i + 1).map(q => (
                               <option key={q} value={q}>{q}</option>
                             ))}
                           </select>
@@ -879,15 +879,12 @@ export default function OrderDetailPage() {
 
             {/* Request Return / Return Status (delivered only) */}
             {order.orderStatus === 'delivered' && (() => {
-              // refurbished orders keep one request at a time, marketplace orders can be returned in parts
+              // orders can be returned in parts
               const latest = orderReturns[0];
-              const shown = isRefurbishedMode ? orderReturns.slice(0, 1) : orderReturns;
-              const canAsk = isRefurbishedMode
-                ? !latest || latest.returnStatus === 'rejected'
-                : canRequestReturn(order, orderReturns);
+              const canAsk = canRequestReturn(order, orderReturns);
               return (
                 <>
-                  {shown.map((ret) => {
+                  {orderReturns.map((ret) => {
                     const cfg = RETURN_STATUS_CFG[ret.returnStatus] || {
                       label: ret.returnStatus,
                       bg: 'bg-gray-50 text-gray-600 border-gray-200',
@@ -902,9 +899,11 @@ export default function OrderDetailPage() {
                         <p className="text-xs opacity-75">
                           Return #{ret.returnNo || '—'} · {ret.createdAt ? new Date(ret.createdAt).toLocaleDateString() : ''}
                         </p>
-                        {!isRefurbishedMode && ret.productName && (
-                          <p className="text-xs opacity-75">{ret.productName} · {formatCurrency(ret.price || 0)}</p>
-                        )}
+                        <p className="text-xs opacity-75">
+                          {ret.productName || ret.items?.map((i) => `${i.productName} × ${i.quantity}`).join(', ')}
+                          {' · '}
+                          {formatCurrency(ret.price ?? ret.items?.reduce((sum, i) => sum + i.price * i.quantity, 0) ?? 0)}
+                        </p>
                       </div>
                     );
                   })}

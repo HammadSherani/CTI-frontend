@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Image from "next/image";
 import moment from "moment";
+import OrderInvoiceCard from "@/components/partials/seller/OrderInvoiceCard";
 
 const STATUS_CONFIG = {
   pending:    { label: "Pending",    bg: "bg-blue-100",   text: "text-blue-700",   icon: "mdi:clock-outline" },
@@ -700,6 +701,7 @@ export default function AdminRefurbishedOrderDetailPage() {
 
         {/* ── RIGHT sidebar ── */}
         <div className="flex flex-col gap-6">
+          {order.orderStatus !== "cancelled" && <OrderInvoiceCard orderId={order._id} token={token} />}
 
           <ShipmentInfoCard 
               shipment={shipment} 
