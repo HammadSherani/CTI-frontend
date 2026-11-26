@@ -47,7 +47,6 @@ function Login() {
 
   const onSubmit = async (data) => {
     try {
-      console.log("Login submitteds:", data);
       // alert('Login submitted with email: ' + data.email);
 
           const response = await axiosInstance.post("/auth/login", {
@@ -55,7 +54,6 @@ function Login() {
         password: data.password,
         rememberMe: data.rememberMe,
       });
-      console.log("Login successful:", response);
 
       const resData = response.data.data;
 
@@ -73,7 +71,6 @@ function Login() {
 
   
 
-      console.log(resData, 'resData')
       // 🔐 If email is NOT verified → redirect to verification page
       if (response.data.requiresVerification) {
         console.log("Email not verified → redirecting to OTP page...");
@@ -124,8 +121,6 @@ function Login() {
       }
 
     } catch (error) {
-      console.log(error.response, "rer");
-
       if (error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
         const { email, userId } = error.response.data.data;
         router.push(`/auth/verify-email?email=${email}&userId=${userId}`);

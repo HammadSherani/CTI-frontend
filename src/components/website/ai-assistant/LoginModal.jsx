@@ -7,11 +7,10 @@ import * as yup from "yup";
 import { Icon } from "@iconify/react";
 import Image from "next/image";
 import axiosInstance from "@/config/axiosInstance";
-import handleError from "@/helper/handleError";
 import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from '@/i18n/navigation'
+import { Link, useRouter } from '@/i18n/navigation'
 import { setCurrentUser } from "@/store/chat";
 
 // Validation schema
@@ -31,6 +30,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const dispatch = useDispatch();
+  const router = useRouter();
 
   const {
     control,
@@ -57,10 +57,15 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
     }
   }, [isOpen]);
 
+  // the account exists but still has a step to finish: same pages as the website login
+  const openVerifyEmail = ({ email, userId }) => {
+    onClose();
+    router.push(`/auth/verify-email?email=${encodeURIComponent(email)}&userId=${userId}`);
+  };
+
   const onSubmit = async (data) => {
     try {
       setErrorMessage("");
-      console.log("Login submitted:", data);
 
       const response = await axiosInstance.post("/auth/login", {
         email: data.email,
@@ -69,10 +74,14 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
       });
 
       const resData = response.data.data;
-      console.log("Login response data:", resData);
 
-      if (resData?.user?.role !== "customer") {
-        setErrorMessage("Only customers can use the shopping assistant.");
+      if (response.data.requiresVerification) {
+        openVerifyEmail(resData);
+        return;
+      }
+
+      if (!["customer", "seller", "repairman"].includes(resData?.user?.role)) {
+        setErrorMessage("Please use the main login page for this account.");
         return;
       }
 
@@ -91,9 +100,22 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
 
       onSuccess(resData);
     } catch (error) {
-      console.error("Login error:", error);
-      setErrorMessage("Invalid email or password. Please try again.");
-      handleError(error);
+      const problem = error?.response?.data;
+
+      // seller who has not finished the verification form
+      if (error?.response?.status === 410 && problem?.data?.isKycCompleted === false) {
+        const { userId, token, user } = problem.data;
+        if (token) dispatch(setAuth({ user, token, userType: "seller" }));
+        onClose();
+        router.push(`/seller/complete-profile/${userId}`);
+        return;
+      }
+      if (error?.response?.status === 401 && /verify your email/i.test(problem?.message || "") && problem?.data?.userId) {
+        openVerifyEmail(problem.data);
+        return;
+      }
+
+      setErrorMessage(problem?.message || "Login failed. Please try again.");
     }
   };
 
@@ -201,7 +223,7 @@ function LoginModal({ isOpen, onClose, onSuccess }) {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0, transition: { delay: 0.6, duration: 0.3 } }}
                       >
-                        Login to Shop
+                        Login to Continue
                       </motion.h2>
                       <motion.p
                         className="text-lg text-orange-100 mb-4"

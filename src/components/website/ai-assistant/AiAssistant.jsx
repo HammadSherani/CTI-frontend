@@ -10,6 +10,10 @@ import { useSelector } from 'react-redux';
 import LoginModal from '@/components/website/ai-assistant/LoginModal';
 
 
+const GUEST_ID_KEY = 'cti-ai-shopping-assistant-guest-id-v1';
+const MAX_MESSAGE_LENGTH = 1000; // the server refuses longer messages
+const GENERIC_ERROR = 'I could not reach the assistant right now. Please try again.';
+
 function createId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
@@ -395,7 +399,7 @@ function sanitizeInternalPath(raw) {
 
 /* ───────────────────────── Message Bubble ───────────────────────── */
 
-const AssistantBubble = memo(function AssistantBubble({ message, onProductClick, onJobClick, onLoginClick }) {
+const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProductClick, onJobClick, onLoginClick }) {
   const isUser = message.role === 'user';
   const hasProducts = Array.isArray(message.products) && message.products.length > 0;
   const hasJobs = Array.isArray(message.jobs) && message.jobs.length > 0;
@@ -429,6 +433,22 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
       if (!linkUrl) {
         // Unknown/placeholder link (e.g. example.com) — show label only, never a broken link
         parts.push(linkText);
+        lastIndex = linkRegex.lastIndex;
+        continue;
+      }
+
+      // "Log in" opens the popup here, so the visitor stays in this chat
+      if (linkUrl === '/auth/login') {
+        parts.push(isGuest ? (
+          <button
+            key={`link-${match.index}`}
+            type="button"
+            onClick={onLoginClick}
+            className="text-primary-600 hover:text-primary-700 font-bold underline transition-colors"
+          >
+            {linkText}
+          </button>
+        ) : linkText);
         lastIndex = linkRegex.lastIndex;
         continue;
       }
@@ -540,20 +560,21 @@ const AssistantBubble = memo(function AssistantBubble({ message, onProductClick,
 
 const getOrCreateGuestId = async () => {
   if (typeof window === 'undefined') return null;
-  let gid = localStorage.getItem('cti-ai-shopping-assistant-guest-id-v1');
-  if (!gid) {
-    try {
-      const { data } = await axiosInstance.post('/ai/agent/guest-session');
-      if (data?.success && data.guestId) {
-        gid = data.guestId;
-        localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
-      }
-    } catch (err) {
-      console.error("Failed to generate guest session from server", err);
-      gid = 'guest_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('cti-ai-shopping-assistant-guest-id-v1', gid);
-    }
+  const stored = localStorage.getItem(GUEST_ID_KEY);
+  if (stored && /^guest_[A-Za-z0-9]{16,64}$/.test(stored)) return stored;
+
+  let gid = null;
+  try {
+    const { data } = await axiosInstance.post('/ai/agent/guest-session');
+    if (data?.success) gid = data.guestId;
+  } catch (err) {
+    console.error("Failed to generate guest session from server", err);
   }
+  if (!gid) {
+    const bytes = crypto.getRandomValues(new Uint8Array(16));
+    gid = 'guest_' + Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  localStorage.setItem(GUEST_ID_KEY, gid);
   return gid;
 };
 
@@ -580,6 +601,8 @@ export default function AiShoppingAssistant() {
   const prevIsOpenRef = useRef(false);
   const prevHistoryLoadingRef = useRef(false);
   const inputRef = useRef(null);
+  // the message the guest limit stopped; it returns to the box after login
+  const stoppedMessageRef = useRef(null);
   // Tracks whether we've completed at least one history fetch this session,
   // so reopening the panel later doesn't flash the loading state again over
   // conversations we already have in memory.
@@ -634,7 +657,8 @@ export default function AiShoppingAssistant() {
           const mapped = data.conversations.map((c) => ({
             id: c._id,
             title: c.title,
-            messages: c.messages || [],
+            // saved messages are identified by "_id"; the chat window needs "id"
+            messages: (c.messages || []).map((m, index) => ({ ...m, id: m.id || m._id || `${c._id}-${index}` })),
             createdAt: c.createdAt,
             updatedAt: c.updatedAt
           }));
@@ -831,6 +855,7 @@ export default function AiShoppingAssistant() {
     const targetId = activeConversation?.id || conversations[0]?.id;
 
     if (isGuestMode && userMessagesCount >= 10) {
+      stoppedMessageRef.current = text;
       const nextUserMessage = {
         id: createId(),
         role: 'user',
@@ -881,26 +906,15 @@ export default function AiShoppingAssistant() {
       abortControllerRef.current = new AbortController();
       const signal = abortControllerRef.current.signal;
 
-      const history = nextMessages
-        .filter((m) => m.role === 'user' || m.role === 'assistant')
-        .map((m) => ({ role: m.role, content: m.content }))
-        .slice(-12);
-
       const dbConvId = targetId && targetId.length === 24 ? targetId : undefined;
-      const guestId = hasToken ? undefined : await getOrCreateGuestId();
+      // sent even when logged in: if the login has expired, the chat continues as a guest
+      const guestId = await getOrCreateGuestId();
 
+      // the server keeps the conversation, so only the new message is sent
       const payload = {
         message: text,
-        history,
         conversationId: dbConvId,
         guestId,
-        assistantMode: isGuestMode ? 'guest' : 'signed-in',
-        instructions: {
-          scope: 'shopping-only',
-          answerLanguage: 'mirror-user-language',
-          responseStyle: 'concise',
-          avoidOffTopic: true,
-        },
       };
 
       const baseURL = axiosInstance.defaults.baseURL || '';
@@ -915,7 +929,11 @@ export default function AiShoppingAssistant() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const problem = await response.json().catch(() => ({}));
+        const failure = new Error(problem.message || GENERIC_ERROR);
+        failure.isReadable = true;
+        failure.needsLogin = isGuestMode && response.status === 429 && /guest limit/i.test(problem.message || '');
+        throw failure;
       }
 
       const contentType = response.headers.get('content-type');
@@ -998,6 +1016,7 @@ export default function AiShoppingAssistant() {
               const data = JSON.parse(dataStr);
               if (data.type === 'error') {
                 if (data.limitReached) {
+                  stoppedMessageRef.current = text;
                   if (!messageInjected) {
                     setConversations((current) =>
                       current.map((c) => {
@@ -1165,7 +1184,9 @@ export default function AiShoppingAssistant() {
         console.log("Request aborted");
         return; // Don't show fallback if deliberately stopped
       }
-      const fallback = error?.message || 'I could not reach the shopping assistant right now.';
+      // only the server's own messages are shown; technical errors are not
+      const fallback = error?.isReadable ? error.message : GENERIC_ERROR;
+      if (error?.needsLogin) stoppedMessageRef.current = text;
       setConversations((current) =>
         current.map((c) => {
           if (c.id !== targetId) return c;
@@ -1177,6 +1198,7 @@ export default function AiShoppingAssistant() {
                 id: createId(),
                 role: 'assistant',
                 content: fallback,
+                showLoginButton: Boolean(error?.needsLogin),
                 products: [],
                 jobs: [],
                 createdAt: new Date().toISOString(),
@@ -1291,6 +1313,7 @@ export default function AiShoppingAssistant() {
                         <AssistantBubble
                           key={message.id}
                           message={message}
+                          isGuest={isGuestMode}
                           onProductClick={handleProductClick}
                           onJobClick={handleJobClick}
                           onLoginClick={handleLoginClick}
@@ -1313,7 +1336,7 @@ export default function AiShoppingAssistant() {
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500 [animation-delay:-0.1s]" />
                             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary-500" />
                           </div>
-                          <p className="mt-1.5 text-[11px] font-medium text-slate-500">Searching products…</p>
+                          <p className="mt-1.5 text-[11px] font-medium text-slate-500">Thinking…</p>
                         </div>
                       </motion.div>
                     )}
@@ -1330,7 +1353,7 @@ export default function AiShoppingAssistant() {
                     animate={{ width: 168, opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="hidden shrink-0 overflow-hidden border-l border-slate-100 bg-white sm:block"
+                    className="absolute inset-y-0 right-0 z-10 shrink-0 overflow-hidden border-l border-slate-100 bg-white shadow-xl sm:static sm:shadow-none"
                   >
                     <div className="flex h-full w-[168px] flex-col p-2.5">
                       <div className="mb-2 flex items-center justify-between">
@@ -1389,6 +1412,7 @@ export default function AiShoppingAssistant() {
                     }
                   }}
                   rows={1}
+                  maxLength={MAX_MESSAGE_LENGTH}
                   placeholder="Ask about phones, prices, stock…"
                   className="max-h-28 min-h-[40px] flex-1 resize-none bg-transparent px-2.5 py-2 text-[13.5px] text-slate-900 outline-none placeholder:text-slate-400"
                 />
@@ -1464,6 +1488,9 @@ export default function AiShoppingAssistant() {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onSuccess={() => {
+          const stopped = stoppedMessageRef.current;
+          stoppedMessageRef.current = null;
+          if (stopped) setInput((current) => current || stopped);
           fetchConversations();
         }}
       />
