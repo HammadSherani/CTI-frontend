@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 export default function RequestStatementModal({ onClose, transactions, summary, currentFilter, customDate }) {
     const [statementType, setStatementType] = useState('full');
@@ -46,9 +47,9 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
                 startY: 60,
                 head: [['Metric', 'Amount']],
                 body: [
-                    ['Total Revenue', `$${summary.totalRevenue.toFixed(2)}`],
-                    ['Total Earned (Available)', `$${summary.totalEarned.toFixed(2)}`],
-                    ['Total Pending (Hold)', `$${summary.totalPending.toFixed(2)}`],
+                    ['Total Revenue', formatCurrency(summary.totalRevenue)],
+                    ['Total Earned (Available)', formatCurrency(summary.totalEarned)],
+                    ['Total Pending (Hold)', formatCurrency(summary.totalPending)],
                     ['Total Orders', summary.totalOrders.toString()]
                 ],
                 theme: 'grid',
@@ -71,9 +72,9 @@ export default function RequestStatementModal({ onClose, transactions, summary, 
                 new Date(t.orderDate).toLocaleDateString(),
                 t.orderNo,
                 t.productNamesStr?.substring(0, 30) + (t.productNamesStr?.length > 30 ? '...' : ''),
-                `$${t.orderAmount.toFixed(2)}`,
-                `$${t.holdAmount.toFixed(2)}`,
-                `$${t.availableEarnings.toFixed(2)}`,
+                formatCurrency(t.orderAmount),
+                formatCurrency(t.holdAmount),
+                formatCurrency(t.availableEarnings),
                 t.orderStatus
             ]);
 

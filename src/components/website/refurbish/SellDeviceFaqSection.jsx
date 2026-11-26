@@ -213,7 +213,7 @@ export default function SellDeviceFaqSection({ deviceType = 'Device' }) {
             <span>Contact Support</span>
           </Link>
           <a
-            href="tel:+918000000000"
+            href="tel:+900000000000"
             className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 active:scale-95 text-white font-bold text-xs sm:text-sm px-4 py-3 rounded-xl border border-white/20 transition-all duration-200"
           >
             <Icon icon="lucide:phone-call" className="text-base text-amber-400" />

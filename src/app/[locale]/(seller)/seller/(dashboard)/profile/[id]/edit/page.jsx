@@ -165,23 +165,23 @@ function ProfileEditPage() {
     lastName: 'S.',
     username: 'Hammadkhan678910',
     email: 'hammad@example.com',
-    phone: '+92 300 1234567',
+    phone: '+90 555 123 45 67',
     
     // Professional Information
     title: 'Scalable & Efficient MERN Stack Developer',
     overview: `I'm well known in MS office (MS word, MS excel, MS power point etc) i can convert pdf to word and at least in excel and I'm able to write a description blog`,
     hourlyRate: '5',
-    currency: 'USD',
+    currency: 'TRY',
     
     // Location Information
-    country: 'Pakistan',
-    city: 'Karachi',
-    timezone: 'Asia/Karachi',
+    country: 'Turkey',
+    city: 'Istanbul',
+    timezone: 'Europe/Istanbul',
     
     // Languages
     languages: [
       { id: 1, name: 'English', level: 'Professional' },
-      { id: 2, name: 'Urdu', level: 'Native or bilingual' }
+      { id: 2, name: 'Turkish', level: 'Native or bilingual' }
     ],
     
     // Skills
@@ -198,16 +198,12 @@ function ProfileEditPage() {
 
   const countryOptions = [
     { value: '', label: 'Select Country' },
-    { value: 'Pakistan', label: 'Pakistan' },
-    { value: 'India', label: 'India' },
-    { value: 'Bangladesh', label: 'Bangladesh' },
-    { value: 'USA', label: 'United States' },
-    { value: 'UK', label: 'United Kingdom' }
+    { value: 'Turkey', label: 'Turkey' }
   ];
 
   const currencyOptions = [
+    { value: 'TRY', label: 'TRY (₺)' },
     { value: 'USD', label: 'USD ($)' },
-    { value: 'TRY', label: 'TRY (₨)' },
     { value: 'EUR', label: 'EUR (€)' },
     { value: 'GBP', label: 'GBP (£)' }
   ];
@@ -449,7 +445,7 @@ function ProfileEditPage() {
                 type="tel"
                 value={formData.phone}
                 onChange={handleInputChange}
-                placeholder="+92 300 1234567"
+                placeholder="+90 555 123 45 67"
               />
             </div>
           </div>

@@ -68,7 +68,6 @@ export default function ShippingOperations({ control, errors, watch, setValue })
               {errors.shippingMethod.message}
             </p>
           )}
-          {errors.shippingMethod && <p className="text-primary-500 text-xs mt-1">{errors.shippingMethod.message}</p>}
         </div>
 
 

@@ -6,8 +6,6 @@ import { Icon } from "@iconify/react";
 const UploadField = ({ label, name, control, errors, setValue, watch, accept, hint }) => {
   const inputRef = useRef();
   const file = watch(name);
-console.log(setValue,"Setvalue from document")
-console.log(watch,"watch from document")
   return (
     <div>
       <label className="block text-sm font-medium text-gray-600 mb-1.5">
@@ -24,7 +22,7 @@ console.log(watch,"watch from document")
           }}
           className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all
             ${file ? "border-teal-500 bg-teal-50" : "border-gray-300 bg-gray-50 hover:border-teal-400 hover:bg-teal-50"}
-            ${errors[name] ? "border-primary-400 bg-primary-50" : ""}`}
+            ${errors[name] ? "!border-red-400 !bg-red-50" : ""}`}
         >
           <input
             ref={inputRef}
@@ -73,13 +71,13 @@ console.log(watch,"watch from document")
           ) : (
             <div className="flex flex-col items-center gap-1">
               <span className="text-2xl text-gray-300"><Icon icon="mdi:upload" /> </span>
-              <p className="text-sm text-gray-500">Click or drag & drops</p>
+              <p className="text-sm text-gray-500">Click or drag & drop</p>
               {hint && <p className="text-xs text-gray-400">{hint}</p>}
             </div>
           )}
         </div>
       )} />
-      {errors[name] && <p className="text-primary-500 text-xs mt-1">{errors[name].message}</p>}
+      {errors[name] && <p role="alert" className="text-red-500 text-xs mt-1">{errors[name].message}</p>}
     </div>
   );
 };
@@ -104,21 +102,21 @@ export default function DocumentUploads({ control, errors, setValue, watch }) {
           label="National ID / Passport"
           name="nationalIdOrPassport"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp"
+          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,.pdf"
           hint="Image or PDF — Max 5MB"
         />
         <UploadField
           label="Shop License / Tax Certificate"
           name="shopLicenseOrTaxCertificate"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp"
+          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,.pdf"
           hint="Image or PDF — Max 5MB"
         />
         <UploadField
           label="Proof of Address"
           name="proofOfAddress"
           control={control} errors={errors} setValue={setValue} watch={watch}
-          accept="image/jpeg,image/jpg,image/png,image/webp"
+          accept="image/jpeg,image/jpg,image/png,image/webp,application/pdf,.pdf"
           hint="Utility bill or bank statement — Max 5MB"
         />
       </div>

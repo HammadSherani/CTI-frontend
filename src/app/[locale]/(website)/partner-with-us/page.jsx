@@ -5,6 +5,8 @@ import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import axiosInstance from '@/config/axiosInstance';
 import Breadcrumb from '@/components/ui/Breadcrumb';
+import PhoneInput from '@/components/common/PhoneInput';
+import { checkPhone, compactPhone } from '@/helper/phone';
 
 /* ── Small reusable input field (plain JS) ── */
 function FieldInput({
@@ -25,16 +27,28 @@ function FieldInput({
       >
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        className={`w-full rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition ${compact ? 'px-3.5 py-2.5' : 'px-4 py-3'
-          }`}
-      />
+      {type === 'tel' ? (
+        <PhoneInput
+          name={name}
+          aria-label={label}
+          value={value}
+          onChange={(v) => onChange({ target: { name, value: v } })}
+          required={required}
+          className="!rounded-xl"
+          inputClassName={compact ? 'py-2.5' : 'py-3'}
+        />
+      ) : (
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          required={required}
+          className={`w-full rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition ${compact ? 'px-3.5 py-2.5' : 'px-4 py-3'
+            }`}
+        />
+      )}
     </div>
   );
 }
@@ -86,12 +100,18 @@ export default function PartnerWithUsPage() {
       return;
     }
 
+    const phoneProblem = checkPhone(formData.phone);
+    if (phoneProblem) {
+      toast.error(phoneProblem);
+      return;
+    }
+
     setLoading(true);
     try {
       const response = await axiosInstance.post('/public/partner-inquiry', {
         fullName: formData.fullName.trim(),
         businessName: formData.businessName.trim(),
-        phone: formData.phone.trim(),
+        phone: compactPhone(formData.phone),
         email: formData.email.trim().toLowerCase(),
         city: formData.city.trim(),
         message: formData.message.trim(),

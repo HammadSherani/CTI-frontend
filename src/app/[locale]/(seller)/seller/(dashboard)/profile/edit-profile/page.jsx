@@ -281,7 +281,7 @@ const EntryModal = ({ isOpen, type, onClose, onSave, entry }) => {
             name={institutionField}
             value={formState[institutionField] || ''}
             onChange={handleChange}
-            placeholder={isEducation ? "e.g., Pakistan Technical University" : "e.g., TechFix Solutions"}
+            placeholder={isEducation ? "e.g., Istanbul Technical University" : "e.g., TechFix Solutions"}
             required
           />
           <div className="grid grid-cols-2 gap-3">
@@ -1034,7 +1034,7 @@ const handleCertLicenseSave = (form, newItems, previews) => {
               <InputField label="Father Name" name="fatherName" value={formData.fatherName} onChange={handleChange} error={errors.fatherName} />
               <SelectField label="Gender" name="gender" value={formData.gender} onChange={handleChange} options={['Male', 'Female', 'Other']} />
               <InputField label="Date of Birth" name="dob" type="date" value={formData.dob} onChange={handleChange} />
-              <InputField label="National ID/CNIC" name="nationalIdOrCitizenNumber" value={formData.nationalIdOrCitizenNumber} onChange={handleChange} />
+              <InputField label="National ID" name="nationalIdOrCitizenNumber" value={formData.nationalIdOrCitizenNumber} onChange={handleChange} />
               <InputField label="Tax Number" name="taxNumber" value={formData.taxNumber} onChange={handleChange} required error={errors.taxNumber} />
             </div>
           </SectionCard>

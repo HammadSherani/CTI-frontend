@@ -64,7 +64,7 @@ export default function EcomCharts({ data }) {
                 axisLine={false}
                 tickLine={false}
                 tick={{fill: '#6b7280', fontSize: 12}}
-                tickFormatter={(value) => `$${value}`}
+                tickFormatter={(value) => `₺${value}`}
               />
               <Tooltip 
                 contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}

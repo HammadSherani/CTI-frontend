@@ -125,7 +125,7 @@ export default function SellerAdsPage() {
             </div>
             <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm flex items-center gap-4">
               <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                <Icon icon="mdi:currency-usd" className="w-6 h-6" />
+                <Icon icon="mdi:currency-try" className="w-6 h-6" />
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Total Spend</p>

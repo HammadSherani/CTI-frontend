@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { DataTable } from "@/components/partials/admin/ecom/DataTable";
 import SummaryCards from "@/components/partials/admin/ecom/SummaryCards";
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const TABS = [
   { id: "", label: "All", icon: "mdi:format-list-bulleted" },
@@ -151,7 +152,7 @@ export default function AdminOrdersPage() {
     {
       header: "Total",
       cell: (row) => (
-        <span className="font-bold text-gray-900">${(row.totalAmount || 0).toFixed(2)}</span>
+        <span className="font-bold text-gray-900">{formatCurrency(row.totalAmount || 0)}</span>
       ),
     },
     {

@@ -193,7 +193,7 @@ function Testimonials() {
             <div className="flex flex-col gap-4">
               <div className="flex items-center gap-3 bg-white opacity-90 p-4 md:w-[250px] w-full rounded-md">
                 <div className="w-12 h-12 bg-primary-400 rounded-full flex items-center justify-center">
-                  <Icon icon="mdi:dollar" className="text-3xl font-bold text-white" />
+                  <Icon icon="mdi:currency-try" className="text-3xl font-bold text-white" />
                 </div>
                 <div>
                   <p className="text-2xl md:text-2xl font-bold text-primary-500">93212.8 Cr</p>

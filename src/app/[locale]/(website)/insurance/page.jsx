@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as yup from "yup";
 import { Icon } from "@iconify/react";
@@ -9,10 +9,15 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Breadcrumb from "@/components/ui/Breadcrumb";
 import axiosInstance from "@/config/axiosInstance";
+import PhoneInput from "@/components/common/PhoneInput";
+import { checkPhone, compactPhone } from "@/helper/phone";
 
 const schema = yup.object({
   fullName: yup.string().trim().min(2, "Enter your full name").required("Full name is required"),
-  phone: yup.string().trim().min(7, "Enter a valid phone number").required("Phone is required"),
+  phone: yup.string().required("Phone is required").test("country-phone", "", function (value) {
+    const message = checkPhone(value);
+    return message ? this.createError({ message }) : true;
+  }),
   email: yup.string().trim().email("Enter a valid email").required("Email is required"),
   brand: yup.string().trim().required("Brand is required"),
   model: yup.string().trim().required("Model is required"),
@@ -43,9 +48,9 @@ export default function InsurancePage() {
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const { register, handleSubmit, setValue, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, setValue, watch, control, formState: { errors } } = useForm({
     resolver: yupResolver(schema),
-    defaultValues: { categoryId: "", typeId: "", notes: "" },
+    defaultValues: { categoryId: "", typeId: "", notes: "", phone: "" },
   });
   useEffect(() => {
     axiosInstance.get("/public/insurance/categories")
@@ -68,7 +73,8 @@ export default function InsurancePage() {
     return "";
   };
 
-  const onSubmit = async (values) => {
+  const onSubmit = async (formValues) => {
+    const values = { ...formValues, phone: compactPhone(formValues.phone) };
     if (!canSubmit) {
       toast.error("Only customers can submit insurance requests");
       return;
@@ -142,7 +148,7 @@ export default function InsurancePage() {
                 <div className="mb-8 flex items-center justify-between border-b border-gray-100 pb-5"><div><h2 className="text-xl font-bold text-gray-900">Device and customer details</h2><p className="mt-1 text-sm text-gray-500">All fields marked here help us prepare an accurate quote.</p></div><button type="button" onClick={() => setStep(1)} className="text-sm font-semibold text-primary-600 hover:text-primary-700">Change insurance</button></div>
                 <div className="grid gap-5 md:grid-cols-2">
                   <Field label="Full Name" error={errors.fullName}><input {...register("fullName")} className={inputClass} placeholder="Your full name" /></Field>
-                  <Field label="Phone" error={errors.phone}><input {...register("phone")} className={inputClass} placeholder="Phone number" /></Field>
+                  <Field label="Phone" error={errors.phone}><Controller name="phone" control={control} render={({ field }) => <PhoneInput {...field} aria-label="Phone" hasError={Boolean(errors.phone)} className="!rounded-xl" inputClassName="py-3" />} /></Field>
                   <Field label="Email" error={errors.email}><input type="email" {...register("email")} className={inputClass} placeholder="you@example.com" /></Field>
                   <Field label="Brand" error={errors.brand}><input {...register("brand")} className={inputClass} placeholder="e.g. Apple" /></Field>
                   <Field label="Model" error={errors.model}><input {...register("model")} className={inputClass} placeholder="e.g. iPhone 15" /></Field>

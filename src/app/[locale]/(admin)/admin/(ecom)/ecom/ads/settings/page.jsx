@@ -110,7 +110,7 @@ export default function AdminAdSettingsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cost Per Click (CPC)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-slate-400 font-medium">$</span>
+                    <span className="text-slate-400 font-medium">₺</span>
                   </div>
                   <input
                     type="number"
@@ -130,7 +130,7 @@ export default function AdminAdSettingsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Cost Per Mille (CPM)</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-slate-400 font-medium">$</span>
+                    <span className="text-slate-400 font-medium">₺</span>
                   </div>
                   <input
                     type="number"
@@ -161,7 +161,7 @@ export default function AdminAdSettingsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Minimum Daily Budget</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-slate-400 font-medium">$</span>
+                    <span className="text-slate-400 font-medium">₺</span>
                   </div>
                   <input
                     type="number"
@@ -181,7 +181,7 @@ export default function AdminAdSettingsPage() {
                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Minimum Total Budget</label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                    <span className="text-slate-400 font-medium">$</span>
+                    <span className="text-slate-400 font-medium">₺</span>
                   </div>
                   <input
                     type="number"

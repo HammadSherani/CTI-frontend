@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import moment from "moment";
 import { useRouter } from "@/i18n/navigation";
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const STATUS_OPTIONS = [
   { label: "All", value: "" },
@@ -187,7 +188,7 @@ export default function RefurbishedOrdersPage() {
     {
       header: "Total",
       accessor: (row) => (
-        <span className="font-black text-gray-800 text-xs">${row.totalAmount?.toFixed(2)}</span>
+        <span className="font-black text-gray-800 text-xs">{formatCurrency(row.totalAmount)}</span>
       ),
     },
     {

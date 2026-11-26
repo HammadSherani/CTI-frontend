@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Image from "next/image";
 import moment from "moment";
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const STATUS_CONFIG = {
   pending:    { label: "Pending",    bg: "bg-primary-100",    text: "text-primary-700",    icon: "mdi:clock-outline" },
@@ -299,7 +300,7 @@ export default function AdminOrderDetailPage() {
                       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 bg-gray-50 rounded-xl">
                         <div>
                           <p className="text-[10px] text-gray-400 uppercase font-bold">Unit Price</p>
-                          <p className="text-sm font-bold text-gray-800">${(item.price || 0).toFixed(2)}</p>
+                          <p className="text-sm font-bold text-gray-800">{formatCurrency(item.price || 0)}</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-gray-400 uppercase font-bold">Qty</p>
@@ -307,11 +308,11 @@ export default function AdminOrderDetailPage() {
                         </div>
                         <div>
                           <p className="text-[10px] text-amber-500 uppercase font-bold">Platform Fee</p>
-                          <p className="text-sm font-bold text-amber-600">+${(item.platformFee || 0).toFixed(2)}</p>
+                          <p className="text-sm font-bold text-amber-600">+{formatCurrency(item.platformFee || 0)}</p>
                         </div>
                         <div>
                           <p className="text-[10px] text-emerald-600 uppercase font-bold">Seller Earnings</p>
-                          <p className="text-sm font-bold text-emerald-700">${(item.sellerEarnings || 0).toFixed(2)}</p>
+                          <p className="text-sm font-bold text-emerald-700">{formatCurrency(item.sellerEarnings || 0)}</p>
                         </div>
                       </div>
                     </div>
@@ -319,7 +320,7 @@ export default function AdminOrderDetailPage() {
                     <div className="flex-shrink-0 text-right self-start">
                       <p className="text-xs text-gray-400 mb-0.5">Total</p>
                       <p className="text-base font-extrabold text-gray-900">
-                        ${((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                        {formatCurrency((item.price || 0) * (item.quantity || 1))}
                       </p>
                       <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1 inline-block ${STATUS_CONFIG[item.itemStatus]?.bg || "bg-gray-100"} ${STATUS_CONFIG[item.itemStatus]?.text || "text-gray-500"}`}>
                         {item.itemStatus || "pending"}
@@ -343,32 +344,32 @@ export default function AdminOrderDetailPage() {
                   <Icon icon="mdi:cart-outline" className="w-4 h-4" />
                   Subtotal
                 </span>
-                <span className="font-semibold text-gray-800">${(order.subTotal || 0).toFixed(2)}</span>
+                <span className="font-semibold text-gray-800">{formatCurrency(order.subTotal || 0)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500 flex items-center gap-1.5">
                   <Icon icon="mdi:truck-outline" className="w-4 h-4" />
                   Shipping
                 </span>
-                <span className="font-semibold text-gray-800">${(order.shippingFee || 0).toFixed(2)}</span>
+                <span className="font-semibold text-gray-800">{formatCurrency(order.shippingFee || 0)}</span>
               </div>
               <div className="flex justify-between text-sm border-t border-gray-100 pt-3">
                 <span className="font-bold text-gray-700">Order Total</span>
-                <span className="font-extrabold text-gray-900">${(order.totalAmount || 0).toFixed(2)}</span>
+                <span className="font-extrabold text-gray-900">{formatCurrency(order.totalAmount || 0)}</span>
               </div>
               <div className="flex justify-between text-sm bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
                 <span className="text-amber-700 font-semibold flex items-center gap-1.5">
                   <Icon icon="mdi:percent" className="w-4 h-4" />
                   Platform Fees (collected)
                 </span>
-                <span className="font-extrabold text-amber-700">+${totalPlatformFee.toFixed(2)}</span>
+                <span className="font-extrabold text-amber-700">+{formatCurrency(totalPlatformFee)}</span>
               </div>
               <div className="flex justify-between text-sm bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2.5">
                 <span className="text-emerald-700 font-semibold flex items-center gap-1.5">
                   <Icon icon="mdi:wallet-outline" className="w-4 h-4" />
                   Seller Earnings
                 </span>
-                <span className="font-extrabold text-emerald-700">${totalSellerEarnings.toFixed(2)}</span>
+                <span className="font-extrabold text-emerald-700">{formatCurrency(totalSellerEarnings)}</span>
               </div>
             </div>
           </div>

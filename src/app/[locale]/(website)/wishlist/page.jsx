@@ -8,6 +8,7 @@ import { fetchWishlist, toggleWishlistItem } from '@/store/wishlist';
 import { toggleCart } from '@/store/cart';
 import { fetchRefurbishedWishlist, toggleRefurbishedWishlistItem } from '@/store/refurbishedWishlist';
 import { addRefurbishedToCart } from '@/store/refurbishedCart';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 // ── Star Rating ──
 function StarRating({ rating = 5 }) {
@@ -121,7 +122,7 @@ function WishlistCard({ item, onRemove, onAddToCart }) {
 
         {/* Price */}
         <div className="flex items-baseline gap-2 mb-4">
-          <span className="text-base font-extrabold text-primary-600">${price.toFixed(2)}</span>
+          <span className="text-base font-extrabold text-primary-600">{formatCurrency(price)}</span>
           {item.itemType === 'refurbished' && (
             <span className="ml-auto text-[10px] uppercase font-extrabold bg-amber-100 text-amber-800 px-2 py-0.5 rounded">Refurbished</span>
           )}

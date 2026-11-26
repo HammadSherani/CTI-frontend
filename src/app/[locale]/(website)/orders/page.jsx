@@ -10,6 +10,7 @@ import { useSelector } from 'react-redux';
 import { CustomDropdown } from '@/components/partials/admin/ecom/Dropdown';
 import SearchInput from '@/components/SearchInput';
 import { useSearchParams } from 'next/navigation';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const RETURN_STATUS_CFG = {
   requested: { label: 'Pending Review', bg: 'bg-blue-100 text-blue-700' },
@@ -98,7 +99,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
         <div className="px-6 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
           <div className="bg-gray-50 rounded-xl p-3 text-sm text-gray-700">
             <p className="font-semibold">{order.orderNo || order.orderId}</p>
-            <p className="text-gray-500 mt-0.5">{order.items?.length || 0} item(s) · ${(order.totalAmount || 0).toLocaleString()}</p>
+            <p className="text-gray-500 mt-0.5">{order.items?.length || 0} item(s) · {formatCurrency(order.totalAmount || 0)}</p>
           </div>
 
           {isRefurbished ? (
@@ -126,7 +127,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                         <p className="text-sm font-semibold text-gray-800 truncate">{prod.title}</p>
                         <p className="text-xs text-gray-500">{variant.title || 'Default variant'}</p>
                       </div>
-                      <span className="text-sm font-bold text-gray-700">${(item.price || variant.price || 0).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-gray-700">{formatCurrency(item.price || variant.price || 0)}</span>
                     </div>
 
                     {state.selected && (
@@ -543,7 +544,7 @@ export default function MyOrdersPage() {
                       <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
                         <span>Order: <span className="font-mono">{ret.orderNo || '—'}</span></span>
                         <span>·</span>
-                        <span>Amount: <span className="font-semibold text-gray-600">${(ret.price || 0).toFixed(2)}</span></span>
+                        <span>Amount: <span className="font-semibold text-gray-600">{formatCurrency(ret.price || 0)}</span></span>
                         <span>·</span>
                         <span>{ret.createdAt ? new Date(ret.createdAt).toLocaleDateString() : '—'}</span>
                       </div>
@@ -737,7 +738,7 @@ export default function MyOrdersPage() {
 
                         <td className="px-6 py-4 whitespace-nowrap">
                           <p className="text-sm font-semibold text-gray-900">
-                            ${(order.totalAmount || 0).toFixed(2)}
+                            {formatCurrency(order.totalAmount || 0)}
                           </p>
                         </td>
 
@@ -801,17 +802,14 @@ export default function MyOrdersPage() {
                                             </span>
                                             <span className="text-gray-300">•</span>
                                             <span className="font-semibold text-gray-900">
-                                              ${(item.price || 0).toFixed(2)} each
+                                              {formatCurrency(item.price || 0)} each
                                             </span>
                                           </div>
                                         </div>
 
                                         <div className="text-right self-center flex-shrink-0">
                                           <p className="text-sm font-semibold text-gray-900">
-                                            $
-                                            {(
-                                              (item.price || 0) * (item.quantity || 0)
-                                            ).toFixed(2)}
+                                            {formatCurrency((item.price || 0) * (item.quantity || 0))}
                                           </p>
                                           <p className="text-xs text-gray-400 mt-0.5">subtotal</p>
                                         </div>
@@ -867,13 +865,7 @@ export default function MyOrdersPage() {
                                     <div className="flex justify-between text-gray-600">
                                       <span>Subtotal</span>
                                       <span>
-                                        $
-                                        {(
-                                          order.items?.reduce(
-                                            (sum, i) => sum + (i.price || 0) * (i.quantity || 0),
-                                            0
-                                          ) || 0
-                                        ).toFixed(2)}
+                                        {formatCurrency(order.items?.reduce((sum, i) => sum + (i.price || 0) * (i.quantity || 0), 0))}
                                       </span>
                                     </div>
                                     {order.shippingCost !== undefined && (
@@ -882,19 +874,19 @@ export default function MyOrdersPage() {
                                         <span>
                                           {order.shippingCost === 0
                                             ? 'Free'
-                                            : `$${order.shippingCost.toFixed(2)}`}
+                                            : formatCurrency(order.shippingCost)}
                                         </span>
                                       </div>
                                     )}
                                     {order.discount !== undefined && order.discount > 0 && (
                                       <div className="flex justify-between text-emerald-600">
                                         <span>Discount</span>
-                                        <span>-${order.discount.toFixed(2)}</span>
+                                        <span>-{formatCurrency(order.discount)}</span>
                                       </div>
                                     )}
                                     <div className="flex justify-between font-semibold text-gray-900 pt-2 border-t border-gray-100">
                                       <span>Total</span>
-                                      <span>${(order.totalAmount || 0).toFixed(2)}</span>
+                                      <span>{formatCurrency(order.totalAmount || 0)}</span>
                                     </div>
                                     <div className="pt-4 border-t border-gray-100 mt-4 flex flex-col gap-2">
                                       {order.orderStatus === 'pending' && (
@@ -988,7 +980,7 @@ export default function MyOrdersPage() {
               <span className="font-semibold text-gray-900">{orders.length}</span> order
               {orders.length !== 1 ? 's' : ''} &nbsp;·&nbsp; Total spent:{' '}
               <span className="font-semibold text-gray-900">
-                ${orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2)}
+                {formatCurrency(orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0))}
               </span>
             </p>
           </div>

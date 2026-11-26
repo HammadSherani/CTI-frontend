@@ -8,6 +8,7 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ══════════════════════════════════════════════════════════
    STATUS CONFIG
@@ -444,7 +445,7 @@ export default function MessageDetailPage() {
                 <div className="mb-6">
                   <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-4">Related Order</h3>
                   <InfoRow label="Order ID" value={query.orderId?.orderId || query.orderId?.orderNo || query.orderId?._id} />
-                  <InfoRow label="Amount"   value={query.orderId?.totalAmount ? `$${Number(query.orderId.totalAmount).toFixed(2)}` : '—'} />
+                  <InfoRow label="Amount"   value={query.orderId?.totalAmount ? formatCurrency(Number(query.orderId.totalAmount)) : '—'} />
                   <InfoRow label="Status"   value={query.orderId?.orderStatus || '—'} />
                   
                   {query.orderId?._id && (

@@ -9,6 +9,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
@@ -310,7 +311,7 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
                         <p className="text-sm font-semibold text-gray-800 truncate">{prod.title}</p>
                         <p className="text-xs text-gray-500">{variant.title || 'Default variant'}</p>
                       </div>
-                      <span className="text-sm font-bold text-gray-700">${(item.price || variant.price || 0).toFixed(2)}</span>
+                      <span className="text-sm font-bold text-gray-700">{formatCurrency(item.price || variant.price || 0)}</span>
                     </div>
 
                     {state.selected && (
@@ -705,11 +706,11 @@ export default function OrderDetailPage() {
                         <span className="text-xs font-semibold text-gray-600 bg-white px-2 py-0.5 rounded-lg border border-gray-200">
                           Qty: {item.quantity || 1}
                         </span>
-                        <span className="text-xs text-gray-400">${(item.price || 0).toFixed(2)} each</span>
+                        <span className="text-xs text-gray-400">{formatCurrency(item.price || 0)} each</span>
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0 self-center">
-                      <p className="font-bold text-gray-900">${itemTotal.toFixed(2)}</p>
+                      <p className="font-bold text-gray-900">{formatCurrency(itemTotal)}</p>
                       <OrderStatusBadge status={item.itemStatus || order.orderStatus} />
                     </div>
                   </div>
@@ -802,21 +803,21 @@ export default function OrderDetailPage() {
             <div className="p-5 space-y-2.5 text-sm">
               <div className="flex justify-between text-gray-600">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
               <div className="flex justify-between text-gray-600">
                 <span>Shipping</span>
-                <span>{(order.shippingFee ?? 10) === 0 ? 'Free' : `$${(order.shippingFee ?? 10).toFixed(2)}`}</span>
+                <span>{(order.shippingFee ?? 10) === 0 ? 'Free' : formatCurrency(order.shippingFee ?? 10)}</span>
               </div>
               {order.discount > 0 && (
                 <div className="flex justify-between text-emerald-600">
                   <span>Discount</span>
-                  <span>-${order.discount.toFixed(2)}</span>
+                  <span>-{formatCurrency(order.discount)}</span>
                 </div>
               )}
               <div className="flex justify-between font-bold text-gray-900 text-base pt-2 border-t border-gray-100">
                 <span>Total</span>
-                <span>${(order.totalAmount || 0).toFixed(2)}</span>
+                <span>{formatCurrency(order.totalAmount || 0)}</span>
               </div>
             </div>
           </div>

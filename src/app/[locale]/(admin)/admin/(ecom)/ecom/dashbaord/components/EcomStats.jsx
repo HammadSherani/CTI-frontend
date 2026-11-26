@@ -47,7 +47,7 @@ export default function EcomStats({ data }) {
       <StatCard 
         title="E-commerce Revenue" 
         value={fmt(stats.totalRevenue || 0)}
-        icon="ph:currency-circle-dollar-duotone" 
+        icon="mdi:currency-try" 
         colorClass="text-amber-600"
         bgColorClass="bg-amber-50"
       />

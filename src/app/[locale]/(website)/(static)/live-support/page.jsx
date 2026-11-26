@@ -16,7 +16,7 @@ export default function LiveSupport() {
           </p>
           <ul className="list-disc ml-6 mt-2 space-y-1">
             <li>Live chat: available via the site and app (9:00–21:00 local time).</li>
-            <li>Phone support: +1 (555) 000-0000 (business hours).</li>
+            <li>Phone support: +90 000 000 00 00 (business hours).</li>
             <li>Email support: support@cti.com (for non-urgent queries).</li>
           </ul>
         </>
@@ -78,7 +78,7 @@ export default function LiveSupport() {
         </div>
 
         <div className="mt-12 p-6 bg-primary-50 rounded-lg border border-primary-100 text-center">
-          <p className="text-primary-800">For urgent support contact <span className="font-bold">+1 (555) 000-0000</span> or chat with us on the site.</p>
+          <p className="text-primary-800">For urgent support contact <span className="font-bold">+90 000 000 00 00</span> or chat with us on the site.</p>
         </div>
       </div>
     </div>

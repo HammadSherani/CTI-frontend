@@ -42,7 +42,7 @@ export const summaryCardsData = [
     value: "$96,322",
     change: "+15.3%",
     trend: "up",
-    icon: "solar:dollar-minimalistic-bold-duotone",
+    icon: "mdi:currency-try",
     color: "from-violet-500 to-violet-600",
     bgLight: "bg-violet-50",
     iconColor: "text-violet-600",

@@ -453,10 +453,10 @@ function AnnouncementBar() {
             {t("login")}
           </Link>
           <a
-            href="tel:+234567890"
+            href="tel:+900000000000"
             className="hover:text-orange-600 transition-colors hidden md:inline whitespace-nowrap"
           >
-            +234 567 890
+            +90 000 000 00 00
           </a>
           <CustomTranslate />
         </div>

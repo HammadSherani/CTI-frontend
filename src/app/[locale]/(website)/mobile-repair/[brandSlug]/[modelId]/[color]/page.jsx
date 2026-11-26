@@ -511,7 +511,7 @@ const CreateRepairJobForm = () => {
                   <div className="space-y-4">
                     <div className="p-4 bg-white rounded-lg border border-gray-200">
                       <div className="flex items-center gap-2 mb-4">
-                        <Icon icon="mdi:currency-usd" className="text-2xl text-orange-500" />
+                        <Icon icon="mdi:currency-try" className="text-2xl text-orange-500" />
                         <h3 className="text-xl font-semibold text-gray-900">Budget Range (Optional)</h3>
                       </div>
                       <BudgetRange control={control} errors={errors} Controller={Controller} />

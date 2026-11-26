@@ -10,6 +10,7 @@ import SearchInput from "@/components/partials/admin/ecom/SearchInput";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 function ConfirmDialog({ message, onConfirm, onCancel, isLoading }) {
   return (
@@ -283,7 +284,7 @@ export default function AdminProductsPage() {
         const v = row.variants?.find(x => x.isDefault) || row.variants?.[0];
         return (
           <span className="font-bold text-gray-900">
-            ${v?.sellingPrice?.toFixed(2) || v?.price?.toFixed(2) || "0.00"}
+            {formatCurrency(v?.sellingPrice || v?.price)}
           </span>
         );
       },

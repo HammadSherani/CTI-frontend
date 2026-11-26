@@ -14,6 +14,15 @@ import { Country, State, City } from 'country-state-city';
 import LoginModal from './LoginModal';
 import Select from 'react-select';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
+import PhoneInput from '@/components/common/PhoneInput';
+import { nationalDigits } from '@/helper/phone';
+import { formatCurrency } from '@/helper/currencyFormatter';
+
+// Delivery and courier labels work in Turkey only; the form keeps the 10 digit national number
+const toTurkishMobile = (value) => {
+  const digits = String(value || '').replace(/\D/g, '').replace(/^00/, '').replace(/^90(?=5)/, '').replace(/^0/, '');
+  return /^5\d{9}$/.test(digits) ? digits : '';
+};
 
 // ── Yup Validation Schema ─────────────────────────────────────────────────────
 const checkoutSchema = yup.object().shape({
@@ -132,7 +141,7 @@ export default function CheckoutPage() {
     firstName: auth?.user?.firstName || auth?.user?.name || '',
     lastName: auth?.user?.lastName || '',
     email: auth?.user?.email || '',
-    phone: auth?.user?.phone || '',
+    phone: toTurkishMobile(auth?.user?.phone),
     address: '',
     // Location
     countryCode: 'TR',
@@ -180,7 +189,7 @@ export default function CheckoutPage() {
           email: auth?.user?.email || parsed.email || '',
           firstName: auth?.user?.firstName || parsed.firstName || '',
           lastName: auth?.user?.lastName || parsed.lastName || '',
-          phone: auth?.user?.phone || parsed.phone || '',
+          phone: toTurkishMobile(auth?.user?.phone) || parsed.phone || '',
         }));
       } catch (_) { }
     }
@@ -564,23 +573,20 @@ export default function CheckoutPage() {
                 </div>
               </div>
 
+
               {/* Phone */}
               <div>
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                   Phone Number (Turkey Only) *
                 </label>
-                <div className="relative flex">
-                  {/* +90 prefix badge */}
-                  <span className="inline-flex items-center gap-1 px-3 border border-r-0 border-gray-200 rounded-l-xl bg-gray-50 text-sm text-gray-600 font-medium select-none whitespace-nowrap">
-                    🇹🇷 +90
-                  </span>
-                  <input
-                    type="text" name="phone" value={form.phone}
-                    onChange={e => { const v = e.target.value.replace(/[^0-9]/g, '').slice(0, 10); setForm(f => ({ ...f, phone: v })); setErrors(p => ({ ...p, phone: '' })); }}
-                    inputMode="numeric" maxLength={10} placeholder="5XXXXXXXXX"
-                    className={`flex-1 pr-4 px-3 py-2.5 text-sm border rounded-r-xl focus:outline-none transition-colors ${errors.phone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-400'}`}
-                  />
-                </div>
+                <PhoneInput
+                  name="phone"
+                  aria-label="Phone number"
+                  value={form.phone}
+                  onChange={(v) => { setForm(f => ({ ...f, phone: nationalDigits(v) })); setErrors(p => ({ ...p, phone: '' })); }}
+                  hasError={Boolean(errors.phone)}
+                  className="!rounded-xl"
+                />
                 {errors.phone ? (
                   <p className="mt-1 text-xs text-red-500">{errors.phone}</p>
                 ) : (
@@ -671,7 +677,7 @@ export default function CheckoutPage() {
                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">Postal Code <span className="text-gray-400 font-normal">(optional)</span></label>
                 <div className="relative">
                   <Icon icon="mdi:mailbox-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                  <input type="text" name="postalCode" value={form.postalCode} onChange={handleForm} placeholder="75000"
+                  <input type="text" name="postalCode" value={form.postalCode} onChange={(e) => setForm(f => ({ ...f, postalCode: e.target.value.replace(/\D/g, '').slice(0, 5) }))} inputMode="numeric" maxLength={5} placeholder="34000"
                     className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 transition-colors" />
                 </div>
               </div>
@@ -777,7 +783,7 @@ export default function CheckoutPage() {
                     <p className="text-sm font-semibold line-clamp-1">{item.productDetails?.title || 'Product'}</p>
                     <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                   </div>
-                  <p className="font-bold text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-bold text-sm">{formatCurrency(item.price * item.quantity)}</p>
                 </div>
               ))}
             </div>
@@ -790,7 +796,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500">Sub total</span>
-                <span className="font-semibold text-gray-700">${subTotal.toFixed(2)}</span>
+                <span className="font-semibold text-gray-700">{formatCurrency(subTotal)}</span>
               </div>
               {/* Shipping info note */}
               <div className="flex justify-between items-center text-sm">
@@ -805,7 +811,7 @@ export default function CheckoutPage() {
             <div className="border-t border-gray-100 pt-4 mb-5">
               <div className="flex justify-between items-center">
                 <span className="font-extrabold text-gray-800">Total</span>
-                <span className="font-extrabold text-gray-900 text-lg">${TOTAL.toFixed(2)}</span>
+                <span className="font-extrabold text-gray-900 text-lg">{formatCurrency(TOTAL)}</span>
               </div>
               <p className="text-xs text-gray-400 mt-1.5">
                 * Shipping costs are handled by the seller after order placement.

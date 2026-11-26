@@ -8,6 +8,8 @@ import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
 import { Link } from "@/i18n/navigation";
 import { setUserDetails } from "@/store/auth";
+import PhoneInput from '@/components/common/PhoneInput';
+import { checkMobile, compactPhone } from '@/helper/phone';
 
 const MAX_PHOTO_SIZE = 5 * 1024 * 1024; // 5MB
 
@@ -119,12 +121,19 @@ export default function CustomerProfilePage() {
       return;
     }
 
+    const phoneChanged = phone !== (profile?.phone || "");
+    const phoneProblem = phone && phoneChanged ? checkMobile(phone) : null;
+    if (phoneProblem) {
+      toast.error(phoneProblem);
+      return;
+    }
+
     try {
       setSaving(true);
       const fd = new FormData();
       fd.append("name", name);
       // hamesha bhejo, taake user phone/country khali (clear) bhi kar sake
-      fd.append("phone", phone);
+      fd.append("phone", phoneChanged ? compactPhone(phone) : phone);
       fd.append("country", country);
 
       const { data } = await axiosInstance.put(
@@ -310,12 +319,12 @@ export default function CustomerProfilePage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone Number</p>
                   {editing ? (
-                    <input
-                      type="tel"
+                    <PhoneInput
+                      aria-label="Phone number"
                       value={form.phone}
-                      onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
-                      placeholder="Enter your phone number"
-                      className={inputClass}
+                      onChange={(v) => setForm((p) => ({ ...p, phone: v }))}
+                      className="mt-1"
+                      inputClassName="py-2"
                     />
                   ) : (
                     <p className={`text-sm font-medium mt-0.5 ${profile.phone ? "text-gray-900" : "text-gray-400 italic"}`}>

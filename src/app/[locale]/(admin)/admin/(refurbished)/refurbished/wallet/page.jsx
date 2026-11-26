@@ -163,7 +163,7 @@ export default function RefurbishedEarningsPage() {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <EarningCard
-          icon="solar:dollar-minimalistic-bold"
+          icon="mdi:currency-try"
           label="Gross Revenue"
           value={fmt(overview?.grossRevenue)}
           sub="Delivered orders"

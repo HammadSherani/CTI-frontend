@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { Link } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
-import { getCurrencySymbol } from '@/helper/currencyFormatter';
+import { formatCurrency, getCurrencySymbol } from '@/helper/currencyFormatter';
 import { useRouter } from '@/i18n/navigation';
 
 const PAGE_SIZE = 10;
@@ -210,7 +210,7 @@ export default function RefurbishListingPage() {
     router.push('/refurbish');
   };
 
-  const formatPrice = (num) => `$${Number(num).toFixed(2)}`;
+  const formatPrice = (num) => formatCurrency(Number(num));
 
   const getShortDescription = (value, wordLimit = 12) => {
     if (!value) return 'Premium refurbished gadget with verified quality and reliable performance.';

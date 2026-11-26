@@ -19,7 +19,7 @@ const compact = (n) => {
   return String(n);
 };
 import { formatCurrency } from "@/helper/currencyFormatter";
-const fmtPKR = (n) => formatCurrency(n);
+const formatMoney = (n) => formatCurrency(n);
 const fmtD = (d) => d ? moment(d).format("DD MMM YYYY") : "—";
 const daysLeft = (d) => Math.max(0, moment(d).diff(moment(), "days"));
 const fmtRel = (d) => d ? moment(d).fromNow() : "—";
@@ -52,8 +52,8 @@ function SalesPerformance({ data, loading }) {
     {
       key: "today",
       label: "Today's Revenue",
-      value: fmtPKR(data?.today),
-      icon: "solar:dollar-minimalistic-bold-duotone",
+      value: formatMoney(data?.today),
+      icon: "mdi:currency-try",
       gradient: "from-primary-500 to-primary-700",
       lightBg: "bg-primary-50",
       textClr: "text-primary-700",
@@ -63,7 +63,7 @@ function SalesPerformance({ data, loading }) {
     {
       key: "last7",
       label: "Last 7 Days",
-      value: fmtPKR(data?.last7Days),
+      value: formatMoney(data?.last7Days),
       icon: "solar:chart-2-bold-duotone",
       gradient: "from-emerald-500 to-teal-600",
       lightBg: "bg-emerald-50",
@@ -77,7 +77,7 @@ function SalesPerformance({ data, loading }) {
     {
       key: "last30",
       label: "Last 30 Days",
-      value: fmtPKR(data?.last30Days),
+      value: formatMoney(data?.last30Days),
       icon: "solar:calendar-bold-duotone",
       gradient: "from-violet-500 to-purple-700",
       lightBg: "bg-violet-50",
@@ -318,7 +318,7 @@ function AdvertisingPerformance({ data, loading }) {
     },
     {
       label: "Ad Spend",
-      value: fmtPKR(data?.last7Days?.spend),
+      value: formatMoney(data?.last7Days?.spend),
       icon: "solar:card-send-bold-duotone",
       bg: "bg-rose-50", clr: "text-rose-600",
       gradient: "from-rose-500 to-pink-600",
@@ -395,7 +395,7 @@ function AdvertisingPerformance({ data, loading }) {
           {[
             { l: "All-time Impressions", v: compact(data?.allTime?.impressions || 0) },
             { l: "All-time Clicks", v: compact(data?.allTime?.clicks || 0) },
-            { l: "Total Ad Spend", v: fmtPKR(data?.allTime?.spend) },
+            { l: "Total Ad Spend", v: formatMoney(data?.allTime?.spend) },
           ].map((s, i) => (
             <div key={i}>
               <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">{s.l}</p>
@@ -478,7 +478,7 @@ function IntegrationCalendar({ data, loading }) {
                           <p className="text-[11px] text-slate-400">Releases {fmtD(e.availableAt)}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="text-sm font-black text-emerald-700">{fmtPKR(e.amount)}</p>
+                          <p className="text-sm font-black text-emerald-700">{formatMoney(e.amount)}</p>
                           <p className="text-[10px] text-slate-400">net earnings</p>
                         </div>
                       </li>
@@ -544,7 +544,7 @@ function IntegrationCalendar({ data, loading }) {
                             <p className="text-[11px] text-slate-400">Ends {fmtD(c.endDate)} · {dl} days left</p>
                           </div>
                           <div className="text-right flex-shrink-0">
-                            <p className="text-xs font-black text-slate-700">{fmtPKR(c.remainingBudget)}</p>
+                            <p className="text-xs font-black text-slate-700">{formatMoney(c.remainingBudget)}</p>
                             <p className="text-[10px] text-slate-400">remaining</p>
                           </div>
                         </div>

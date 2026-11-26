@@ -7,6 +7,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import Image from 'next/image';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ── Campaign Detail / Edit Slide-over ───────────────────────────── */
 function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
@@ -117,7 +118,7 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Daily Budget ($)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Daily Budget (TRY)</label>
                   <input
                     type="number" step="0.5"
                     value={form.dailyBudget}
@@ -126,7 +127,7 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Total Budget ($)</label>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Total Budget (TRY)</label>
                   <input
                     type="number" step="1"
                     value={form.totalBudget}
@@ -156,10 +157,10 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
             <div className="space-y-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campaign Details</p>
               {[
-                ['Daily Budget',  `$${camp.dailyBudget?.toFixed(2)}`],
-                ['Total Budget',  `$${camp.totalBudget?.toFixed(2)}`],
-                ['Spent',         `$${camp.spentBudget?.toFixed(2) || '0.00'}`],
-                ['Remaining',     `$${camp.remainingBudget?.toFixed(2) || '0.00'}`],
+                ['Daily Budget',  formatCurrency(camp.dailyBudget)],
+                ['Total Budget',  formatCurrency(camp.totalBudget)],
+                ['Spent',         formatCurrency(camp.spentBudget)],
+                ['Remaining',     formatCurrency(camp.remainingBudget)],
                 ['Impressions',   (camp.totalImpressions || 0).toLocaleString()],
                 ['Clicks',        (camp.totalClicks || 0).toLocaleString()],
                 ['Start Date',    fmtDate(camp.startDate)],
@@ -424,8 +425,8 @@ export default function AdminAdsPage() {
           {[
             { icon: 'mdi:clock-outline',          label: 'Pending Review', value: stats.byStatus['pending_approval']?.count || 0, color: 'bg-blue-500'    },
             { icon: 'mdi:check-circle-outline',   label: 'Active Ads',     value: stats.byStatus['active']?.count || 0, color: 'bg-emerald-500' },
-            { icon: 'mdi:currency-usd',           label: 'Total Spend',    value: `$${(stats.platform.spend || 0).toFixed(2)}`, color: 'bg-violet-500' },
-            { icon: 'mdi:chart-line',             label: 'Total Revenue',  value: `$${(stats.platform.revenue || 0).toFixed(2)}`, color: 'bg-indigo-500'     },
+            { icon: 'mdi:currency-try',           label: 'Total Spend',    value: formatCurrency(stats.platform.spend || 0), color: 'bg-violet-500' },
+            { icon: 'mdi:chart-line',             label: 'Total Revenue',  value: formatCurrency(stats.platform.revenue || 0), color: 'bg-indigo-500'     },
           ].map(({ icon, label, value, color }) => (
             <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
               <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${color}`}>
@@ -546,11 +547,11 @@ export default function AdminAdsPage() {
                         <div className="mt-2 space-y-0.5">
                           <p className="text-[11px] text-slate-500 flex justify-between gap-4">
                             <span>Daily:</span>
-                            <span className="font-bold text-slate-700">${camp.dailyBudget?.toFixed(2)}</span>
+                            <span className="font-bold text-slate-700">{formatCurrency(camp.dailyBudget)}</span>
                           </p>
                           <p className="text-[11px] text-slate-500 flex justify-between gap-4">
                             <span>Total:</span>
-                            <span className="font-bold text-slate-700">${camp.totalBudget?.toFixed(2)}</span>
+                            <span className="font-bold text-slate-700">{formatCurrency(camp.totalBudget)}</span>
                           </p>
                         </div>
                       </td>
@@ -560,7 +561,7 @@ export default function AdminAdsPage() {
                         <div className="space-y-0.5 w-32">
                           <div className="flex justify-between items-center text-[11px]">
                             <span className="text-slate-500">Spent:</span>
-                            <span className="font-bold text-slate-700">${camp.spentBudget?.toFixed(2) || '0.00'}</span>
+                            <span className="font-bold text-slate-700">{formatCurrency(camp.spentBudget)}</span>
                           </div>
                           <div className="flex justify-between items-center text-[11px]">
                             <span className="text-slate-500">Impr:</span>

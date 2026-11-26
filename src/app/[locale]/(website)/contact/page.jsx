@@ -47,7 +47,7 @@ function ContactUs() {
       icon: "mdi:phone",
       title: "Call Us",
       subtitles: "Customer Support",
-      details: ["+1 (555) 123-4567", "+1 (555) 987-6543"],
+      details: ["+90 000 000 00 00"],
     },
     {
       icon: "mdi:email",
@@ -242,7 +242,7 @@ function ContactUs() {
             <motion.a
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              href="tel:+1234567890"
+              href="tel:+900000000000"
               className="inline-flex items-center justify-center gap-2 bg-white text-primary-600 px-8 py-4 rounded-xl font-bold hover:bg-gray-100 transition-all shadow-lg hover:shadow-xl"
             >
               <Icon icon="mdi:phone" className="text-2xl" />

@@ -15,6 +15,7 @@ import RefurbishedReviewSection from '@/components/website/refurbish/Refurbished
 import RefurbishedProductCard from '@/components/website/refurbish/RefurbishedProductCard'
 import HotDealsSection from '@/components/website/refurbish/HotDealsSection'
 import { Link } from '@/i18n/navigation'
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 export default function Refurbish() {
   const [thumbsSwiper, setThumbsSwiper] = useState(null)
@@ -182,7 +183,7 @@ export default function Refurbish() {
   ]
 
   // Replace src paths with your actual product image paths
-  const formatPrice = (num) => `$${Number(num).toFixed(2)}`
+  const formatPrice = (num) => formatCurrency(Number(num))
 
   const displayCategories = dynamicCategories.map((cat, idx) => ({
     id: cat._id,

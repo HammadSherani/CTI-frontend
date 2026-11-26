@@ -7,13 +7,13 @@ import axiosInstance from "@/config/axiosInstance";
 import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
 import { CustomDropdown } from "@/components/partials/admin/ecom/Dropdown";
+import PhoneInput from "@/components/common/PhoneInput";
+import { findTurkey } from "@/helper/turkey";
 import {
   SELLER_LIMITS as LIMITS,
-  getCountryRules,
-  getCountryPlaceholders,
-  getSelectedCountry,
+  TR_PLACEHOLDERS,
+  digitsOnly,
   validateSellerProfile,
-  cleanPhoneInput,
   to12Hour,
   to24Hour,
   checkImageFile,
@@ -24,7 +24,7 @@ const SOCIAL_LINKS = [
   { key: "instagram", label: "Instagram", icon: "ri:instagram-fill", color: "#E4405F", placeholder: "https://instagram.com/yourprofile" },
   { key: "twitter", label: "X (Twitter)", icon: "ri:twitter-x-fill", color: "#000000", placeholder: "https://x.com/yourhandle" },
   { key: "linkedin", label: "LinkedIn", icon: "ri:linkedin-fill", color: "#0A66C2", placeholder: "https://linkedin.com/in/yourprofile" },
-  { key: "whatsapp", label: "WhatsApp", icon: "ri:whatsapp-fill", color: "#25D366", placeholder: "https://wa.me/923001234567" },
+  { key: "whatsapp", label: "WhatsApp", icon: "ri:whatsapp-fill", color: "#25D366", placeholder: "https://wa.me/905551234567" },
   { key: "youtube", label: "YouTube", icon: "ri:youtube-fill", color: "#FF0000", placeholder: "https://youtube.com/@yourchannel" },
   { key: "tiktok", label: "TikTok", icon: "ri:tiktok-fill", color: "#010101", placeholder: "https://tiktok.com/@yourhandle" },
   { key: "website", label: "Website", icon: "heroicons:globe-alt", color: "#6366F1", placeholder: "https://yourwebsite.com" },
@@ -149,8 +149,11 @@ export default function SellerProfilePage() {
 
   // -- Location States --
   const [countries, setCountries] = useState([]);
-  const [states, setStates] = useState([]);
-  const [cities, setCities] = useState([]);
+  // each list remembers which country / state it was loaded for
+  const [stateList, setStateList] = useState({ of: "", items: [] });
+  const [cityList, setCityList] = useState({ of: "", items: [] });
+  const states = stateList.of === infoForm.country ? stateList.items : [];
+  const cities = cityList.of === infoForm.state ? cityList.items : [];
 
   // Fetch countries on mount
   useEffect(() => {
@@ -170,13 +173,12 @@ export default function SellerProfilePage() {
 
   // Fetch states when country changes
   useEffect(() => {
-    setStates([]);
-    if (!infoForm.country) return;
+    if (!infoForm.country) return setLoadingStates(false);
     let cancelled = false;
     setLoadingStates(true);
     axiosInstance
       .get(`/public/states/country/${infoForm.country}`)
-      .then((res) => !cancelled && setStates(res.data?.data || []))
+      .then((res) => !cancelled && setStateList({ of: infoForm.country, items: res.data?.data || [] }))
       .catch(() => !cancelled && toast.error("Failed to load states"))
       .finally(() => !cancelled && setLoadingStates(false));
     return () => { cancelled = true; };
@@ -184,28 +186,35 @@ export default function SellerProfilePage() {
 
   // Fetch cities when state changes
   useEffect(() => {
-    setCities([]);
-    if (!infoForm.state) return;
+    if (!infoForm.state) return setLoadingCities(false);
     let cancelled = false;
     setLoadingCities(true);
     axiosInstance
       .get(`/public/cities/state/${infoForm.state}`)
-      .then((res) => !cancelled && setCities(res.data?.data || []))
+      .then((res) => !cancelled && setCityList({ of: infoForm.state, items: res.data?.data || [] }))
       .catch(() => !cancelled && toast.error("Failed to load cities"))
       .finally(() => !cancelled && setLoadingCities(false));
     return () => { cancelled = true; };
   }, [infoForm.state]);
 
-  // Country picked on the website: used as the default and for formats until one is chosen here
-  const [siteCountry, setSiteCountry] = useState("Turkey");
-  useEffect(() => { setSiteCountry(getSelectedCountry()); }, []);
-
-  // Pre-select that country when the profile has none yet
+  // While editing, a saved state or city that does not belong to the selection is removed
   useEffect(() => {
-    if (editSection !== "info" || infoForm.country) return;
-    const match = countries.find((c) => c.name?.toLowerCase() === siteCountry.toLowerCase());
-    if (match) setInfoForm((p) => ({ ...p, country: match._id }));
-  }, [editSection, infoForm.country, countries, siteCountry]);
+    if (editSection !== "info" || !infoForm.state || stateList.of !== infoForm.country) return;
+    if (stateList.items.some((s) => s._id === infoForm.state)) return;
+    setInfoForm((p) => ({ ...p, state: "", city: "" }));
+  }, [editSection, stateList, infoForm.country, infoForm.state]);
+
+  useEffect(() => {
+    if (editSection !== "info" || !infoForm.city || cityList.of !== infoForm.state) return;
+    if (!cityList.items.some((c) => c._id === infoForm.city)) setInfoForm((p) => ({ ...p, city: "" }));
+  }, [editSection, cityList, infoForm.state, infoForm.city]);
+
+  // The platform works only in Turkey, so it is always the selected country
+  useEffect(() => {
+    const turkey = findTurkey(countries);
+    if (editSection !== "info" || !turkey || infoForm.country === turkey._id) return;
+    setInfoForm((p) => ({ ...p, country: turkey._id, ...(p.country ? { state: "", city: "" } : {}) }));
+  }, [editSection, infoForm.country, countries]);
 
   // Errors: "attempted" turns on live checking after the first Save; server errors clear on typing
   const [attempted, setAttempted] = useState(false);
@@ -272,12 +281,6 @@ export default function SellerProfilePage() {
 
   useEffect(() => { fetchSeller(); }, []);
 
-  // The country decides phone / ZIP / IBAN formats: the one in the form, else the saved one, else the site's
-  const formCountry = editSection === "info" ? countries.find((c) => c._id === infoForm.country)?.name : null;
-  const countryName = formCountry || seller?.country?.name || siteCountry;
-  const rules = getCountryRules(countryName);
-  const hint = getCountryPlaceholders(countryName);
-
   const buildPayload = (section) => {
     if (section === "info") {
       const { emailAddress, ...info } = infoForm; // email cannot be changed
@@ -292,7 +295,7 @@ export default function SellerProfilePage() {
     return {}; // images only
   };
 
-  const validate = (section) => validateSellerProfile(buildPayload(section), rules, { partial: true });
+  const validate = (section) => validateSellerProfile(buildPayload(section), { partial: true });
   const errors = { ...serverErrors, ...(attempted && editSection ? validate(editSection) : {}) };
 
   const save = async (section) => {
@@ -497,10 +500,14 @@ export default function SellerProfilePage() {
                     <InputField label="Business / Store Name" value={infoForm.businessName} onChange={(v) => setInfoForm((p) => ({ ...p, businessName: v }))} placeholder="Store name" icon="heroicons:building-storefront" maxLength={LIMITS.businessName.max} error={errors.businessName} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Phone Number" type="tel" inputMode="tel" value={infoForm.phoneNumber} onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: cleanPhoneInput(v) }))} placeholder={hint.phone} icon="heroicons:phone" error={errors.phoneNumber} />
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">Phone Number</label>
+                      <PhoneInput aria-label="Phone Number" value={infoForm.phoneNumber} onChange={(v) => setInfoForm((p) => ({ ...p, phoneNumber: v }))} hasError={Boolean(errors.phoneNumber)} className="!rounded-xl" />
+                      <FieldError message={errors.phoneNumber} />
+                    </div>
                     <InputField label="Email Address (Not Editable)" type="email" value={infoForm.emailAddress} onChange={() => {}} icon="heroicons:envelope" disabled />
                   </div>
-                  <InputField label="Store Address" value={infoForm.storeAddress} onChange={(v) => setInfoForm((p) => ({ ...p, storeAddress: v }))} placeholder={hint.address} icon="heroicons:map-pin" maxLength={LIMITS.storeAddress.max} error={errors.storeAddress} />
+                  <InputField label="Store Address" value={infoForm.storeAddress} onChange={(v) => setInfoForm((p) => ({ ...p, storeAddress: v }))} placeholder={TR_PLACEHOLDERS.address} icon="heroicons:map-pin" maxLength={LIMITS.storeAddress.max} error={errors.storeAddress} />
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
@@ -554,7 +561,7 @@ export default function SellerProfilePage() {
                     </div>
                   </div>
 
-                  <InputField label="ZIP / Postal Code" value={infoForm.zipCode} onChange={(v) => setInfoForm((p) => ({ ...p, zipCode: v }))} placeholder={hint.zip} icon="heroicons:hashtag" maxLength={10} inputMode={rules.name ? "numeric" : "text"} error={errors.zipCode} />
+                  <InputField label="ZIP / Postal Code" value={infoForm.zipCode} onChange={(v) => setInfoForm((p) => ({ ...p, zipCode: digitsOnly(v) }))} placeholder={TR_PLACEHOLDERS.zip} icon="heroicons:hashtag" maxLength={5} inputMode="numeric" error={errors.zipCode} />
                   <InputField label="Store Description" multiline value={infoForm.storeDescription} onChange={(v) => setInfoForm((p) => ({ ...p, storeDescription: v }))} placeholder="Describe your store…" rows={4} maxLength={LIMITS.storeDescription.max} error={errors.storeDescription} />
                   <SaveBar onSave={() => save("info")} onCancel={cancelEdit} saving={saving} />
                 </div>
@@ -592,10 +599,10 @@ export default function SellerProfilePage() {
                     <InputField label="Account Number" inputMode="numeric" value={bankForm.accountNumber} onChange={(v) => setBankForm((p) => ({ ...p, accountNumber: v.replace(/[^\d\s-]/g, "") }))} placeholder="Digits only" icon="heroicons:hashtag" maxLength={32} error={errors["bankDetails.accountNumber"]} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <InputField label="Bank Name" value={bankForm.bankName} onChange={(v) => setBankForm((p) => ({ ...p, bankName: v }))} placeholder={hint.bank} icon="heroicons:building-library" maxLength={LIMITS.bankText.max} error={errors["bankDetails.bankName"]} />
+                    <InputField label="Bank Name" value={bankForm.bankName} onChange={(v) => setBankForm((p) => ({ ...p, bankName: v }))} placeholder={TR_PLACEHOLDERS.bank} icon="heroicons:building-library" maxLength={LIMITS.bankText.max} error={errors["bankDetails.bankName"]} />
                     <InputField label="Branch Name" value={bankForm.branchName} onChange={(v) => setBankForm((p) => ({ ...p, branchName: v }))} placeholder="Branch name" icon="heroicons:map-pin" maxLength={LIMITS.bankText.max} error={errors["bankDetails.branchName"]} />
                   </div>
-                  <InputField label="IBAN" value={bankForm.iban} onChange={(v) => setBankForm((p) => ({ ...p, iban: v.toUpperCase().replace(/[^A-Z0-9\s]/g, "") }))} placeholder={hint.iban} icon="heroicons:credit-card" maxLength={42} error={errors["bankDetails.iban"]} />
+                  <InputField label="IBAN" value={bankForm.iban} onChange={(v) => setBankForm((p) => ({ ...p, iban: v.toUpperCase().replace(/[^A-Z0-9\s]/g, "") }))} placeholder={TR_PLACEHOLDERS.iban} icon="heroicons:credit-card" maxLength={42} error={errors["bankDetails.iban"]} />
                   <SaveBar onSave={() => save("bank")} onCancel={cancelEdit} saving={saving} />
                 </div>
               ) : (
@@ -627,7 +634,7 @@ export default function SellerProfilePage() {
                         type="url"
                         value={socialForm[s.key]}
                         onChange={(e) => setSocialForm((p) => ({ ...p, [s.key]: e.target.value }))}
-                        placeholder={s.key === "whatsapp" ? hint.whatsapp : s.placeholder}
+                        placeholder={s.placeholder}
                         maxLength={LIMITS.socialUrl.max}
                         className={`w-full px-4 py-2.5 border rounded-xl text-sm focus:outline-none focus:ring-2 transition-all bg-white ${errors[`socialLinks.${s.key}`] ? "border-red-400 focus:ring-red-100" : "border-gray-200 focus:ring-primary-200 focus:border-primary-500"}`}
                       />

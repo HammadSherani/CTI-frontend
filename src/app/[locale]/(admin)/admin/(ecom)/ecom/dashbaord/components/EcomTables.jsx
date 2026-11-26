@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 const Badge = ({ children, variant }) => {
   const variants = {
@@ -59,7 +60,7 @@ export default function EcomTables({ data }) {
                       <Badge variant={order.orderStatus}>{order.orderStatus}</Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-800">
-                      ${order.totalAmount || 0}
+                      {formatCurrency(order.totalAmount || 0)}
                     </td>
                   </tr>
                 ))
@@ -106,7 +107,7 @@ export default function EcomTables({ data }) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-gray-800">
-                      ${product.price || 0}
+                      {formatCurrency(product.price || 0)}
                     </td>
                   </tr>
                 ))

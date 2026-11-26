@@ -225,7 +225,7 @@ export default function SellOldPhonePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div className="bg-white border border-gray-100 rounded-3xl p-8 text-center space-y-4 hover:shadow-lg transition duration-300">
                 <div className="w-16 h-16 bg-primary-50 rounded-2xl flex items-center justify-center mx-auto text-primary-600">
-                  <Icon icon="lucide:dollar-sign" className="text-3xl" />
+                  <Icon icon="mdi:currency-try" className="text-3xl" />
                 </div>
                 <h3 className="text-lg font-bold text-gray-800">1. Check Price</h3>
                 <p className="text-gray-500 text-sm leading-relaxed">

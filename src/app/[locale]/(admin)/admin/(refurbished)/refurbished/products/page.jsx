@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import Button from "@/components/partials/admin/ecom/myButton";
 import { useRouter } from '@/i18n/navigation';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ─── Confirm Dialog ─────────────────────────────────────── */
 function ConfirmDialog({ message, onConfirm, onCancel }) {
@@ -176,9 +177,9 @@ export default function RefurbishedProductsPage() {
         const v = row.variants?.find(x => x.isDefault) || row.variants?.[0];
         return (
           <div>
-            <span className="font-bold text-gray-900">${v?.sellingPrice?.toFixed(2) || "0.00"}</span>
+            <span className="font-bold text-gray-900">{formatCurrency(v?.sellingPrice)}</span>
             {v?.discountPrice && (
-              <p className="text-[11px] text-emerald-600 font-medium">${v.discountPrice.toFixed(2)} discounted</p>
+              <p className="text-[11px] text-emerald-600 font-medium">{formatCurrency(v.discountPrice)} discounted</p>
             )}
           </div>
         );

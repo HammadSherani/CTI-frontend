@@ -62,8 +62,8 @@ function SellerLayout({ children }) {
 
   const kycStatus   = seller?.kycStatus;         // 'pending' | 'approved' | 'revision' | 'rejected'
   const kycCompleted = seller?.isKycCompleted;   // true | false
-  const sellerId    = seller?.id // for redirect URL
- if (!seller || !kycCompleted) {
+  const sellerId    = seller?.userId?._id || seller?.userId // for redirect URL
+ if (!seller) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
@@ -85,7 +85,7 @@ function SellerLayout({ children }) {
     );
   }
   // ── 1. KYC not submitted yet → redirect to complete profile ───
-  if (!kycCompleted  && kycStatus === 'pending') {
+  if (!kycCompleted) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
@@ -182,12 +182,20 @@ function SellerLayout({ children }) {
               <p className="text-sm text-red-700">{seller.kycReason}</p>
             </div>
           )}
-          <button
-            onClick={() => router.push('/live-support')}
-            className="bg-red-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-600 transition-colors"
-          >
-            Contact Support
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => router.push(`/seller/complete-profile/${sellerId}`)}
+              className="bg-primary-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-primary-700 transition-colors"
+            >
+              Update &amp; Resubmit
+            </button>
+            <button
+              onClick={() => router.push('/live-support')}
+              className="bg-gray-100 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
+            >
+              Contact Support
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -134,7 +134,9 @@ function Login() {
 
 
       if (error?.response?.status === 410 && error?.response?.data?.data?.isKycCompleted === false) {
-        router.push(`/seller/complete-profile/${error.response?.data?.data.userId}`);
+        const { userId, token, user } = error.response.data.data;
+        if (token) dispatch(setAuth({ user, token, userType: "seller" }));
+        router.push(`/seller/complete-profile/${userId}`);
         return;
       }
 

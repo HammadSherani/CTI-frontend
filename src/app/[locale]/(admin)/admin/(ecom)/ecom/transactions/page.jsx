@@ -69,7 +69,7 @@ export default function EcomTransactions() {
 
   const summaryCards = [
     { label: "Total Records", value: pagination.total, icon: "mdi:cash-register", color: "#6366f1" },
-    { label: "Total Amount (Page)", value: fmt(transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0)), icon: "mdi:currency-usd", color: "#10b981" },
+    { label: "Total Amount (Page)", value: fmt(transactions.reduce((sum, tx) => sum + (tx.amount || 0), 0)), icon: "mdi:currency-try", color: "#10b981" },
     { label: "Showing on Page", value: transactions.length, icon: "mdi:file-document-outline", color: "#f59e0b" },
   ];
 

@@ -213,7 +213,7 @@ export default function SellerCampaignDetailsPage() {
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 mt-2 text-right">
-                  ${(campaign.totalBudget - (campaign.spentBudget || 0)).toFixed(2)} remaining
+                  {formatCurrency(campaign.totalBudget - (campaign.spentBudget || 0))} remaining
                 </p>
               </div>
             </div>

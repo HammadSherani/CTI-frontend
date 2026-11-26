@@ -19,7 +19,7 @@ const DUMMY_DATA = [
     urgency: 'High',
     customer: 'John Doe',
     customerEmail: 'john.doe@example.com',
-    customerPhone: '+1 (555) 123-4567',
+    customerPhone: '+90 000 000 00 00',
     brand: 'Apple',
     city: 'New York',
     address: '123 Main Street, Apt 4B, New York, NY 10001',
@@ -31,7 +31,7 @@ const DUMMY_DATA = [
       basePrice: 199,
       partsPrice: 100,
       serviceCharges: 50,
-      currency: '$',
+      currency: 'TRY',
       tax: 25,
       discount: 0
     },
@@ -73,7 +73,7 @@ const DUMMY_DATA = [
     urgency: 'Medium',
     customer: 'Jane Smith',
     customerEmail: 'jane.smith@example.com',
-    customerPhone: '+1 (555) 234-5678',
+    customerPhone: '+90 000 000 00 00',
     brand: 'Samsung',
     city: 'Los Angeles',
     address: '456 Oak Avenue, Los Angeles, CA 90001',
@@ -85,7 +85,7 @@ const DUMMY_DATA = [
       basePrice: 49,
       partsPrice: 40,
       serviceCharges: 20,
-      currency: '$',
+      currency: 'TRY',
       tax: 7,
       discount: 10
     },
@@ -125,7 +125,7 @@ const DUMMY_DATA = [
     urgency: 'High',
     customer: 'Mike Johnson',
     customerEmail: 'mike.johnson@example.com',
-    customerPhone: '+1 (555) 345-6789',
+    customerPhone: '+90 000 000 00 00',
     brand: 'Google',
     city: 'Chicago',
     address: '789 Pine Street, Chicago, IL 60601',
@@ -138,7 +138,7 @@ const DUMMY_DATA = [
       basePrice: 99,
       partsPrice: 50,
       serviceCharges: 30,
-      currency: '$',
+      currency: 'TRY',
       tax: 12,
       discount: 0
     },
@@ -214,8 +214,8 @@ const getServiceTypeLabel = (type) => {
   }
 };
 
-const formatCurrency = (amount, currency = '$') => {
-  return `${currency}${Number(amount || 0).toLocaleString('en-US')}`;
+const formatCurrency = (amount, currency = 'TRY') => {
+  return `${Number(amount || 0).toLocaleString('en-US')} ${currency}`;
 };
 
 const formatDate = (dateString) => {
@@ -494,7 +494,7 @@ export default function ServiceDetailsPage() {
                 {/* Right Column */}
                 <div className="space-y-6">
                   {/* Pricing Breakdown */}
-                  <InfoCard title="Pricing Breakdown" icon="heroicons:currency-dollar">
+                  <InfoCard title="Pricing Breakdown" icon="mdi:currency-try">
                     <div className="space-y-3">
                       <InfoRow label="Base Price" value={formatCurrency(service.pricing?.basePrice, service.pricing?.currency)} />
                       <InfoRow label="Parts Cost" value={formatCurrency(service.pricing?.partsPrice, service.pricing?.currency)} />

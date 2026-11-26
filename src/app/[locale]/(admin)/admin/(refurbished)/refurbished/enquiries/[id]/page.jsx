@@ -8,6 +8,7 @@ import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ══════════════════════════════════════════════════════════
    STATUS HELPERS
@@ -378,7 +379,7 @@ export default function EnquiryDetailPage() {
               <InfoRow label="Order No" value={orderDoc.orderNo || query.orderNo} mono />
               <InfoRow label="Order Status" value={orderDoc.orderStatus} />
               {orderDoc.totalAmount != null && (
-                <InfoRow label="Amount" value={`$${Number(orderDoc.totalAmount).toFixed(2)}`} />
+                <InfoRow label="Amount" value={formatCurrency(Number(orderDoc.totalAmount))} />
               )}
             </div>
           )}

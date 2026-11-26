@@ -6,6 +6,7 @@ import { Link } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
 import { fetchRefurbishedCart, updateRefurbishedCartItem, removeRefurbishedFromCart } from '@/store/refurbishedCart';
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 // ── Order Summary Sidebar Component ──
 function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
@@ -23,7 +24,7 @@ function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
           <div key={r.label} className="flex justify-between items-center text-sm">
             <span className="text-gray-500">{r.label}</span>
             <span className={`font-semibold ${r.color}`}>
-              {r.value < 0 ? `-$${Math.abs(r.value).toFixed(2)}` : `$${r.value.toFixed(2)}`}
+              {r.value < 0 ? `-${formatCurrency(Math.abs(r.value))}` : formatCurrency(r.value)}
             </span>
           </div>
         ))}
@@ -31,7 +32,7 @@ function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
       <div className="border-t border-gray-100 pt-4 mb-5">
         <div className="flex justify-between items-center">
           <span className="font-extrabold text-gray-800">Total</span>
-          <span className="font-extrabold text-gray-900 text-lg">${Math.max(0, total).toFixed(2)}</span>
+          <span className="font-extrabold text-gray-900 text-lg">{formatCurrency(Math.max(0, total))}</span>
         </div>
       </div>
       <Link href={checkoutLink}>
@@ -192,7 +193,7 @@ export default function CartPage() {
 
                   {/* Price */}
                   <div className="col-span-2 text-center text-sm font-semibold text-gray-700">
-                    ${price.toFixed(2)}
+                    {formatCurrency(price)}
                   </div>
 
                   {/* Quantity */}
@@ -218,7 +219,7 @@ export default function CartPage() {
 
                   {/* Subtotal */}
                   <div className="col-span-2 text-right text-sm font-bold text-gray-800">
-                    ${(price * item.quantity).toFixed(2)}
+                    {formatCurrency(price * item.quantity)}
                   </div>
                 </div>
               );

@@ -140,7 +140,7 @@ export default function RefurbishedDashboard() {
       {/* Overview stats cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         {[
-          { label: 'Gross Revenue', value: formatCurrency(overview.grossRevenue || 0), icon: 'solar:dollar-minimalistic-bold-duotone', color: 'text-emerald-600 bg-emerald-50' },
+          { label: 'Gross Revenue', value: formatCurrency(overview.grossRevenue || 0), icon: 'mdi:currency-try', color: 'text-emerald-600 bg-emerald-50' },
           { label: 'Shipping Costs', value: formatCurrency(overview.shippingCosts || 0), icon: 'solar:delivery-bold-duotone', color: 'text-rose-600 bg-rose-50' },
           { label: 'Net Earnings', value: formatCurrency(overview.netEarnings || 0), icon: 'solar:wallet-money-bold-duotone', color: overview.netEarnings >= 0 ? 'text-blue-600 bg-blue-50' : 'text-amber-600 bg-amber-50' },
           { label: 'Total Paid Orders', value: overview.totalOrders || 0, icon: 'solar:box-bold-duotone', color: 'text-indigo-600 bg-indigo-50' }
@@ -262,7 +262,7 @@ export default function RefurbishedDashboard() {
                           {ord.userId ? `${ord.userId.firstName || ''} ${ord.userId.lastName || ''}` : 'Anonymous'}
                         </div>
                       </td>
-                      <td className="py-3 px-3 font-bold text-gray-900">${(ord.totalAmount || 0).toFixed(2)}</td>
+                      <td className="py-3 px-3 font-bold text-gray-900">{formatCurrency(ord.totalAmount || 0)}</td>
                       <td className="py-3 px-3 text-center">
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           ord.orderStatus === 'delivered' ? 'bg-green-50 text-green-600' :

@@ -12,21 +12,34 @@ import handleError from "@/helper/handleError";
 import { toast } from "react-toastify";
 import { useDispatch, useSelector } from "react-redux";
 import { setAuth } from "@/store/auth";
+import PhoneInput from "@/components/common/PhoneInput";
+import CustomTranslate from "@/components/Translate";
+import { checkMobile, compactPhone } from "@/helper/phone";
+import { nameInput } from "@/helper/sellerProfileRules";
 
 // Validation schema
 const schema = yup.object().shape({
   name: yup
     .string()
-    .required("First name is required")
-    .min(2, "First name must be at least 2 characters"),
+    .trim()
+    .required("Name is required")
+    .min(2, "Name must be at least 2 characters")
+    .max(60, "Name cannot be longer than 60 characters")
+    .matches(/^\p{L}[\p{L}\p{M}\s.'-]*$/u, "Name can only contain letters"),
 
   email: yup
     .string()
+    .trim()
     .required("Email is required")
+    .max(100, "Email cannot be longer than 100 characters")
     .email("Please enter a valid email address"),
   phone: yup
     .string()
-    .required("Phone number is required"),
+    .required("Phone number is required")
+    .test("turkish-mobile", "", function (value) {
+      const message = checkMobile(value);
+      return message ? this.createError({ message }) : true;
+    }),
   role: yup
     .string()
     .required("Please select a role")
@@ -35,6 +48,7 @@ const schema = yup.object().shape({
     .string()
     .required("Password is required")
     .min(8, "Password must be at least 8 characters")
+    .max(64, "Password cannot be longer than 64 characters")
     .matches(
       /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
       "Password must contain at least one uppercase letter, one lowercase letter, and one number"
@@ -58,8 +72,10 @@ function Signup() {
     handleSubmit,
     formState: { errors, isSubmitting },
     watch,
+    setError,
   } = useForm({
     resolver: yupResolver(schema),
+    mode: "onTouched",
     defaultValues: {
       name: "",
       email: "",
@@ -80,7 +96,7 @@ function Signup() {
 
 const onSubmit = async (data) => {
   try {
-    console.log("Form submitted:", data);
+    const payload = { ...data, name: data.name.trim(), email: data.email.trim(), phone: compactPhone(data.phone) };
 
     let response;
 
@@ -88,13 +104,13 @@ const onSubmit = async (data) => {
     if (data.role === "seller") {
       response = await axiosInstance.post(
         "/seller/auth/register",
-        data
+        payload
       );
     } else {
       // customer + repairman dono yahan
       response = await axiosInstance.post(
         "/auth/register",
-        data
+        payload
       );
     }
 
@@ -109,6 +125,15 @@ const onSubmit = async (data) => {
     router.push("/auth/verify-otp");
 
   } catch (error) {
+    const response = error?.response?.data;
+    // field errors from the server go under the matching input
+    if (Array.isArray(response?.errors) && response.errors.length) {
+      response.errors.forEach((e) => setError(e.path || e.param, { type: "server", message: e.msg }));
+      toast.error(response.errors[0].msg);
+      return;
+    }
+    if (/phone/i.test(response?.message || "")) setError("phone", { type: "server", message: response.message });
+    if (/email already/i.test(response?.message || "")) setError("email", { type: "server", message: response.message });
     handleError(error);
   }
 };
@@ -167,14 +192,7 @@ const onSubmit = async (data) => {
                     <Image onClick={()=>router.push("/")} src="/assets/logo/logo.png" width={80} height={80} alt="logo" className="cursor-pointer"/>
                   </div>
 
-                  {/* Language Switch */}
-                  <div className=" text-sm text-gray-500 cursor-pointer text-end hover:text-orange-500 transition-colors">
-                    <span className="flex items-center justify-end gap-1">
-                      <Icon icon="mdi:web" className="text-base" />
-                      English (UK)
-                      <Icon icon="mdi:chevron-down" className="text-xs" />
-                    </span>
-                  </div>
+                  <CustomTranslate />
 </div>
                   {/* Header */}
                   <div className="text-center mb-8">
@@ -224,7 +242,9 @@ const onSubmit = async (data) => {
                               <input
                                 {...field}
                                 type="text"
-                                placeholder="First Name"
+                                placeholder="Full Name"
+                                maxLength={60}
+                                onChange={(e) => field.onChange(nameInput(e.target.value))}
                                 className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.name
                                     ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"
@@ -255,6 +275,7 @@ const onSubmit = async (data) => {
                               {...field}
                               type="email"
                               placeholder="Email Address"
+                              maxLength={100}
                               className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.email
                                   ? "border-red-300 focus:border-red-500"
                                   : "border-gray-200 focus:border-orange-500"
@@ -277,20 +298,13 @@ const onSubmit = async (data) => {
                         name="phone"
                         control={control}
                         render={({ field }) => (
-                          <div className="relative">
-                            <input
-                              {...field}
-                              type="tel"
-                              placeholder="Phone Number"
-                              className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white ${errors.phone
-                                  ? "border-red-300 focus:border-red-500"
-                                  : "border-gray-200 focus:border-orange-500"
-                                }`}
-                            />
-                            <span className="absolute right-3 top-3 text-gray-400">
-                              <Icon icon="mdi:phone-outline" className="text-lg" />
-                            </span>
-                          </div>
+                          <PhoneInput
+                            {...field}
+                            hasError={Boolean(errors.phone)}
+                            aria-label="Phone number"
+                            className="!rounded-xl !border-2"
+                            inputClassName="py-3"
+                          />
                         )}
                       />
                       {errors.phone && (
@@ -359,6 +373,7 @@ const onSubmit = async (data) => {
                                 {...field}
                                 type={showPassword ? "text" : "password"}
                                 placeholder="Password"
+                                maxLength={64}
                                 className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${errors.password
                                     ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"
@@ -389,6 +404,7 @@ const onSubmit = async (data) => {
                                 {...field}
                                 type={showConfirmPassword ? "text" : "password"}
                                 placeholder="Confirm Password"
+                                maxLength={64}
                                 className={`w-full px-4 py-3 bg-gray-50 border-2 rounded-xl transition-all duration-200 focus:outline-none focus:bg-white pr-12 ${errors.confirmPassword
                                     ? "border-red-300 focus:border-red-500"
                                     : "border-gray-200 focus:border-orange-500"

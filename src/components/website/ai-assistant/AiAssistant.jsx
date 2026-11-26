@@ -44,7 +44,7 @@ function getConversationTitle(messages) {
   return firstUserMessage.content.slice(0, 42).trim() + (firstUserMessage.content.length > 42 ? '…' : '');
 }
 
-function formatPrice(value, currency = 'USD') {
+function formatPrice(value, currency = 'TRY') {
   const amount = Number(value || 0);
   if (!Number.isFinite(amount) || amount <= 0) return 'Price on request';
   try {

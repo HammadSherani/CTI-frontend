@@ -26,7 +26,7 @@ const DUMMY_DATA = [
       basePrice: 199,
       partsPrice: 100,
       serviceCharges: 50,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Apple' },
@@ -52,7 +52,7 @@ const DUMMY_DATA = [
       basePrice: 49,
       partsPrice: 40,
       serviceCharges: 20,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Samsung' },
@@ -78,7 +78,7 @@ const DUMMY_DATA = [
       basePrice: 99,
       partsPrice: 50,
       serviceCharges: 30,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Google' },
@@ -104,7 +104,7 @@ const DUMMY_DATA = [
       basePrice: 39,
       partsPrice: 30,
       serviceCharges: 15,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'OnePlus' },
@@ -130,7 +130,7 @@ const DUMMY_DATA = [
       basePrice: 29,
       partsPrice: 0,
       serviceCharges: 20,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Xiaomi' },
@@ -156,7 +156,7 @@ const DUMMY_DATA = [
       basePrice: 99,
       partsPrice: 60,
       serviceCharges: 25,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Apple' },
@@ -182,7 +182,7 @@ const DUMMY_DATA = [
       basePrice: 499,
       partsPrice: 100,
       serviceCharges: 50,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Samsung' },
@@ -208,7 +208,7 @@ const DUMMY_DATA = [
       basePrice: 299,
       partsPrice: 100,
       serviceCharges: 50,
-      currency: '$'
+      currency: 'TRY'
     },
     deviceInfo: {
       brandId: { name: 'Apple' },
@@ -258,8 +258,8 @@ const getServiceTypeLabel = (type) => {
   }
 };
 
-const formatCurrency = (amount, currency = '$') => {
-  return `${currency}${Number(amount || 0).toLocaleString('en-US')}`;
+const formatCurrency = (amount, currency = 'TRY') => {
+  return `${Number(amount || 0).toLocaleString('en-US')} ${currency}`;
 };
 
 // Placeholder Image Component

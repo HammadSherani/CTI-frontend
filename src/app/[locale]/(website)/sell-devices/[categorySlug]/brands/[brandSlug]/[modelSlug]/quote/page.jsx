@@ -9,6 +9,9 @@ import { useSelector } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { getSellMediaFiles, clearSellMediaFiles } from '../upload-media/page';
+import PhoneInput from '@/components/common/PhoneInput';
+import { compactPhone } from '@/helper/phone';
+import { validatePhone } from '@/helper/sellerProfileRules';
 
 const STEP_ITEMS = [
   { id: 1, name: 'Brand' },
@@ -83,7 +86,7 @@ export default function QuotePage() {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    if ((name === 'telephone' || name === 'trIdNumber') && value !== '' && !/^\d+$/.test(value)) {
+    if (name === 'trIdNumber' && value !== '' && !/^\d+$/.test(value)) {
       return;
     }
 
@@ -114,7 +117,8 @@ export default function QuotePage() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       errors.email = 'Please enter a valid e-mail';
     }
-    if (!formData.telephone.trim()) errors.telephone = 'Telephone number is required';
+    const telephoneProblem = validatePhone(formData.telephone);
+    if (telephoneProblem) errors.telephone = telephoneProblem;
     if (!formData.trIdNumber.trim()) {
       errors.trIdNumber = 'TR ID Number is required';
     } else if (formData.trIdNumber.trim().length !== 11) {
@@ -154,7 +158,7 @@ export default function QuotePage() {
 
       fd.append('name', formData.nameSurname);
       fd.append('email', formData.email);
-      fd.append('phone', formData.telephone);
+      fd.append('phone', compactPhone(formData.telephone));
       fd.append('trIdNumber', formData.trIdNumber);
       fd.append('address', formData.address);
       fd.append('iban', formData.iban.replace(/\s+/g, ''));
@@ -295,13 +299,14 @@ export default function QuotePage() {
                     {/* Telephone */}
                     <div className="space-y-1.5 text-left">
                       <label className="text-xs font-bold text-gray-700 block">Telephone *</label>
-                      <input
-                        type="tel"
+                      <PhoneInput
                         name="telephone"
+                        aria-label="Telephone"
                         value={formData.telephone}
-                        onChange={handleInputChange}
-                        placeholder="+90 500 000 0000"
-                        className={`w-full px-4 py-3 rounded-xl border bg-gray-50/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary-100 transition ${formErrors.telephone ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-primary-500'}`}
+                        onChange={(v) => handleInputChange({ target: { name: 'telephone', value: v } })}
+                        hasError={Boolean(formErrors.telephone)}
+                        className="!rounded-xl"
+                        inputClassName="py-3"
                       />
                       {formErrors.telephone && <p className="text-red-500 text-xs font-bold">{formErrors.telephone}</p>}
                     </div>

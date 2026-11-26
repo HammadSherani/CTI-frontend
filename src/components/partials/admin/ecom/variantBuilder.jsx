@@ -17,6 +17,7 @@
 
 import React, { useState, useMemo } from "react";
 import { Icon } from "@iconify/react";
+import { formatCurrency } from '@/helper/currencyFormatter';
 
 /* ══════════════════════════════════════════════════════════
    CONSTANTS & PRESETS
@@ -329,7 +330,7 @@ function DefaultVariantPanel({ row, updateRow, addRowImages, errors, product }) 
         <div>
           <label className="block text-xs font-bold text-gray-600 mb-1.5">Price *</label>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-455 text-xs font-bold">$</span>
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-455 text-xs font-bold">₺</span>
             <input
               type="number" step="0.01" min="0"
               value={row.price}
@@ -367,7 +368,7 @@ function DefaultVariantPanel({ row, updateRow, addRowImages, errors, product }) 
           {calcFinalPrice(row.price, row.discountPercentage) && (
             <p className="text-[10px] text-emerald-600 font-bold mt-1.5 flex items-center gap-0.5">
               <Icon icon="mdi:tag-outline" className="w-3.5 h-3.5" />
-              Final Sale Price: ${calcFinalPrice(row.price, row.discountPercentage)}
+              Final Sale Price: {formatCurrency(calcFinalPrice(row.price, row.discountPercentage))}
             </p>
           )}
         </div>
@@ -737,7 +738,7 @@ function BulkFillBar({ onBulkFill }) {
         <input
           value={price}
           onChange={(e) => setPrice(e.target.value)}
-          placeholder="Price $"
+          placeholder="Price (TRY)"
           type="number"
           min="0"
           step="0.01"
@@ -916,7 +917,7 @@ function VariantCardItem({
       {/* Inputs */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div>
-          <label className="block text-[9px] font-black text-gray-400 uppercase tracking-tight mb-0.5">Price ($) <span className="normal-case font-normal text-gray-400">(opt.)</span></label>
+          <label className="block text-[9px] font-black text-gray-400 uppercase tracking-tight mb-0.5">Price (TRY) <span className="normal-case font-normal text-gray-400">(opt.)</span></label>
           <input
             type="number"
             step="0.01"
@@ -954,7 +955,7 @@ function VariantCardItem({
           <label className="block text-[9px] font-black text-gray-400 uppercase tracking-tight mb-0.5">Final Customer Price</label>
           <div className="h-8 flex items-center">
             {salePrice ? (
-              <span className="font-extrabold text-emerald-600 text-xs">${salePrice}</span>
+              <span className="font-extrabold text-emerald-600 text-xs">{formatCurrency(salePrice)}</span>
             ) : (
               <span className="text-gray-300 text-xs">—</span>
             )}
@@ -1019,7 +1020,7 @@ function VariantTable({
             <tr className="bg-gray-55/80 border-b border-gray-100">
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Photos</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Variant Option Combo</th>
-              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Price ($)</th>
+              <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Price (TRY)</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Stock</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Disc %</th>
               <th className="px-4 py-3.5 font-black text-gray-400 uppercase tracking-wider whitespace-nowrap">Final Price</th>
@@ -1151,7 +1152,7 @@ function VariantTable({
                   {/* Sale Price */}
                   <td className="px-4 py-3">
                     {salePrice ? (
-                      <span className="font-black text-emerald-600 text-sm">${salePrice}</span>
+                      <span className="font-black text-emerald-600 text-sm">{formatCurrency(salePrice)}</span>
                     ) : (
                       <span className="text-gray-300">—</span>
                     )}
@@ -1185,8 +1186,8 @@ function VariantTable({
 function SummaryStrip({ summary }) {
   const items = [
     { label: "Total Variants", value: summary.variantCount, icon: "mdi:layers", color: "text-blue-500", bg: "bg-blue-50" },
-    { label: "Min Price", value: summary.minPrice ? `$${summary.minPrice}` : "—", icon: "mdi:tag-outline", color: "text-emerald-500", bg: "bg-emerald-50" },
-    { label: "Max Price", value: summary.maxPrice ? `$${summary.maxPrice}` : "—", icon: "mdi:tag-multiple", color: "text-primary-500", bg: "bg-primary-50" },
+    { label: "Min Price", value: summary.minPrice ? formatCurrency(summary.minPrice) : "—", icon: "mdi:tag-outline", color: "text-emerald-500", bg: "bg-emerald-50" },
+    { label: "Max Price", value: summary.maxPrice ? formatCurrency(summary.maxPrice) : "—", icon: "mdi:tag-multiple", color: "text-primary-500", bg: "bg-primary-50" },
     { label: "Total Stock", value: summary.totalStock, icon: "mdi:package-variant", color: "text-amber-500", bg: "bg-amber-50" },
   ];
   return (

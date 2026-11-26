@@ -4,12 +4,16 @@ import { Controller } from "react-hook-form";
 import axiosInstance from "@/config/axiosInstance";
 import { toast } from "react-toastify";
 import { CustomDropdown } from "../admin/ecom/Dropdown";
-import { SELLER_LIMITS, cleanPhoneInput, getCountryPlaceholders, getSelectedCountry } from "@/helper/sellerProfileRules";
+import KycField, { FieldError, FieldLabel } from "./KycField";
+import PhoneInput from "../../common/PhoneInput";
+import { SELLER_LIMITS, TR_PLACEHOLDERS, digitsOnly, nameInput } from "@/helper/sellerProfileRules";
+import { findTurkey } from "@/helper/turkey";
 
-export default function PersonalInformation({ control, errors, user, watch, setValue, onCountryName }) {
+export default function PersonalInformation({ control, errors, user, watch, setValue }) {
   const [countries, setCountries] = useState([]);
-  const [states, setStates] = useState([]);
-  const [cities, setCities] = useState([]);
+  // each list remembers which country / state it was loaded for
+  const [stateList, setStateList] = useState({ of: "", items: [] });
+  const [cityList, setCityList] = useState({ of: "", items: [] });
 
   const [loadingCountries, setLoadingCountries] = useState(false);
   const [loadingStates, setLoadingStates] = useState(false);
@@ -17,39 +21,64 @@ export default function PersonalInformation({ control, errors, user, watch, setV
 
   const selectedCountry = watch("country");
   const selectedState = watch("state");
+  const selectedCity = watch("city");
+  const states = stateList.of === selectedCountry ? stateList.items : [];
+  const cities = cityList.of === selectedState ? cityList.items : [];
 
-  // Pre-select the country chosen on the website
+  // The platform works only in Turkey, so it is always the selected country
   useEffect(() => {
-    if (selectedCountry || !countries.length) return;
-    const site = getSelectedCountry().toLowerCase();
-    const match = countries.find((c) => c.name?.toLowerCase() === site);
-    if (match) setValue("country", match._id);
-  }, [selectedCountry, countries, setValue]);
-
-  const countryName = countries.find((c) => c._id === selectedCountry)?.name;
-  useEffect(() => {
-    if (countryName) onCountryName?.(countryName);
-  }, [countryName, onCountryName]);
-  const hint = getCountryPlaceholders(countryName || getSelectedCountry());
+    const turkey = findTurkey(countries);
+    if (!turkey || selectedCountry === turkey._id) return;
+    if (selectedCountry) {
+      setValue("state", "");
+      setValue("city", "");
+    }
+    setValue("country", turkey._id);
+  }, [countries, selectedCountry, setValue]);
 
   // Fetch countries on mount
   useEffect(() => {
     fetchCountries();
   }, []);
 
-  // Fetch states when country changes
+  // Fetch states when country changes (a late reply for an earlier country is ignored)
   useEffect(() => {
-    if (selectedCountry) {
-      fetchStates(selectedCountry);
-    }
+    if (!selectedCountry) return setLoadingStates(false);
+    let stale = false;
+    setLoadingStates(true);
+    axiosInstance
+      .get(`/public/states/country/${selectedCountry}`)
+      .then((res) => !stale && setStateList({ of: selectedCountry, items: res.data?.data || [] }))
+      .catch(() => !stale && toast.error("Failed to load states."))
+      .finally(() => !stale && setLoadingStates(false));
+    return () => { stale = true; };
   }, [selectedCountry]);
 
   // Fetch cities when state changes
   useEffect(() => {
-    if (selectedState) {
-      fetchCities(selectedState);
-    }
+    if (!selectedState) return setLoadingCities(false);
+    let stale = false;
+    setLoadingCities(true);
+    axiosInstance
+      .get(`/public/cities/state/${selectedState}`)
+      .then((res) => !stale && setCityList({ of: selectedState, items: res.data?.data || [] }))
+      .catch(() => !stale && toast.error("Failed to load cities."))
+      .finally(() => !stale && setLoadingCities(false));
+    return () => { stale = true; };
   }, [selectedState]);
+
+  // A saved state or city that does not belong to the selection is removed
+  useEffect(() => {
+    if (!selectedState || !selectedCountry || stateList.of !== selectedCountry) return;
+    if (stateList.items.some((s) => (s._id || s.id) === selectedState)) return;
+    setValue("state", "");
+    setValue("city", "");
+  }, [stateList, selectedCountry, selectedState, setValue]);
+
+  useEffect(() => {
+    if (!selectedCity || !selectedState || cityList.of !== selectedState) return;
+    if (!cityList.items.some((c) => (c._id || c.id) === selectedCity)) setValue("city", "");
+  }, [cityList, selectedState, selectedCity, setValue]);
 
   const fetchCountries = async () => {
     try {
@@ -65,34 +94,6 @@ export default function PersonalInformation({ control, errors, user, watch, setV
     }
   };
 
-  const fetchStates = async (countryId) => {
-    try {
-      setLoadingStates(true);
-      const res = await axiosInstance.get(`/public/states/country/${countryId}`);
-      setStates(res.data?.data || []);
-    } catch (error) {
-      console.error("Error fetching states:", error);
-      toast.error("Failed to load states.");
-      setStates([]);
-    } finally {
-      setLoadingStates(false);
-    }
-  };
-
-  const fetchCities = async (stateId) => {
-    try {
-      setLoadingCities(true);
-      const res = await axiosInstance.get(`/public/cities/state/${stateId}`);
-      setCities(res.data?.data || []);
-    } catch (error) {
-      console.error("Error fetching cities:", error);
-      toast.error("Failed to load cities.");
-      setCities([]);
-    } finally {
-      setLoadingCities(false);
-    }
-  };
-
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold text-gray-800 mb-6 pb-3 border-b border-gray-100">
@@ -101,22 +102,10 @@ export default function PersonalInformation({ control, errors, user, watch, setV
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
 
-        {/* Full Name */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Full Name <span className="text-red-500">*</span>
-          </label>
-          <Controller name="fullName" control={control} render={({ field }) => (
-            <input
-              {...field}
-              placeholder="Your full legal name"
-              maxLength={SELLER_LIMITS.fullName.max}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
-                ${errors.fullName ? "border-red-400" : "border-gray-300"}`}
-            />
-          )} />
-          {errors.fullName && <p className="text-red-500 text-xs mt-1">{errors.fullName.message}</p>}
-        </div>
+        <KycField
+          control={control} errors={errors} name="fullName" label="Full Name" required
+          placeholder="Your full legal name" filter={nameInput} maxLength={SELLER_LIMITS.fullName.max}
+        />
 
         {/* Date of Birth */}
         <div>
@@ -162,42 +151,17 @@ export default function PersonalInformation({ control, errors, user, watch, setV
 
         {/* Phone Number */}
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Phone Number <span className="text-red-500">*</span>
-          </label>
+          <FieldLabel required>Phone Number</FieldLabel>
           <Controller name="phoneNumber" control={control} render={({ field }) => (
-            <input
-              {...field}
-              type="tel"
-              inputMode="tel"
-              placeholder={hint.phone}
-              onChange={(e) => field.onChange(cleanPhoneInput(e.target.value))}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
-                ${errors.phoneNumber ? "border-red-400" : "border-gray-300"}`}
-            />
+            <PhoneInput {...field} hasError={Boolean(errors.phoneNumber)} />
           )} />
-          {errors.phoneNumber && <p className="text-red-500 text-xs mt-1">{errors.phoneNumber.message}</p>}
+          <FieldError message={errors.phoneNumber?.message} />
         </div>
 
- 
-
-        {/* Store Address */}
-        <div className="md:col-span-2">
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            Store Address <span className="text-red-500">*</span>
-          </label>
-          <Controller name="storeAddress" control={control} render={({ field }) => (
-            <textarea
-              {...field}
-              rows={2}
-              placeholder={hint.address}
-              maxLength={SELLER_LIMITS.storeAddress.max}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all resize-none
-                ${errors.storeAddress ? "border-red-400" : "border-gray-300"}`}
-            />
-          )} />
-          {errors.storeAddress && <p className="text-red-500 text-xs mt-1">{errors.storeAddress.message}</p>}
-        </div>
+        <KycField
+          control={control} errors={errors} name="storeAddress" label="Store Address" required textarea rows={2}
+          placeholder={TR_PLACEHOLDERS.address} maxLength={SELLER_LIMITS.storeAddress.max} className="md:col-span-2"
+        />
 
         {/* Country Dropdown */}
 <div>
@@ -215,7 +179,6 @@ export default function PersonalInformation({ control, errors, user, watch, setV
           field.onChange(val);
           setValue("state", "");
           setValue("city", "");
-          setCities([]);
         }}
         disabled={loadingCountries}
         searchable={true}
@@ -293,6 +256,7 @@ export default function PersonalInformation({ control, errors, user, watch, setV
         value={field.value}
         onChange={field.onChange}
         disabled={!selectedState || loadingCities}
+        searchable={true}
         placeholder={
           !selectedState
             ? "First select a state"
@@ -316,22 +280,11 @@ export default function PersonalInformation({ control, errors, user, watch, setV
 </div>
       
 
-        {/* ZIP Code */}
-        <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1.5">
-            ZIP Code <span className="text-red-500">*</span>
-          </label>
-          <Controller name="zipCode" control={control} render={({ field }) => (
-            <input
-              {...field}
-              placeholder={hint.zip}
-              maxLength={10}
-              className={`w-full border rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all
-                ${errors.zipCode ? "border-red-400" : "border-gray-300"}`}
-            />
-          )} />
-          {errors.zipCode && <p className="text-red-500 text-xs mt-1">{errors.zipCode.message}</p>}
-        </div>
+        <KycField
+          control={control} errors={errors} name="zipCode" label="ZIP Code" required placeholder={TR_PLACEHOLDERS.zip}
+          inputMode="numeric" filter={digitsOnly}
+          maxLength={5} showCount={false}
+        />
 
       </div>
     </div>

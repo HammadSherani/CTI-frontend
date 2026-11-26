@@ -1,22 +1,5 @@
-export const formatCurrency = (amount) => {
-  let country = 'Turkey'; // Default for seller side
-  if (typeof window !== 'undefined') {
-    country = localStorage.getItem('selectedCountry') || 'Turkey';
-  }
-  
-  const val = Number(amount) || 0;
-  
-  if (country?.toLowerCase() === 'turkey') {
-    return `${val.toFixed(2)} TRY`; // User requested "TRY"
-  }
-  
-  if (country?.toLowerCase() === 'pakistan') {
-     return `Rs. ${val.toFixed(2)}`;
-  }
+// The platform works only in Turkey, so every price is shown in Turkish lira.
+export const formatCurrency = (amount) => `${(Number(amount) || 0).toFixed(2)} TRY`;
 
-  // Fallback to USD
-  return `$${val.toFixed(2)}`;
-};
-
-// Just the currency label (e.g. "TRY", "Rs", "$"), for input prefixes.
-export const getCurrencySymbol = () => formatCurrency(0).replace(/[0-9.,\s]/g, '');
+// Just the currency label, for input prefixes.
+export const getCurrencySymbol = () => 'TRY';
