@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { Link, useRouter } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import { useSelector } from 'react-redux';
@@ -160,6 +160,8 @@ export default function MessageDetailPage() {
   const { id }   = useParams();
   const router   = useRouter();
   const { token, user } = useSelector(s => s.auth);
+  const isRefurbished = useSearchParams().get('type') === 'refurbished';
+  const apiBase = isRefurbished ? '/refurbished/queries' : '/customer/queries';
 
   const [query,         setQuery]         = useState(null);
   const [loading,       setLoading]       = useState(true);
@@ -175,10 +177,11 @@ export default function MessageDetailPage() {
   const fetchQuery = useCallback(async () => {
     if (!token || !id) return;
     try {
-      const { data } = await axiosInstance.get(`/customer/queries/${id}`, {
+      const { data } = await axiosInstance.get(`${apiBase}/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (data.success) setQuery(data.data);
+      // refurbished enquiries are answered by the platform, not by a seller
+      if (data.success) setQuery(isRefurbished ? { ...data.data, sellerId: { name: 'CTI Support' } } : data.data);
       else { toast.error('Conversation not found'); router.push('/messages'); }
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to load conversation');
@@ -186,13 +189,18 @@ export default function MessageDetailPage() {
     } finally {
       setLoading(false);
     }
-  }, [id, token, router]);
+  }, [id, token, router, apiBase, isRefurbished]);
 
   useEffect(() => { fetchQuery(); }, [fetchQuery]);
 
   /* scroll to bottom */
   useEffect(() => {
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+    // scrollIntoView would also drag the whole page down to the footer, so only the list is moved
+    const timer = setTimeout(() => {
+      const list = messagesEndRef.current?.parentElement;
+      list?.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    }, 80);
+    return () => clearTimeout(timer);
   }, [query?.messages?.length]);
 
   /* ── send ── */
@@ -201,7 +209,7 @@ export default function MessageDetailPage() {
     setSending(true);
     try {
       const { data } = await axiosInstance.post(
-        `/customer/queries/${id}/reply`,
+        `${apiBase}/${id}/reply`,
         { message: reply.trim() },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -237,6 +245,7 @@ export default function MessageDetailPage() {
 
   const isClosed   = query.status === 'closed';
   const isOrder    = query.queryType === 'order';
+  const replyOff   = isRefurbished && isClosed; // a closed refurbished enquiry cannot be reopened
   const sellerName = query.sellerId?.name || 'Seller';
 
   /* group messages by date */
@@ -325,7 +334,7 @@ export default function MessageDetailPage() {
             </div>
 
             {/* ── COMPOSE BAR ── */}
-            <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 sm:p-6">
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 sm:p-6 pb-20 sm:pb-20">
 
               {/* Quick Templates */}
               {showTemplates && (
@@ -370,7 +379,8 @@ export default function MessageDetailPage() {
                       e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
                     }}
                     onKeyDown={handleKeyDown}
-                    placeholder={isClosed ? 'Reply to reopen this conversation…' : 'Type a message…'}
+                    disabled={replyOff}
+                    placeholder={replyOff ? 'This conversation is closed' : isClosed ? 'Reply to reopen this conversation…' : 'Type a message…'}
                     className="w-full px-4 py-3 bg-transparent text-sm text-gray-700 resize-none focus:outline-none placeholder:text-gray-400 min-h-[48px]"
                     style={{ maxHeight: '120px' }}
                   />
@@ -379,7 +389,7 @@ export default function MessageDetailPage() {
                 {/* Send */}
                 <button
                   onClick={handleSend}
-                  disabled={sending || !reply.trim()}
+                  disabled={sending || replyOff || !reply.trim()}
                   className="flex-shrink-0 px-6 py-3 bg-primary-600 hover:bg-primary-700 disabled:bg-gray-300 disabled:text-gray-500 text-white font-medium rounded-xl transition-all flex items-center justify-center gap-2"
                 >
                   {sending ? (
@@ -450,7 +460,7 @@ export default function MessageDetailPage() {
                   
                   {query.orderId?._id && (
                     <Link
-                      href={`/orders/${query.orderId._id}`}
+                      href={`/orders/${query.orderId._id}${isRefurbished ? '?type=refurbished' : ''}`}
                       className="flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
                     >
                       View Order Details
@@ -468,7 +478,7 @@ export default function MessageDetailPage() {
                   {query.productId?.name && <InfoRow label="Product Name" value={query.productId.name} />}
                   
                   <Link
-                    href={`/product/${query.productId?.slug || query.productId?._id || query.productId}`}
+                    href={`/${isRefurbished ? 'refurbish' : 'product'}/${query.productId?.slug || query.productId?._id || query.productId}`}
                     className="flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 hover:underline transition-colors"
                   >
                     View Product Details
@@ -485,7 +495,7 @@ export default function MessageDetailPage() {
                     <p className="text-xs font-bold text-amber-700">Conversation Closed</p>
                   </div>
                   <p className="text-[11px] text-amber-600">
-                    You can still reply — it will automatically reopen.
+                    {replyOff ? 'Ask a new question from the product page.' : 'You can still reply — it will automatically reopen.'}
                   </p>
                 </div>
               )}

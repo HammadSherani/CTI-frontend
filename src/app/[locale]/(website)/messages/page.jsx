@@ -35,10 +35,10 @@ function ConvoItem({ query }) {
   const router  = useRouter();
   const lastMsg = query.lastMessage;
   const unread  = (query.customerUnread || 0) > 0;
-  const sellerN = query.sellerId?.name || 'Seller';
+  const sellerN = query.refurbished ? 'CTI Support' : query.sellerId?.name || 'Seller';
 
   const preview = lastMsg
-    ? (lastMsg.senderRole === 'seller' ? '' : 'You: ') + (lastMsg.message || '')
+    ? (lastMsg.senderRole === 'customer' ? 'You: ' : '') + (lastMsg.message || '')
     : query.subject;
 
   const time = moment(query.updatedAt).calendar(null, {
@@ -50,7 +50,7 @@ function ConvoItem({ query }) {
 
   return (
     <button
-      onClick={() => router.push(`/messages/${query._id}`)}
+      onClick={() => router.push(`/messages/${query._id}${query.refurbished ? '?type=refurbished' : ''}`)}
       className={`w-full text-left flex flex-col sm:flex-row sm:items-center gap-4 px-6 py-4 transition-all border-b border-gray-100 last:border-0 ${
         unread ? 'bg-primary-50/30' : 'bg-white hover:bg-gray-50'
       }`}
@@ -138,13 +138,16 @@ export default function MessagesPage() {
     if (!token) { router.push('/auth/login'); return; }
     setLoading(true);
     try {
-      const params = new URLSearchParams({ queryType: tab, page, limit: 20 });
+      const refurbished = tab === 'refurbished';
+      const params = new URLSearchParams(refurbished ? { page, limit: 20 } : { queryType: tab, page, limit: 20 });
       if (status !== 'all') params.set('status', status);
-      const { data } = await axiosInstance.get(`/customer/queries?${params}`, {
+      const { data } = await axiosInstance.get(`${refurbished ? '/refurbished/queries' : '/customer/queries'}?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data.success) {
-        setQueries(data.data || []);
+        setQueries(refurbished
+          ? (data.data || []).map((q) => ({ ...q, refurbished: true, lastMessage: q.messages?.at(-1) }))
+          : data.data || []);
         setTotalPages(data.pagination?.pages || 1);
         setTotal(data.pagination?.total || 0);
       }
@@ -156,6 +159,11 @@ export default function MessagesPage() {
   }, [token, tab, status, page, router]);
 
   useEffect(() => { setPage(1); }, [tab, status]);
+  // a link such as /messages?tab=refurbished opens that tab
+  useEffect(() => {
+    const wanted = new URLSearchParams(window.location.search).get('tab');
+    if (['customer', 'order', 'refurbished'].includes(wanted)) setTab(wanted);
+  }, []);
   useEffect(() => { fetchQueries(); }, [fetchQueries]);
 
   const filtered = search.trim()
@@ -178,7 +186,7 @@ export default function MessagesPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Messages</h1>
               <p className="text-sm text-gray-500 mt-1">
-                Your conversations with sellers.
+                Your conversations with sellers and support.
                 {unreadCount > 0 && <span className="text-primary-600 font-medium ml-1">({unreadCount} unread)</span>}
               </p>
             </div>
@@ -214,6 +222,7 @@ export default function MessagesPage() {
               {[
                 { key: 'customer', label: 'Product Queries' },
                 { key: 'order',    label: 'Order Queries' },
+                { key: 'refurbished', label: 'Refurbished' },
               ].map(({ key, label }) => (
                 <button
                   key={key}

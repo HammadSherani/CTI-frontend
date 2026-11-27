@@ -9,6 +9,9 @@ import { useSelector } from "react-redux";
 import Image from "next/image";
 import moment from "moment";
 import { CustomDropdown } from "@/components/dropdown";
+import { PACKAGE_PRESETS, CourierOffers } from "@/components/shipment/ShipmentPackage";
+import ShippingPaid, { shippingPaidBy } from "@/components/shipment/ShippingPaid";
+import ShippingPaymentModal from "@/components/shipment/ShippingPaymentModal";
 import { formatCurrency } from "@/helper/currencyFormatter";
 import Select from "react-select";
 
@@ -69,51 +72,6 @@ function InfoRow({ label, value, mono = false, icon }) {
   );
 }
 
-/* ── Standard Package Presets ───────────────────────────────────── */
-const PACKAGE_PRESETS = [
-  { id: "envelope",  label: "Envelope",    icon: "mdi:email-outline",             weight: "0.5", length: "35", width: "25", height: "3",  desc: "35×25×3 cm · 0.5 kg" },
-  { id: "small",     label: "Small Box",   icon: "mdi:package-variant-closed",    weight: "1",   length: "30", width: "20", height: "15", desc: "30×20×15 cm · 1 kg" },
-  { id: "medium",    label: "Medium Box",  icon: "mdi:package-variant",           weight: "3",   length: "40", width: "30", height: "20", desc: "40×30×20 cm · 3 kg" },
-  { id: "large",     label: "Large Box",   icon: "mdi:package",                   weight: "5",   length: "60", width: "40", height: "30", desc: "60×40×30 cm · 5 kg" },
-  { id: "xlarge",    label: "Extra Large", icon: "mdi:archive-outline",           weight: "10",  length: "80", width: "50", height: "40", desc: "80×50×40 cm · 10 kg" },
-  { id: "custom",    label: "Custom",      icon: "mdi:pencil-ruler-outline",      weight: "",    length: "",   width: "",   height: "",   desc: "Enter custom size" },
-];
-
-/* ── Courier Logo / Brand Map ───────────────────────────────────── */
-const COURIER_BRANDS = {
-  // Turkish carriers (match Geliver providerCode / providerServiceCode strings)
-  ARAS:         { name: "Aras Kargo",     color: "#E31E24", bg: "#FFF0F0", icon: "mdi:truck-delivery" },
-  ARASFAST:     { name: "Aras Kargo",     color: "#E31E24", bg: "#FFF0F0", icon: "mdi:truck-delivery" },
-  YURTICI:      { name: "Yurtiçi Kargo",  color: "#F7A900", bg: "#FFFBEE", icon: "mdi:truck-fast-outline" },
-  YURTICICARGO: { name: "Yurtiçi Kargo",  color: "#F7A900", bg: "#FFFBEE", icon: "mdi:truck-fast-outline" },
-  MNG:          { name: "MNG Kargo",      color: "#003087", bg: "#EEF3FF", icon: "mdi:package-variant-closed-check" },
-  MNGKARGO:     { name: "MNG Kargo",      color: "#003087", bg: "#EEF3FF", icon: "mdi:package-variant-closed-check" },
-  PTT:          { name: "PTT Kargo",      color: "#F9A825", bg: "#FFFDE7", icon: "mdi:mailbox-outline" },
-  PTTKARGO:     { name: "PTT Kargo",      color: "#F9A825", bg: "#FFFDE7", icon: "mdi:mailbox-outline" },
-  SURAT:        { name: "Sürat Kargo",    color: "#1565C0", bg: "#E8F4FD", icon: "mdi:lightning-bolt" },
-  SURATKARGO:   { name: "Sürat Kargo",    color: "#1565C0", bg: "#E8F4FD", icon: "mdi:lightning-bolt" },
-  SENDEO:       { name: "Sendeo",         color: "#E91E8C", bg: "#FDE8F3", icon: "mdi:send" },
-  HEPSIJET:     { name: "Hepsijet",       color: "#FF6900", bg: "#FFF3E8", icon: "mdi:flash-outline" },
-  HB:           { name: "Hepsijet",       color: "#FF6900", bg: "#FFF3E8", icon: "mdi:flash-outline" },
-  TRENDYOL:     { name: "Trendyol Expr.", color: "#FF6600", bg: "#FFF2E8", icon: "mdi:shopping-outline" },
-  KARGOIST:     { name: "Kargoist",       color: "#4CAF50", bg: "#E8F5E9", icon: "mdi:package-check" },
-  GELIVER:      { name: "Geliver",        color: "#6C47FF", bg: "#F0EEFF", icon: "mdi:truck-cargo-container" },
-  // International
-  UPS:          { name: "UPS",            color: "#351C15", bg: "#FFF8E1", icon: "mdi:truck" },
-  DHL:          { name: "DHL",            color: "#FFCC00", bg: "#FFFDE7", icon: "mdi:airplane-takeoff" },
-  FEDEX:        { name: "FedEx",          color: "#4D148C", bg: "#F5EEFF", icon: "mdi:package-variant-remove" },
-  TNT:          { name: "TNT",            color: "#FF6600", bg: "#FFF2E8", icon: "mdi:truck-outline" },
-};
-
-function getCourierBrand(carrierCode) {
-  if (!carrierCode) return null;
-  const key = carrierCode.toUpperCase().replace(/[-_\s]/g, "");
-  // Try exact match first, then prefix match
-  if (COURIER_BRANDS[key]) return COURIER_BRANDS[key];
-  const found = Object.keys(COURIER_BRANDS).find(k => key.startsWith(k) || k.startsWith(key));
-  return found ? COURIER_BRANDS[found] : null;
-}
-
 /* ── Create Shipment Section ─────────────────────────────────────── */
 function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalculated }) {
   const [selectedPreset, setSelectedPreset] = useState(null);
@@ -122,6 +80,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
   const [calculating, setCalculating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [payOffer, setPayOffer] = useState(null); // offer waiting for the fee to be confirmed
 
   const handlePresetSelect = (preset) => {
     setSelectedPreset(preset.id);
@@ -173,7 +132,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
     }
   };
 
-  const handleCreate = async (offer) => {
+  const handleCreate = async (offer, card) => {
     if (!rateResult) { setError("Please fetch offers first"); return; }
     setCreating(true);
     setError("");
@@ -184,8 +143,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
           offerId: offer.offerId,
           shipmentId: rateResult.shipmentId,
           packageDetails: rateResult.packageDetails,
-          paymentMethod: 'wallet',
-          estimatedCost: offer.cost
+          card: card || undefined,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -197,6 +155,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Shipment creation failed");
+      const plan = err?.response?.data?.payment;
+      if (err?.response?.status === 402) setPayOffer({ ...offer, payment: plan || offer.payment });
       setCreating(false);
     }
   };
@@ -211,7 +171,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
             <Icon icon="svg-spinners:180-ring-with-bg" className="w-8 h-8 text-primary-500" />
           </div>
           <p className="text-base font-extrabold text-gray-800">Booking Shipment…</p>
-          <p className="text-sm text-gray-400 mt-1">Processing Wallet Payment & Geliver Shipment — please wait.</p>
+          <p className="text-sm text-gray-400 mt-1">Processing payment and booking the shipment — please wait.</p>
           <div className="mt-4 flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2">
             <Icon icon="mdi:information-outline" className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <p className="text-xs text-amber-700 font-semibold">Do not close or refresh this window.</p>
@@ -329,81 +289,22 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
         </div>
       )}
 
-      {/* ── Courier Offer Cards ── */}
       {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
-        <div className="space-y-3 mb-5 border-t border-gray-100 pt-5">
-          <div className="flex items-center justify-between mb-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
-              <Icon icon="mdi:truck-outline" className="w-3.5 h-3.5" />
-              Select Shipping Carrier Offer
-              <span className="normal-case font-normal text-gray-400 ml-1">— Paid via Wallet</span>
-            </p>
-          </div>
-          
-          <div className="bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold px-3 py-2 rounded-xl mb-3 flex items-start gap-2">
-            <Icon icon="mdi:information-outline" className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-600" />
-            <div>
-              <p className="font-bold">🧪 Test Mode Active</p>
-              <p className="font-medium opacity-90 leading-tight mt-0.5">
-                Geliver test shipments are being used. Offers below are simulated — real courier billing rates will be available in production mode.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
-            {rateResult.offers.map((offer) => {
-              const brand = getCourierBrand(offer.carrier);
-              return (
-                <div
-                  key={offer.offerId}
-                  className="flex items-center justify-between p-3.5 bg-white border border-gray-100 rounded-xl hover:border-primary-300 hover:shadow-sm transition-all duration-200"
-                >
-                  <div className="flex items-center gap-3">
-                    {/* Courier logo / icon */}
-                    <div
-                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: brand?.bg || "#F3F4F6" }}
-                    >
-                      <Icon
-                        icon={brand?.icon || "mdi:truck-delivery-outline"}
-                        className="w-5 h-5"
-                        style={{ color: brand?.color || "#6B7280" }}
-                      />
-                    </div>
-                    <div>
-                      <p className="font-extrabold text-gray-900 text-xs">{brand?.name || offer.carrier}</p>
-                      {offer.carrier !== (brand?.name || offer.carrier) && (
-                        <p className="text-[9px] text-gray-400 font-mono">{offer.carrier}</p>
-                      )}
-                      <p className="text-[10px] text-gray-400 font-bold mt-0.5">
-                        {offer.estimatedDays
-                          ? `~${offer.estimatedDays} days`
-                          : "Time not specified"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="text-right">
-                      <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
-                      <p className="font-black text-gray-900 text-sm mt-0.5">
-                        {offer.cost.toFixed(2)}{" "}
-                        <span className="text-[10px] font-bold text-gray-500">{offer.currency}</span>
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => handleCreate(offer)}
-                      className="px-3.5 py-2 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-1 shadow-sm"
-                      style={{ background: brand?.color || "#2563EB" }}
-                    >
-                      <Icon icon="mdi:send-check-outline" className="w-3.5 h-3.5" />
-                      Ship
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="bg-amber-50 border border-amber-200 text-amber-700 text-[11px] font-semibold px-3 py-2 rounded-xl mb-3">
+          🧪 Test mode: Geliver test shipments are used and the shipping fee is fixed.
         </div>
+      )}
+
+      {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
+        <CourierOffers offers={rateResult.offers} onShip={(offer) => { setError(""); setPayOffer(offer); }} />
+      )}
+      {payOffer && (
+        <ShippingPaymentModal
+          offer={payOffer}
+          error={error}
+          onClose={() => setPayOffer(null)}
+          onConfirm={(card) => { const offer = payOffer; setPayOffer(null); handleCreate(offer, card); }}
+        />
       )}
 
       {rateResult && (!rateResult.offers || rateResult.offers.length === 0) && (
@@ -439,7 +340,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess, onRateCalcul
 }
 
 /* ── Shipment Info Card ─────────────────────────────────────────── */
-function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
+function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated, paid }) {
   const [refreshing, setRefreshing] = useState(false);
 
   if (!shipment || shipment.status === "not_created") return null;
@@ -496,12 +397,7 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
             </span>
           </div>
         )}
-        {shipment.shippingCost > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase text-gray-400">Shipping Cost (deducted)</span>
-            <span className="font-bold text-red-600">-{shipment.shippingCost?.toFixed(2)} TRY</span>
-          </div>
-        )}
+        {shipment.shippingCost > 0 && paid && <ShippingPaid fee={shipment.shippingCost} paid={paid} />}
         {shipment.createdAt && (
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-400">Created</span>
@@ -631,7 +527,7 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
           />
           {file ? (
             <>
-              <p className="text-sm font-bold text-emerald-700">{file.name}</p>
+              <p className="w-full break-all text-center text-sm font-bold text-emerald-700">{file.name}</p>
               <p className="text-xs text-emerald-500 mt-0.5">{(file.size / 1024).toFixed(1)} KB</p>
             </>
           ) : (
@@ -815,6 +711,7 @@ export default function OrderDetailsPage() {
   const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
 
   /* Shipment helpers */
+  const paid = shippingPaidBy(order);
   const shipment = order.shipment;
   const shipmentCreated = shipment?.status === 'created';
   const canCreateShipment = !shipmentCreated && !['cancelled', 'delivered'].includes(order.orderStatus);
@@ -1060,7 +957,10 @@ export default function OrderDetailsPage() {
                   <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping
                 </span>
                 {shipmentCreated ? (
-                  <span className="font-bold text-gray-800">{formatCurrency(order.shippingFee)}</span>
+                  <span className="font-bold text-gray-800">
+                    {formatCurrency(order.shippingFee)}
+                    <span className="ml-1.5 text-xs font-semibold text-red-600">(you paid {formatCurrency(paid.total)})</span>
+                  </span>
                 ) : calculatedShippingCost > 0 ? (
                   <span className="font-semibold text-red-600">-{calculatedShippingCost.toFixed(2)} TRY (Est)</span>
                 ) : (
@@ -1084,7 +984,7 @@ export default function OrderDetailsPage() {
                   <Icon icon="mdi:wallet-outline" className="w-4 h-4" />Your Earnings
                 </span>
                 <span className="text-xl font-extrabold text-emerald-700">
-                  {formatCurrency(totalSellerEarnings - (shipmentCreated ? (order.shippingFee || 0) : calculatedShippingCost))}
+                  {formatCurrency(Math.max(0, totalSellerEarnings - (shipmentCreated ? paid.fromOrder : calculatedShippingCost)))}
                 </span>
               </div>
             </div>
@@ -1097,6 +997,7 @@ export default function OrderDetailsPage() {
           {/* Geliver Shipment Info Card */}
           <ShipmentInfoCard
             shipment={order?.shipment}
+            paid={paid}
             orderId={order?._id}
             token={token}
             onStatusUpdated={(status, orderStatus) => {

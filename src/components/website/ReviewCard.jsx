@@ -1,20 +1,16 @@
 import { useState } from 'react';
 import { Icon } from '@iconify/react';
 import StarRating from './StarRating';
+import MediaViewer from './MediaViewer';
 
-export default function ReviewCard({ review, currentUserId, onEdit, onDelete, isDeletingThis }) {
-  const [confirmingDelete, setConfirmingDelete] = useState(false);
+export default function ReviewCard({ review }) {
+  const [viewing, setViewing] = useState(null); // position of the photo / video shown full screen
+  const media = [
+    ...(review.images || []).map((image) => ({ url: image.url, type: 'image' })),
+    ...(review.video?.url ? [{ url: review.video.url, type: 'video' }] : []),
+  ];
   const name = review.userId ? (review.userId.name || 'Anonymous') : 'Anonymous';
   const email = review.userId ? (review.userId.email || '') : '';
-  const isOwner = currentUserId && review.userId?._id &&
-    review.userId._id.toString() === currentUserId.toString();
-
-  const handleDeleteClick = () => {
-    if (!confirmingDelete) { setConfirmingDelete(true); return; }
-    onDelete(review._id);
-    setConfirmingDelete(false);
-  };
-
   return (
     <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
       <div className="flex items-start justify-between mb-3">
@@ -30,62 +26,34 @@ export default function ReviewCard({ review, currentUserId, onEdit, onDelete, is
         </div>
         <div className="flex items-center gap-2">
           {review.rating != null && <StarRating rating={review.rating} />}
-          {isOwner && (
-            <div className="flex items-center gap-1.5 ml-2">
-              {confirmingDelete ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={handleDeleteClick}
-                    disabled={isDeletingThis}
-                    className="px-2 py-1 rounded-lg bg-red-500 text-white text-[10px] font-bold hover:bg-red-600 transition-colors disabled:opacity-50"
-                  >
-                    {isDeletingThis
-                      ? <Icon icon="mdi:loading" className="animate-spin w-3 h-3" />
-                      : 'Confirm'
-                    }
-                  </button>
-                  <button
-                    onClick={() => setConfirmingDelete(false)}
-                    className="px-2 py-1 rounded-lg bg-gray-100 text-gray-600 text-[10px] font-bold hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={handleDeleteClick}
-                  disabled={isDeletingThis}
-                  className="p-1.5 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
-                  title="Delete review"
-                >
-                  {isDeletingThis
-                    ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 text-red-400" />
-                    : <Icon icon="solar:trash-bin-trash-bold-duotone" className="w-4 h-4" />
-                  }
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </div>
       {review.comment && <p className="text-gray-600 text-sm leading-relaxed mb-3">{review.comment}</p>}
 
       {/* Media Rendering */}
-      {(review.images?.length > 0 || review.video) && (
+      {media.length > 0 && (
         <div className="flex flex-wrap gap-3 mt-3">
-          {review.images?.map((img, idx) => (
-            <div key={idx} className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shadow-sm cursor-pointer hover:opacity-90 transition-opacity">
-              <img src={img.url} alt={`Review ${idx}`} className="w-full h-full object-cover" />
-            </div>
+          {media.map((item, idx) => (
+            <button
+              key={item.url}
+              type="button"
+              onClick={() => setViewing(idx)}
+              aria-label={item.type === 'video' ? 'Play video' : `Open photo ${idx + 1}`}
+              className={`w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shadow-sm relative flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity ${item.type === 'video' ? 'bg-black' : ''}`}
+            >
+              {item.type === 'video' ? (
+                <>
+                  <video src={item.url} muted className="w-full h-full object-cover opacity-60" />
+                  <Icon icon="mdi:play-circle" className="w-8 h-8 text-white absolute z-10" />
+                </>
+              ) : (
+                <img src={item.url} alt={`Review ${idx + 1}`} className="w-full h-full object-cover" />
+              )}
+            </button>
           ))}
-          {review.video && (
-            <div className="w-20 h-20 rounded-xl overflow-hidden border border-gray-200 shadow-sm relative bg-black flex items-center justify-center">
-              <video src={review.video.url} className="w-full h-full object-cover opacity-60" />
-              <Icon icon="mdi:play-circle" className="w-8 h-8 text-white absolute z-10" />
-            </div>
-          )}
         </div>
       )}
+      {viewing !== null && <MediaViewer media={media} startIndex={viewing} onClose={() => setViewing(null)} />}
     </div>
   );
 }

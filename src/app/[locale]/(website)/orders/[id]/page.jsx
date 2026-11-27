@@ -11,7 +11,7 @@ import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
-import { OrderItemReviewButton } from '@/components/website/ProductReview';
+import { OrderItemReviewButton, REVIEW_BASE } from '@/components/website/ProductReview';
 
 /* ══════════════════════════════════════════
    STATUS HELPERS
@@ -428,13 +428,19 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
             </div>
           )}
 
+          {!isRefurbished && (!reason.trim() || !selectedReturnItems(units).length) && (
+            <p className="text-xs text-gray-500">Choose the quantity and write the reason to send the request.</p>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 text-sm">
               Cancel
             </button>
             <button
               onClick={isRefurbished ? handleRefurbishedSubmit : handleStandardSubmit}
-              disabled={loading || (!isRefurbished && !reason.trim())}
+              disabled={loading || (isRefurbished
+                ? !Object.values(selectedItems).some((s) => s.selected)
+                : !reason.trim() || !selectedReturnItems(units).length)}
               className="flex-1 py-2.5 bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-semibold rounded-xl text-sm"
             >
               {loading ? '…' : 'Submit Request'}
@@ -484,7 +490,7 @@ export default function OrderDetailPage() {
 
         const reviewItem = loadedOrder?.items?.find(item => item.productId?.slug);
         const promptKey = `review-prompt-shown-${loadedOrder?._id || id}`;
-        if (!isRefurbishedMode && loadedOrder?.orderStatus === 'delivered' && reviewItem?.productId?.slug && !localStorage.getItem(promptKey)) {
+        if (loadedOrder?.orderStatus === 'delivered' && reviewItem?.productId?.slug && !localStorage.getItem(promptKey)) {
           setReviewPrompt({
             productSlug: reviewItem.productId.slug,
             productTitle: reviewItem.productId.title || 'your purchased product',
@@ -721,9 +727,9 @@ export default function OrderDetailPage() {
                         <span className="text-xs text-gray-400">{formatCurrency(item.price || 0)} each</span>
                       </div>
                       {/* one button per delivered product */}
-                      {!isRefurbishedMode && order.orderStatus === 'delivered' && product?.slug &&
+                      {order.orderStatus === 'delivered' && product?.slug &&
                         order.items.findIndex((other) => other.productId?.slug === product.slug) === order.items.indexOf(item) && (
-                          <OrderItemReviewButton slug={product.slug} productTitle={product.title} />
+                          <OrderItemReviewButton slug={product.slug} productTitle={product.title} base={isRefurbishedMode ? REVIEW_BASE.refurbished : REVIEW_BASE.marketplace} />
                         )}
                     </div>
                     <div className="text-right flex-shrink-0 self-center">
@@ -965,7 +971,7 @@ export default function OrderDetailPage() {
                 type="button"
                 onClick={() => {
                   localStorage.setItem(reviewPrompt.promptKey, 'true');
-                  router.push(`/product/${reviewPrompt.productSlug}?review=1`);
+                  router.push(`/${isRefurbishedMode ? 'refurbish' : 'product'}/${reviewPrompt.productSlug}?review=1`);
                 }}
                 className="flex-1 rounded-xl bg-primary-600 py-3 text-sm font-bold text-white hover:bg-primary-700"
               >

@@ -518,6 +518,8 @@ function MidHeader({ mobileMenuOpen, setMobileMenuOpen }) {
 ════════════════════════════════════════════ */
 function MobileMenu({ open, onClose }) {
   const { user } = useSelector((state) => state.auth) || {};
+  const [mounted, setMounted] = useState(false); // login state is only known in the browser
+  useEffect(() => setMounted(true), []);
   const navLinks = [
     { label: "Home", href: "/", icon: "mdi:home-outline" },
     { label: "Buy Devices", href: "/coming", icon: "mdi:shopping-outline" },
@@ -557,7 +559,7 @@ function MobileMenu({ open, onClose }) {
             </Link>
           ))}
         </nav>
-        {!user && (
+        {mounted && !user && (
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-100">
             <Link
               href="/auth/register"

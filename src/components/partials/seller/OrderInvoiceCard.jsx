@@ -2,7 +2,7 @@
 
 // The invoice of one order: upload it, see its review status, send it again if rejected.
 // A seller's earnings are only released once this invoice is approved.
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import axiosInstance from '@/config/axiosInstance';
@@ -17,6 +17,11 @@ export default function OrderInvoiceCard({ orderId, token }) {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const card = useRef(null);
+
+  useEffect(() => {
+    if (!loading && window.location.hash === '#invoice') card.current?.scrollIntoView({ block: 'center' });
+  }, [loading]);
 
   useEffect(() => {
     if (!orderId || !token) return undefined;
@@ -60,7 +65,7 @@ export default function OrderInvoiceCard({ orderId, token }) {
   const canUpload = !loading && (!invoice || invoice.status === 'rejected');
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
+    <div ref={card} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 space-y-3">
       <div className="flex items-center justify-between gap-2">
         <h2 className="font-bold text-gray-900 flex items-center gap-2">
           <Icon icon="mdi:file-document-outline" className="w-5 h-5 text-primary-500" />Invoice

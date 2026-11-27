@@ -11,6 +11,7 @@ import Image from 'next/image';
 import StarRating from '../StarRating';
 import ImageZoom from '../ImageZoom';
 import ReviewCard from '../ReviewCard';
+import ProductReviewModal, { REVIEW_BASE } from '../ProductReview';
 import PlatformGuarantees from '../PlatformGuarantees';
 import Breadcrumbs from '../Breadcrumbs';
 import RefurbishedSliderSection from './RefurbishedSliderSection';
@@ -34,18 +35,13 @@ export default function RefurbishedProductDetail({ params }) {
   const [reviews, setReviews] = useState([]);
   const [seller, setSeller] = useState(null);
   const [showFullStoreDesc, setShowFullStoreDesc] = useState(false);
-  const [submittingReview, setSubmittingReview] = useState(false);
+  const [canReview, setCanReview] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
 
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [reviewRating, setReviewRating] = useState(0);
-  const [reviewText, setReviewText] = useState('');
-  const [reviewImages, setReviewImages] = useState([]);
-  const [reviewVideo, setReviewVideo] = useState(null);
-  const [editingReview, setEditingReview] = useState(null);
-  const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedByBrand, setRelatedByBrand] = useState([]);
   const [topSellingFallback, setTopSellingFallback] = useState([]);
@@ -144,12 +140,27 @@ export default function RefurbishedProductDetail({ params }) {
   };
 
   useEffect(() => {
+    if (!token) { setCanReview(false); return undefined; }
+    let cancelled = false;
+    axiosInstance
+      .get(`${REVIEW_BASE.refurbished}/${params.slug}/review-eligibility`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => { if (!cancelled) setCanReview(Boolean(data.canReview)); })
+      .catch(() => { if (!cancelled) setCanReview(false); });
+    return () => { cancelled = true; };
+  }, [params.slug, token]);
+
+  // "Review Now" on the order page opens the window straight away
+  useEffect(() => {
+    if (canReview && new URLSearchParams(window.location.search).get('review') === '1') setReviewOpen(true);
+  }, [canReview]);
+
+  useEffect(() => {
     async function loadData() {
       try {
         setLoading(true);
         const [{ data: res }, { data: revRes }] = await Promise.all([
           axiosInstance.get(`/public/refurbished-devices/products/${params.slug}`),
-          Promise.resolve({ data: { success: true, data: [] } }),
+          axiosInstance.get(`${REVIEW_BASE.refurbished}/${params.slug}/reviews`).catch(() => ({ data: { success: false } })),
         ]);
 
         if (res.success) {
@@ -436,63 +447,13 @@ export default function RefurbishedProductDetail({ params }) {
     }
   };
 
-  const handleMediaUpload = (e) => {
-    const files = Array.from(e.target.files);
-    const imgs = files.filter(f => f.type.startsWith('image/'));
-    const vids = files.filter(f => f.type.startsWith('video/'));
-
-    if (imgs.length > 0) {
-      if (reviewImages.length + imgs.length > 5) {
-        toast.error('Maximum 5 images allowed');
-        return;
-      }
-      setReviewImages(prev => [...prev, ...imgs]);
-    }
-
-    if (vids.length > 0) {
-      const file = vids[0];
-      if (file.size > 50 * 1024 * 1024) {
-        toast.error('Video must be less than 50MB');
-        return;
-      }
-      setReviewVideo(file);
-    }
-  };
-
-  const handleAddReview = async () => {
-    if (!token) { toast.error('Please log in to submit a review'); return; }
-    if (!reviewRating) { toast.error('Please select a rating (stars)'); return; }
-    try {
-      setSubmittingReview(true);
-      const newReview = {
-        _id: Date.now().toString(),
-        rating: reviewRating,
-        comment: reviewText,
-        images: reviewImages.map(file => ({ url: URL.createObjectURL(file) })),
-        video: reviewVideo ? { url: URL.createObjectURL(reviewVideo) } : null,
-        userId: {
-          _id: currentUserId || 'guest',
-          name: auth?.user?.name || 'Anonymous',
-          email: auth?.user?.email || 'anonymous@example.com'
-        },
-        createdAt: new Date().toISOString()
-      };
-      setReviews(prev => [newReview, ...prev]);
-      toast.success('Review submitted successfully!');
-      setReviewText('');
-      setReviewRating(0);
-      setReviewImages([]);
-      setReviewVideo(null);
-    } catch (err) {
-      toast.error('Error submitting review');
-    } finally {
-      setSubmittingReview(false);
-    }
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    setReviews(prev => prev.filter(r => r._id !== reviewId));
-    toast.success('Review deleted');
+  // a saved review shows at once, with the new average
+  const handleReviewSaved = (saved) => {
+    const next = [saved, ...reviews.filter((r) => r._id !== saved._id)];
+    setReviews(next);
+    const rated = next.filter((r) => r.rating);
+    const average = rated.length ? Math.round((rated.reduce((sum, r) => sum + r.rating, 0) / rated.length) * 10) / 10 : 0;
+    setProductData((prev) => ({ ...prev, ratings: { average, count: next.length } }));
   };
 
   // Rating breakdown
@@ -1226,7 +1187,7 @@ export default function RefurbishedProductDetail({ params }) {
 
         {/* Reviews */}
         <div className="max-w-6xl">
-          <h2 className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Ratings & Reviews</h2>
+          <h2 id="reviews" className="text-lg font-bold text-gray-900 mb-5 border-b border-gray-100 pb-2">Ratings & Reviews</h2>
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             <div className="lg:col-span-2 space-y-4">
               <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
@@ -1250,6 +1211,22 @@ export default function RefurbishedProductDetail({ params }) {
                     ))}
                   </div>
                 </div>
+                {userReview ? (
+                  <p className="text-xs font-semibold text-emerald-700 text-center">You have reviewed this product.</p>
+                ) : canReview ? (
+                  <button
+                    type="button"
+                    onClick={() => setReviewOpen(true)}
+                    className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold transition-colors cursor-pointer"
+                  >
+                    <Icon icon="solar:star-bold-duotone" className="w-4 h-4" />
+                    Add Review
+                  </button>
+                ) : (
+                  <p className="text-xs text-gray-500 text-center">
+                    {token ? 'You can add a review after your order for this product is delivered.' : 'Log in to review a product you bought.'}
+                  </p>
+                )}
               </div>
 
 
@@ -1265,8 +1242,6 @@ export default function RefurbishedProductDetail({ params }) {
                   <ReviewCard
                     key={r._id}
                     review={r}
-                    currentUserId={currentUserId}
-                    onDelete={handleDeleteReview}
                   />
                 ))
               )}
@@ -1275,6 +1250,16 @@ export default function RefurbishedProductDetail({ params }) {
         </div>
 
         <RefurbishedVideos />
+
+        {reviewOpen && !userReview && (
+          <ProductReviewModal
+            slug={params.slug}
+            base={REVIEW_BASE.refurbished}
+            productTitle={productData?.title}
+            onClose={() => setReviewOpen(false)}
+            onSaved={handleReviewSaved}
+          />
+        )}
 
         {/* Related products */}
         {(relatedProducts.length > 0 || relatedByBrand.length > 0 || topSellingFallback.length > 0) && (

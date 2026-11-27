@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import moment from "moment";
 import { useRouter } from "@/i18n/navigation";
+import DeliveryInvoiceModal from "@/components/partials/seller/DeliveryInvoiceModal";
 
 const STATUS_OPTIONS = [
   { label: "All", value: "" },
@@ -52,7 +53,8 @@ const ALLOWED_TRANSITIONS = {
 
 /* ─── Inline Status Dropdown ─────────────────────────────────── */
 function InlineStatusDropdown({ row, onUpdate, updatingId }) {
-  const transitions = ALLOWED_TRANSITIONS[row.orderStatus] || [];
+  const transitions = (ALLOWED_TRANSITIONS[row.orderStatus] || [])
+    .filter((next) => row.shipmentStatus === "created" || !["shipping", "shipped", "delivered"].includes(next));
   const isUpdating = updatingId === row._id;
   const cls = ORDER_STATUS_STYLES[row.orderStatus] || "bg-gray-50 text-gray-600 border-gray-200";
 
@@ -103,6 +105,7 @@ export default function RefurbishedOrdersPage() {
   const [pagination, setPagination] = useState({ totalPages: 1, totalItems: 0 });
   const [summary, setSummary] = useState({ total: 0, pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 });
   const [updatingId, setUpdatingId] = useState(null);
+  const [deliveryModal, setDeliveryModal] = useState(null); // delivered order that still needs its invoice
 
   const fetchOrders = useCallback(async () => {
     if (!token) return;
@@ -139,6 +142,8 @@ export default function RefurbishedOrdersPage() {
         setOrders((prev) =>
           prev.map((o) => o._id === orderId ? { ...o, orderStatus: newStatus } : o)
         );
+        const row = orders.find((o) => o._id === orderId);
+        if (newStatus === "delivered" && row && !row.invoiceStatus) setDeliveryModal(row);
       }
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to update status");
@@ -194,13 +199,25 @@ export default function RefurbishedOrdersPage() {
     {
       header: "Actions",
       accessor: (row) => (
-        <button
-          onClick={() => router.push(`/seller/refurbished/orders/${row._id}`)}
-          className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-bold transition-colors"
-        >
-          <Icon icon="solar:eye-bold" className="w-4 h-4" />
-          View Details
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push(`/seller/refurbished/orders/${row._id}`)}
+            className="flex items-center gap-1.5 text-xs text-primary-600 hover:text-primary-700 font-bold transition-colors"
+          >
+            <Icon icon="solar:eye-bold" className="w-4 h-4" />
+            View Details
+          </button>
+          {/* only delivered orders whose invoice is missing or was rejected */}
+          {row.orderStatus === "delivered" && [null, undefined, "pending_submission", "rejected"].includes(row.invoiceStatus) && (
+            <button
+              onClick={() => router.push(`/seller/refurbished/orders/${row._id}#invoice`)}
+              className={`p-1.5 rounded-lg transition-colors ${row.invoiceStatus === "rejected" ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-emerald-50 text-emerald-600 hover:bg-emerald-100"}`}
+              title={row.invoiceStatus === "rejected" ? "Invoice rejected — upload again" : "Upload Invoice"}
+            >
+              <Icon icon="solar:bill-list-bold-duotone" className="w-5 h-5" />
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -215,6 +232,13 @@ export default function RefurbishedOrdersPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
+      {deliveryModal && (
+        <DeliveryInvoiceModal
+          order={deliveryModal}
+          onClose={() => setDeliveryModal(null)}
+          onUploadNow={() => { setDeliveryModal(null); fetchOrders(); }}
+        />
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-black text-gray-800">Refurbished Device Orders</h1>

@@ -212,7 +212,12 @@ export default function EnquiryDetailPage() {
 
   /* scroll to bottom */
   useEffect(() => {
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 80);
+    // scrollIntoView would also drag the whole page down to the footer, so only the list is moved
+    const timer = setTimeout(() => {
+      const list = messagesEndRef.current?.parentElement;
+      list?.scrollTo({ top: list.scrollHeight, behavior: 'smooth' });
+    }, 80);
+    return () => clearTimeout(timer);
   }, [query?.messages?.length]);
 
   /* ── reply ── */
@@ -291,7 +296,7 @@ export default function EnquiryDetailPage() {
   });
 
   return (
-    <div className="h-[calc(100vh-72px)] mb-10 flex flex-col bg-gray-50 overflow-hidden">
+    <div className="h-[calc(100vh-100px)] flex flex-col bg-gray-50 overflow-hidden">
 
       {/* ══ TOP HEADER ══ */}
       <div className="flex-shrink-0 bg-white border-b border-gray-200 z-20">
@@ -428,7 +433,7 @@ export default function EnquiryDetailPage() {
           </div>
 
           {/* ── COMPOSE BAR ── */}
-          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 sm:p-6">
+          <div className="flex-shrink-0 bg-white border-t border-gray-200 p-4 sm:p-6 pb-20 sm:pb-20">
 
             {/* Templates */}
             {showTemplates && (

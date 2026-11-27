@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Image from "next/image";
 import moment from "moment";
+import { adminNextStatuses } from "@/helper/orderRules";
 import { formatCurrency } from '@/helper/currencyFormatter';
 
 const STATUS_CONFIG = {
@@ -29,15 +30,6 @@ const CANCELLED_BY_LABEL = {
   admin:  "Admin",
   seller: "Seller",
   user:   "Customer",
-};
-
-const ALLOWED_TRANSITIONS = {
-  pending:    ["processing", "cancelled"],
-  processing: ["shipping", "cancelled"],
-  shipping:   ["shipped", "cancelled"],
-  shipped:    ["delivered", "cancelled"],
-  delivered:  [],
-  cancelled:  [],
 };
 
 const STATUS_LABELS = {
@@ -133,7 +125,7 @@ export default function AdminOrderDetailPage() {
 
   const statusConf = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
   const payConf = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
-  const nextStatuses = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  const nextStatuses = adminNextStatuses(order, true); // the seller ships marketplace orders
   const canChange = nextStatuses.length > 0;
 
   const totalPlatformFee = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
@@ -217,32 +209,40 @@ export default function AdminOrderDetailPage() {
         </div>
 
         {/* Status + Change */}
-        <div className="flex items-center gap-3 flex-shrink-0 flex-wrap">
-          <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusConf.bg} ${statusConf.text}`}>
-            <Icon icon={statusConf.icon} className="w-3.5 h-3.5" />
-            {statusConf.label}
-            {order.cancelledBy && (
-              <span className="ml-1 opacity-70">· {CANCELLED_BY_LABEL[order.cancelledBy] || order.cancelledBy}</span>
-            )}
-          </div>
-          {canChange && (
-            <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
-              <Icon icon="mdi:swap-horizontal" className="w-4 h-4 text-gray-400" />
-              <select
-                disabled={statusUpdating}
-                defaultValue=""
-                onChange={(e) => { if (e.target.value) handleStatusChange(e.target.value); }}
-                className="text-sm font-semibold text-gray-700 focus:outline-none bg-transparent pr-1 disabled:opacity-50"
-              >
-                <option value="">Change status…</option>
-                {nextStatuses.map((s) => (
-                  <option key={s} value={s}>{STATUS_LABELS[s]}</option>
-                ))}
-              </select>
-              {statusUpdating && (
-                <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-primary-500" />
+        <div className="flex flex-col items-start sm:items-end gap-2 flex-shrink-0">
+          <div className="flex items-center gap-3 flex-wrap sm:justify-end">
+            <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${statusConf.bg} ${statusConf.text}`}>
+              <Icon icon={statusConf.icon} className="w-3.5 h-3.5" />
+              {statusConf.label}
+              {order.cancelledBy && (
+                <span className="ml-1 opacity-70">· {CANCELLED_BY_LABEL[order.cancelledBy] || order.cancelledBy}</span>
               )}
             </div>
+            {canChange && (
+              <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm">
+                <Icon icon="mdi:swap-horizontal" className="w-4 h-4 text-gray-400" />
+                <select
+                  disabled={statusUpdating}
+                  defaultValue=""
+                  onChange={(e) => { if (e.target.value) handleStatusChange(e.target.value); }}
+                  className="text-sm font-semibold text-gray-700 focus:outline-none bg-transparent pr-1 disabled:opacity-50"
+                >
+                  <option value="">Change status…</option>
+                  {nextStatuses.map((s) => (
+                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  ))}
+                </select>
+                {statusUpdating && (
+                  <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-primary-500" />
+                )}
+              </div>
+            )}
+          </div>
+          {canChange && order.shipment?.status !== "created" && (
+            <p className="flex items-start gap-1.5 max-w-sm bg-amber-50 border border-amber-100 rounded-xl px-3 py-2 text-xs font-semibold text-amber-700">
+              <Icon icon="mdi:information-outline" className="w-4 h-4 flex-shrink-0" />
+              The seller has not created a shipment yet, so this order can only be cancelled.
+            </p>
           )}
         </div>
       </div>

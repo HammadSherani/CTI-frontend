@@ -102,7 +102,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
         >
           <Icon icon="mdi:file-pdf-box" className="w-16 h-16 text-primary-400 mx-auto mb-4" />
           {file ? (
-            <p className="font-semibold text-primary-700 text-lg">{file.name}</p>
+            <p className="w-full break-all text-center font-semibold text-primary-700 text-lg">{file.name}</p>
           ) : (
             <>
               <p className="font-bold text-primary-700">Click to select PDF file</p>

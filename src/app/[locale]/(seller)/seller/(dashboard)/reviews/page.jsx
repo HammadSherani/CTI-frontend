@@ -112,7 +112,7 @@ function ReviewRow({ review, onDelete }) {
             )}
             {productSlug ? (
               <a
-                href={`/product/${productSlug}`}
+                href={`/${review.refurbished ? 'refurbish' : 'product'}/${productSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-xs text-primary-600 hover:underline font-medium truncate max-w-[200px]"

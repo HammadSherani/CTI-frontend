@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import moment from "moment";
 import { useRouter } from "@/i18n/navigation";
+import { adminNextStatuses, shippedBySeller } from "@/helper/orderRules";
 import { formatCurrency } from '@/helper/currencyFormatter';
 
 const STATUS_OPTIONS = [
@@ -41,18 +42,9 @@ const ORDER_STATUS_STYLES = {
   cancelled:  "bg-red-50 text-red-700 border-red-200",
 };
 
-const ALLOWED_TRANSITIONS = {
-  pending:    ["processing", "shipping", "shipped", "cancelled"],
-  processing: ["shipping", "shipped", "cancelled"],
-  shipping:   ["shipped", "cancelled"],
-  shipped:    ["delivered", "cancelled"],
-  delivered:  [],
-  cancelled:  [],
-};
-
 /* ─── Inline Status Dropdown ─────────────────────────────────── */
 function InlineStatusDropdown({ row, onUpdate, updatingId }) {
-  const transitions = ALLOWED_TRANSITIONS[row.orderStatus] || [];
+  const transitions = adminNextStatuses(row, shippedBySeller(row.items));
   const isUpdating = updatingId === row._id;
   const cls = ORDER_STATUS_STYLES[row.orderStatus] || "bg-gray-50 text-gray-600 border-gray-200";
 

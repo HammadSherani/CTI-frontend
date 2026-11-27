@@ -40,6 +40,8 @@ export const selectedReturnItems = (units) =>
 export default function ReturnItemPicker({ order, units, onChange }) {
   const total = (order.items || []).reduce((sum, item, index) => sum + (item.price || 0) * (units[index] || 0), 0);
   const deadline = returnDeadlineOf(order);
+  // with only one thing to return there is no "0": at least one unit is always chosen
+  const single = (order.items || []).filter((item) => remainingUnits(item) > 0).length === 1;
 
   return (
     <div className="space-y-2">
@@ -57,11 +59,12 @@ export default function ReturnItemPicker({ order, units, onChange }) {
             {left ? (
               <select
                 aria-label={`Quantity to return of ${item.productId?.title || 'product'}`}
-                value={units[index] || 0}
+                value={units[index] || (single ? left : 0)}
                 onChange={(e) => onChange({ ...units, [index]: Number(e.target.value) })}
                 className="bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-xs font-semibold outline-none focus:ring-2 focus:ring-primary-500"
               >
-                {Array.from({ length: left + 1 }, (_, quantity) => (
+                {!single && <option value={0}>0 (keep)</option>}
+                {Array.from({ length: left }, (_, i) => i + 1).map((quantity) => (
                   <option key={quantity} value={quantity}>{quantity}</option>
                 ))}
               </select>

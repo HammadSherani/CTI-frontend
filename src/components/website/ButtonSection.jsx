@@ -57,6 +57,8 @@ function ButtonSection() {
   const wishlistItems = standardWishlistItems + refurbishedWishlistItems;
   const [notificationCount] = useState(0); // Keep static for now
   const [showNotifications, setShowNotifications] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const notificationRef = useRef(null);
 
   useEffect(() => {
@@ -135,6 +137,10 @@ function ButtonSection() {
     { name: "Help & Support", path: "/help-support" },
     { name: "Sign Out", path: "/auth/logout", isLogout: true },
   ];
+
+  // The login is read from the browser's storage, which the server cannot see: until the page has
+  // mounted, both render the same empty space (otherwise React reports a hydration mismatch)
+  if (!mounted) return <div className="h-8 w-32" aria-hidden="true" />;
 
   if (!user) {
     return (

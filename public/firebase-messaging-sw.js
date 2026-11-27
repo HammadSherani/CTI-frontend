@@ -1,5 +1,34 @@
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+// Tapping a notification opens its page (chat pushes carry ?openChat=<id>), reusing an open tab.
+// Registered BEFORE Firebase on purpose: Firebase's own handler swallows the tap without opening our link.
+self.addEventListener('notificationclick', (event) => {
+  event.stopImmediatePropagation();
+  const data = event.notification?.data || {};
+  const link = data.link || (data.FCM_MSG && data.FCM_MSG.data && data.FCM_MSG.data.link) || '/';
+  event.notification.close();
+  event.waitUntil((async () => {
+    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    const sameSite = windows.find((w) => new URL(w.url).origin === self.location.origin);
+    // stay in the language of the open tab
+    const locale = sameSite && (new URL(sameSite.url).pathname.match(/^\/(tr|en)(?=\/|$)/) || [])[0];
+    const path = locale && link.startsWith('/') && !/^\/(tr|en)(?=\/|\?|$)/.test(link) ? locale + link : link;
+    const url = new URL(path, self.location.origin).href;
+    if (!sameSite) return clients.openWindow(url);
+    try {
+      await sameSite.focus();
+      return await sameSite.navigate(url);
+    } catch {
+      return clients.openWindow(url);
+    }
+  })());
+});
+
+// keep this version the same as the "firebase" package of the app
+importScripts('https://www.gstatic.com/firebasejs/12.4.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/12.4.0/firebase-messaging-compat.js');
+
+// a new version of this file takes over at once, without closing every tab first
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
 firebase.initializeApp({
   apiKey: "AIzaSyAERS8YBxHBI94lLgJLZxFZTN0_MSQD-so",
@@ -14,30 +43,15 @@ const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
   console.log('Background notification:', payload);
+  // messages with a "notification" part are already shown by Firebase: showing them here doubles them
+  if (payload.notification) return;
   
-  const notificationTitle = payload.notification.title;
+  const notificationTitle = payload.data?.title || 'New notification';
   const notificationOptions = {
-    body: payload.notification.body,
+    body: payload.data?.body || '',
     icon: '/icon.png',
     data: payload.data
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
-});
-// Tapping a notification opens its page (chat pushes carry ?openChat=<id>), reusing an open tab
-self.addEventListener('notificationclick', (event) => {
-  const data = event.notification?.data || {};
-  const link = data.link || (data.FCM_MSG && data.FCM_MSG.data && data.FCM_MSG.data.link) || '/';
-  event.notification.close();
-  event.waitUntil((async () => {
-    const url = new URL(link, self.location.origin).href;
-    const windows = await clients.matchAll({ type: 'window', includeUncontrolled: true });
-    const sameSite = windows.find((w) => new URL(w.url).origin === new URL(url).origin);
-    if (sameSite) {
-      await sameSite.focus();
-      if ('navigate' in sameSite) return sameSite.navigate(url);
-      return undefined;
-    }
-    return clients.openWindow(url);
-  })());
 });

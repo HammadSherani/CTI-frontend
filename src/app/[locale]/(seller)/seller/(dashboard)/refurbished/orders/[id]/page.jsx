@@ -1,5 +1,8 @@
 "use client";
 
+import { PackageSizePicker, CourierOffers } from "@/components/shipment/ShipmentPackage";
+import ShippingPaid, { shippingPaidBy } from "@/components/shipment/ShippingPaid";
+import ShippingPaymentModal from "@/components/shipment/ShippingPaymentModal";
 import { formatCurrency } from "@/helper/currencyFormatter";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
@@ -51,7 +54,7 @@ function InfoRow({ label, value, mono = false, icon }) {
 }
 
 /* ── Shipment Info Card ─────────────────────────────────────────── */
-function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
+function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated, paid }) {
   const [refreshing, setRefreshing] = useState(false);
 
   if (!shipment || shipment.status === "not_created") return null;
@@ -108,12 +111,7 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
             </span>
           </div>
         )}
-        {shipment.shippingCost > 0 && (
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase text-gray-400">Shipping Cost</span>
-            <span className="font-bold text-red-600">{shipment.shippingCost?.toFixed(2)} {shipment.currency}</span>
-          </div>
-        )}
+        {shipment.shippingCost > 0 && paid && <ShippingPaid fee={shipment.shippingCost} paid={paid} />}
         {shipment.createdAt && (
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold uppercase text-gray-400">Created</span>
@@ -152,40 +150,22 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
 }
 
 /* ── Create Shipment Section ─────────────────────────────────────── */
-// Maps Geliver's providerCode to a local logo file under /public/carriers/.
-// Add the matching image there and set its path here to show the real logo
-// instead of the generic truck icon fallback.
-const CARRIER_LOGOS = {
-  ARAS: null,
-  YURTICI: null,
-  PTT: null,
-  SURAT: null,
-  HEPSIJET: null,
-  KOLAYGELSIN: null,
-};
-
-function CarrierLogo({ providerCode }) {
-  const logo = CARRIER_LOGOS[(providerCode || "").toUpperCase()];
-  if (logo) {
-    return (
-      <div className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-        <img src={logo} alt={providerCode} className="w-full h-full object-contain" />
-      </div>
-    );
-  }
-  return (
-    <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
-      <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
-    </div>
-  );
-}
-
 function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
   const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [payOffer, setPayOffer] = useState(null); // offer waiting for the fee to be confirmed
+  const [selectedPreset, setSelectedPreset] = useState(null);
+
+  // a preset fills weight and size (in cm); every value stays editable
+  const handlePresetSelect = (preset) => {
+    setSelectedPreset(preset.id);
+    setRateResult(null);
+    setError("");
+    setPkg((p) => ({ ...p, unit: "CM", weight: preset.weight, length: preset.length, width: preset.width, height: preset.height }));
+  };
 
   const handlePkgChange = (e) => {
     const { name, value } = e.target;
@@ -230,7 +210,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
     }
   };
 
-  const handleCreate = async (offer) => {
+  const handleCreate = async (offer, card) => {
     if (!rateResult) { setError("Please fetch offers first"); return; }
     setCreating(true);
     setError("");
@@ -240,7 +220,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
         {
           offerId: offer.offerId,
           shipmentId: rateResult.shipmentId,
-          packageDetails: rateResult.packageDetails
+          packageDetails: rateResult.packageDetails,
+          card: card || undefined,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -252,6 +233,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
       }
     } catch (err) {
       setError(err?.response?.data?.message || "Shipment creation failed");
+      const plan = err?.response?.data?.payment;
+      if (err?.response?.status === 402) setPayOffer({ ...offer, payment: plan || offer.payment });
       setCreating(false);
     }
   };
@@ -300,6 +283,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
         {order.shippingAddress?.phone && <p className="text-primary-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
       </div>
 
+      <PackageSizePicker selected={selectedPreset} onSelect={handlePresetSelect} />
+
       {/* Package Details */}
       <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-4">
         <Icon icon="mdi:package-variant-closed" className="w-4 h-4 text-gray-400" /> Package Details
@@ -340,37 +325,15 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
 
       {/* Geliver Selectable Rate Offers List */}
       {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
-        <div className="space-y-3 mb-5 border-t border-gray-150 pt-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer</p>
-          <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
-            {rateResult.offers.map((offer) => (
-              <div
-                key={offer.offerId}
-                className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <CarrierLogo providerCode={offer.providerCode || offer.carrier} />
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
-                    <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
-                    <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
-                  </div>
-                  <button
-                    onClick={() => handleCreate(offer)}
-                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
-                  >
-                    Select & Ship
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CourierOffers offers={rateResult.offers} onShip={(offer) => { setError(""); setPayOffer(offer); }} />
+      )}
+      {payOffer && (
+        <ShippingPaymentModal
+          offer={payOffer}
+          error={error}
+          onClose={() => setPayOffer(null)}
+          onConfirm={(card) => { const offer = payOffer; setPayOffer(null); handleCreate(offer, card); }}
+        />
       )}
 
       {rateResult && (!rateResult.offers || rateResult.offers.length === 0) && (
@@ -515,7 +478,13 @@ export default function AdminRefurbishedOrderDetailPage() {
 
   const statusConf = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
   const payConf    = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
-  const transitions = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  // nothing counts as shipping, shipped or delivered before a shipment exists
+  const transitions = (ALLOWED_TRANSITIONS[order.orderStatus] || [])
+    .filter((next) => order.shipment?.status === "created" || !["shipping", "shipped", "delivered"].includes(next));
+  const paid = shippingPaidBy(order);
+  const activeItems = order.items?.filter((item) => item.itemStatus !== "cancelled") || [];
+  const platformFee = activeItems.reduce((sum, item) => sum + (item.platformFee || 0), 0);
+  const earnings = activeItems.reduce((sum, item) => sum + (item.sellerEarnings || 0), 0);
   const canChangeStatus = transitions.length > 0;
 
   const shipment = order.shipment;
@@ -684,7 +653,10 @@ export default function AdminRefurbishedOrderDetailPage() {
                   <Icon icon="mdi:truck-outline" className="w-4 h-4" />Shipping
                 </span>
                 {shipmentCreated ? (
-                  <span className="font-semibold text-red-600">+{(order.shippingFee || 0).toFixed(2)} TRY</span>
+                  <span className="font-semibold text-gray-800">
+                    {formatCurrency(order.shippingFee)}
+                    <span className="ml-1.5 text-xs font-semibold text-red-600">(you paid {formatCurrency(paid.total)})</span>
+                  </span>
                 ) : calculatedShippingCost > 0 ? (
                   <span className="font-semibold text-red-600">+{calculatedShippingCost.toFixed(2)} TRY (Est)</span>
                 ) : (
@@ -695,6 +667,14 @@ export default function AdminRefurbishedOrderDetailPage() {
                 <span className="font-bold text-gray-700">Total (customer paid)</span>
                 <span className="font-extrabold text-gray-900">{formatCurrency(order.totalAmount)}</span>
               </div>
+              <div className="flex justify-between text-sm bg-amber-50 border border-amber-100 rounded-xl px-4 py-2.5">
+                <span className="text-amber-700 font-semibold">Platform Fee (deducted)</span>
+                <span className="font-bold text-amber-600">-{formatCurrency(platformFee)}</span>
+              </div>
+              <div className="flex justify-between items-center bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3">
+                <span className="text-emerald-800 font-bold">Your Earnings</span>
+                <span className="text-lg font-extrabold text-emerald-700">{formatCurrency(Math.max(0, earnings - paid.fromOrder))}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -704,6 +684,7 @@ export default function AdminRefurbishedOrderDetailPage() {
           {order.orderStatus !== "cancelled" && <OrderInvoiceCard orderId={order._id} token={token} />}
 
           <ShipmentInfoCard 
+              paid={paid}
               shipment={shipment} 
               orderId={order._id}
               token={token}

@@ -24,6 +24,19 @@ export async function requestNotificationPermission() {
   }
 }
 
+/**
+ * The service worker that receives pushes. It is registered for the whole site: waiting for
+ * "ready" never finishes with a worker that does not cover the current page.
+ */
+export async function getPushRegistration() {
+  await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+  return Promise.race([
+    navigator.serviceWorker.ready,
+    // login waits for this, so it must never hang
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Service worker did not start')), 10000)),
+  ]);
+}
+
 export async function getFCMToken() {
   try {
     if (!messaging) {
@@ -32,13 +45,15 @@ export async function getFCMToken() {
     }
 
     const token = await getToken(messaging, {
-      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+      vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY,
+      serviceWorkerRegistration: await getPushRegistration(),
     });
 
     console.log('✅ FCM Token generated:', token?.substring(0, 20) + '...');
     return token;
   } catch (error) {
-    console.error(' Error getting FCM token:', error);
+    // Brave blocks this until "Use Google services for push messaging" is switched on
+    console.warn('Push notifications are not available in this browser:', error.message);
     return null;
   }
 }

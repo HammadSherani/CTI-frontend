@@ -38,7 +38,6 @@ export default function EcomProductDetail({ params }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [deletingReviewId, setDeletingReviewId] = useState(null);
   const [showAskModal, setShowAskModal] = useState(false);
   const [askLoading, setAskLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -383,25 +382,6 @@ export default function EcomProductDetail({ params }) {
       toast.error(err?.response?.data?.message || 'Failed to send message');
     } finally {
       setAskLoading(false);
-    }
-  };
-
-  const handleDeleteReview = async (reviewId) => {
-    if (!token) return;
-    setDeletingReviewId(reviewId);
-    try {
-      const { data } = await axiosInstance.delete(
-        `/e-commerce/products/${params.slug}/reviews/${reviewId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        setReviews(prev => prev.filter(r => r._id !== reviewId));
-        toast.success('Review deleted');
-      }
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to delete review');
-    } finally {
-      setDeletingReviewId(null);
     }
   };
 
@@ -1013,14 +993,16 @@ export default function EcomProductDetail({ params }) {
                     ))}
                   </div>
                 </div>
-                {canReview ? (
+                {userReview ? (
+                  <p className="text-xs font-semibold text-emerald-700 text-center">You have reviewed this product.</p>
+                ) : canReview ? (
                   <button
                     type="button"
                     onClick={() => setReviewOpen(true)}
                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold transition-colors cursor-pointer"
                   >
                     <Icon icon="solar:star-bold-duotone" className="w-4 h-4" />
-                    {userReview ? 'Edit your review' : 'Add Review'}
+                    Add Review
                   </button>
                 ) : (
                   <p className="text-xs text-gray-500 text-center">
@@ -1041,9 +1023,6 @@ export default function EcomProductDetail({ params }) {
                   <ReviewCard
                     key={r._id}
                     review={r}
-                    currentUserId={currentUserId}
-                    onDelete={handleDeleteReview}
-                    isDeletingThis={deletingReviewId === r._id}
                   />
                 ))
               )}
@@ -1080,11 +1059,10 @@ export default function EcomProductDetail({ params }) {
       )}
 
       {/* Modals */}
-      {reviewOpen && (
+      {reviewOpen && !userReview && (
         <ProductReviewModal
           slug={params.slug}
           productTitle={productData?.title}
-          review={userReview}
           onClose={() => setReviewOpen(false)}
           onSaved={handleReviewSaved}
         />

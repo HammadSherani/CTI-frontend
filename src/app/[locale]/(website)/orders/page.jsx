@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import axiosInstance from '@/config/axiosInstance';
@@ -12,6 +12,7 @@ import SearchInput from '@/components/SearchInput';
 import { useSearchParams } from 'next/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
+import { OrderItemReviewButton, REVIEW_BASE } from '@/components/website/ProductReview';
 
 const RETURN_STATUS_CFG = {
   requested: { label: 'Pending Review', bg: 'bg-blue-100 text-blue-700' },
@@ -246,13 +247,19 @@ function ReturnRequestModal({ order, onClose, onSubmit, loading }) {
             </div>
           )}
 
+          {!isRefurbished && (!reason.trim() || !selectedReturnItems(units).length) && (
+            <p className="text-xs text-gray-500">Choose the quantity and write the reason to send the request.</p>
+          )}
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 py-2.5 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-colors text-sm">
               Cancel
             </button>
             <button
               onClick={isRefurbished ? handleRefurbishedSubmit : handleStandardSubmit}
-              disabled={loading || (!isRefurbished && !reason.trim())}
+              disabled={loading || (isRefurbished
+                ? !Object.values(selectedItems).some((s) => s.selected)
+                : !reason.trim() || !selectedReturnItems(units).length)}
               className="flex-1 py-2.5 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors text-sm disabled:opacity-50"
             >
               {loading ? <Icon icon="mdi:loading" className="animate-spin w-4 h-4 mx-auto" /> : 'Submit Request'}
@@ -683,7 +690,7 @@ export default function MyOrdersPage() {
                   const isExpanded = expandedOrderId === order._id;
 
                   return (
-                    <>
+                    <Fragment key={order._id}>
                       {/* Main Row */}
                       <tr
                         key={order._id}
@@ -817,6 +824,14 @@ export default function MyOrdersPage() {
                                               {formatCurrency(item.price || 0)} each
                                             </span>
                                           </div>
+
+                                          {/* one review button per delivered product */}
+                                          {order.orderStatus === 'delivered' && product?.slug &&
+                                            order.items.findIndex((other) => other.productId?.slug === product.slug) === idx && (
+                                              <div onClick={(e) => e.stopPropagation()}>
+                                                <OrderItemReviewButton slug={product.slug} productTitle={product.title} base={isRefurbishedMode ? REVIEW_BASE.refurbished : REVIEW_BASE.marketplace} />
+                                              </div>
+                                            )}
                                         </div>
 
                                         <div className="text-right self-center flex-shrink-0">
@@ -960,7 +975,7 @@ export default function MyOrdersPage() {
                           </td>
                         </tr>
                       )}
-                    </>
+                    </Fragment>
                   );
                 })}
               </tbody>

@@ -9,6 +9,8 @@ import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import Image from "next/image";
 import moment from "moment";
+import { PackageSizePicker, CourierOffers } from "@/components/shipment/ShipmentPackage";
+import { adminNextStatuses, shippedBySeller } from "@/helper/orderRules";
 import { formatCurrency } from '@/helper/currencyFormatter';
 
 const STATUS_CONFIG = {
@@ -24,15 +26,6 @@ const PAYMENT_CONFIG = {
   PAID: { label: "Paid", bg: "bg-emerald-100", text: "text-emerald-700" },
   PENDING: { label: "Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
   FAILED: { label: "Failed", bg: "bg-red-100", text: "text-red-700" },
-};
-
-const ALLOWED_TRANSITIONS = {
-  pending: ["processing", "shipping", "shipped", "cancelled"],
-  processing: ["shipping", "shipped", "cancelled"],
-  shipping: ["shipped", "cancelled"],
-  shipped: ["delivered", "cancelled"],
-  delivered: [],
-  cancelled: [],
 };
 
 function InfoRow({ label, value, mono = false, icon }) {
@@ -149,40 +142,21 @@ function ShipmentInfoCard({ shipment, orderId, token, onStatusUpdated }) {
   );
 }
 
-// Maps Geliver's providerCode to a local logo file under /public/carriers/.
-// Add the matching image there and set its path here to show the real logo
-// instead of the generic truck icon fallback.
-const CARRIER_LOGOS = {
-  ARAS: null,
-  YURTICI: null,
-  PTT: null,
-  SURAT: null,
-  HEPSIJET: null,
-  KOLAYGELSIN: null,
-};
-
-function CarrierLogo({ providerCode }) {
-  const logo = CARRIER_LOGOS[(providerCode || "").toUpperCase()];
-  if (logo) {
-    return (
-      <div className="w-9 h-9 rounded-xl bg-white border border-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
-        <img src={logo} alt={providerCode} className="w-full h-full object-contain" />
-      </div>
-    );
-  }
-  return (
-    <div className="w-9 h-9 rounded-xl bg-primary-100/60 flex items-center justify-center text-primary-600 shrink-0">
-      <Icon icon="mdi:truck-delivery-outline" className="w-5 h-5" />
-    </div>
-  );
-}
-
 function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
   const [pkg, setPkg] = useState({ weight: "", width: "", height: "", length: "", packageCount: 1, notes: "", unit: "CM" });
   const [rateResult, setRateResult] = useState(null);
   const [calculating, setCalculating] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
+  const [selectedPreset, setSelectedPreset] = useState(null);
+
+  // a preset fills weight and size (in cm); every value stays editable
+  const handlePresetSelect = (preset) => {
+    setSelectedPreset(preset.id);
+    setRateResult(null);
+    setError("");
+    setPkg((p) => ({ ...p, unit: "CM", weight: preset.weight, length: preset.length, width: preset.width, height: preset.height }));
+  };
 
   const handlePkgChange = (e) => {
     const { name, value } = e.target;
@@ -297,6 +271,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
         {order.shippingAddress?.phone && <p className="text-primary-600 text-xs mt-1">{order.shippingAddress.phone}</p>}
       </div>
 
+      <PackageSizePicker selected={selectedPreset} onSelect={handlePresetSelect} />
+
       {/* Package Details */}
       <p className="font-bold text-gray-800 text-sm flex items-center gap-1.5 mb-4">
         <Icon icon="mdi:package-variant-closed" className="w-4 h-4 text-gray-400" /> Package Details
@@ -337,37 +313,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
 
       {/* Geliver Selectable Rate Offers List */}
       {rateResult && rateResult.offers && rateResult.offers.length > 0 && (
-        <div className="space-y-3 mb-5 border-t border-gray-150 pt-5">
-          <p className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Select Shipping Carrier Offer</p>
-          <div className="grid grid-cols-1 gap-2.5 max-h-80 overflow-y-auto pr-1">
-            {rateResult.offers.map((offer) => (
-              <div
-                key={offer.offerId}
-                className="flex items-center justify-between p-3.5 bg-gray-50 border border-gray-100 rounded-xl hover:border-primary-300 hover:bg-primary-50/20 transition-all duration-200"
-              >
-                <div className="flex items-center gap-3">
-                  <CarrierLogo providerCode={offer.providerCode || offer.carrier} />
-                  <div>
-                    <p className="font-extrabold text-gray-900 text-xs">{offer.carrier}</p>
-                    <p className="text-[10px] text-gray-400 font-bold">Delivery: ~{offer.estimatedDays} day{offer.estimatedDays !== 1 ? 's' : ''}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-[9px] text-gray-400 font-bold uppercase leading-none">Price</p>
-                    <p className="font-black text-gray-900 text-xs mt-0.5">{offer.cost.toFixed(2)} {offer.currency}</p>
-                  </div>
-                  <button
-                    onClick={() => handleCreate(offer)}
-                    className="px-3 py-1.5 bg-primary-600 hover:bg-primary-700 text-white text-[11px] font-bold rounded-lg transition-colors flex items-center gap-0.5 shadow-sm"
-                  >
-                    Select & Ship
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <CourierOffers offers={rateResult.offers} onShip={handleCreate} />
       )}
 
       {rateResult && (!rateResult.offers || rateResult.offers.length === 0) && (
@@ -514,12 +460,13 @@ export default function AdminRefurbishedOrderDetailPage() {
 
   const statusConf = STATUS_CONFIG[order.orderStatus] || STATUS_CONFIG.pending;
   const payConf = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
-  const transitions = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  const sellerShips = shippedBySeller(order.items);
+  const transitions = adminNextStatuses(order, sellerShips);
   const canChangeStatus = transitions.length > 0;
 
   const shipment = order.shipment;
   const shipmentCreated = shipment?.status === "created";
-  const canCreateShipment = !shipmentCreated && !["cancelled", "delivered"].includes(order.orderStatus);
+  const canCreateShipment = !sellerShips && !shipmentCreated && !["cancelled", "delivered"].includes(order.orderStatus);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
@@ -557,6 +504,9 @@ export default function AdminRefurbishedOrderDetailPage() {
               <Icon icon="mdi:truck-plus-outline" className="w-4 h-4" />
               Create Shipment
             </button>
+          )}
+          {sellerShips && !shipmentCreated && canChangeStatus && (
+            <span className="text-xs font-semibold text-amber-600">Waiting for the seller to create the shipment</span>
           )}
           {shipmentCreated && (
             <span className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-emerald-100 text-emerald-700">
