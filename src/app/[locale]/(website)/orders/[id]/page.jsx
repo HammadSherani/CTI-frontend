@@ -10,7 +10,8 @@ import { toast } from 'react-toastify';
 import moment from 'moment';
 import InvoiceGenerator from '@/components/website/InvoiceGenerator';
 import { formatCurrency } from '@/helper/currencyFormatter';
-import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits, returnPeriodOver } from '@/components/website/ReturnItemPicker';
+import useReturnWindow from '@/hooks/useReturnWindow';
 import { OrderItemReviewButton, REVIEW_BASE } from '@/components/website/ProductReview';
 
 /* ══════════════════════════════════════════
@@ -467,6 +468,7 @@ export default function OrderDetailPage() {
   const [loading, setLoading]           = useState(true);
   const [enquiryModal, setEnquiryModal] = useState(false);
   const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const returnPeriod = useReturnWindow();
   const [returnModal, setReturnModal]   = useState(false);
   const [returnLoading, setReturnLoading] = useState(false);
   const [orderReturns, setOrderReturns] = useState([]); // newest first
@@ -887,7 +889,7 @@ export default function OrderDetailPage() {
             {order.orderStatus === 'delivered' && (() => {
               // orders can be returned in parts
               const latest = orderReturns[0];
-              const canAsk = canRequestReturn(order, orderReturns);
+              const canAsk = canRequestReturn(order, orderReturns, returnPeriod);
               return (
                 <>
                   {orderReturns.map((ret) => {
@@ -913,6 +915,11 @@ export default function OrderDetailPage() {
                       </div>
                     );
                   })}
+                  {returnPeriodOver(order, returnPeriod) && (
+                    <p className="w-full text-center text-xs font-semibold text-gray-500">
+                      {returnPeriod?.ms > 0 ? `Returns are possible for ${returnPeriod.label} after delivery. This period has ended.` : 'Returns are not available.'}
+                    </p>
+                  )}
                   {canAsk && (
                     <button
                       onClick={() => setReturnModal(true)}

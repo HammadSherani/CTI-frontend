@@ -25,6 +25,7 @@ import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common
 import ProductActivityIndicator from '@/components/common/ProductActivityIndicator';
 import DeliveryPartners from '@/components/common/DeliveryPartners';
 import SellerSocialLinks from '@/components/website/SellerSocialLinks';
+import useReturnWindow from '@/hooks/useReturnWindow';
 
 export default function RefurbishedProductDetail({ params }) {
   const router = useRouter();
@@ -43,6 +44,7 @@ export default function RefurbishedProductDetail({ params }) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
   const [pickedQuantity, setQuantity] = useState(1);
+  const returnPeriod = useReturnWindow();
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [relatedByBrand, setRelatedByBrand] = useState([]);
   const [topSellingFallback, setTopSellingFallback] = useState([]);
@@ -866,7 +868,7 @@ export default function RefurbishedProductDetail({ params }) {
                     </div>
                     <div className="flex flex-col items-center gap-0.5 border-x border-gray-100">
                       <Icon icon="mdi:refresh" className="w-3.5 h-3.5 text-primary-600" />
-                      <span className="text-[9px] text-gray-700 font-semibold leading-tight">14-Day Free Returns</span>
+                      <span className="text-[9px] text-gray-700 font-semibold leading-tight">{returnPeriod?.ms ? `Free Returns: ${returnPeriod.label}` : 'Free Returns'}</span>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
                       <Icon icon="mdi:truck-fast-outline" className="w-3.5 h-3.5 text-primary-600" />

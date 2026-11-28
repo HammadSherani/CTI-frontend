@@ -2,23 +2,29 @@
 
 // Partial returns: the customer picks the items and how many of each.
 import { formatCurrency } from '@/helper/currencyFormatter';
-
-const RETURN_WINDOW_DAYS = 14;
+import useReturnWindow from '@/hooks/useReturnWindow';
 
 export const remainingUnits = (item) =>
   item.itemStatus === 'cancelled' ? 0 : Math.max(0, item.quantity - (item.returnedQuantity || 0));
 
-export function returnDeadlineOf(order) {
+// `period` comes from the server (useReturnWindow); while unknown the server alone decides
+export function returnDeadlineOf(order, period) {
+  if (!period) return null;
+  const after = (date) => new Date(new Date(date).getTime() + period.ms);
+  if (order?.completionDate) return after(order.completionDate);
   if (order?.returnDeadline) return new Date(order.returnDeadline);
-  const delivered = order?.completionDate || order?.updatedAt;
-  return delivered ? new Date(new Date(delivered).getTime() + RETURN_WINDOW_DAYS * 24 * 60 * 60 * 1000) : null;
+  return order?.updatedAt ? after(order.updatedAt) : null;
+}
+
+/** Delivered, and the time for asking for a return is over. */
+export function returnPeriodOver(order, period) {
+  const deadline = returnDeadlineOf(order, period);
+  return order?.orderStatus === 'delivered' && Boolean(deadline) && Date.now() > deadline.getTime();
 }
 
 /** Delivered, inside the return period, and at least one unit not yet returned. */
-export function canRequestReturn(order, returns = []) {
-  if (order?.orderStatus !== 'delivered') return false;
-  const deadline = returnDeadlineOf(order);
-  if (deadline && Date.now() > deadline.getTime()) return false;
+export function canRequestReturn(order, returns = [], period) {
+  if (order?.orderStatus !== 'delivered' || returnPeriodOver(order, period)) return false;
   // a request made before partial returns covers the whole order
   if (returns.some((r) => r.returnStatus !== 'rejected' && (!r.items?.length || r.items.some((i) => i.itemIndex === undefined)))) return false;
   return !!order.items?.some((item) => remainingUnits(item) > 0);
@@ -39,7 +45,7 @@ export const selectedReturnItems = (units) =>
 
 export default function ReturnItemPicker({ order, units, onChange }) {
   const total = (order.items || []).reduce((sum, item, index) => sum + (item.price || 0) * (units[index] || 0), 0);
-  const deadline = returnDeadlineOf(order);
+  const deadline = returnDeadlineOf(order, useReturnWindow());
   // with only one thing to return there is no "0": at least one unit is always chosen
   const single = (order.items || []).filter((item) => remainingUnits(item) > 0).length === 1;
 
@@ -75,7 +81,7 @@ export default function ReturnItemPicker({ order, units, onChange }) {
         );
       })}
       <div className="flex justify-between text-xs text-gray-500">
-        <span>{deadline ? `Return until ${deadline.toLocaleDateString()}` : ''}</span>
+        <span>{deadline ? `Return until ${deadline.toLocaleString([], { dateStyle: "medium", timeStyle: "short" })}` : ''}</span>
         <span className="font-bold text-gray-800">Return value: {formatCurrency(total)}</span>
       </div>
     </div>

@@ -39,8 +39,19 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef();
+  const [orders, setOrders] = useState(null); // orders still without an invoice
+  const [orderId, setOrderId] = useState('');
+
+  useEffect(() => {
+    if (reuploadFor || !token) return;
+    axiosInstance
+      .get('/seller/invoices/orders-without-invoice', { headers: { Authorization: `Bearer ${token}` } })
+      .then(({ data }) => setOrders(data.data || []))
+      .catch(() => { setOrders([]); setError('Could not load your orders. Please try again.'); });
+  }, [reuploadFor, token]);
 
   const handleUpload = async () => {
+    if (!reuploadFor && !orderId) { setError('Choose the order this invoice belongs to.'); return; }
     if (pdfProblem(file)) { setError(pdfProblem(file)); return; }
     setLoading(true);
     setError('');
@@ -48,6 +59,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
     try {
       const fd = new FormData();
       fd.append('file', file);
+      if (!reuploadFor) fd.append('orderId', orderId);
 
       const url = reuploadFor
         ? `/seller/invoices/${reuploadFor._id}/reupload`
@@ -93,6 +105,22 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
           <div className="bg-red-50 border border-red-100 rounded-2xl p-4 mb-5 text-sm text-red-700">
             <strong>Rejection Reason:</strong> {reuploadFor.rejectionReason}
           </div>
+        )}
+
+        {!reuploadFor && (
+          <label className="block mb-4">
+            <span className="block text-xs font-bold text-slate-500 uppercase mb-1">Order</span>
+            <select
+              value={orderId}
+              onChange={(e) => { setOrderId(e.target.value); setError(''); }}
+              className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3 py-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">{orders === null ? 'Loading orders…' : orders.length ? 'Choose an order' : 'No order is waiting for an invoice'}</option>
+              {orders?.map((order) => (
+                <option key={order._id} value={order._id}>{order.orderNo} ({order.orderStatus})</option>
+              ))}
+            </select>
+          </label>
         )}
 
         <div

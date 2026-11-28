@@ -11,7 +11,8 @@ import { CustomDropdown } from '@/components/partials/admin/ecom/Dropdown';
 import SearchInput from '@/components/SearchInput';
 import { useSearchParams } from 'next/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
-import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits } from '@/components/website/ReturnItemPicker';
+import ReturnItemPicker, { canRequestReturn, initialReturnUnits, selectedReturnItems, remainingUnits, returnPeriodOver } from '@/components/website/ReturnItemPicker';
+import useReturnWindow from '@/hooks/useReturnWindow';
 import { OrderItemReviewButton, REVIEW_BASE } from '@/components/website/ProductReview';
 
 const RETURN_STATUS_CFG = {
@@ -288,6 +289,7 @@ export default function MyOrdersPage() {
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState(null);
 
+  const returnPeriod = useReturnWindow();
   const [returnModal, setReturnModal]       = useState(null);
   const [returnLoading, setReturnLoading]   = useState(false);
   const [cancellingOrderId, setCancellingOrderId] = useState(null);
@@ -939,7 +941,7 @@ export default function MyOrdersPage() {
                                         const orderReturns = existingReturns[order._id?.toString()] || [];
                                         const existingReturn = orderReturns[0];
                                         // orders can be returned in parts
-                                        const more = canRequestReturn(order, orderReturns);
+                                        const more = canRequestReturn(order, orderReturns, returnPeriod);
                                         if (existingReturn && !more) {
                                           const cfg = RETURN_STATUS_CFG[existingReturn.returnStatus] || { label: existingReturn.returnStatus, bg: 'bg-gray-100 text-gray-600' };
                                           return (
@@ -949,7 +951,10 @@ export default function MyOrdersPage() {
                                             </div>
                                           );
                                         }
-                                        if (!more) return null; // return period over
+                                        if (returnPeriodOver(order, returnPeriod)) {
+                                          return <div className="w-full text-center text-xs font-semibold text-gray-500">{returnPeriod?.ms > 0 ? `Return period (${returnPeriod.label}) has ended` : 'Returns are not available'}</div>;
+                                        }
+                                        if (!more) return null; // nothing left to return
                                         return (
                                           <>
                                             {existingReturn && (

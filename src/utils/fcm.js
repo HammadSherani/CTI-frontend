@@ -110,6 +110,16 @@ export async function updateFCMToken(authToken) {
   }
 }
 
+/** On sign-out: this browser stops receiving that account's pushes. */
+export async function removeFCMToken(authToken) {
+  if (!authToken || !('Notification' in window) || Notification.permission !== 'granted') return;
+  const fcmToken = await getFCMToken();
+  if (!fcmToken) return;
+  await axiosInstance
+    .post('/remove-fcm-token', { fcmToken }, { headers: { Authorization: `Bearer ${authToken}` } })
+    .catch((error) => console.warn('Could not remove this browser from push:', error.message));
+}
+
 // Listen to foreground notifications
 export function onMessageListener(callback) {
   if (!messaging) {

@@ -8,6 +8,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import { formatCurrency as fmt } from '@/helper/currencyFormatter';
+import HoldReasons from '@/components/partials/seller/HoldReasons';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -327,26 +328,8 @@ export default function SellerWalletPage() {
           </p>
         </div>
 
-        {/* ── Action Required for Pending Earnings ── */}
-        {(w.pendingBalance > 0) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 shadow-sm">
-            <Icon icon="mdi:alert-outline" className="w-6 h-6 text-amber-600 flex-shrink-0 mt-0.5" />
-            <div className="text-sm text-amber-800">
-              <p className="font-bold text-base">Action Required: Upload Invoices</p>
-              <p className="mt-1">
-                You have <strong>{fmt(w.pendingBalance)}</strong> on hold. 
-                Even if the hold period ({overview?.holdLabel ?? '20 days'}) has ended, these funds <strong>will not</strong> move to your Available Balance until you upload the invoices for these orders and they are approved by the Admin.
-              </p>
-              <button 
-                onClick={() => router.push('/seller/order')} 
-                className="mt-2 inline-flex items-center gap-1 font-bold text-amber-700 hover:text-amber-900 bg-amber-100/50 px-3 py-1.5 rounded-lg border border-amber-200/50 transition-colors"
-              >
-                Go to Orders
-                <Icon icon="mdi:arrow-right" className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
+        {/* ── What the money on hold is waiting for ── */}
+        <HoldReasons reasons={overview?.holdReasons} holdLabel={overview?.holdLabel} />
 
         {/* ── Tabs ── */}
         <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">

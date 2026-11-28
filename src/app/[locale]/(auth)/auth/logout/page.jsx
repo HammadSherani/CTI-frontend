@@ -4,18 +4,22 @@ import React, { useEffect } from "react";
 import { Icon } from "@iconify/react";
 import { Link } from "@/i18n/navigation";
 import Image from "next/image";
-import { useDispatch } from "react-redux";
+import { useDispatch, useStore } from "react-redux";
 import { clearAuth } from "@/store/auth";
 import { setCurrentUser } from "@/store/chat";
+import { removeFCMToken } from "@/utils/fcm";
 
 function Logout() {
   const dispatch = useDispatch();
+  const store = useStore();
 
   useEffect(() => {
+    // read before the login is cleared
+    removeFCMToken(store.getState().auth?.token);
     // Clear authentication state when visiting the logout page
     dispatch(clearAuth());
     dispatch(setCurrentUser(null));
-  }, [dispatch]);
+  }, [dispatch, store]);
 
   return (
     <section className="min-h-screen grid grid-cols-1 lg:grid-cols-12">

@@ -1,11 +1,12 @@
 'use client';
 
 import { Icon } from '@iconify/react';
+import useReturnWindow from '@/hooks/useReturnWindow';
 
 // Edit these values to match your real numbers/policies.
 const TRUST_ITEMS = [
   { icon: 'mdi:clipboard-check-outline', value: '32 Points', label: 'Quality Checks' },
-  { icon: 'mdi:calendar-check-outline', value: '14 Days', label: 'Free Returns*' },
+  { icon: 'mdi:calendar-check-outline', value: null, label: 'Free Returns*' }, // the period comes from the server
   { icon: 'mdi:shield-check-outline', value: 'Up to 12 Months', label: 'Warranty*' },
   { icon: 'mdi:truck-fast-outline', value: '24-48 Hrs', label: 'Express Dispatch' },
   { icon: 'mdi:lock-check-outline', value: '100% Secure', label: 'Payments' },
@@ -13,11 +14,17 @@ const TRUST_ITEMS = [
 ];
 
 export default function RefurbishedTrust() {
+  const period = useReturnWindow();
+  // no card while the period is unknown, or when returns are closed
+  const items = TRUST_ITEMS
+    .map((item) => (item.value === null && period?.ms ? { ...item, value: period.label.replace(/ [a-z]/, (letter) => letter.toUpperCase()) } : item))
+    .filter((item) => item.value);
+
   return (
     <section className="w-full">
       <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-5">CTI Trust</h2>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {TRUST_ITEMS.map(({ icon, value, label }) => (
+        {items.map(({ icon, value, label }) => (
           <div
             key={label}
             className="bg-white rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow px-3 py-6 flex flex-col items-center text-center"

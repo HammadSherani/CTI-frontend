@@ -1,6 +1,11 @@
+'use client';
+
 import { Icon } from '@iconify/react';
+import useReturnWindow from '@/hooks/useReturnWindow';
 
 export default function PlatformGuarantees() {
+  const period = useReturnWindow();
+
   return (
     <div className="max-w-6xl grid grid-cols-1 md:grid-cols-2 gap-6">
       <div className="bg-primary-50 rounded-2xl p-6 border border-primary-100 flex items-start gap-4">
@@ -25,7 +30,7 @@ export default function PlatformGuarantees() {
             Easy Returns & Refund Policy
           </h3>
           <p className="text-xs text-emerald-800/80 leading-relaxed">
-            Not satisfied with your purchase? You can return eligible items within 7 days of delivery for a full refund or exchange. We provide hassle-free return shipping labels and process refunds swiftly back to your original payment method. Terms and conditions apply.
+            {period?.ms === 0 ? 'Returns are not available at the moment.' : <>Not satisfied with your purchase? You can return eligible items within {period?.label || 'a few days'} of delivery for a full refund or exchange. We provide hassle-free return shipping labels and process refunds swiftly back to your original payment method. Terms and conditions apply.</>}
           </p>
         </div>
       </div>
