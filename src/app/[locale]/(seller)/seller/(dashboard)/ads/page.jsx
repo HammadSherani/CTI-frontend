@@ -145,8 +145,8 @@ export default function SellerAdsPage() {
         )}
 
         {/* Filters */}
-        <div className="flex gap-2">
-          {['', 'active', 'pending_approval', 'paused', 'draft'].map(s => (
+        <div className="flex flex-wrap gap-2">
+          {['', 'active', 'pending_approval', 'paused', 'draft', 'rejected', 'completed'].map(s => (
             <button
               key={s}
               onClick={() => setFilter(s)}
@@ -266,6 +266,11 @@ export default function SellerAdsPage() {
                               <button onClick={() => handleAction(camp._id, 'resume')} className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center transition-colors" title="Resume">
                                 <Icon icon="mdi:play" className="w-4 h-4" />
                               </button>
+                            )}
+                            {['draft', 'rejected'].includes(camp.status) && (
+                              <Link href={`/seller/ads/${camp._id}/edit`} className="w-8 h-8 rounded-lg bg-violet-50 text-violet-600 hover:bg-violet-100 flex items-center justify-center transition-colors" title="Edit">
+                                <Icon icon="mdi:pencil-outline" className="w-4 h-4" />
+                              </Link>
                             )}
                             {camp.status === 'draft' && (
                               <button onClick={() => handleAction(camp._id, 'submit')} className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition-colors" title="Submit for Approval">

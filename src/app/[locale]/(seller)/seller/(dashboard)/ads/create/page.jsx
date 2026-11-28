@@ -340,7 +340,7 @@ export default function CreateAdCampaignPage() {
         if (bannerFile)   fd.append('banner', bannerFile);
       }
 
-      const { data } = await axiosInstance.post('/seller/ads/campaigns', fd, { headers });
+      const { data } = await axiosInstance.post('/seller/ads/campaigns', fd, { headers: { ...headers, "Content-Type": undefined } });
       if (!data.success) throw new Error(data.message);
 
       await axiosInstance.post(`/seller/ads/campaigns/${data.data._id}/submit`, {}, { headers });

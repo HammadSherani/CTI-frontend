@@ -131,6 +131,7 @@ function ButtonSection() {
     { name: "My Profile", path: "/profile" },
     { name: "My Account", path: "/my-account" },
     { name: "My Orders", path: "/orders" },
+    { name: "Followed Stores", path: "/followed-stores" },
     { name: "My Messages", path: "/messages" },
     { name: "My Sell Requests", path: "/my-sell-requests" },
     { name: "Change Password", path: "/profile/change-password" },

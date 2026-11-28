@@ -7,41 +7,13 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import moment from 'moment';
 import Image from 'next/image';
+import { Link } from '@/i18n/navigation';
 import { formatCurrency } from '@/helper/currencyFormatter';
 
-/* ── Campaign Detail / Edit Slide-over ───────────────────────────── */
-function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
-  const [editing,   setEditing]   = useState(false);
-  const [saving,    setSaving]    = useState(false);
-  const [form, setForm] = useState({
-    name:        camp.name,
-    dailyBudget: camp.dailyBudget,
-    totalBudget: camp.totalBudget,
-    startDate:   camp.startDate ? moment(camp.startDate).format('YYYY-MM-DD') : '',
-  });
-
+/* ── Campaign Detail Slide-over ───────────────────────────── */
+function CampaignDetailModal({ camp, onClose }) {
   const fmtDate   = d => d ? moment(d).format('DD MMM YYYY') : '—';
   const S = STATUS_META[camp.status] || STATUS_META.draft;
-
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const { data } = await axiosInstance.put(
-        `/admin/e-commerce/ads/campaigns/${camp._id}`,
-        form,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (data.success) {
-        toast.success('Campaign updated');
-        onUpdated(data.data);
-        setEditing(false);
-      }
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Update failed');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-50 flex" onClick={onClose}>
@@ -59,14 +31,6 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
             <p className="text-[11px] text-slate-400 font-mono mt-0.5">{camp._id}</p>
           </div>
           <div className="flex items-center gap-2">
-            {!editing && !['completed','active'].includes(camp.status) && (
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 hover:bg-violet-100 text-violet-700 font-bold text-xs rounded-xl transition-colors"
-              >
-                <Icon icon="mdi:pencil-outline" className="w-3.5 h-3.5" /> Edit
-              </button>
-            )}
             <button onClick={onClose} className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center hover:bg-slate-200 transition-colors">
               <Icon icon="mdi:close" className="w-4 h-4 text-slate-500" />
             </button>
@@ -104,56 +68,7 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
             <p className="text-xs text-slate-500">{camp.sellerId?.email}</p>
           </div>
 
-          {/* Edit / View form fields */}
-          {editing ? (
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Campaign Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Daily Budget (TRY)</label>
-                  <input
-                    type="number" step="0.5"
-                    value={form.dailyBudget}
-                    onChange={e => setForm(f => ({ ...f, dailyBudget: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Total Budget (TRY)</label>
-                  <input
-                    type="number" step="1"
-                    value={form.totalBudget}
-                    onChange={e => setForm(f => ({ ...f, totalBudget: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Start Date</label>
-                <input
-                  type="date"
-                  value={form.startDate}
-                  onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))}
-                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button onClick={() => setEditing(false)} className="flex-1 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-sm hover:bg-slate-50 transition-colors">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm transition-colors disabled:opacity-60 flex items-center justify-center gap-2">
-                  {saving ? <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" /> : <Icon icon="mdi:content-save-outline" className="w-4 h-4" />}
-                  Save Changes
-                </button>
-              </div>
-            </div>
-          ) : (
+          {/* Campaign details (the seller owns them) */}
             <div className="space-y-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Campaign Details</p>
               {[
@@ -173,28 +88,38 @@ function CampaignDetailModal({ camp, token, onClose, onUpdated }) {
                 </div>
               ))}
             </div>
-          )}
 
           {/* Products */}
           {camp.type === 'sponsored_product' && camp.productIds?.length > 0 && (
             <div>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Promoted Products ({camp.productIds.length})</p>
               <div className="space-y-2">
-                {camp.productIds.map(prod => (
-                  <div key={prod._id || prod} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
-                    {prod.images?.[0]?.url && (
-                      <div className="relative w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100">
-                        <Image src={prod.images[0].url} alt={prod.title || ''} fill className="object-cover" />
+                {camp.productIds.map(prod => {
+                  const image = prod.images?.[0]?.url || prod.images?.[0];
+                  return (
+                    <div key={prod._id || prod} className="flex items-center gap-3 p-2.5 bg-slate-50 rounded-xl">
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-slate-100 flex items-center justify-center">
+                        {typeof image === 'string'
+                          ? <img src={image} alt={prod.title || 'Product'} className="w-full h-full object-cover" />
+                          : <Icon icon="mdi:package-variant" className="w-6 h-6 text-slate-300" />}
                       </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-semibold text-slate-900 truncate">{prod.title || prod}</p>
-                      <p className="text-[10px] text-slate-400 truncate">{prod.slug}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-semibold text-slate-900 line-clamp-2 break-words">{prod.title || 'Product details not available'}</p>
+                      </div>
+                      {prod.slug && (
+                        <Link href={`/product/${prod.slug}`} target="_blank" className="flex items-center gap-1 text-[11px] font-bold text-violet-700 hover:underline flex-shrink-0">
+                          View <Icon icon="mdi:open-in-new" className="w-3.5 h-3.5" />
+                        </Link>
+                      )}
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
+          )}
+
+          {camp.type === 'sponsored_product' && !camp.productIds?.length && (
+            <p className="text-xs text-slate-500 bg-slate-50 rounded-xl p-3">The promoted products of this campaign no longer exist.</p>
           )}
 
           {/* Rejection reason */}
@@ -633,11 +558,11 @@ export default function AdminAdsPage() {
                           )}
                           {/* View / Edit */}
                           <button
-                            title="View & Edit"
+                            title="View"
                             onClick={() => setDetailTarget(camp)}
                             className="w-7 h-7 bg-violet-50 hover:bg-violet-100 text-violet-600 rounded-lg flex items-center justify-center transition-colors"
                           >
-                            <Icon icon="mdi:pencil-box-outline" className="w-3.5 h-3.5" />
+                            <Icon icon="mdi:eye-outline" className="w-3.5 h-3.5" />
                           </button>
                         </div>
                       </td>
@@ -687,12 +612,7 @@ export default function AdminAdsPage() {
       {detailTarget && (
         <CampaignDetailModal
           camp={detailTarget}
-          token={token}
           onClose={() => setDetailTarget(null)}
-          onUpdated={(updated) => {
-            setCampaigns(prev => prev.map(c => c._id === updated._id ? { ...c, ...updated } : c));
-            setDetailTarget(prev => ({ ...prev, ...updated }));
-          }}
         />
       )}
     </div>

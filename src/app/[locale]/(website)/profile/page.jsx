@@ -94,7 +94,7 @@ export default function CustomerProfilePage() {
       const { data } = await axiosInstance.post(
         "/customer/profile/upload-profile",
         fd,
-        { headers: authHeaders }
+        { headers: { ...authHeaders, "Content-Type": undefined } }
       );
 
       if (data.success) {
@@ -139,7 +139,7 @@ export default function CustomerProfilePage() {
       const { data } = await axiosInstance.put(
         "/customer/profile/update-profile",
         fd,
-        { headers: authHeaders }
+        { headers: { ...authHeaders, "Content-Type": undefined } }
       );
 
       if (data.success) {

@@ -35,6 +35,7 @@ export default function Footer() {
       { label: "My Account", url: "/my-account" },
       { label: "My Orders", url: "/orders" },
       { label: "Wishlist", url: "/wishlist" },
+      { label: "Followed Stores", url: "/followed-stores" },
       { label: "Cart", url: "/cart" },
       { label: "My Sell Requests", url: "/my-sell-requests" },
       { label: "Messages", url: "/messages" },

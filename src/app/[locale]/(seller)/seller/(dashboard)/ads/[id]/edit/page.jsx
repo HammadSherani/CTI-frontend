@@ -147,7 +147,7 @@ export default function EditAdCampaignPage() {
         fd.append('paymentMethodId', paymentMethodId);
       }
 
-      const { data } = await axiosInstance.put(`/seller/ads/campaigns/${id}`, fd, { headers });
+      const { data } = await axiosInstance.put(`/seller/ads/campaigns/${id}`, fd, { headers: { ...headers, "Content-Type": undefined } });
       if (!data.success) throw new Error(data.message);
       toast.success('Campaign updated successfully');
       router.push(`/seller/ads/${id}`);
