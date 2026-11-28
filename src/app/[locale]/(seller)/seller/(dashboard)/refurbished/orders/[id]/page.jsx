@@ -1,7 +1,7 @@
 "use client";
 
 import { PackageSizePicker, CourierOffers } from "@/components/shipment/ShipmentPackage";
-import ShippingPaid, { shippingPaidBy } from "@/components/shipment/ShippingPaid";
+import ShippingPaid, { shippingPaidBy, confirmSellerCancel } from "@/components/shipment/ShippingPaid";
 import ShippingPaymentModal from "@/components/shipment/ShippingPaymentModal";
 import { formatCurrency } from "@/helper/currencyFormatter";
 import { useEffect, useState, useCallback } from "react";
@@ -34,7 +34,7 @@ const ALLOWED_TRANSITIONS = {
   pending:    ["processing", "shipping", "shipped", "cancelled"],
   processing: ["shipping", "shipped", "cancelled"],
   shipping:   ["shipped", "cancelled"],
-  shipped:    ["delivered", "cancelled"],
+  shipped:    ["delivered"],
   delivered:  [],
   cancelled:  [],
 };
@@ -398,14 +398,15 @@ export default function AdminRefurbishedOrderDetailPage() {
   useEffect(() => { fetchOrder(); }, [fetchOrder]);
 
   const updateStatus = async (newStatus) => {
+    if (newStatus === "cancelled" && !confirmSellerCancel()) return;
     setStatusUpdateLoading(true);
     try {
-      await axiosInstance.put(
+      const { data } = await axiosInstance.put(
         `/seller/refurbished-orders/${id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      toast.success("Order status updated");
+      toast.success(data.message || "Order status updated");
       fetchOrder();
     } catch (err) {
       toast.error(err?.response?.data?.message || "Failed to update status");
@@ -480,7 +481,7 @@ export default function AdminRefurbishedOrderDetailPage() {
   const payConf    = PAYMENT_CONFIG[order.paymentStatus] || PAYMENT_CONFIG.PENDING;
   // nothing counts as shipping, shipped or delivered before a shipment exists
   const transitions = (ALLOWED_TRANSITIONS[order.orderStatus] || [])
-    .filter((next) => order.shipment?.status === "created" || !["shipping", "shipped", "delivered"].includes(next));
+    .filter((next) => order.shipment?.status === "created" ? next !== "cancelled" : !["shipping", "shipped", "delivered"].includes(next));
   const paid = shippingPaidBy(order);
   const activeItems = order.items?.filter((item) => item.itemStatus !== "cancelled") || [];
   const platformFee = activeItems.reduce((sum, item) => sum + (item.platformFee || 0), 0);

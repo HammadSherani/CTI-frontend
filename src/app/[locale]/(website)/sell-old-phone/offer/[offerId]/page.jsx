@@ -6,11 +6,14 @@ import { useRouter } from '@/i18n/navigation';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
+import { useSelector } from 'react-redux';
 import moment from 'moment';
 
 export default function OfferDetailsPage() {
   const { offerId } = useParams();
   const router = useRouter();
+  const { token } = useSelector((state) => state.auth);
+  const loginPath = `/auth/login?next=/sell-old-phone/offer/${offerId}`; // back here after login
 
   const [loading, setLoading] = useState(true);
   const [offer, setOffer] = useState(null);
@@ -50,7 +53,8 @@ export default function OfferDetailsPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to accept offer");
+      toast.error(err.response?.data?.message || "Failed to accept offer");
+      fetchOfferDetails();
     } finally {
       setActionLoading(false);
     }
@@ -67,7 +71,8 @@ export default function OfferDetailsPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to reject offer");
+      toast.error(err.response?.data?.message || "Failed to reject offer");
+      fetchOfferDetails();
     } finally {
       setActionLoading(false);
     }
@@ -190,7 +195,19 @@ export default function OfferDetailsPage() {
           )}
 
           {/* Action Buttons */}
-          {offerStatus === 'pending' && (
+          {offerStatus === 'pending' && sellRequest.hasAccount && !token && (
+            <div className="pt-4 border-t border-gray-100 text-center space-y-3">
+              <p className="text-sm text-gray-600">Log in to the account that sent this request to accept or decline.</p>
+              <button
+                onClick={() => router.push(loginPath)}
+                className="px-6 py-2.5 bg-orange-500 text-white font-bold rounded-xl hover:bg-orange-600 transition text-sm cursor-pointer"
+              >
+                Log In
+              </button>
+            </div>
+          )}
+
+          {offerStatus === 'pending' && !(sellRequest.hasAccount && !token) && (
             <div className="flex flex-col sm:flex-row gap-4 pt-4 border-t border-gray-100">
               <button
                 onClick={handleAccept}
@@ -232,15 +249,15 @@ export default function OfferDetailsPage() {
         </div>
 
         {/* Guest Chat Notice */}
-        {!sellRequest.userId && (
+        {!sellRequest.hasAccount && (
           <div className="bg-orange-50 border border-orange-200/60 rounded-3xl p-6 text-center space-y-3">
             <h3 className="font-extrabold text-orange-800 text-base">Want to negotiate or chat about this offer?</h3>
             <p className="text-sm text-orange-700 max-w-md mx-auto">
-              Guests cannot access chat. Please register or login to your account using the email <strong>{sellRequest.customerInfo?.email}</strong> to start chatting directly with the Platform support team.
+              Guests cannot access chat. Please register or login to your account using the same email you gave in your request to start chatting directly with the Platform support team.
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
-                onClick={() => router.push('/auth/login')}
+                onClick={() => router.push(loginPath)}
                 className="px-5 py-2 bg-orange-600 text-white font-bold text-xs rounded-xl hover:bg-orange-700 transition"
               >
                 Log In

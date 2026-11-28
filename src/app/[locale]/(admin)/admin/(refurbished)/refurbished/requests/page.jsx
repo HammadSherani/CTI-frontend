@@ -11,6 +11,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { useRouter } from '@/i18n/navigation';
 import moment from "moment";
+import { SELL_STATUSES, SELL_STATUS_STYLES } from "@/constant/sellRequestStatus";
 
 export default function SellRequestsPage() {
   const [requests, setRequests] = useState([]);
@@ -44,18 +45,13 @@ export default function SellRequestsPage() {
 
   const summaryCards = [
     { label: "Total Requests", value: requests.length, icon: "mdi:file-document-multiple-outline", color: "#6366f1" },
-    { label: "Pending", value: requests.filter((r) => r.status === 'pending').length, icon: "mdi:clock-outline", color: "#f59e0b" },
-    { label: "Completed", value: requests.filter((r) => r.status === 'completed').length, icon: "mdi:check-circle-outline", color: "#10b981" },
+    { label: "Pending", value: requests.filter((r) => r.status === 'Pending').length, icon: "mdi:clock-outline", color: "#f59e0b" },
+    { label: "Completed", value: requests.filter((r) => r.status === 'Completed').length, icon: "mdi:check-circle-outline", color: "#10b981" },
   ];
 
   const statusOptions = [
     { label: "All Statuses", value: "" },
-    { label: "Pending", value: "pending" },
-    { label: "Evaluating", value: "evaluating" },
-    { label: "Approved", value: "approved" },
-    { label: "Rejected", value: "rejected" },
-    { label: "Completed", value: "completed" },
-    { label: "Cancelled", value: "cancelled" },
+    ...SELL_STATUSES.map((status) => ({ label: status, value: status })),
   ];
 
   const columns = [
@@ -99,16 +95,8 @@ export default function SellRequestsPage() {
       key: "status",
       header: "Status",
       cell: (row) => {
-        const colors = {
-          pending: "bg-yellow-100 text-yellow-700",
-          evaluating: "bg-blue-100 text-blue-700",
-          approved: "bg-green-100 text-green-700",
-          rejected: "bg-red-100 text-red-700",
-          completed: "bg-purple-100 text-purple-700",
-          cancelled: "bg-gray-100 text-gray-700",
-        };
         return (
-          <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full capitalize ${colors[row.status] || colors.pending}`}>
+          <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full capitalize ${SELL_STATUS_STYLES[row.status] || SELL_STATUS_STYLES.Pending}`}>
             {row.status}
           </span>
         );

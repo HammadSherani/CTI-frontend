@@ -54,7 +54,8 @@ export default function MySellRequestsPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to accept offer");
+      toast.error(err.response?.data?.message || "Failed to accept offer");
+      fetchMyRequests();
     } finally {
       setActionLoading(false);
     }
@@ -71,7 +72,8 @@ export default function MySellRequestsPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Failed to reject offer");
+      toast.error(err.response?.data?.message || "Failed to reject offer");
+      fetchMyRequests();
     } finally {
       setActionLoading(false);
     }

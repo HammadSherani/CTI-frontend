@@ -9,7 +9,8 @@ export const shippedBySeller = (items = []) =>
 export function adminNextStatuses(order, sellerShips) {
   if (['delivered', 'cancelled'].includes(order.orderStatus)) return [];
   if (order.shipment?.status === 'created') {
-    return [...(order.orderStatus === 'shipped' ? [] : ['shipped']), 'delivered', 'cancelled'];
+    // the courier is booked: the order can no longer be cancelled
+    return order.orderStatus === 'shipped' ? ['delivered'] : ['shipped', 'delivered'];
   }
   return !sellerShips && order.orderStatus === 'pending' ? ['processing', 'cancelled'] : ['cancelled'];
 }

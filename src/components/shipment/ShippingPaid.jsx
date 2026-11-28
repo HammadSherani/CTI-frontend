@@ -8,6 +8,9 @@ export const shippingPaidBy = (order) => {
   return { fromOrder, fromWallet, byCard, total: fromOrder + fromWallet + byCard };
 };
 
+// a cancel cannot be undone, so the seller confirms it
+export const confirmSellerCancel = () => window.confirm('Cancel this order? The customer will be refunded.');
+
 export default function ShippingPaid({ fee, paid }) {
   const parts = [
     [paid.fromOrder, "from this order's earnings"],

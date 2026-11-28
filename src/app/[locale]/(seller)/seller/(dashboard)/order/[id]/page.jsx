@@ -35,7 +35,7 @@ const ALLOWED_TRANSITIONS = {
   pending: ["processing", "cancelled"],
   processing: ["shipping", "cancelled"],
   shipping: ["shipped", "cancelled"],
-  shipped: ["delivered", "cancelled"],
+  shipped: ["delivered"],
   delivered: [],
   cancelled: [],
 };
@@ -705,7 +705,8 @@ export default function OrderDetailsPage() {
 
   const totalSellerEarnings = order.items?.reduce((a, i) => a + (i.sellerEarnings || 0), 0) || 0;
   const totalPlatformFee = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
-  const transitions = ALLOWED_TRANSITIONS[order.orderStatus] || [];
+  const transitions = (ALLOWED_TRANSITIONS[order.orderStatus] || [])
+    .filter((next) => next !== "cancelled" || order.shipment?.status !== "created");
   const canChangeStatus = transitions.length > 0;
   const canUploadInvoice = order.orderStatus !== 'cancelled';
   const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);

@@ -316,8 +316,8 @@ export default function RefurbishedDashboard() {
                         <td className="py-3 px-3 text-gray-400">{new Date(req.createdAt).toLocaleDateString()}</td>
                         <td className="py-3 px-3 text-center">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            req.status === 'completed' || req.status === 'approved' ? 'bg-green-50 text-green-600' :
-                            req.status === 'rejected' || req.status === 'cancelled' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
+                            req.status === 'Completed' || req.status === 'Accepted' ? 'bg-green-50 text-green-600' :
+                            req.status === 'Rejected' ? 'bg-red-50 text-red-500' : 'bg-amber-50 text-amber-600'
                           }`}>
                             {req.status}
                           </span>

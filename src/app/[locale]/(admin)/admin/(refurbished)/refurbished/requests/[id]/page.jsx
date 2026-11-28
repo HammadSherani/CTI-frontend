@@ -8,6 +8,7 @@ import { toast } from "react-toastify";
 import { useRouter } from '@/i18n/navigation';
 import { useParams } from 'next/navigation';
 import moment from "moment";
+import { SELL_STATUSES, SELL_STATUS_STYLES } from "@/constant/sellRequestStatus";
 import Button from "@/components/partials/admin/ecom/myButton";
 import { useChat } from "@/hooks/useChat";
 import { formatCurrency as fmt } from "@/helper/currencyFormatter";
@@ -275,13 +276,16 @@ export default function SellRequestDetailsPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       toast.success("Status updated successfully");
-      setRequest(data.data);
-    } catch {
-      toast.error("Failed to update status");
+      if (data.success) await fetchRequest();
+    } catch (err) {
+      toast.error(err?.response?.data?.message || "Failed to update status");
     } finally {
       setStatusUpdating(false);
     }
   };
+
+  const offerExpired = offer?.status === 'expired'
+    || (offer?.status === 'pending' && new Date() > new Date(offer.expiryDate));
 
   if (loading) {
     return (
@@ -300,15 +304,6 @@ export default function SellRequestDetailsPage() {
       </div>
     );
   }
-
-  const statusColors = {
-    pending:    "bg-yellow-100 text-yellow-700",
-    evaluating: "bg-blue-100 text-blue-700",
-    approved:   "bg-green-100 text-green-700",
-    rejected:   "bg-red-100 text-red-700",
-    completed:  "bg-purple-100 text-purple-700",
-    cancelled:  "bg-gray-100 text-gray-700",
-  };
 
   // Media helpers
   const pictures = request.media?.pictures || request.media?.images || [];
@@ -353,7 +348,7 @@ export default function SellRequestDetailsPage() {
             <div>
               <div className="flex items-center gap-3">
                 <h1 className="text-3xl font-black text-gray-900">Request Details</h1>
-                <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full capitalize ${statusColors[request.status] || statusColors.pending}`}>
+                <span className={`inline-flex px-3 py-1 text-xs font-bold rounded-full capitalize ${SELL_STATUS_STYLES[request.status] || SELL_STATUS_STYLES.Pending}`}>
                   {request.status}
                 </span>
               </div>
@@ -381,12 +376,7 @@ export default function SellRequestDetailsPage() {
               disabled={statusUpdating}
               className="bg-white border border-gray-200 rounded-xl px-4 py-2 text-sm font-semibold text-gray-800 focus:outline-none focus:border-primary-500 disabled:opacity-50 cursor-pointer"
             >
-              <option value="pending">Pending</option>
-              <option value="evaluating">Evaluating</option>
-              <option value="approved">Approved</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              {SELL_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
             </select>
           </div>
         </div>
@@ -569,9 +559,10 @@ export default function SellRequestDetailsPage() {
                   <span className={`text-xs font-bold px-3 py-1 rounded-full border capitalize ${
                     offer.status === 'accepted' ? 'bg-green-100 text-green-700 border-green-200' :
                     offer.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                    offerExpired ? 'bg-gray-100 text-gray-700 border-gray-200' :
                     'bg-yellow-100 text-yellow-700 border-yellow-200'
                   }`}>
-                    {offer.status}
+                    {offerExpired ? 'expired' : offer.status}
                   </span>
                 </div>
                 <div className="p-6 space-y-4 text-left">
@@ -606,6 +597,14 @@ export default function SellRequestDetailsPage() {
                         {offer.conditions.map((cond, index) => <li key={index}>{cond}</li>)}
                       </ul>
                     </div>
+                  )}
+                  {(offer.status === 'rejected' || offerExpired) && request.status !== 'Completed' && (
+                    <button
+                      onClick={() => setShowOfferModal(true)}
+                      className="w-full bg-primary-600 hover:bg-primary-700 text-white font-extrabold py-2.5 px-4 rounded-xl text-xs transition cursor-pointer"
+                    >
+                      Send New Offer
+                    </button>
                   )}
                   {request.userId && (
                     <button

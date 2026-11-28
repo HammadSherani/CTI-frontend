@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux'
 import { usePathname } from 'next/navigation'
 import { useRouter } from '@/i18n/navigation'
-import { homePathForUser } from '@/utils/roleHome'
+import { pathAfterLogin } from '@/utils/roleHome';
 
 export default function AuthLayout({ children }) {
   const { token, user } = useSelector((state) => state.auth) || {}
@@ -20,7 +20,7 @@ export default function AuthLayout({ children }) {
   const mustLeave = mounted && Boolean(token) && !isLogout
 
   useEffect(() => {
-    if (mustLeave) router.replace(homePathForUser(user))
+    if (mustLeave) router.replace(pathAfterLogin(user))
   }, [mustLeave, router, user])
 
   if (!mounted) return null

@@ -64,6 +64,13 @@ export default function ShippingPaymentModal({ offer, error, onClose, onConfirm 
           ))}
         </div>
 
+        {payment.fee > payment.fromOrder && (
+          <p className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 mb-4 text-xs font-semibold text-amber-700">
+            Shipping is higher than your earnings on this order. You pay {amount(payment.fee - payment.fromOrder)} yourself,
+            and this order will leave you nothing.
+          </p>
+        )}
+
         {needsCard && (
           <div className="grid grid-cols-2 gap-3 mb-4">
             <input name="cardHolder" value={card.cardHolder} onChange={change} placeholder="Name on card" autoComplete="cc-name" className={`${inputCls} col-span-2`} />

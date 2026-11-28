@@ -51,7 +51,7 @@ function SalesPerformance({ data, loading }) {
   const statCards = [
     {
       key: "today",
-      label: "Today's Revenue",
+      label: "Today's Net Earnings",
       value: formatMoney(data?.today),
       icon: "mdi:currency-try",
       gradient: "from-primary-500 to-primary-700",
@@ -82,7 +82,7 @@ function SalesPerformance({ data, loading }) {
       gradient: "from-violet-500 to-purple-700",
       lightBg: "bg-violet-50",
       textClr: "text-violet-700",
-      sub: "Monthly total revenue",
+      sub: "After fee and shipping",
       subIcon: "mdi:calendar-month-outline",
     },
   ];
@@ -134,8 +134,8 @@ function SalesPerformance({ data, loading }) {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 pb-3">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <p className="text-sm font-black text-slate-900">Revenue Trend</p>
-            <p className="text-xs text-slate-400">Last 7 days delivered order earnings</p>
+            <p className="text-sm font-black text-slate-900">Net Earnings Trend</p>
+            <p className="text-xs text-slate-400">Delivered orders, after platform fee and shipping</p>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-primary-600 font-bold bg-primary-50 px-3 py-1.5 rounded-full">
             <Icon icon="mdi:calendar-week" className="w-3.5 h-3.5" />
@@ -158,7 +158,7 @@ function SalesPerformance({ data, loading }) {
               <YAxis tick={{ fontSize: 10, fill: "#94a3b8" }} axisLine={false} tickLine={false}
                 tickFormatter={v => compact(v)} width={40} />
               <Tooltip content={<ChartTooltip prefix="" />} />
-              <Area type="monotone" dataKey="revenue" name="Revenue"
+              <Area type="monotone" dataKey="revenue" name="Net earnings"
                 stroke="#6366f1" strokeWidth={2.5}
                 fill="url(#revGrad)" dot={{ r: 3, fill: "#6366f1", strokeWidth: 0 }}
                 activeDot={{ r: 5, fill: "#6366f1" }} />

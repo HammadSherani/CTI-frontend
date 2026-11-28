@@ -12,6 +12,7 @@ import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import moment from "moment";
 import { useRouter } from "@/i18n/navigation";
+import { confirmSellerCancel } from "@/components/shipment/ShippingPaid";
 import DeliveryInvoiceModal from "@/components/partials/seller/DeliveryInvoiceModal";
 
 const STATUS_OPTIONS = [
@@ -46,7 +47,7 @@ const ALLOWED_TRANSITIONS = {
   pending:    ["processing", "shipping", "shipped", "cancelled"],
   processing: ["shipping", "shipped", "cancelled"],
   shipping:   ["shipped", "cancelled"],
-  shipped:    ["delivered", "cancelled"],
+  shipped:    ["delivered"],
   delivered:  [],
   cancelled:  [],
 };
@@ -54,7 +55,7 @@ const ALLOWED_TRANSITIONS = {
 /* ─── Inline Status Dropdown ─────────────────────────────────── */
 function InlineStatusDropdown({ row, onUpdate, updatingId }) {
   const transitions = (ALLOWED_TRANSITIONS[row.orderStatus] || [])
-    .filter((next) => row.shipmentStatus === "created" || !["shipping", "shipped", "delivered"].includes(next));
+    .filter((next) => row.shipmentStatus === "created" ? next !== "cancelled" : !["shipping", "shipped", "delivered"].includes(next));
   const isUpdating = updatingId === row._id;
   const cls = ORDER_STATUS_STYLES[row.orderStatus] || "bg-gray-50 text-gray-600 border-gray-200";
 
@@ -130,6 +131,7 @@ export default function RefurbishedOrdersPage() {
   useEffect(() => { fetchOrders(); }, [fetchOrders]);
 
   const handleStatusUpdate = async (orderId, newStatus) => {
+    if (newStatus === "cancelled" && !confirmSellerCancel()) return;
     setUpdatingId(orderId);
     try {
       const { data } = await axiosInstance.put(
@@ -138,9 +140,9 @@ export default function RefurbishedOrdersPage() {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (data.success) {
-        toast.success(`Status updated to '${newStatus}'`);
+        toast.success(data.message || `Status updated to '${newStatus}'`);
         setOrders((prev) =>
-          prev.map((o) => o._id === orderId ? { ...o, orderStatus: newStatus } : o)
+          prev.map((o) => o._id === orderId ? { ...o, orderStatus: data.data?.orderStatus || newStatus } : o)
         );
         const row = orders.find((o) => o._id === orderId);
         if (newStatus === "delivered" && row && !row.invoiceStatus) setDeliveryModal(row);

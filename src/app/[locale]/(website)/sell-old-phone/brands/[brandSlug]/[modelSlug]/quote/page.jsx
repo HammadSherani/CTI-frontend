@@ -189,7 +189,7 @@ export default function QuotePage() {
       setIsSubmitted(true);
     } catch (err) {
       console.error('Submit error:', err);
-      toast.error('Failed to submit application. Please try again.');
+      toast.error(err.response?.data?.message || 'Failed to submit application. Please try again.');
     } finally {
       setSubmitting(false);
     }

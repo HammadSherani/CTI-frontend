@@ -301,7 +301,7 @@ export default function SellerWalletPage() {
             icon="mdi:truck-fast-outline"
             iconBg="bg-orange-100"
             iconColor="text-orange-600"
-            sub="Deducted from earnings"
+            sub="From earnings, wallet or card"
           />
         </div>
 

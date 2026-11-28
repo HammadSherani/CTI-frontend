@@ -152,7 +152,7 @@ export default function AdminWalletPage() {
                 <tbody className="divide-y divide-gray-50">
                   {[...history].reverse().map((entry, idx) => {
                     const cfg = TYPE_CONFIG[entry.type] || TYPE_CONFIG.credit;
-                    const isPositive = entry.type === "credit" || entry.type === "release";
+                    const isPositive = entry.type !== "debit"; // held money has come in too
                     return (
                       <tr key={idx} className="hover:bg-gray-50/60 transition-colors">
                         <td className="px-6 py-4 text-xs text-gray-500 whitespace-nowrap">
@@ -173,7 +173,7 @@ export default function AdminWalletPage() {
                           </span>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`font-bold ${isPositive ? "text-emerald-700" : "text-red-600"}`}>
+                          <span className={`font-bold ${entry.type === "hold" ? "text-amber-700" : isPositive ? "text-emerald-700" : "text-red-600"}`}>
                             {isPositive ? "+" : "-"}{formatCurrency(entry.amount)}
                           </span>
                         </td>

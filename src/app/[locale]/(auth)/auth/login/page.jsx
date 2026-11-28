@@ -13,7 +13,7 @@ import { setAuth } from "@/store/auth";
 import { useDispatch } from "react-redux";
 import { setCurrentUser } from "@/store/chat";
 import { requestNotificationPermission, updateFCMToken } from "@/utils/fcm";
-import { homePathForUser } from "@/utils/roleHome";
+import { pathAfterLogin } from '@/utils/roleHome';
 
 // Validation schema
 const schema = yup.object().shape({
@@ -104,7 +104,7 @@ function Login() {
 
       // 🔐 ROLE-BASED ROUTING
       // admin / repairman (or KYC first) / seller / customer: one rule shared with the auth pages guard
-      router.replace(homePathForUser(resData?.user));
+      router.replace(pathAfterLogin(resData?.user));
 
     } catch (error) {
       if (error?.response?.status === 401 && error?.response?.data?.message === "Email not verified") {
