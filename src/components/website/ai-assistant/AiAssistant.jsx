@@ -273,7 +273,7 @@ function AssistantJobCard({ job, onClick }) {
             <div className="flex min-w-0 items-center gap-2">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100">
                 <Icon
-                  icon="solar:smartphone-device-bold-duotone"
+                  icon="solar:smartphone-bold-duotone"
                   className="text-[15px] text-slate-500"
                 />
               </div>
@@ -526,7 +526,7 @@ const AssistantBubble = memo(function AssistantBubble({ message, isGuest, onProd
         {hasJobs && (
           <div className="mt-3 space-y-2">
             <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-              <Icon icon="solar:widget-tools-bold-duotone" className="text-sm text-primary-500" />
+              <Icon icon="solar:widget-bold-duotone" className="text-sm text-primary-500" />
               Matching jobs
             </div>
             {/* Horizontal Carousel Slider */}

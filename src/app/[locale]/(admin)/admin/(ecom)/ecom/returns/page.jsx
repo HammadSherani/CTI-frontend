@@ -866,7 +866,7 @@ export default function AdminReturnsPage() {
 
   const requestSummaryCards = [
     { label: "Total Requests", value: requestSummary.total,        icon: "mdi:message-text-outline",   color: "#6366f1" },
-    { label: "Under Review",   value: requestSummary.under_review, icon: "mdi:eye-clock-outline",      color: "#0ea5e9" },
+    { label: "Under Review",   value: requestSummary.under_review, icon: "mdi:eye-outline",      color: "#0ea5e9" },
     { label: "Resolved",       value: requestSummary.resolved,     icon: "mdi:check-decagram-outline", color: "#10b981" },
     { label: "Rejected",       value: requestSummary.rejected,     icon: "mdi:close-octagon-outline",  color: "#ef4444" },
   ];

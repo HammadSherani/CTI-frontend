@@ -21,6 +21,7 @@ import ProductGalleryModal from './ProductGalleryModal';
 import { ThumbnailVideoPreview, MainVideoHoverPlayer } from '@/components/common/ProductHoverVideo';
 import ProductActivityIndicator from '@/components/common/ProductActivityIndicator';
 import DeliveryPartners from '@/components/common/DeliveryPartners';
+import SellerSocialLinks from '@/components/website/SellerSocialLinks';
 
 export default function EcomProductDetail({ params }) {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function EcomProductDetail({ params }) {
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedVariantId, setSelectedVariantId] = useState(null);
-  const [quantity, setQuantity] = useState(1);
+  const [pickedQuantity, setQuantity] = useState(1);
   const [showAskModal, setShowAskModal] = useState(false);
   const [askLoading, setAskLoading] = useState(false);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -227,6 +228,8 @@ export default function EcomProductDetail({ params }) {
   const oldPrice = selectedVariant?.sellingPrice || selectedVariant?.price || productData.summary?.minPrice || 0;
   const stockCount = selectedVariant?.stock ?? 0;
   const inStock = stockCount > 0;
+  // another option may have less stock than what was picked before
+  const quantity = Math.min(pickedQuantity, Math.max(1, stockCount));
 
   const discountPercent = oldPrice > price ? Math.round(((oldPrice - price) / oldPrice) * 100) : null;
   const savings = oldPrice > price ? (oldPrice - price).toFixed(2) : null;
@@ -333,7 +336,7 @@ export default function EcomProductDetail({ params }) {
     }
     if (isCartLoading) return;
     const removing = isCartAdded;
-    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity }))
+    dispatch(toggleCart({ product: productData, variantId: selectedVariant?._id, quantity, stock: selectedVariant?.stock }))
       .unwrap()
       .then(() => {
         if (removing) toast.info(`${productData.title} removed from cart!`);
@@ -638,17 +641,20 @@ export default function EcomProductDetail({ params }) {
 
               <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden w-fit">
                 <button
-                  onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
                   aria-label="Decrease quantity"
-                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500"
+                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 disabled:text-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 >
                   <Icon icon="mdi:minus" className="w-4 h-4" />
                 </button>
                 <span className="px-4 text-sm font-bold text-gray-800">{quantity}</span>
                 <button
-                  onClick={() => setQuantity(q => Math.min(stockCount, q + 1))}
+                  onClick={() => setQuantity(Math.min(stockCount, quantity + 1))}
+                  disabled={quantity >= stockCount}
                   aria-label="Increase quantity"
-                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500"
+                  title={quantity >= stockCount ? `Only ${stockCount} in stock` : undefined}
+                  className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-500 disabled:text-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed"
                 >
                   <Icon icon="mdi:plus" className="w-4 h-4" />
                 </button>
@@ -686,33 +692,16 @@ export default function EcomProductDetail({ params }) {
                 </button>
               </div>
 
-              <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Share:</span>
-                {(() => {
-                  const productUrl = typeof window !== 'undefined' ? window.location.href : '';
-                  const shareText = encodeURIComponent(productData?.title || 'Check out this product!');
-                  const shareUrl = encodeURIComponent(productUrl);
-                  const shareItems = [
-                    { name: 'Facebook', icon: 'mdi:facebook', hover: 'hover:bg-blue-600', url: `https://www.facebook.com/sharer/sharer.php?u=${shareUrl}` },
-                    { name: 'X', icon: 'ri:twitter-x-fill', hover: 'hover:bg-black', url: `https://twitter.com/intent/tweet?text=${shareText}&url=${shareUrl}` },
-                    { name: 'WhatsApp', icon: 'mdi:whatsapp', hover: 'hover:bg-green-500', url: `https://wa.me/?text=${shareText}%20${shareUrl}` },
-                  ];
-                  return (
-                    <>
-                      {shareItems.map(s => (
-                        <a key={s.name} href={s.url} target="_blank" rel="noopener noreferrer" aria-label={`Share on ${s.name}`}
-                          className={`w-8 h-8 rounded-full bg-gray-100 ${s.hover} hover:text-white flex items-center justify-center text-gray-400 transition-all`}>
-                          <Icon icon={s.icon} className="text-base" />
-                        </a>
-                      ))}
-                      <button onClick={() => { navigator.clipboard.writeText(productUrl); toast.success('Product link copied!'); }}
-                        className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-700 hover:text-white flex items-center justify-center text-gray-400 transition-all">
-                        <Icon icon="mdi:link-variant" className="text-base" />
-                      </button>
-                    </>
-                  );
-                })()}
-              </div>
+              <SellerSocialLinks links={seller?.socialLinks} className="pt-3 border-t border-gray-100" />
+
+              <button
+                type="button"
+                onClick={() => { navigator.clipboard.writeText(window.location.href); toast.success('Product link copied!'); }}
+                className="flex items-center gap-2 text-xs text-gray-400 hover:text-gray-700 font-semibold uppercase tracking-wide w-fit cursor-pointer"
+              >
+                <Icon icon="mdi:link-variant" className="text-base" />
+                Copy product link
+              </button>
 
               <DeliveryPartners />
             </div>

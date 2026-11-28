@@ -5,7 +5,7 @@ import { useRouter } from '@/i18n/navigation';
 
 const benefits = [
   { icon: 'mdi:cellphone-check', label: 'Mobile phones' },
-  { icon: 'mdi:tablet-check', label: 'Tablets' },
+  { icon: 'mdi:tablet', label: 'Tablets' },
   { icon: 'mdi:shield-check-outline', label: 'Flexible cover' },
 ];
 

@@ -696,7 +696,7 @@ export default function OrderDetailPage() {
                         <img src={imgUrl} alt={product?.title} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-200">
-                          <Icon icon="solar:image-bold" className="w-7 h-7" />
+                          <Icon icon="solar:gallery-bold" className="w-7 h-7" />
                         </div>
                       )}
                     </div>

@@ -5,6 +5,8 @@ import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
+import { downloadInvoice, pdfProblem } from '@/helper/invoiceFile';
+import PdfModal, { PdfFrame } from '@/components/partials/InvoicePdf';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', {
@@ -39,10 +41,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
   const fileRef = useRef();
 
   const handleUpload = async () => {
-    if (!file) {
-      setError('Please select a PDF file.');
-      return;
-    }
+    if (pdfProblem(file)) { setError(pdfProblem(file)); return; }
     setLoading(true);
     setError('');
 
@@ -75,7 +74,7 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 max-h-[92vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-black text-slate-900 text-xl">
@@ -115,11 +114,14 @@ function UploadModal({ reuploadFor, onClose, onSuccess, token }) {
             accept="application/pdf"
             className="hidden"
             onChange={(e) => {
-              setFile(e.target.files[0]);
-              setError('');
+              const picked = e.target.files[0] || null;
+              setFile(picked);
+              setError(picked ? pdfProblem(picked) || '' : '');
             }}
           />
         </div>
+
+          {file && <PdfFrame file={file} className="h-64 mb-4" />}
 
         {error && <p className="text-red-600 text-sm mt-3 bg-red-50 p-3 rounded-2xl">{error}</p>}
 
@@ -157,6 +159,7 @@ export default function InvoicePage() {
   const [filterStatus, setFilterStatus] = useState('');
   const [showUpload, setShowUpload] = useState(false);
   const [reuploadFor, setReuploadFor] = useState(null);
+  const [viewing, setViewing] = useState(null);
 
   const loadInvoices = useCallback(async (page = 1) => {
     if (!token) return;
@@ -292,14 +295,22 @@ export default function InvoicePage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
-                          <a
-                            href={inv.pdfUrl}
-                            target="_blank"
-                            className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center transition-colors"
+                          <button
+                            type="button"
+                            onClick={() => setViewing(inv)}
+                            title="View PDF"
+                            className="w-9 h-9 bg-primary-50 hover:bg-primary-100 text-primary-600 rounded-2xl flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Icon icon="mdi:eye-outline" className="w-4 h-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadInvoice(inv.pdfUrl, inv.invoiceNumber)}
                             title="Download PDF"
+                            className="w-9 h-9 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center transition-colors cursor-pointer"
                           >
                             <Icon icon="mdi:download" className="w-4 h-4" />
-                          </a>
+                          </button>
 
                           {inv.status === 'rejected' && (
                             <button
@@ -340,6 +351,7 @@ export default function InvoicePage() {
           onSuccess={handleUploadSuccess}
         />
       )}
+      {viewing && <PdfModal url={viewing.pdfUrl} number={viewing.invoiceNumber} onClose={() => setViewing(null)} />}
     </div>
   );
 }

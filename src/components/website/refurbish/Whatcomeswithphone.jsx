@@ -12,14 +12,14 @@ const getFeatures = (deviceType) => {
       description: `Every refurbished ${isLaptop ? "laptop" : "phone"} is lovingly repackaged in a brand-new SmartBuy box, showcasing the environmental and quality benefits of these devices.`,
     },
     {
-      icon: isLaptop ? "mdi:power-plug" : "mdi:cable",
+      icon: isLaptop ? "mdi:power-plug" : "mdi:cable-data",
       title: isLaptop ? "A compatible charger" : "A compatible USB cable",
       description: isLaptop
         ? "All refurbished laptops come with a compatible power adapter/charger to keep your device powered up safely."
         : "All refurbished phones come with charging cables but no power adapter or headphones. If original accessories are available, we skip the cable too. This helps us reduce e-waste.",
     },
     {
-      icon: "mdi:badge-check",
+      icon: "mdi:check-decagram",
       title: "A warranty card",
       description: "We pack in a warranty card that grants you 6/12 months of protection and can be availed at 200+ stores nationwide.",
     },

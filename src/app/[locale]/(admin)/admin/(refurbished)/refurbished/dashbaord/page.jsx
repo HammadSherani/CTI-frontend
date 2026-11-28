@@ -200,7 +200,7 @@ export default function RefurbishedDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm flex flex-col justify-between">
           <div>
             <h3 className="text-sm font-extrabold text-gray-800 mb-2 flex items-center gap-2">
-              <Icon icon="solar:smartphone-rotate-bold-duotone" className="text-amber-500 text-xl" />
+              <Icon icon="solar:smartphone-update-bold-duotone" className="text-amber-500 text-xl" />
               Sell Requests Analytics
             </h3>
             <p className="text-gray-400 text-[10px] font-medium mb-6">Aggregate counts of gadgets submitted by users for selling.</p>
@@ -283,7 +283,7 @@ export default function RefurbishedDashboard() {
         <div className="bg-white p-6 rounded-2xl shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-sm font-extrabold text-gray-800 flex items-center gap-2">
-              <Icon icon="solar:smartphone-rotate-bold-duotone" className="text-amber-500 text-xl" />
+              <Icon icon="solar:smartphone-update-bold-duotone" className="text-amber-500 text-xl" />
               Recent Sell Requests
             </h3>
             <Link href="/admin/refurbished/requests" className="text-xs font-bold text-amber-500 hover:text-amber-600">

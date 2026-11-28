@@ -4,13 +4,17 @@ import { useEffect } from 'react';
 import { Icon } from '@iconify/react';
 import { Link } from '@/i18n/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCart, updateCartItem, removeFromCart } from '@/store/cart';
+import { fetchCart, updateCartItem, removeFromCart, getCartItemKey } from '@/store/cart';
 import { fetchRefurbishedCart, updateRefurbishedCartItem, removeRefurbishedFromCart } from '@/store/refurbishedCart';
 import { formatCurrency } from '@/helper/currencyFormatter';
 import { toast } from 'react-toastify';
 
+// how many of this option can be bought (unknown for some items saved before login)
+const stockOf = (item) => (item.variantId && typeof item.variantId === 'object' ? item.variantId.stock : item.stock);
+const overStock = (item) => stockOf(item) !== undefined && item.quantity > stockOf(item);
+
 // ── Order Summary Sidebar Component ──
-function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
+function OrderSummary({ subtotal, checkoutLink, title = "Order Summary", blocked = false }) {
   const total = subtotal;
   const rows = [
     { label: 'Items', value: subtotal, color: 'text-gray-700' },
@@ -36,13 +40,22 @@ function OrderSummary({ subtotal, checkoutLink, title = "Order Summary" }) {
           <span className="font-extrabold text-gray-900 text-lg">{formatCurrency(Math.max(0, total))}</span>
         </div>
       </div>
-      <Link href={checkoutLink}>
-        <button
-          className="w-full bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary-100 text-sm"
-        >
-          Checkout
-        </button>
-      </Link>
+      {blocked ? (
+        <>
+          <button disabled className="w-full bg-gray-200 text-gray-500 font-bold py-3 rounded-xl text-sm cursor-not-allowed">
+            Checkout
+          </button>
+          <p className="text-xs text-red-600 font-semibold mt-2 text-center">Some quantities are higher than the stock. Please reduce them.</p>
+        </>
+      ) : (
+        <Link href={checkoutLink}>
+          <button
+            className="w-full bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-bold py-3 rounded-xl transition-all shadow-lg shadow-primary-100 text-sm"
+          >
+            Checkout
+          </button>
+        </Link>
+      )}
     </div>
   );
 }
@@ -55,6 +68,9 @@ export default function CartPage() {
   const { items: refurbishedCart, loading: refurbishedLoading } = useSelector(s => s.refurbishedCart || { items: [], loading: false });
 
   const loading = standardLoading || refurbishedLoading;
+  // items whose quantity is being saved: their buttons wait, so fast clicks cannot overshoot
+  const busyStandard = useSelector(s => s.cart?.loadingIds);
+  const busyRefurbished = useSelector(s => s.refurbishedCart?.loadingIds);
 
   useEffect(() => {
     dispatch(fetchCart());
@@ -161,6 +177,9 @@ export default function CartPage() {
               const image = variant.images?.[0]?.url || product.images?.[0]?.url || '/assets/placeholder.jpg';
               const title = product.title || 'Product Unavailable';
               const variantText = variant.title && variant.title !== 'Default Variant' ? variant.title : null;
+              const stock = stockOf(item);
+              const busy = (isRefurbished ? busyRefurbished : busyStandard)?.includes(getCartItemKey(product._id, item.variantId));
+              const atLimit = stock !== undefined && item.quantity >= stock;
               const detailLink = product._id ? (isRefurbished ? `/refurbish/${product.slug || product._id}` : `/product/${product.slug || product._id}`) : '#';
 
               return (
@@ -202,11 +221,13 @@ export default function CartPage() {
                   </div>
 
                   {/* Quantity */}
-                  <div className="col-span-3 flex justify-center">
+                  <div className="col-span-3 flex flex-col items-center gap-1">
                     <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                       <button
                         onClick={() => updateQty(item, -1, isRefurbished)}
-                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                        disabled={busy || item.quantity <= 1}
+                        aria-label="Decrease quantity"
+                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold disabled:text-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed"
                       >
                         <Icon icon="mdi:minus" />
                       </button>
@@ -215,11 +236,19 @@ export default function CartPage() {
                       </span>
                       <button
                         onClick={() => updateQty(item, 1, isRefurbished)}
-                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold"
+                        disabled={busy || atLimit}
+                        aria-label="Increase quantity"
+                        title={atLimit ? `Only ${stock} in stock` : undefined}
+                        className="px-3 py-2 text-gray-500 hover:bg-gray-50 transition-colors text-sm font-bold disabled:text-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed"
                       >
                         <Icon icon="mdi:plus" />
                       </button>
                     </div>
+                    {atLimit && (
+                      <p className={`text-[11px] font-semibold ${overStock(item) ? 'text-red-600' : 'text-amber-600'}`}>
+                        {stock > 0 ? `Only ${stock} in stock` : 'Out of stock'}
+                      </p>
+                    )}
                   </div>
 
                   {/* Subtotal */}
@@ -233,7 +262,7 @@ export default function CartPage() {
 
           {/* Sidebar */}
           <div className="w-full lg:w-80 flex-shrink-0">
-            <OrderSummary subtotal={subtotal} checkoutLink={checkoutLink} title={`${groupTitle} Summary`} />
+            <OrderSummary subtotal={subtotal} checkoutLink={checkoutLink} title={`${groupTitle} Summary`} blocked={cartItems.some(overStock)} />
           </div>
         </div>
       </div>

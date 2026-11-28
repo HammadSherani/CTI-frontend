@@ -5,6 +5,8 @@ import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
+import { downloadInvoice } from '@/helper/invoiceFile';
+import PdfModal from '@/components/partials/InvoicePdf';
 
 const fmtDate = (d) =>
   d ? new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
@@ -93,6 +95,7 @@ export default function AdminInvoicesPage() {
   const [filterStatus,  setFilterStatus]  = useState('');
   const [rejectTarget,  setRejectTarget]  = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [viewing, setViewing] = useState(null);
 
   const loadInvoices = useCallback(async (page = 1) => {
     if (!token) return;
@@ -294,15 +297,22 @@ export default function AdminInvoicesPage() {
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
-                          {/* Download PDF */}
-                          <a
-                            href={`${inv.pdfUrl}?fl_attachment=1`}
-                            download
+                          <button
+                            type="button"
+                            onClick={() => setViewing(inv)}
+                            title="View PDF"
+                            className="w-7 h-7 bg-primary-50 hover:bg-primary-100 text-primary-600 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
+                          >
+                            <Icon icon="mdi:eye-outline" className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => downloadInvoice(inv.pdfUrl, inv.invoiceNumber)}
                             title="Download PDF"
-                            className="w-7 h-7 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center transition-colors"
+                            className="w-7 h-7 bg-blue-50 hover:bg-blue-100 text-blue-600 rounded-lg flex items-center justify-center transition-colors cursor-pointer"
                           >
                             <Icon icon="mdi:download" className="w-3.5 h-3.5" />
-                          </a>
+                          </button>
                           {/* View Order */}
                           {inv.orderId && (
                             <a
@@ -399,6 +409,7 @@ export default function AdminInvoicesPage() {
           loading={actionLoading}
         />
       )}
+      {viewing && <PdfModal url={viewing.pdfUrl} number={viewing.invoiceNumber} onClose={() => setViewing(null)} />}
     </div>
   );
 }

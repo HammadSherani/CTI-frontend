@@ -339,7 +339,7 @@ export default function EnquiryDetailPage() {
                   disabled={statusBusy}
                   className="flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors"
                 >
-                  <Icon icon="solar:unlock-linear" className="w-4 h-4" />
+                  <Icon icon="solar:lock-keyhole-unlocked-linear" className="w-4 h-4" />
                   <span className="hidden sm:inline">Reopen Query</span>
                 </button>
               )}

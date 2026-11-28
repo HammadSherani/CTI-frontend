@@ -87,7 +87,7 @@ function EcomHeader() {
             {
               name: "Products",
               path: "/admin/ecom/products",
-              icon: "mdi:package-variant-outline",
+              icon: "mdi:package-variant",
             },
 
 

@@ -77,12 +77,10 @@ export function DataTable({
                 className={`hover:bg-gray-50/80 transition-colors group ${onRowClick ? 'cursor-pointer' : ''}`}
                 onClick={(e) => {
                   if (!onRowClick) return;
-                  const target = e.target;
-                  // Don't trigger row click if clicking on buttons, links, or selects
-                  if (target.tagName === 'BUTTON' || target.closest('button') || 
-                      target.tagName === 'SELECT' || target.tagName === 'A' || target.closest('a')) {
-                    return;
-                  }
+                  // menus drawn outside the row still report their clicks here, and controls
+                  // inside the row handle their own: neither opens the row
+                  if (!e.currentTarget.contains(e.target)
+                    || e.target.closest('button, a, input, select, label, [data-no-row-click]')) return;
                   onRowClick(row, e);
                 }}
               >

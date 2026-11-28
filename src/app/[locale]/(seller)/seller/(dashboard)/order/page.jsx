@@ -13,6 +13,8 @@ import { Link } from "@/i18n/navigation";
 import { CustomDropdown } from "@/components/dropdown";
 import Select from "react-select";
 import DeliveryInvoiceModal from "@/components/partials/seller/DeliveryInvoiceModal";
+import { sellerNextStatuses } from "@/helper/orderRules";
+import { confirmSellerCancel } from "@/components/shipment/ShippingPaid";
 
 const TABS = [
   { id: "", label: "All Orders", icon: "mdi:format-list-bulleted" },
@@ -110,6 +112,7 @@ export default function SellerOrderPage() {
   };
 
   const updateStatus = async (row, newStatus) => {
+    if (newStatus === "cancelled" && !confirmSellerCancel()) return;
     setStatusUpdateLoading(row._id);
     try {
       await axiosInstance.put(
@@ -134,6 +137,7 @@ export default function SellerOrderPage() {
     const cfg = {
       pending:    { bg: "bg-blue-100",    text: "text-blue-700"    },
       processing: { bg: "bg-purple-100",  text: "text-purple-700"  },
+      shipping:   { bg: "bg-cyan-100",    text: "text-cyan-700"    },
       shipped:    { bg: "bg-orange-100",  text: "text-orange-700"  },
       delivered:  { bg: "bg-emerald-100", text: "text-emerald-700" },
       on_hold:    { bg: "bg-red-100",     text: "text-red-700"     },
@@ -198,6 +202,8 @@ export default function SellerOrderPage() {
       cell: (row) => {
         const s = row.orderStatus;
         const isL = statusUpdateLoading === row._id;
+        const label = (value) => ({ value, label: value.charAt(0).toUpperCase() + value.slice(1).replace("_", " ") });
+        const nextStatuses = sellerNextStatuses(s, row.shipmentStatus === "created").map(label);
         return (
           <div className="flex gap-2 items-center">
             <button
@@ -217,25 +223,14 @@ export default function SellerOrderPage() {
                 <Icon icon="solar:bill-list-bold-duotone" className="w-5 h-5" />
               </button>
             )}
+            <div data-no-row-click>
             <Select
-              value={[
-                { label: "Pending", value: "pending" },
-                { label: "Processing", value: "processing" },
-                { label: "Shipped", value: "shipped" },
-                { label: "Delivered", value: "delivered" },
-                { label: "On Hold", value: "on_hold" },
-                { label: "Cancelled", value: "cancelled" },
-              ].find((o) => o.value === s)}
-              onChange={(opt) => updateStatus(row, opt.value)}
-              options={[
-                { label: "Pending", value: "pending" },
-                { label: "Processing", value: "processing" },
-                { label: "Shipped", value: "shipped" },
-                { label: "Delivered", value: "delivered" },
-                { label: "On Hold", value: "on_hold" },
-                { label: "Cancelled", value: "cancelled" },
-              ]}
-              isDisabled={isL || s === "delivered" || s === "cancelled"}
+              value={s ? label(s) : null}
+              onChange={(opt) => { if (opt.value !== s) updateStatus(row, opt.value); }}
+              options={nextStatuses}
+              isDisabled={isL || nextStatuses.length === 0}
+              isLoading={isL}
+              isSearchable={false}
               menuPortalTarget={typeof document !== "undefined" ? document.body : null}
               menuPosition="fixed"
               styles={{
@@ -260,6 +255,7 @@ export default function SellerOrderPage() {
                 })
               }}
             />
+            </div>
           </div>
         );
       },

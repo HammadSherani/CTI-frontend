@@ -56,7 +56,7 @@ const primaryNavLinks = [
   {
     name: "Ads",
     path: "/seller/ads",
-    icon: "solar:ads-bold-duotone",
+    icon: "solar:volume-loud-bold-duotone",
   },
   {
     name: "Reports",

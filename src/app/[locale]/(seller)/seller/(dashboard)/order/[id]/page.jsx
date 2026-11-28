@@ -14,6 +14,10 @@ import ShippingPaid, { shippingPaidBy } from "@/components/shipment/ShippingPaid
 import ShippingPaymentModal from "@/components/shipment/ShippingPaymentModal";
 import { formatCurrency } from "@/helper/currencyFormatter";
 import Select from "react-select";
+import { downloadInvoice } from '@/helper/invoiceFile';
+import PdfModal, { PdfFrame } from '@/components/partials/InvoicePdf';
+import { sellerNextStatuses } from "@/helper/orderRules";
+import { pdfProblem } from "@/helper/invoiceFile";
 
 const STATUS_CONFIG = {
   pending: { label: "Pending", bg: "bg-primary-100", text: "text-primary-700", icon: "mdi:clock-outline" },
@@ -28,16 +32,6 @@ const PAYMENT_CONFIG = {
   PAID: { label: "Paid", bg: "bg-emerald-100", text: "text-emerald-700" },
   PENDING: { label: "Pending", bg: "bg-yellow-100", text: "text-yellow-700" },
   FAILED: { label: "Failed", bg: "bg-red-100", text: "text-red-700" },
-};
-
-// Mirrors the backend's allowedTransitions map exactly
-const ALLOWED_TRANSITIONS = {
-  pending: ["processing", "cancelled"],
-  processing: ["shipping", "cancelled"],
-  shipping: ["shipped", "cancelled"],
-  shipped: ["delivered"],
-  delivered: [],
-  cancelled: [],
 };
 
 const INVOICE_STATUS_META = {
@@ -443,7 +437,7 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
   const fileRef = useRef();
 
   const handleUpload = async () => {
-    if (!file) { setError('Please select a PDF file.'); return; }
+    if (pdfProblem(file)) { setError(pdfProblem(file)); return; }
     setLoading(true);
     setError('');
     try {
@@ -481,7 +475,7 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
       onClick={invoice ? onClose : undefined}
     >
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-5">
           <div>
             <h3 className="font-black text-gray-900 text-lg">Upload Invoice PDF</h3>
@@ -541,9 +535,11 @@ function UploadInvoiceModal({ invoice, orderId, token, onClose, onSuccess }) {
             type="file"
             accept=".pdf,application/pdf"
             className="hidden"
-            onChange={e => { setFile(e.target.files[0]); setError(''); }}
+            onChange={e => { const picked = e.target.files[0] || null; setFile(picked); setError(picked ? pdfProblem(picked) || '' : ''); }}
           />
         </div>
+
+        {file && <PdfFrame file={file} className="h-64 mb-4" />}
 
         {error && (
           <div className="flex items-center gap-2 bg-red-50 border border-red-100 rounded-xl px-3 py-2 mb-4 text-xs text-red-700">
@@ -591,6 +587,7 @@ export default function OrderDetailsPage() {
   const [invoice, setInvoice] = useState(null);
   const [invoiceLoading, setInvoiceLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
   const [creatingInvoice, setCreatingInvoice] = useState(false);
 
   /* Shipment state */
@@ -657,7 +654,9 @@ export default function OrderDetailsPage() {
   };
 
   /* Create invoice entry (if none) then open upload modal */
+  // the header button uploads while an invoice is needed, and shows the PDF once one is in
   const handleOpenUploadModal = () => {
+    if (invoice?.pdfUrl && !['rejected', 'pending_submission'].includes(invoice.status)) return setShowPdf(true);
     setShowUploadModal(true);
   };
 
@@ -705,8 +704,7 @@ export default function OrderDetailsPage() {
 
   const totalSellerEarnings = order.items?.reduce((a, i) => a + (i.sellerEarnings || 0), 0) || 0;
   const totalPlatformFee = order.items?.reduce((a, i) => a + (i.platformFee || 0), 0) || 0;
-  const transitions = (ALLOWED_TRANSITIONS[order.orderStatus] || [])
-    .filter((next) => next !== "cancelled" || order.shipment?.status !== "created");
+  const transitions = sellerNextStatuses(order.orderStatus, order.shipment?.status === "created");
   const canChangeStatus = transitions.length > 0;
   const canUploadInvoice = order.orderStatus !== 'cancelled';
   const canReUpload = invoice && ['rejected', 'pending_submission'].includes(invoice.status);
@@ -773,16 +771,16 @@ export default function OrderDetailsPage() {
               className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors shadow-sm ${canReUpload
                 ? 'bg-amber-500 hover:bg-amber-600 text-white'
                 : invoice?.status === 'approved'
-                  ? 'bg-primary-100 text-primary-700 cursor-default'
+                  ? 'bg-primary-100 hover:bg-primary-200 text-primary-700 cursor-pointer'
                   : 'bg-primary-600 hover:bg-primary-700 text-white'
                 }`}
             >
               {creatingInvoice
                 ? <Icon icon="svg-spinners:180-ring-with-bg" className="w-4 h-4" />
-                : <Icon icon={canReUpload ? "mdi:refresh" : "mdi:upload"} className="w-4 h-4" />
+                : <Icon icon={canReUpload ? "mdi:refresh" : invoice ? "mdi:eye-outline" : "mdi:upload"} className="w-4 h-4" />
               }
               {invoice
-                ? (canReUpload ? 'Re-Upload Invoice' : invoice.status === 'approved' ? 'Invoice Approved' : 'View Invoices')
+                ? (canReUpload ? 'Re-Upload Invoice' : 'View Invoice')
                 : 'Upload Invoice'
               }
             </button>
@@ -1056,14 +1054,27 @@ export default function OrderDetailsPage() {
                   </div>
                 )}
                 {invoice?.pdfUrl && (
-                  <a
-                    href={`${invoice.pdfUrl}?fl_attachment=1`}
-                    download
-                    className="w-full flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-bold py-2.5 rounded-xl transition-colors"
-                  >
-                    <Icon icon="mdi:download" className="w-4 h-4" />
-                    Download Invoice
-                  </a>
+                  <PdfFrame url={invoice.pdfUrl} className="h-72" />
+                )}
+                {invoice?.pdfUrl && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowPdf(true)}
+                      className="flex items-center justify-center gap-2 bg-primary-600 hover:bg-primary-700 text-white text-xs font-bold py-2.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Icon icon="mdi:fullscreen" className="w-4 h-4" />
+                      Full Screen
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => downloadInvoice(invoice.pdfUrl, invoice.invoiceNumber)}
+                      className="flex items-center justify-center gap-2 bg-primary-50 hover:bg-primary-100 text-primary-700 text-xs font-bold py-2.5 rounded-xl transition-colors cursor-pointer"
+                    >
+                      <Icon icon="mdi:download" className="w-4 h-4" />
+                      Download
+                    </button>
+                  </div>
                 )}
                 {canReUpload && (
                   <button
@@ -1192,6 +1203,10 @@ export default function OrderDetailsPage() {
           </div>
         </div>
       </div>
+
+      {showPdf && invoice?.pdfUrl && (
+        <PdfModal url={invoice.pdfUrl} number={invoice.invoiceNumber} onClose={() => setShowPdf(false)} />
+      )}
 
       {/* ── Upload Invoice Modal ── */}
       {showUploadModal && (

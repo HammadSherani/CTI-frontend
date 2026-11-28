@@ -10,6 +10,7 @@ import axiosInstance from '@/config/axiosInstance';
 import ProductCard from '@/components/website/product/productCard';
 import { toggleWishlistItem } from '@/store/wishlist';
 import { useSocket } from '@/contexts/SocketProvider';
+import SellerSocialLinks from '@/components/website/SellerSocialLinks';
 
 /* ── Banner carousel ──────────────────────────────────────── */
 function BannerCarousel({ images }) {
@@ -399,48 +400,7 @@ export default function SellerStorePage() {
           )}
 
           {/* Social Links */}
-          {seller?.socialLinks && Object.values(seller.socialLinks).some(link => link) && (
-            <div className="mt-4 flex items-center gap-3 flex-wrap">
-              <span className="text-xs text-gray-400 font-semibold uppercase tracking-wide">Follow:</span>
-              {Object.entries(seller.socialLinks).map(([platform, link]) => {
-                if (!link) return null;
-                const iconMap = {
-                  facebook: 'mdi:facebook',
-                  instagram: 'mdi:instagram',
-                  twitter: 'mdi:twitter',
-                  linkedin: 'mdi:linkedin',
-                  whatsapp: 'mdi:whatsapp',
-                  youtube: 'mdi:youtube',
-                  tiktok: 'ic:baseline-tiktok',
-                  website: 'mdi:web'
-                };
-                const colorMap = {
-                  facebook: 'text-blue-600 hover:text-white hover:bg-blue-600',
-                  instagram: 'text-pink-600 hover:text-white hover:bg-gradient-to-br hover:from-pink-500 hover:to-purple-600',
-                  twitter: 'text-sky-500 hover:text-white hover:bg-sky-500',
-                  linkedin: 'text-blue-700 hover:text-white hover:bg-blue-700',
-                  whatsapp: 'text-green-500 hover:text-white hover:bg-green-500',
-                  youtube: 'text-red-600 hover:text-white hover:bg-red-600',
-                  tiktok: 'text-black hover:text-white hover:bg-black',
-                  website: 'text-gray-600 hover:text-white hover:bg-gray-700'
-                };
-                const absoluteLink = link.startsWith('http') || platform === 'whatsapp' ? link : `https://${link}`;
-
-                return (
-                  <a
-                    key={platform}
-                    href={platform === 'whatsapp' ? `https://wa.me/${link.replace(/\D/g, '')}` : absoluteLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`w-9 h-9 rounded-xl border border-gray-200 flex items-center justify-center transition-all duration-200 ${colorMap[platform] || 'text-gray-500 hover:bg-gray-100'}`}
-                    title={platform.charAt(0).toUpperCase() + platform.slice(1)}
-                  >
-                    <Icon icon={iconMap[platform] || 'mdi:link'} className="w-5 h-5" />
-                  </a>
-                );
-              })}
-            </div>
-          )}
+          <SellerSocialLinks links={seller?.socialLinks} className="mt-4" />
         </div>
       </div>
 

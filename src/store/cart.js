@@ -46,7 +46,7 @@ const withReason = (error) => {
 
 export const addToCart = createAsyncThunk(
   "cart/add",
-  async ({ product, variantId, quantity = 1 }, { getState }) => {
+  async ({ product, variantId, quantity = 1, stock }, { getState }) => {
     const { auth } = getState();
     // Marketplace and Refurbished carts (and, within Marketplace, different
     // sellers) are already kept structurally separate and checked out
@@ -69,10 +69,13 @@ export const addToCart = createAsyncThunk(
           resolveId(i.productId) === product._id &&
           resolveId(i.variantId) === vId
       );
+      const wanted = (idx > -1 ? items[idx].quantity : 0) + quantity;
+      if (stock !== undefined && wanted > stock) throw new Error(`Only ${stock} left in stock`);
       if (idx > -1) {
-        items[idx].quantity += quantity;
+        items[idx].quantity = wanted;
+        items[idx].stock = stock;
       } else {
-        items.push({ productId: product, variantId: vId, quantity });
+        items.push({ productId: product, variantId: vId, quantity, stock });
       }
       localStorage.setItem("cart", JSON.stringify(items));
       return items;
@@ -103,7 +106,8 @@ export const updateCartItem = createAsyncThunk(
           resolveId(i.variantId) === vId
       );
       if (idx > -1) {
-        items[idx].quantity = Math.max(1, items[idx].quantity + delta);
+        const next = Math.max(1, items[idx].quantity + delta);
+        items[idx].quantity = delta > 0 ? Math.min(next, items[idx].stock ?? next) : next;
         localStorage.setItem("cart", JSON.stringify(items));
       }
       return items;
@@ -144,7 +148,7 @@ export const removeFromCart = createAsyncThunk(
 // ── Unified toggle: add if absent, remove if present ──────────────────────────
 export const toggleCart = createAsyncThunk(
   "cart/toggle",
-  async ({ product, variantId, quantity = 1 }, { getState, dispatch }) => {
+  async ({ product, variantId, quantity = 1, stock }, { getState, dispatch }) => {
     const { cart } = getState();
     const vId = resolveId(variantId);
     const alreadyInCart = cart.items.some(
@@ -155,7 +159,7 @@ export const toggleCart = createAsyncThunk(
     if (alreadyInCart) {
       return dispatch(removeFromCart({ product, variantId: vId })).unwrap();
     } else {
-      return dispatch(addToCart({ product, variantId: vId, quantity })).unwrap();
+      return dispatch(addToCart({ product, variantId: vId, quantity, stock })).unwrap();
     }
   }
 );

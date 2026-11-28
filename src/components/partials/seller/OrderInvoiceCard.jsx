@@ -6,6 +6,8 @@ import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
 import { toast } from 'react-toastify';
 import axiosInstance from '@/config/axiosInstance';
+import { downloadInvoice, pdfProblem } from '@/helper/invoiceFile';
+import PdfModal, { PdfFrame } from '@/components/partials/InvoicePdf';
 
 const STATUS = {
   submitted: { label: 'Under review', style: 'bg-blue-50 text-blue-700' },
@@ -17,6 +19,7 @@ export default function OrderInvoiceCard({ orderId, token }) {
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [showPdf, setShowPdf] = useState(false);
   const card = useRef(null);
 
   useEffect(() => {
@@ -38,8 +41,7 @@ export default function OrderInvoiceCard({ orderId, token }) {
     const file = event.target.files?.[0];
     event.target.value = '';
     if (!file) return;
-    if (file.type !== 'application/pdf') return toast.error('Only PDF files are allowed');
-    if (file.size > 10 * 1024 * 1024) return toast.error('The file must be 10 MB or smaller');
+    if (pdfProblem(file)) return toast.error(pdfProblem(file));
 
     const formData = new FormData();
     formData.append('file', file);
@@ -75,9 +77,16 @@ export default function OrderInvoiceCard({ orderId, token }) {
       {!loading && !invoice && <p className="text-xs text-gray-500">Upload the invoice PDF. Your earnings are released after it is approved.</p>}
       {invoice?.rejectionReason && <p className="text-xs text-red-600">Reason: {invoice.rejectionReason}</p>}
       {invoice?.pdfUrl && (
-        <a href={invoice.pdfUrl} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold text-primary-600 hover:underline">
-          View uploaded PDF
-        </a>
+        <PdfFrame url={invoice.pdfUrl} className="h-72" />
+      )}
+      {invoice?.pdfUrl && (
+        <div className="flex items-center gap-4 text-xs font-semibold text-primary-600">
+          <button type="button" onClick={() => setShowPdf(true)} className="hover:underline cursor-pointer">Full screen</button>
+          <button type="button" onClick={() => downloadInvoice(invoice.pdfUrl, invoice.invoiceNumber)} className="hover:underline cursor-pointer">Download</button>
+        </div>
+      )}
+      {showPdf && invoice?.pdfUrl && (
+        <PdfModal url={invoice.pdfUrl} number={invoice.invoiceNumber} onClose={() => setShowPdf(false)} />
       )}
       {canUpload && (
         <label className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold text-white cursor-pointer ${uploading ? 'bg-gray-400' : 'bg-primary-600 hover:bg-primary-700'}`}>
