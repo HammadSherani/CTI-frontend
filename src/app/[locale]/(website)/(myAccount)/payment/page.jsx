@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Icon } from '@iconify/react';
 import handleError from '@/helper/handleError';
 import axiosInstance from '@/config/axiosInstance';
@@ -31,19 +31,49 @@ function usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone }) 
     }, [status, reason, setPaymentVerifying, setPaymentAlreadyDone]);
 }
 
-// Card entry happens inside Iyzico's hosted form (with 3D Secure); we only start it.
-function SecureCheckoutPanel({ checkoutContent, isProcessing, disabled, paymentAlreadyDone, onStart, onCancel }) {
+/**
+ * Opens the iyzico form by itself as soon as the page has what it needs (`ready`), and again
+ * whenever `key` changes (e.g. pickup chosen: the amount changes, so a new form is needed).
+ * The server closes the previous unpaid form, so nothing is charged twice.
+ */
+function useAutoStartCheckout({ ready, key, start, clear, delay = 0 }) {
+    const startRef = useRef(start);
+    const clearRef = useRef(clear);
+    startRef.current = start;
+    clearRef.current = clear;
+    useEffect(() => {
+        clearRef.current(); // a form for other details must not stay on screen
+        if (!ready) return undefined;
+        const timer = setTimeout(() => startRef.current(), delay);
+        return () => clearTimeout(timer);
+    }, [ready, key, delay]);
+}
+
+/** Ignores answers of an earlier form request when a newer one was started meanwhile. */
+function useLatestRequest() {
+    const counter = useRef(0);
+    return () => {
+        counter.current += 1;
+        const mine = counter.current;
+        return () => mine === counter.current;
+    };
+}
+
+// Card entry happens inside Iyzico's hosted form (with 3D Secure); it opens by itself.
+function SecureCheckoutPanel({ checkoutContent, isProcessing, disabled, paymentAlreadyDone, onStart, onCancel, waitingFor }) {
     if (checkoutContent) {
         return (
             <div>
                 <IyzicoCheckoutForm content={checkoutContent} />
-                <button
-                    type="button"
-                    onClick={onCancel}
-                    className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
-                >
-                    Cancel and go back
-                </button>
+                {onCancel && (
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="mt-4 text-sm text-gray-500 hover:text-gray-700 underline"
+                    >
+                        Cancel and go back
+                    </button>
+                )}
             </div>
         );
     }
@@ -56,17 +86,33 @@ function SecureCheckoutPanel({ checkoutContent, isProcessing, disabled, paymentA
         );
     }
 
-    // Only information here: the single "Pay Securely" button is in the Order Summary
+    if (isProcessing) {
+        return (
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8 text-sm text-gray-600">
+                <div className="w-5 h-5 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                Loading the secure payment form…
+            </div>
+        );
+    }
+
     return (
         <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <Icon icon="lucide:shield-check" className="w-6 h-6 text-green-600 flex-shrink-0" />
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 flex-1">
                 <p className="font-semibold text-gray-800">Secure card payment by iyzico</p>
-                <p>
-                    {isProcessing
-                        ? 'Preparing your secure payment form…'
-                        : <>Press <span className="font-semibold">Pay Securely</span> in the order summary. You will enter your card details in iyzico&apos;s secure form and confirm with your bank (3D Secure). Your card details never reach our servers.</>}
-                </p>
+                {waitingFor ? (
+                    <p>{waitingFor}</p>
+                ) : disabled ? (
+                    <p>Your payment is being verified. Please refresh this page in a few minutes.</p>
+                ) : (
+                    <>
+                        <p>The secure payment form could not be loaded.</p>
+                        <button type="button" onClick={onStart} className="mt-2 inline-flex items-center gap-2 text-primary-600 font-semibold hover:underline">
+                            <Icon icon="lucide:refresh-cw" className="w-4 h-4" /> Load the payment form again
+                        </button>
+                    </>
+                )}
+                <p className="mt-2 text-xs text-gray-500">You enter your card in iyzico&apos;s form and confirm it with your bank (3D Secure). Your card details never reach our servers.</p>
             </div>
         </div>
     );
@@ -147,6 +193,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
     const [checkoutContent, setCheckoutContent] = useState(null);
     const { locale } = useParams();
+    const newRequest = useLatestRequest();
 
     usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone });
 
@@ -221,6 +268,8 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
             return;
         }
 
+        const isLatest = newRequest();
+        setCheckoutContent(null);
         setIsProcessing(true);
         try {
             const { data } = await axiosInstance.post(
@@ -235,6 +284,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                     headers: { Authorization: `Bearer ${token}` }
                 }
             );
+            if (!isLatest()) return;
 
             if (data?.data?.alreadyPaid) {
                 toast.success(data.message);
@@ -244,11 +294,21 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
 
             setCheckoutContent(data.data.checkoutFormContent);
         } catch (error) {
-            handleError(error);
+            if (isLatest()) handleError(error);
         } finally {
-            setIsProcessing(false);
+            if (isLatest()) setIsProcessing(false);
         }
     };
+
+    // The form opens by itself; pickup / its address change the booking, so the form is renewed
+    const trimmedPickup = isPickupSelected ? pickupAddress.trim() : '';
+    useAutoStartCheckout({
+        ready: !loading && Boolean(orderData) && !paymentAlreadyDone && !paymentVerifying && (!isPickupSelected || Boolean(trimmedPickup)),
+        key: `${isPickupSelected}|${trimmedPickup}`,
+        start: startCheckout,
+        clear: () => { newRequest(); setCheckoutContent(null); setIsProcessing(false); },
+        delay: isPickupSelected ? 900 : 0, // wait until the customer stops typing the address
+    });
 
 
 
@@ -469,7 +529,8 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 disabled={paymentVerifying}
                                 paymentAlreadyDone={paymentAlreadyDone}
                                 onStart={startCheckout}
-                                onCancel={() => setCheckoutContent(null)}
+                                onCancel={null}
+                                waitingFor={isPickupSelected && !trimmedPickup ? 'Enter your pickup address above and the payment form opens here.' : null}
                             />
                         </div>
                     </div>
@@ -578,7 +639,7 @@ function QuotationPayment({ quotationId, jobId, token, router }) {
                                 </div>
                             </div>
 
-                            {!checkoutContent && (
+                            {paymentAlreadyDone && (
                                 <button
                                     onClick={startCheckout}
                                     disabled={isProcessing || paymentVerifying}
@@ -630,6 +691,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
 
     const [checkoutContent, setCheckoutContent] = useState(null);
     const { locale } = useParams();
+    const newRequest = useLatestRequest();
 
     usePaymentReturnStatus({ setPaymentVerifying, setPaymentAlreadyDone });
 
@@ -762,6 +824,8 @@ function OfferPayment({ offerId, jobId, token, router }) {
             return completePendingBooking();
         }
 
+        const isLatest = newRequest();
+        setCheckoutContent(null);
         setIsProcessing(true);
         try {
             const { data } = await axiosInstance.post(
@@ -778,6 +842,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                     headers: { Authorization: `Bearer ${token}` }
                 }
             );
+            if (!isLatest()) return;
 
             if (data?.data?.alreadyPaid) {
                 toast.success(data.message);
@@ -787,11 +852,19 @@ function OfferPayment({ offerId, jobId, token, router }) {
 
             setCheckoutContent(data.data.checkoutFormContent);
         } catch (error) {
-            handleError(error);
+            if (isLatest()) handleError(error);
         } finally {
-            setIsProcessing(false);
+            if (isLatest()) setIsProcessing(false);
         }
     };
+
+    // Reaching step 3 (payment) opens the form by itself; going back closes it
+    useAutoStartCheckout({
+        ready: currentStep === 3 && Boolean(orderData) && !paymentAlreadyDone && !paymentVerifying,
+        key: `${currentStep}|${isPickupSelected}|${isPickupSelected ? pickupAddress.trim() : ''}`,
+        start: startCheckout,
+        clear: () => { newRequest(); setCheckoutContent(null); setIsProcessing(false); },
+    });
 
 
     if (loading) {
@@ -1295,7 +1368,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                         <Icon icon="lucide:credit-card" className="w-6 h-6 text-primary-600" />
                                         Payment Method
                                     </h2>
-                                    {!checkoutContent && (
+                                    {!isProcessing && (
                                         <button
                                             type="button"
                                             onClick={handlePrevStep}
@@ -1313,7 +1386,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                     disabled={paymentVerifying}
                                     paymentAlreadyDone={paymentAlreadyDone}
                                     onStart={startCheckout}
-                                    onCancel={() => setCheckoutContent(null)}
+                                    onCancel={handlePrevStep}
                                 />
                             </div>
                         )}
@@ -1417,7 +1490,7 @@ function OfferPayment({ offerId, jobId, token, router }) {
                                 </div>
                             </div>
                             {/* The one payment button (step 3 = payment) */}
-                            {currentStep === 3 && !checkoutContent && (
+                            {currentStep === 3 && paymentAlreadyDone && (
                                 <button
                                     type="button"
                                     onClick={startCheckout}

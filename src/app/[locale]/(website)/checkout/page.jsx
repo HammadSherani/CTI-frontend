@@ -1,14 +1,16 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useLocale } from 'next-intl';
 import { Icon } from '@iconify/react';
 import { Link, useRouter } from '@/i18n/navigation';
 import { useSearchParams } from 'next/navigation';
 import { useSelector, useDispatch } from 'react-redux';
 import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
-import { removeFromCart, clearCart, fetchCart } from '@/store/cart';
-import { clearRefurbishedCart } from '@/store/refurbishedCart';
+import { fetchCart } from '@/store/cart';
+import { fetchRefurbishedCart } from '@/store/refurbishedCart';
+import IyzicoCheckoutForm from '@/components/payment/IyzicoCheckoutForm';
 import * as yup from 'yup';
 import { Country, State, City } from 'country-state-city';
 import LoginModal from './LoginModal';
@@ -24,7 +26,8 @@ const toTurkishMobile = (value) => {
   return /^5\d{9}$/.test(digits) ? digits : '';
 };
 
-// Card details stay in memory only: they are never written to (or read from) the browser's storage
+// Cards are entered only in iyzico's form. Older versions of this page kept card fields in the
+// saved form, so they are still stripped from what is read back.
 const CARD_FIELDS = ['cardHolder', 'cardNumber', 'expiry', 'cvv'];
 const withoutCard = (data) => Object.fromEntries(Object.entries(data).filter(([key]) => !CARD_FIELDS.includes(key)));
 
@@ -137,7 +140,14 @@ export default function CheckoutPage() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(null);
 
-  const [paymentMethod, setPaymentMethod] = useState();
+  // iyzico hosted form (card + 3D Secure happen there, never on our servers)
+  const locale = useLocale();
+  const [checkoutContent, setCheckoutContent] = useState(null);
+  // After iyzico sends the customer back (?checkout=<id>): verifying | slow | failed | refunded | on_hold | error
+  const [returnState, setReturnState] = useState(null);
+  const returnedCheckoutId = searchParams.get('checkout');
+  const checkoutBase = isRefurbished ? '/refurbished/orders/checkout' : '/e-commerce/orders/checkout';
+  const remainingCartCount = standardCartItems.length + refurbishedCartItems.length;
 
   // ── Form State ──────────────────────────────────────────────────────────────
   const [form, setForm] = useState({
@@ -153,11 +163,6 @@ export default function CheckoutPage() {
     state: '',
     city: '',
     postalCode: '',
-    // Card
-    cardHolder: auth?.user?.firstName || auth?.user?.name || '',
-    cardNumber: '',
-    expiry: '',
-    cvv: '',
   });
 
   // ── All countries list (static, from country-state-city) ────────────────────
@@ -283,28 +288,59 @@ export default function CheckoutPage() {
     }
   }, [isBuyNow, slug, queryVariantId, queryQuantity, cartItems, auth, router, isRefurbished]);
 
+  // ── Back from iyzico: ask the server what happened (it verifies with iyzico) ──
+  useEffect(() => {
+    if (!returnedCheckoutId || !token) return undefined;
+    let stopped = false;
+    let timer;
+    let tries = 0;
+    setCheckoutContent(null);
+    setReturnState({ status: 'verifying' });
+    const poll = async () => {
+      try {
+        const { data } = await axiosInstance.get(`${checkoutBase}/${returnedCheckoutId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (stopped) return;
+        const result = data?.data;
+        if (result?.status === 'completed' && result.order) {
+          localStorage.removeItem('checkout_form_data');
+          // The server already removed the bought items; other items stay in the cart
+          dispatch(fetchCart());
+          dispatch(fetchRefurbishedCart());
+          setReturnState(null);
+          setOrderSuccess(result.order);
+          return;
+        }
+        if (result?.status === 'verifying') {
+          tries += 1;
+          if (tries < 20) {
+            timer = setTimeout(poll, 3000);
+            return;
+          }
+          setReturnState({ status: 'slow', message: 'Your payment is still being confirmed. Please check My Orders in a few minutes before paying again.' });
+          return;
+        }
+        setReturnState({ status: result?.status || 'error', message: result?.message });
+      } catch (err) {
+        if (!stopped) {
+          setReturnState({ status: 'error', message: err.response?.data?.message || 'We could not check your payment. Please look at My Orders before paying again.' });
+        }
+      }
+    };
+    poll();
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [returnedCheckoutId, token, checkoutBase, dispatch]);
+
   // ── Customer pays no shipping ─────────────────────────────────────────────────
   const TOTAL = subTotal;
 
   // ── Form Handlers ─────────────────────────────────────────────────────────────
   const handleForm = (e) => {
     const { name, value } = e.target;
-    if (name === 'cardNumber') {
-      const digits = value.replace(/\D/g, '').slice(0, 16);
-      const formatted = digits.replace(/(.{4})/g, '$1 ').trim();
-      setForm(f => ({ ...f, cardNumber: formatted }));
-      return;
-    }
-    if (name === 'expiry') {
-      const digits = value.replace(/\D/g, '').slice(0, 4);
-      const formatted = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
-      setForm(f => ({ ...f, expiry: formatted }));
-      return;
-    }
-    if (name === 'cvv') {
-      setForm(f => ({ ...f, cvv: value.replace(/\D/g, '').slice(0, 3) }));
-      return;
-    }
     setForm(f => ({ ...f, [name]: value }));
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
@@ -329,7 +365,9 @@ export default function CheckoutPage() {
     setErrors(prev => ({ ...prev, city: '' }));
   };
 
-  // ── Place Order ───────────────────────────────────────────────────────────────
+  // ── Pay: the server checks the order, reserves the stock and opens iyzico's form ──
+  // Opens by itself once the address is complete (see the effect below); this is also the retry.
+  const formRequest = useRef(0); // answers of an older request are ignored
   const handlePlaceOrder = async () => {
     // Only customers can place orders
     if (userRole && userRole !== 'customer') {
@@ -345,23 +383,24 @@ export default function CheckoutPage() {
       toast.error(err.inner[0].message);
       return;
     }
-    if (!paymentMethod) {
-      toast.error('Please select a payment method');
-      return;
-    }
-    if (paymentMethod === 'card') {
-      if (!form.cardHolder || !form.cardNumber || !form.expiry || !form.cvv) {
-        toast.error('Please fill in all card details');
-        return;
-      }
-    }
     if (!token) {
       setIsLoginModalOpen(true);
       return;
     }
+    if (!items.length) {
+      toast.error('Your cart is empty');
+      return;
+    }
 
+    formRequest.current += 1;
+    const mine = formRequest.current;
+    const isLatest = () => mine === formRequest.current;
+    setCheckoutContent(null);
     setSubmitting(true);
     try {
+      // so iyzico brings the customer back to this same checkout
+      const back = new URLSearchParams(searchParams.toString());
+      back.delete('checkout');
       const payload = {
         shippingAddress: {
           fullName: `${form.firstName} ${form.lastName}`.trim(),
@@ -375,18 +414,9 @@ export default function CheckoutPage() {
           addressLine: form.address,
           postalCode: form.postalCode || null,
         },
-        paymentMethod: paymentMethod,
+        locale,
+        returnQuery: back.toString(),
       };
-
-      if (paymentMethod === 'card') {
-        payload.cardHolder = form.cardHolder;
-        payload.cardNumber = form.cardNumber.replace(/\s/g, '');
-        const [month, year] = form.expiry.split('/');
-        payload.expireMonth = month;
-        payload.expireYear = `20${year}`;
-        payload.cvc = form.cvv;
-      }
-
       if (isBuyNow || !cartId) {
         payload.items = items.map(i => ({ productId: i.productId, variantId: i.variantId, quantity: i.quantity }));
       } else {
@@ -394,79 +424,68 @@ export default function CheckoutPage() {
         if (!isRefurbished && sellerId) payload.sellerId = sellerId;
       }
 
-      const orderCreateUrl = isRefurbished
-        ? '/refurbished/orders/create'
-        : '/e-commerce/orders/create';
-
-      const res = await axiosInstance.post(orderCreateUrl, payload, {
+      const { data } = await axiosInstance.post(`${checkoutBase}/init`, payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (!isLatest()) return;
 
-      if (res.data.success) {
-        toast.success('Order placed successfully!');
-        if (otherSellerItemsCount > 0) {
-          toast.info(
-            <span>
-              You still have {otherSellerItemsCount} item{otherSellerItemsCount > 1 ? 's' : ''} from other sellers in your cart —{' '}
-              <Link href="/cart" className="underline font-semibold">checkout separately</Link> to order them.
-            </span>,
-            { autoClose: 10000 }
-          );
-        } else if (otherCartItems.length > 0) {
-          toast.info(
-            <span>
-              You still have {otherCartItems.length} item{otherCartItems.length > 1 ? 's' : ''} in your {otherCheckoutLabel} cart —{' '}
-              <Link href={otherCheckoutLink} className="underline font-semibold">checkout separately</Link> to order them.
-            </span>,
-            { autoClose: 10000 }
-          );
-        }
-        localStorage.removeItem('checkout_form_data');
-
-        if (isRefurbished) {
-          dispatch(clearRefurbishedCart());
-          if (!isBuyNow && token) {
-            try {
-              await axiosInstance.delete('/refurbished/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
-            } catch (_) { }
-          }
-        } else if (otherSellerItemsCount > 0) {
-          // Only this seller's items were ordered — the backend already
-          // removed just those from the cart, so refresh instead of clearing
-          // everything (other sellers' items must stay).
-          if (token) dispatch(fetchCart());
-        } else {
-          dispatch(clearCart());
-          if (!isBuyNow && token) {
-            try {
-              await axiosInstance.delete('/e-commerce/cart/my-cart/clear', { headers: { Authorization: `Bearer ${token}` } });
-            } catch (_) { }
-          }
-        }
-
-        // Navigation: Redirect to specific order detail page
-        const orderId = res.data.order?._id;
-        if (orderId) {
-          setOrderSuccess({
-            ...res.data.order,
-            hasOtherItems: (otherSellerItemsCount > 0 || otherCartItems.length > 0)
-          });
-        } else {
-          if (otherSellerItemsCount > 0 || otherCartItems.length > 0) {
-            router.push('/cart');
-          } else {
-            router.push(isRefurbished ? '/orders?type=refurbished' : '/orders');
-          }
-        }
-      } else {
-        toast.error(res.data.message || 'Failed to place order');
+      if (data?.data?.alreadyPaid) {
+        // an earlier payment went through: show that order
+        toast.success(data.message);
+        const q = new URLSearchParams(isRefurbished ? { type: 'refurbished' } : {});
+        q.set('checkout', data.data.checkoutId);
+        router.replace(`/checkout?${q.toString()}`);
+        return;
       }
+      setCheckoutContent(data.data.checkoutFormContent);
     } catch (err) {
-      toast.error(err.response?.data?.iyzicoMessage || err.response?.data?.message || 'Something went wrong');
+      if (isLatest()) toast.error(err.response?.data?.message || 'Could not start the payment. Nothing was charged. Please try again.');
     } finally {
-      setSubmitting(false);
+      if (isLatest()) setSubmitting(false);
     }
   };
+
+  // ── Open the payment form by itself as soon as the address is complete ──
+  // Changing the address or the items makes a new form (the server closes the unpaid old one).
+  const addressReady = useMemo(() => checkoutSchema.isValidSync(form), [form]);
+  const isCustomer = !userRole || userRole === 'customer';
+  // After coming back from iyzico, wait for the result; a failed / refunded attempt may pay again
+  // (on the first render the result check has not started yet; it switches to 'verifying' at once)
+  const returnAllowsPay = !returnedCheckoutId || !returnState || ['failed', 'refunded', 'on_hold'].includes(returnState.status);
+  const canAutoPay = addressReady && Boolean(token) && isCustomer && items.length > 0 && !loading && !orderSuccess && returnAllowsPay;
+  const paymentKey = JSON.stringify([
+    form.firstName, form.lastName, form.phone, form.address, form.stateCode, form.city, form.postalCode,
+    cartId, sellerId, items.map(i => `${i.variantId}:${i.quantity}`).join(','),
+  ]);
+  const openForm = useRef(handlePlaceOrder);
+  openForm.current = handlePlaceOrder;
+  useEffect(() => {
+    formRequest.current += 1; // a form for other details must not stay on screen
+    setCheckoutContent(null);
+    setSubmitting(false);
+    if (!canAutoPay) return undefined;
+    const timer = setTimeout(() => openForm.current(), 1200); // wait until typing stops
+    return () => clearTimeout(timer);
+  }, [canAutoPay, paymentKey]);
+
+  const dismissReturn = () => {
+    setReturnState(null);
+    const q = new URLSearchParams(searchParams.toString());
+    q.delete('checkout');
+    router.replace(q.toString() ? `/checkout?${q.toString()}` : '/checkout');
+  };
+
+  if (returnState?.status === 'verifying') {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <Icon icon="mdi:loading" className="animate-spin text-4xl text-primary-500" />
+          <p className="text-base font-semibold text-gray-800">Confirming your payment…</p>
+          <p className="text-sm text-gray-500">Please do not close this page or pay again.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -507,16 +526,17 @@ export default function CheckoutPage() {
             <InvoiceGenerator order={orderSuccess} className="w-full justify-center py-3 text-base" />
             <button
               onClick={() => {
-                if (orderSuccess.hasOtherItems) {
-                  router.push('/cart');
-                } else {
-                  router.push(isRefurbished ? `/orders/${orderSuccess._id}?type=refurbished` : `/orders/${orderSuccess._id}`);
-                }
+                router.push(isRefurbished ? `/orders/${orderSuccess._id}?type=refurbished` : `/orders/${orderSuccess._id}`);
               }}
               className="w-full py-3 bg-gray-100 text-gray-700 font-bold rounded-xl hover:bg-gray-200 transition-colors"
             >
-              {orderSuccess.hasOtherItems ? 'Continue to Cart' : 'View Order Details'}
+              View Order Details
             </button>
+            {remainingCartCount > 0 && (
+              <Link href="/cart" className="w-full py-3 bg-primary-50 text-primary-700 font-bold rounded-xl hover:bg-primary-100 transition-colors">
+                You still have {remainingCartCount} item{remainingCartCount > 1 ? 's' : ''} in your cart. Check out
+              </Link>
+            )}
             <Link href="/" className="w-full py-3 text-primary-600 font-bold hover:underline transition-all">
               Continue Shopping
             </Link>
@@ -557,6 +577,27 @@ export default function CheckoutPage() {
           </p>
         </div>
       )} */}
+
+      {returnState && (
+        <div className={`mb-6 flex items-start gap-3 rounded-2xl px-5 py-4 border ${returnState.status === 'failed' || returnState.status === 'error' ? 'bg-red-50 border-red-200 text-red-800' : 'bg-amber-50 border-amber-200 text-amber-800'}`}>
+          <Icon icon={returnState.status === 'failed' ? 'mdi:credit-card-off-outline' : 'mdi:information-outline'} className="text-xl flex-shrink-0 mt-0.5" />
+          <div className="flex-1 text-sm">
+            <p className="font-semibold">
+              {returnState.status === 'failed' ? 'Payment not completed'
+                : returnState.status === 'refunded' ? 'Payment refunded'
+                  : returnState.status === 'on_hold' ? 'Order could not be created'
+                    : 'Payment status'}
+            </p>
+            <p>{returnState.message || 'Please try again.'}</p>
+            {['refunded', 'on_hold', 'slow', 'error'].includes(returnState.status) && (
+              <Link href={isRefurbished ? '/orders?type=refurbished' : '/orders'} className="underline font-semibold">Go to My Orders</Link>
+            )}
+          </div>
+          <button type="button" onClick={dismissReturn} aria-label="Close" className="opacity-60 hover:opacity-100">
+            <Icon icon="mdi:close" className="text-lg" />
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-col lg:flex-row gap-8 items-start">
 
@@ -713,79 +754,56 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* ── Payment Method ── */}
+          {/* ── Payment: iyzico's form opens here by itself once the address is complete ── */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-extrabold text-gray-800 mb-5 flex items-center gap-2">
+            <h2 className="text-base font-extrabold text-gray-800 mb-4 flex items-center gap-2">
               <Icon icon="mdi:credit-card-outline" className="text-primary-500 text-xl" />
-              Select Payment Method
+              {checkoutContent ? `Pay ${formatCurrency(TOTAL)} securely` : 'Payment'}
             </h2>
-
-            <button
-              onClick={() => setPaymentMethod('card')}
-              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border-2 transition-all text-left ${paymentMethod === 'card' ? 'border-primary-500 bg-primary-50' : 'border-gray-200 hover:border-gray-300 bg-white'
-                }`}
-            >
-              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-colors ${paymentMethod === 'card' ? 'border-primary-500' : 'border-gray-300'}`}>
-                {paymentMethod === 'card' && <div className="w-2.5 h-2.5 rounded-full bg-primary-500" />}
+            {checkoutContent ? (
+              <IyzicoCheckoutForm content={checkoutContent} />
+            ) : submitting ? (
+              <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8 text-sm text-gray-600">
+                <Icon icon="mdi:loading" className="animate-spin text-xl text-primary-500" />
+                Loading the secure payment form…
               </div>
-              <Icon icon="mdi:credit-card-plus-outline" className={`text-xl transition-colors ${paymentMethod === 'card' ? 'text-primary-500' : 'text-gray-400'}`} />
-              <span className={`font-semibold text-sm transition-colors ${paymentMethod === 'card' ? 'text-primary-600' : 'text-gray-600'}`}>
-                Add Credit / Debit Card
-              </span>
-              <div className="flex gap-1.5 ml-auto">
-                <Icon icon="logos:visa" className="text-2xl" />
-                <Icon icon="logos:mastercard" className="text-2xl" />
-                <Icon icon="logos:paypal" className="text-xl" />
-              </div>
-            </button>
-
-            {/* Card Form */}
-            {paymentMethod === 'card' && (
-              <div className="mt-4 p-5 bg-gray-50 rounded-xl border border-gray-100 space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Card Holder Name *</label>
-                  <div className="relative">
-                    <Icon icon="mdi:account-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                    <input type="text" name="cardHolder" value={form.cardHolder} onChange={handleForm} placeholder="Ex: John Doe"
-                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-primary-400 transition-colors" />
-                  </div>
+            ) : (
+              <div className="flex items-start gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
+                <Icon icon="mdi:shield-check-outline" className="w-6 h-6 text-green-600 flex-shrink-0" />
+                <div className="text-sm text-gray-600 flex-1">
+                  <p className="font-semibold text-gray-800">Secure card payment by iyzico</p>
+                  {!token ? (
+                    <>
+                      <p>Please log in to pay.</p>
+                      <button type="button" onClick={() => setIsLoginModalOpen(true)} className="mt-2 text-primary-600 font-semibold hover:underline">Log in</button>
+                    </>
+                  ) : !isCustomer ? (
+                    <p>Only customer accounts can place orders.</p>
+                  ) : !items.length ? (
+                    <p>Your cart is empty.</p>
+                  ) : !addressReady ? (
+                    <p>Fill in your shipping address above. The secure payment form opens here automatically.</p>
+                  ) : !returnAllowsPay ? (
+                    <p>Please check My Orders before paying again.</p>
+                  ) : (
+                    <>
+                      <p>The secure payment form could not be loaded.</p>
+                      <button type="button" onClick={handlePlaceOrder} className="mt-2 inline-flex items-center gap-1 text-primary-600 font-semibold hover:underline">
+                        <Icon icon="mdi:refresh" /> Load the payment form again
+                      </button>
+                    </>
+                  )}
+                  <p className="mt-2 text-xs text-gray-500">
+                    You enter your card in iyzico&apos;s form and confirm it with your bank (3D Secure). Your card details never reach our servers.
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Card Number *</label>
-                  <div className="relative">
-                    <Icon icon="mdi:credit-card-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                    <input type="text" name="cardNumber" value={form.cardNumber} onChange={handleForm} placeholder="4760 6271 6358 047"
-                      className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-primary-400 transition-colors tracking-wider" />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Expiry Date *</label>
-                    <div className="relative">
-                      <Icon icon="mdi:calendar-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                      <input type="text" name="expiry" value={form.expiry} onChange={handleForm} placeholder="03/26"
-                        className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-primary-400 transition-colors" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">CVV *</label>
-                    <div className="relative">
-                      <Icon icon="mdi:lock-outline" className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-base" />
-                      <input type="password" name="cvv" value={form.cvv} onChange={handleForm} placeholder="•••" maxLength={3}
-                        className="w-full pl-9 pr-4 py-2.5 text-sm border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-primary-400 transition-colors" />
-                    </div>
-                  </div>
+                <div className="hidden sm:flex gap-1.5 ml-auto">
+                  <Icon icon="logos:visa" className="text-2xl" />
+                  <Icon icon="logos:mastercard" className="text-2xl" />
                 </div>
               </div>
             )}
           </div>
-
-          {/* Place Order Button */}
-          <button onClick={handlePlaceOrder} disabled={submitting}
-            className="w-full bg-gray-900 hover:bg-gray-800 active:scale-95 text-white font-bold py-4 rounded-2xl transition-all text-sm flex items-center justify-center gap-2 shadow-xl disabled:opacity-50">
-            {submitting ? <Icon icon="mdi:loading" className="animate-spin text-lg" /> : <Icon icon="mdi:shield-check-outline" className="text-green-400 text-lg" />}
-            {submitting ? 'Processing…' : 'Place Order Securely'}
-          </button>
         </div>
 
         {/* ── RIGHT: Order Summary ── */}
@@ -848,7 +866,7 @@ export default function CheckoutPage() {
               <span className="text-xs font-bold text-gray-700">Secure Checkout</span>
             </div>
             <div className="flex gap-3 flex-wrap">
-              {['logos:visa', 'logos:mastercard', 'logos:paypal', 'logos:stripe'].map(icon => (
+              {['logos:visa', 'logos:mastercard'].map(icon => (
                 <Icon key={icon} icon={icon} className="text-2xl" />
               ))}
             </div>
