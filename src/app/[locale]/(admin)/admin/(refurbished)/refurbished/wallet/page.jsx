@@ -140,7 +140,7 @@ export default function RefurbishedEarningsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-black text-gray-800">Refurbished Wallet</h1>
-          <p className="text-xs text-gray-400 mt-1">Revenue overview for all platform-owned refurbished device sales</p>
+          <p className="text-xs text-gray-400 mt-1">All refurbished sales, and what the platform itself earned. Cancelled orders and returns are not counted.</p>
         </div>
 
         {/* Range selector */}
@@ -164,25 +164,25 @@ export default function RefurbishedEarningsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <EarningCard
           icon="mdi:currency-try"
-          label="Gross Revenue"
+          label="Total Sales"
           value={fmt(overview?.grossRevenue)}
-          sub="Delivered orders"
+          sub="Delivered, returns taken off"
           color="text-emerald-600"
           loading={loadingOv}
         />
         <EarningCard
           icon="solar:delivery-bold"
-          label="Shipping Costs"
+          label="Platform Shipping"
           value={fmt(overview?.shippingCosts)}
-          sub="Aras Cargo shipment fees"
+          sub="Courier cost paid by the platform"
           color="text-amber-500"
           loading={loadingOv}
         />
         <EarningCard
           icon="solar:wallet-bold"
-          label="Net Earnings"
+          label="Platform Earnings"
           value={fmt(overview?.netEarnings)}
-          sub="Revenue minus shipping"
+          sub="Fees and own products, after shipping"
           color="text-primary-600"
           loading={loadingOv}
         />
@@ -190,7 +190,7 @@ export default function RefurbishedEarningsPage() {
           icon="solar:clock-circle-bold"
           label="On Hold"
           value={fmt(overview?.onHoldRevenue)}
-          sub="Pending clearance"
+          sub="Not delivered yet"
           color="text-purple-500"
           loading={loadingOv}
         />
@@ -198,7 +198,7 @@ export default function RefurbishedEarningsPage() {
           icon="solar:box-bold"
           label="Paid Orders"
           value={loadingOv ? "—" : (overview?.totalOrders ?? 0)}
-          sub="Total fulfilled orders"
+          sub="Cancelled not counted"
           color="text-blue-600"
           loading={loadingOv}
         />
@@ -228,9 +228,9 @@ export default function RefurbishedEarningsPage() {
                 <tr>
                   <th className="px-6 py-3">Month</th>
                   <th className="px-6 py-3 text-right">Orders</th>
-                  <th className="px-6 py-3 text-right">Gross Revenue</th>
-                  <th className="px-6 py-3 text-right">Shipping Costs</th>
-                  <th className="px-6 py-3 text-right">Net Earnings</th>
+                  <th className="px-6 py-3 text-right">Total Sales</th>
+                  <th className="px-6 py-3 text-right">Platform Shipping</th>
+                  <th className="px-6 py-3 text-right">Platform Earnings</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">

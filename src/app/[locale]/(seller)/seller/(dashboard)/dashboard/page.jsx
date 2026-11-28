@@ -184,7 +184,8 @@ function Actions({ data, loading }) {
       sub: "Need to be processed",
       count: data?.pendingOrders || 0,
       // ?status=pending → order page reads this and opens the Pending tab
-      href: "/seller/order?status=pending",
+      // when only refurbished orders are waiting, open that list
+      href: data?.pendingOrders && data.pendingOrders === data.refurbishedPendingOrders ? "/seller/refurbished/orders" : "/seller/order?status=pending",
       urgent: true,
     },
     {
@@ -222,7 +223,7 @@ function Actions({ data, loading }) {
       sub: "Awaiting your response",
       count: data?.pendingRefunds || 0,
       // ?tab=requested → returns page reads this and opens "New Requests" tab
-      href: "/seller/returns?tab=requested",
+      href: data?.pendingRefunds && data.pendingRefunds === data.refurbishedPendingRefunds ? "/seller/refurbished/returns" : "/seller/returns?tab=requested",
       urgent: true,
     },
   ];

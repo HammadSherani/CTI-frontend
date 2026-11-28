@@ -11,7 +11,7 @@ export default function ReportSummaryCards({ summary }) {
             color: "text-blue-600",
             bg: "bg-blue-50",
             border: "border-blue-100",
-            desc: "Total value of all orders"
+            desc: "Without cancelled and returned items"
         },
         {
             title: "Total Earned (Available)",
@@ -20,7 +20,7 @@ export default function ReportSummaryCards({ summary }) {
             color: "text-emerald-600",
             bg: "bg-emerald-50",
             border: "border-emerald-100",
-            desc: "From delivered orders"
+            desc: "Released to your wallet, after fee and shipping"
         },
         {
             title: "Total Pending (Hold)",
@@ -29,7 +29,7 @@ export default function ReportSummaryCards({ summary }) {
             color: "text-amber-600",
             bg: "bg-amber-50",
             border: "border-amber-100",
-            desc: "From pending/shipped orders"
+            desc: "Not released yet, after fee and shipping"
         },
         {
             title: "Total Orders",
@@ -38,7 +38,7 @@ export default function ReportSummaryCards({ summary }) {
             color: "text-violet-600",
             bg: "bg-violet-50",
             border: "border-violet-100",
-            desc: "Total order count"
+            desc: "Cancelled orders not counted"
         }
     ];
 
