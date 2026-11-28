@@ -57,7 +57,8 @@ export default function RepairmanDisputesPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       setItems((prev) => (nextPage === 1 ? data.data || [] : [...prev, ...(data.data || [])]));
-      setStats(data.stats || { active: 0, resolved: 0, total: 0 });
+      // No stats (older API) → hide the numbers rather than show a wrong "(0)"
+      setStats(data.stats || null);
       setPage(nextPage);
       setTotalPages(data.pagination?.totalPages || 1);
     } catch (error) {
@@ -75,7 +76,7 @@ export default function RepairmanDisputesPage() {
   // Live: a dispute about one of my jobs was opened, answered or resolved
   useDisputeLive(null, () => load(1, true));
 
-  const countFor = (id) => (id === 'active' ? stats.active : id === 'resolved' ? stats.resolved : stats.total);
+  const countFor = (id) => (id === 'active' ? stats?.active : id === 'resolved' ? stats?.resolved : stats?.total);
 
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
@@ -97,7 +98,7 @@ export default function RepairmanDisputesPage() {
                 tab === t.id ? 'bg-primary-600 text-white' : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
               }`}
             >
-              {t.label} <span className="opacity-75">({countFor(t.id)})</span>
+              {t.label} {stats && <span className="opacity-75">({countFor(t.id) ?? 0})</span>}
             </button>
           ))}
         </div>

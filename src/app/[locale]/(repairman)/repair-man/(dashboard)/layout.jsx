@@ -9,6 +9,7 @@ import axiosInstance from '@/config/axiosInstance';
 import handleError from '@/helper/handleError';
 import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
+import StatusLogoutButton from '@/components/partials/StatusLogoutButton';
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter} from '@/i18n/navigation';
@@ -52,10 +53,14 @@ function RepairmanLayout({ children }) {
 
 
   useEffect(() => {
-    if (userDetails?.repairmanProfile?.revisionFields.length > 0) {
-      setRevisionFieldsData(userDetails?.repairmanProfile?.revisionFields[0] || []);
-    }
-  }, [])
+    // The admin can request revision several times, so there may be many reviews.
+    // Show the newest one that is still open (falling back to the newest overall).
+    const reviews = [...(userDetails?.repairmanProfile?.revisionFields || [])]
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    const openStatuses = ['pending', 'in-review', 'in-progress'];
+    const latestOpen = reviews.find(r => openStatuses.includes(r.status));
+    setRevisionFieldsData(latestOpen || reviews[0] || null);
+  }, [userDetails])
 
 
   if (loading) {
@@ -81,6 +86,9 @@ function RepairmanLayout({ children }) {
           >
             Complete Profile Now
           </button>
+          <div>
+            <StatusLogoutButton />
+          </div>
         </div>
       </div>
     );
@@ -107,37 +115,64 @@ function RepairmanLayout({ children }) {
             <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-500" />
             <span>Profile Complete: Yes</span>
           </div>
+          <div>
+            <StatusLogoutButton />
+          </div>
         </div>
       </div>
     );
   }
 
   if (userDetails?.repairmanProfile?.stats?.status === "revision") {
-    return revisionFieldsData?._id && (
-      <FieldCorrections reviewId={revisionFieldsData._id} />
+    return (
+      <>
+        <StatusLogoutButton floating />
+        {revisionFieldsData?._id ? (
+          // key forces a fresh mount (and fetch) when a newer review replaces the old one
+          <FieldCorrections
+            key={revisionFieldsData._id}
+            reviewId={revisionFieldsData._id}
+            onSubmitted={fetchUserDetails}
+          />
+        ) : (
+          <div className="min-h-screen flex items-center justify-center text-gray-600">
+            Your profile needs some changes. Loading the details...
+          </div>
+        )}
+      </>
     );
   }
 
 
   if (userDetails?.repairmanProfile?.stats.status === "rejected") {
+    const rejectReason = userDetails?.repairmanProfile?.kycInfo?.reason;
+    const rejectedAt = userDetails?.repairmanProfile?.kycInfo?.lastUpdated;
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md text-center">
-          <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Icon icon="heroicons:clock" className="w-10 h-10 text-blue-600" />
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+          <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Icon icon="heroicons:x-circle" className="w-10 h-10 text-red-600" />
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Profile Under rejected</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">KYC Application Rejected</h2>
           <p className="text-gray-600 mb-4">
-            Your profile is currently being reviewed by our team. This process typically takes 12-24 hours.
+            Our team reviewed your application and could not approve it.
           </p>
-          <div className="bg-blue-50 rounded-xl p-4 mb-6">
-            <p className="text-sm text-blue-800">
-              We'll notify you via email once your profile is approved. You'll then be able to access all features.
+          <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-4 text-left">
+            <p className="text-xs font-semibold text-red-700 uppercase tracking-wide mb-1">Reason</p>
+            <p className="text-sm text-red-800 whitespace-pre-line">
+              {rejectReason || 'No reason was given. Please contact support for details.'}
             </p>
+            {rejectedAt && (
+              <p className="text-xs text-red-500 mt-2">
+                {new Date(rejectedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}
+              </p>
+            )}
           </div>
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-500" />
-            <span>Profile Complete: Yes</span>
+          <p className="text-sm text-gray-500 mb-6">
+            If you think this is a mistake, please contact support.
+          </p>
+          <div>
+            <StatusLogoutButton />
           </div>
         </div>
       </div>

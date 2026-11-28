@@ -44,7 +44,13 @@ function JobDetails() {
     const [focusReview, setFocusReview] = useState(searchParams.get('review') === '1');
     const [dispute, setDispute] = useState(null);
     const [statistics, setStatistics] = useState(null);
-    const [activeTab, setActiveTab] = useState('details');
+    // ?tab=disputes (from dispute notifications/emails) opens that tab directly
+    const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'disputes' ? 'disputes' : 'details');
+    const tabParam = searchParams.get('tab');
+    useEffect(() => {
+        // Clicking the notification while already on this page only changes the query
+        if (tabParam === 'disputes') setActiveTab('disputes');
+    }, [tabParam]);
     const [isDeleting, setIsDeleting] = useState(false);
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState(null);
@@ -290,8 +296,16 @@ function JobDetails() {
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-900 mb-2">{deviceTitle}</h1>
                         <div className="flex items-center gap-4">
-                            {console.log('Current Status:', currentStatus)}
                             <StatusBadge status={currentStatus} />
+
+                            {/* For a booked job posting, also show where the repair itself is
+                                (scheduled, in progress, ...). Quotation bookings already show it above. */}
+                            {dataType === 'job_posting' && booking?.status && (
+                                <span className="flex items-center gap-1.5">
+                                    <span className="text-xs text-gray-500">Booking:</span>
+                                    <StatusBadge status={booking.status} />
+                                </span>
+                            )}
 
                             {dataType === 'job_posting' && job?.urgency && (
                                 <UrgencyBadge urgency={job.urgency} />

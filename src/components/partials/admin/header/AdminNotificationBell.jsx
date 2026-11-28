@@ -3,9 +3,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Icon } from "@iconify/react";
 import useNotifications from "@/hooks/useNotifications";
+import useFaviconBadge from "@/hooks/useFaviconBadge";
 import { useSocket } from "@/contexts/SocketProvider";
 import { useRouter, Link } from "@/i18n/navigation";
 import { formatDistanceToNow } from 'date-fns';
+import { getRedirectUrl, USER_ROLES } from '@/constant/notificationRoutes';
 
 const AdminNotificationPanel = ({ isOpen, onClose }) => {
   const {
@@ -50,8 +52,9 @@ const AdminNotificationPanel = ({ isOpen, onClose }) => {
       markAsRead(notification._id);
     }
 
-    // Check if link is provided in data
-    const url = notification.data?.link;
+    // Use the link the notification carries; older ones without a link fall back
+    // to the route for their type (e.g. dispute alerts → that dispute's page)
+    const url = notification.data?.link || getRedirectUrl(USER_ROLES.ADMIN, notification.type, notification.data);
     if (url) {
       router.push(url);
     }
@@ -158,6 +161,9 @@ export default function AdminNotificationBell({ userToken }) {
   const { connected: isConnected } = useSocket();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
+
+  // Red dot on the browser tab icon while there is unread admin activity
+  useFaviconBadge(unreadCount > 0);
 
   // Load the count on page load (not only when the panel is opened), and again after a
   // socket (re)connect; new notifications then arrive live through the socket.

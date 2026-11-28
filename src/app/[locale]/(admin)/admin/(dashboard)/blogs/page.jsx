@@ -87,8 +87,29 @@ function AdminBlogListing() {
             fetchBlogs();
         } catch (error) {
             console.error('Toggle active error:', error);
-            setSubmitError('Failed to update blog status. Please try again.');
-            toast.error('Failed to update blog status');
+            const why = error?.response?.data?.message || 'Failed to update blog. Please try again.';
+            setSubmitError(why);
+            toast.error(why);
+        }
+    };
+
+    // Change the publishing status from the card (no need to open the blog)
+    const [statusBusy, setStatusBusy] = useState(null);
+    const changeStatus = async (blog, status) => {
+        if (status === blog.status) return;
+        setStatusBusy(blog._id);
+        try {
+            const res = await axiosInstance.patch(`/admin/blogs/${blog._id}/status`, { status }, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            toast.success(res.data.message);
+            // update the card right away, then refresh counts/filters
+            setBlogs((prev) => prev.map((b) => (b._id === blog._id ? { ...b, status } : b)));
+            fetchBlogs();
+        } catch (error) {
+            toast.error(error?.response?.data?.message || 'Failed to change blog status');
+        } finally {
+            setStatusBusy(null);
         }
     };
 
@@ -379,6 +400,26 @@ function AdminBlogListing() {
                                                 <span>{new Date(blog.createdAt).toLocaleDateString()}</span>
                                             </div>
                                         </div>
+
+                                        {/* Status (changes right away) */}
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <label htmlFor={`status-${blog._id}`} className="text-sm text-gray-600 whitespace-nowrap">Status</label>
+                                            <select
+                                                id={`status-${blog._id}`}
+                                                value={blog.status}
+                                                disabled={statusBusy === blog._id}
+                                                onChange={(e) => changeStatus(blog, e.target.value)}
+                                                className={`flex-1 px-2 py-1.5 rounded-lg border text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary-500 disabled:opacity-50 ${getStatusColor(blog.status)} border-gray-200`}
+                                            >
+                                                <option value="draft">Draft</option>
+                                                <option value="published">Published</option>
+                                                <option value="archived">Archived</option>
+                                            </select>
+                                            {statusBusy === blog._id && <Icon icon="mdi:loading" className="w-4 h-4 animate-spin text-gray-500" />}
+                                        </div>
+                                        {blog.status === 'published' && !blog.isActive && (
+                                            <p className="text-xs text-amber-700 -mt-2 mb-3">Published but inactive: not shown on the website.</p>
+                                        )}
 
                                         {/* Actions */}
                                         <div className="flex items-center gap-2">

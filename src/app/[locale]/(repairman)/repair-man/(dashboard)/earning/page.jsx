@@ -7,6 +7,7 @@ import { Icon } from '@iconify/react'
 import { useRouter, Link } from '@/i18n/navigation'
 import { motion } from 'framer-motion'
 import TopUpModal from '@/components/partials/repairman/TopUpModal'
+import WalletHistory from '@/components/partials/repairman/WalletHistory'
 import handleError from '@/helper/handleError'
 import { toast } from 'react-toastify'
 // Summary Skeleton
@@ -967,6 +968,9 @@ function RepairmanEarning() {
                 </div>
               </div>
             </div>
+
+            {/* Every wallet movement: jobs, disputes, withdrawals, top-ups */}
+            <WalletHistory />
           </>
         )}
 

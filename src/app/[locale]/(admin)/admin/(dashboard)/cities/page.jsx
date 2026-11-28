@@ -69,8 +69,9 @@ function AdminCityPage() {
                 fetchCities();
             } catch (error) {
                 console.error('Delete error:', error);
-                setSubmitError('Failed to delete city. Please try again.');
-                toast.error('Failed to delete city');
+                const why = error?.response?.data?.message || 'Failed to delete city. Please try again.';
+                setSubmitError(why);
+                toast.error(why);
             }
         }
     };
@@ -306,6 +307,11 @@ function AdminCityPage() {
                                                         />
                                                         {city.isActive ? 'Active' : 'Inactive'}
                                                     </button>
+                                                    {city.isActive && city.hiddenReason && (
+                                                        <span className="block mt-1 text-[11px] text-amber-700" title="Not shown on the website because a parent is inactive">
+                                                            {city.hiddenReason === 'state_inactive' ? 'Hidden: state inactive' : city.hiddenReason === 'country_inactive' ? 'Hidden: country inactive' : null}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-500">

@@ -1,16 +1,15 @@
-import BlogGrid from "@/components/website/blog/BlogGrid";
-import BlogHero from "@/components/website/blog/BlogHero";
-import FeaturedPosts from "@/components/website/blog/FeaturedPosts";
-import TechRepairGuide from "../tech-repair/page";
+import SubHeader from "@/components/SubHeader";
+import BlogListing from "@/components/website/blog/BlogListing";
 
-
+// Blog list from the admin panel (only published, active posts)
 const BlogPage = () => {
-  return ( 
+  return (
     <main>
-      {/* <BlogHero /> */}
-      {/* <FeaturedPosts /> */}
-      <TechRepairGuide/>
-      {/* <BlogGrid /> */}
+      <SubHeader
+        title="Repair Tips & Guides"
+        subtitle="Advice, how-tos and news about phone and device repairs."
+      />
+      <BlogListing />
     </main>
   );
 };

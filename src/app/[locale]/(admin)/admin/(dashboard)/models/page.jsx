@@ -61,7 +61,7 @@ function AdminModelPage() {
 
     const fetchBrands = async () => {
         try {
-            const response = await axiosInstance.get('/admin/brands?limit=100&status=true', {
+            const response = await axiosInstance.get('/admin/brands?limit=100&status=all', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -73,7 +73,7 @@ function AdminModelPage() {
     };
 
     const handleDelete = async (modelId) => {
-        if (window.confirm('Are you sure you want to delete this model?')) {
+        if (window.confirm('Delete this model permanently? A model that is still used (jobs, parts, services, quotations) cannot be deleted; make it inactive instead.')) {
             try {
                 const res = await axiosInstance.delete(`/admin/models/${modelId}`, {
                     headers: {
@@ -86,8 +86,9 @@ function AdminModelPage() {
                 fetchModels();
             } catch (error) {
                 console.error('Delete error:', error);
-                setSubmitError('Failed to delete model. Please try again.');
-                toast.error('Failed to delete model');
+                const why = error?.response?.data?.message || 'Failed to delete model. Please try again.';
+                setSubmitError(why);
+                toast.error(why);
             }
         }
     };
@@ -260,7 +261,7 @@ function AdminModelPage() {
                                 <option value="all">All Brands</option>
                                 {brands.map((brand) => (
                                     <option key={brand._id} value={brand._id}>
-                                        {brand.name}
+                                        {brand.name}{brand.isActive === false ? ' (inactive)' : ''}
                                     </option>
                                 ))}
                             </select>
@@ -387,6 +388,11 @@ function AdminModelPage() {
                                                         />
                                                         {model.isActive ? 'Active' : 'Inactive'}
                                                     </button>
+                                                    {model.isActive && model.hiddenReason === 'brand_inactive' && (
+                                                        <span className="block mt-1 text-[11px] text-amber-700" title="Not shown on the website because its brand is inactive">
+                                                            Hidden: brand inactive
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="flex items-center gap-2">
@@ -423,7 +429,7 @@ function AdminModelPage() {
                                         </p>
                                         {(!searchTerm && filterActive === 'all' && filterBrand === 'all') && (
                                             <Link
-                                                href="/admin/model/create"
+                                                href="/admin/models/create"
                                                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 mt-4"
                                             >
                                                 <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />

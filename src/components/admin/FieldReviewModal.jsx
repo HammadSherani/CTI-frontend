@@ -84,12 +84,12 @@ export default function ReviewModal({
   "Certifications": "certifications",
 
   // Bank
-  "Account Title": "accountTitle",
-  "Account Number": "accountNumber",
-  "Bank Name": "bankName",
-  "Branch Name": "branchName",
-  "IBAN": "iban",
-  "Last Updated": "updatedAt",   // if you really want to allow reviewing "updatedAt"
+  // Bank (nested under repairmanProfile.bankDetails on the backend)
+  "Account Title": "bankDetails.accountTitle",
+  "Account Number": "bankDetails.accountNumber",
+  "Bank Name": "bankDetails.bankName",
+  "Branch Name": "bankDetails.branchName",
+  "IBAN": "bankDetails.iban",
 };
 
     const reviewData = {

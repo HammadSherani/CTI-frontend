@@ -13,10 +13,12 @@ import { useMultiLoading } from '@/hooks/useMultiloading'
 import ChatEvidence from '@/components/admin/ChatEvidence'
 import DisputeEvidence from '@/components/partials/DisputeEvidence'
 import useDisputeLive from '@/hooks/useDisputeLive'
+import { useConfirm } from '@/components/ConfirmDialog'
 
 function DisputesDetail() {
   const [dispute, setDispute] = useState(null)
   const [loading, setLoading] = useState(true)
+  const { confirm, confirmDialog } = useConfirm()
   const [updating, setUpdating] = useState(false)
   const [showResolutionModal, setShowResolutionModal] = useState(false)
   const [activeTab, setActiveTab] = useState('chat')
@@ -160,10 +162,19 @@ function DisputesDetail() {
     }
 
     const refund = preview?.refundAmount || 0
-    const confirmText = refund > 0
-      ? `${currencySymbol}${refund} will be refunded to the customer's card now. This cannot be undone. Continue?`
-      : 'Apply this resolution? This cannot be undone.'
-    if (!window.confirm(confirmText)) return
+    const ok = await confirm(refund > 0
+      ? {
+          title: 'Refund the customer?',
+          message: `${currencySymbol}${refund} will be refunded to the customer's card now. This cannot be undone.`,
+          confirmText: `Refund ${currencySymbol}${refund}`,
+          tone: 'danger',
+        }
+      : {
+          title: 'Apply this resolution?',
+          message: 'This cannot be undone.',
+          confirmText: 'Apply Resolution',
+        })
+    if (!ok) return
 
     try {
       setUpdating(true)
@@ -207,10 +218,18 @@ function DisputesDetail() {
   const [confirmNote, setConfirmNote] = useState('')
   const [confirming, setConfirming] = useState('')
   const confirmRefund = async (outcome) => {
-    const question = outcome === 'refunded'
-      ? 'Confirm that the refund IS visible in the Iyzico panel? The dispute will be resolved without refunding again.'
-      : 'Confirm that the refund is NOT in the Iyzico panel? You can then resolve the dispute again.'
-    if (!window.confirm(question)) return
+    const ok = await confirm(outcome === 'refunded'
+      ? {
+          title: 'Refund is in the Iyzico panel?',
+          message: 'The dispute will be resolved without refunding again.',
+          confirmText: 'Yes, it was refunded',
+        }
+      : {
+          title: 'Refund is NOT in the Iyzico panel?',
+          message: 'You can then resolve the dispute again.',
+          confirmText: 'Yes, not refunded',
+        })
+    if (!ok) return
     try {
       setConfirming(outcome)
       const { data } = await axiosInstance.post(`/disputes/${id}/confirm-refund`, { outcome, note: confirmNote.trim() }, {
@@ -367,6 +386,7 @@ fetchData({ silent: true })
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
+      {confirmDialog}
       <div className="max-w-7xl mx-auto">
         {/* Header with Back Button */}
         <div className="mb-6 flex items-center justify-between">

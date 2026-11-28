@@ -11,6 +11,7 @@ import { useSocket } from '@/contexts/SocketProvider';
 import { DeactivatedBanner, DeactivatedPage, isBlockedForDeactivatedSeller } from '@/components/partials/seller/SellerDeactivated';
 import { setUserDetails } from '@/store/auth';
 import { Icon } from '@iconify/react';
+import StatusLogoutButton from '@/components/partials/StatusLogoutButton';
 import React, { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux';
 
@@ -80,6 +81,9 @@ function SellerLayout({ children }) {
           >
           Login to Complete Profile
           </button>
+          <div>
+            <StatusLogoutButton />
+          </div>
         </div>
       </div>
     );
@@ -102,6 +106,9 @@ function SellerLayout({ children }) {
           >
             Complete Profile Now
           </button>
+          <div>
+            <StatusLogoutButton />
+          </div>
         </div>
       </div>
     );
@@ -127,6 +134,9 @@ function SellerLayout({ children }) {
           <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
             <Icon icon="heroicons:check-circle" className="w-5 h-5 text-green-500" />
             <span>Profile submitted successfully</span>
+          </div>
+          <div>
+            <StatusLogoutButton />
           </div>
         </div>
       </div>
@@ -159,6 +169,9 @@ function SellerLayout({ children }) {
           >
             Update Profile
           </button>
+          <div>
+            <StatusLogoutButton />
+          </div>
         </div>
       </div>
     );
@@ -195,6 +208,9 @@ function SellerLayout({ children }) {
             >
               Contact Support
             </button>
+          </div>
+          <div>
+            <StatusLogoutButton />
           </div>
         </div>
       </div>

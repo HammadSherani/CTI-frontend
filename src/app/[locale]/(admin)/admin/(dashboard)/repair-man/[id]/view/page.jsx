@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react'
 import { useSelector } from 'react-redux';
 import { Icon } from '@iconify/react';
 
-function page() {
+function RepairmanViewPage() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const {token} = useSelector(state => state.auth);
@@ -275,14 +275,18 @@ function page() {
                                         {profile.fullAddress}
                                     </p>
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">City</label>
-                                        <p className="text-gray-900">{profile.city}</p>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                                        <p className="text-gray-900">{(profile.country || data?.country)?.name || '—'}</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">District</label>
-                                        <p className="text-gray-900">{profile.district}</p>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">State / Province</label>
+                                        <p className="text-gray-900">{(profile.state || data?.state)?.name || '—'}</p>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">City / District</label>
+                                        <p className="text-gray-900">{(profile.city || data?.city)?.name || '—'}</p>
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-1">Zip Code</label>
@@ -418,9 +422,9 @@ function page() {
                                         <Icon icon="mdi:certificate" className="w-4 h-4 mr-1" />
                                         Certifications
                                     </label>
-                                    {profile.certifications && profile.certifications.length > 0 && (
+                                    {(profile.certifications || []).filter(Boolean).length > 0 && (
                                         <div className="space-y-2">
-                                            {profile.certifications.map((cert, index) => (
+                                            {profile.certifications.filter(Boolean).map((cert, index) => (
                                                 <img 
                                                     key={index}
                                                     src={cert}
@@ -466,4 +470,4 @@ function page() {
     )
 }
 
-export default page
+export default RepairmanViewPage

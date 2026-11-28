@@ -69,8 +69,9 @@ function AdminCountryPage() {
                 fetchCountries();
             } catch (error) {
                 console.error('Delete error:', error);
-                setSubmitError('Failed to delete country. Please try again.');
-                toast.error('Failed to delete country');
+                const why = error?.response?.data?.message || 'Failed to delete country. Please try again.';
+                setSubmitError(why);
+                toast.error(why);
             }
         }
     };
@@ -83,6 +84,9 @@ function AdminCountryPage() {
                 }
             });
             toast.success(res.data.message);
+            if (res.data?.data?.isActive === false) {
+                toast.info('Its states and cities are hidden on the website too, until you activate the country again.');
+            }
             fetchCountries();
         } catch (error) {
             console.error('Toggle active error:', error);

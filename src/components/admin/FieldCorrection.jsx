@@ -5,6 +5,7 @@ import axiosInstance from '@/config/axiosInstance';
 import { toast } from 'react-toastify';
 import { useSelector } from 'react-redux';
 import { getFieldLabel, fieldValidations } from '@/utils/functions';
+import * as yup from 'yup';
 
 // Validation function for each field
 const validateField = async (fieldName, value) => {
@@ -19,9 +20,159 @@ const validateField = async (fieldName, value) => {
   }
 };
 
+// Country / state / city are stored as IDs → pick them from the same lists the KYC form uses.
+const LOCATION_ENDPOINTS = {
+  country: () => '/public/countries',
+  state: (parent) => (parent ? `/public/states/country/${parent}` : null),
+  city: (parent) => (parent ? `/public/cities/state/${parent}` : null),
+};
+
+function LocationSelectField({ fieldName, parentId, value, onChange, error, label }) {
+  const [options, setOptions] = useState([]);
+  const url = LOCATION_ENDPOINTS[fieldName](parentId);
+
+  useEffect(() => {
+    if (!url) { setOptions([]); return; }
+    axiosInstance.get(url)
+      .then(({ data }) => setOptions(data?.data || []))
+      .catch(() => toast.error(`Failed to load ${label} list`));
+  }, [url, label]);
+
+  return (
+    <div>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={!url}
+        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500 bg-white disabled:bg-gray-100 ${
+          error ? 'border-red-500' : 'border-gray-300'
+        }`}
+      >
+        <option value="">{url ? `Select ${label}` : `Select the ${fieldName === 'city' ? 'state' : 'country'} first`}</option>
+        {options.map(o => (
+          <option key={o._id || o.id} value={o._id || o.id}>{o.name}</option>
+        ))}
+      </select>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// Brands are stored as Brand IDs → choose from the brand list instead of typing names.
+function BrandsField({ value, onChange, error }) {
+  const [brands, setBrands] = useState([]);
+  const selected = Array.isArray(value) ? value.map(String) : [];
+
+  useEffect(() => {
+    axiosInstance.get('/public/brands')
+      .then(({ data }) => setBrands(data?.data?.brands || []))
+      .catch(() => toast.error('Failed to load brands'));
+  }, []);
+
+  const toggle = (id) => onChange(
+    selected.includes(id) ? selected.filter(b => b !== id) : [...selected, id]
+  );
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2">
+        {brands.length === 0 && <p className="text-sm text-gray-500">Loading brands...</p>}
+        {brands.map(brand => (
+          <button
+            key={brand._id}
+            type="button"
+            onClick={() => toggle(String(brand._id))}
+            className={`px-3 py-1 rounded-full text-sm border transition-colors ${
+              selected.includes(String(brand._id))
+                ? 'bg-primary-600 text-white border-primary-600'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
+            }`}
+          >
+            {brand.name}
+          </button>
+        ))}
+      </div>
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+    </div>
+  );
+}
+
+// Documents are re-uploaded through the normal profile update endpoint, which stores
+// the file and marks this field as resolved on the review.
+function FileUploadField({ fieldName, resolved, onUploaded }) {
+  const [uploading, setUploading] = useState(false);
+  const { token } = useSelector(state => state.auth);
+  const multiple = fieldName === 'certifications';
+
+  const handleFiles = async (fileList) => {
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+
+    const allowed = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'application/pdf'];
+    const bad = files.find(f => !allowed.includes(f.type) || f.size > 5 * 1024 * 1024);
+    if (bad) {
+      toast.error('Only JPG, PNG, WEBP or PDF files up to 5MB are allowed');
+      return;
+    }
+
+    const formData = new FormData();
+    files.forEach(f => formData.append(fieldName, f));
+
+    setUploading(true);
+    try {
+      await axiosInstance.put('/repairman/profile', formData, {
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Document uploaded');
+      await onUploaded?.();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to upload document');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  return (
+    <div>
+      <input
+        type="file"
+        accept=".jpg,.jpeg,.png,.webp,.pdf"
+        multiple={multiple}
+        disabled={uploading}
+        onChange={(e) => { handleFiles(e.target.files); e.target.value = ''; }}
+        className="block w-full text-sm text-gray-700 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100"
+      />
+      <p className="text-xs text-gray-500 mt-1">
+        {uploading
+          ? 'Uploading...'
+          : resolved
+            ? 'Uploaded. You can upload again to replace it.'
+            : 'Upload a new file (JPG, PNG, WEBP or PDF, max 5MB).'}
+      </p>
+    </div>
+  );
+}
+
 // Renders the correct input based on field type
-function FieldInput({ fieldConfig, fieldName, value, onChange, error }) {
+function FieldInput({ fieldConfig, fieldName, value, onChange, error, locationParent, resolved, onFileUploaded }) {
   const type = fieldConfig?.type || 'text';
+
+  if (fieldName === 'country' || fieldName === 'state' || fieldName === 'city') {
+    return (
+      <LocationSelectField
+        fieldName={fieldName}
+        parentId={locationParent}
+        value={value}
+        onChange={onChange}
+        error={error}
+        label={fieldConfig?.label || fieldName}
+      />
+    );
+  }
+
+  if (fieldName === 'brandsWorkedWith') {
+    return <BrandsField value={value} onChange={onChange} error={error} />;
+  }
 
   if (type === 'select') {
     return (
@@ -246,11 +397,7 @@ function FieldInput({ fieldConfig, fieldName, value, onChange, error }) {
   }
 
   if (type === 'file') {
-    return (
-      <p className="text-sm text-gray-500 italic">
-        File fields cannot be edited here. Please re-upload from the registration form.
-      </p>
-    );
+    return <FileUploadField fieldName={fieldName} resolved={resolved} onUploaded={onFileUploaded} />;
   }
 
   // Default: text, email, tel, number, date
@@ -289,7 +436,7 @@ function formatDisplayValue(fieldName, value) {
   return String(value);
 }
 
-export default function FieldCorrections({ reviewId }) {
+export default function FieldCorrections({ reviewId, onSubmitted }) {
   const [reviews, setReviews] = useState([]);
   const [selectedReview, setSelectedReview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -302,9 +449,9 @@ export default function FieldCorrections({ reviewId }) {
     fetchPendingReviews();
   }, []);
 
-  const fetchPendingReviews = async () => {
+  const fetchPendingReviews = async (showLoader = true) => {
     try {
-      setLoading(true);
+      if (showLoader) setLoading(true);
       const response = await axiosInstance.get(`/repairman/profile/field-reviews/${reviewId}`, {
         headers: { 'Authorization': 'Bearer ' + token }
       });
@@ -349,8 +496,41 @@ export default function FieldCorrections({ reviewId }) {
     }
   };
 
+  // After a document upload, refresh field statuses but keep what the user has typed.
+  const refreshAfterUpload = async () => {
+    if (!selectedReview) return;
+    try {
+      const response = await axiosInstance.get(`/repairman/profile/field-reviews/${selectedReview.reviewId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      setSelectedReview(response.data.data);
+    } catch (error) {
+      toast.error('Failed to refresh review');
+    }
+    await fetchPendingReviews(false);
+  };
+
+  // Parent selection for the location dropdowns: the corrected value when that
+  // parent is also under review, otherwise what is saved on the profile.
+  const locationParentFor = (fieldName) => {
+    const inReview = (name) => selectedReview?.fields?.some(f => f.fieldName === name);
+    const ctx = selectedReview?.locationContext || {};
+    if (fieldName === 'state') return inReview('country') ? corrections.country : ctx.country;
+    if (fieldName === 'city') return inReview('state') ? corrections.state : ctx.state;
+    return null;
+  };
+
   const handleCorrectionChange = (fieldName, value) => {
-    setCorrections(prev => ({ ...prev, [fieldName]: value }));
+    setCorrections(prev => {
+      const next = { ...prev, [fieldName]: value };
+      // Changing a parent location invalidates the child selections under review
+      if (fieldName === 'country') {
+        if ('state' in next) next.state = '';
+        if ('city' in next) next.city = '';
+      }
+      if (fieldName === 'state' && 'city' in next) next.city = '';
+      return next;
+    });
     // Clear error for this field when user starts typing
     setFieldErrors(prev => ({ ...prev, [fieldName]: '' }));
   };
@@ -381,6 +561,14 @@ export default function FieldCorrections({ reviewId }) {
     const isValid = await validateAllFields();
     if (!isValid) {
       toast.error('Please fix all validation errors');
+      return;
+    }
+
+    const missingUploads = selectedReview.fields.filter(
+      f => getFieldLabel[f.fieldName]?.type === 'file' && f.status !== 'resolved'
+    );
+    if (missingUploads.length > 0) {
+      toast.error(`Please upload: ${missingUploads.map(f => getFieldLabel[f.fieldName]?.label || f.fieldName).join(', ')}`);
       return;
     }
 
@@ -417,6 +605,8 @@ export default function FieldCorrections({ reviewId }) {
       toast.success('All corrections submitted for admin review');
       await fetchPendingReviews();
       setSelectedReview(null);
+      // Let the parent reload the profile so the screen moves on to "under review"
+      await onSubmitted?.();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to submit');
     } finally {
@@ -562,9 +752,24 @@ export default function FieldCorrections({ reviewId }) {
                       {/* Current / old value */}
                       <div className="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
                         <span className="text-xs text-gray-400 uppercase tracking-wide">Current Value</span>
-                        <p className="font-medium text-gray-700 mt-0.5">
-                          {formatDisplayValue(field.fieldName, field.currentValue)}
-                        </p>
+                        {config?.type === 'file' ? (
+                          <div className="mt-0.5 flex flex-wrap gap-3">
+                            {[].concat(field.currentValue || []).filter(Boolean).length === 0 ? (
+                              <span className="font-medium text-gray-700">Not provided</span>
+                            ) : (
+                              [].concat(field.currentValue).filter(Boolean).map((url, i) => (
+                                <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                                  className="text-primary-600 underline text-sm">
+                                  View file{[].concat(field.currentValue).length > 1 ? ` ${i + 1}` : ''}
+                                </a>
+                              ))
+                            )}
+                          </div>
+                        ) : (
+                          <p className="font-medium text-gray-700 mt-0.5">
+                            {field.currentDisplay ?? formatDisplayValue(field.fieldName, field.currentValue)}
+                          </p>
+                        )}
                       </div>
 
                       {/* Corrected input with validation */}
@@ -578,6 +783,9 @@ export default function FieldCorrections({ reviewId }) {
                           value={corrections[field.fieldName]}
                           onChange={(val) => handleCorrectionChange(field.fieldName, val)}
                           error={error}
+                          locationParent={locationParentFor(field.fieldName)}
+                          resolved={field.status === 'resolved'}
+                          onFileUploaded={refreshAfterUpload}
                         />
                       </div>
                     </div>

@@ -185,7 +185,7 @@ function CreateModel() {
     setSubmitError('');
     setSubmitSuccess('');
     setUploadProgress(0);
-    router.push('/admin/model');
+    router.push('/admin/models');
   };
 
   const removeImage = () => {

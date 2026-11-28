@@ -9,6 +9,7 @@ import { toast } from 'react-toastify';
 
 function AdminBrandPage() {
     const [brands, setBrands] = useState([]);
+    const [stats, setStats] = useState(null); // counts of all brands (cards)
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterActive, setFilterActive] = useState('all');
@@ -35,9 +36,8 @@ function AdminBrandPage() {
                 page: currentPage.toString(),
                 limit: '10',
                 ...(searchTerm && { search: searchTerm }),
-                ...(filterActive !== 'all'
-                     && { status: filterActive === 'active' ? 'true' : 'false' }
-                    )
+                // "All" must include inactive brands too
+                status: filterActive === 'all' ? 'all' : filterActive === 'active' ? 'true' : 'false',
             });
 
             const response = await axiosInstance.get(`/admin/brands?${params}`, {
@@ -48,6 +48,7 @@ function AdminBrandPage() {
 
             setBrands(response.data.data.brands || []);
             setPagination(response.data.data.pagination || {});
+            setStats(response.data.data.stats || null);
         } catch (error) {
             console.error('Error fetching brands:', error);
             setSubmitError('Failed to load brands');
@@ -62,7 +63,7 @@ function AdminBrandPage() {
     };
 
     const handleDelete = async (brandId) => {
-        if (window.confirm('Are you sure you want to delete this brand?')) {
+        if (window.confirm('Delete this brand permanently? A brand that is still used (models, jobs, services) cannot be deleted; make it inactive instead.')) {
             try {
                 const res = await axiosInstance.delete(`/admin/brands/${brandId}`, {
                     headers: {
@@ -75,8 +76,9 @@ function AdminBrandPage() {
                 fetchBrands();
             } catch (error) {
                 console.error('Delete error:', error);
-                setSubmitError('Failed to delete brand. Please try again.');
-                toast.error('Failed to delete brand');
+                const why = error?.response?.data?.message || 'Failed to delete brand. Please try again.';
+                setSubmitError(why);
+                toast.error(why);
             }
         }
     };
@@ -391,7 +393,7 @@ function AdminBrandPage() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Total Brands</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : pagination.totalBrands}
+                                    {loading ? '...' : (stats?.total ?? pagination.totalBrands)}
                                 </p>
                             </div>
                         </div>
@@ -405,7 +407,7 @@ function AdminBrandPage() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Active Brands</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : brands.filter(brand => brand.isActive).length}
+                                    {loading ? '...' : (stats?.active ?? brands.filter(brand => brand.isActive).length)}
                                 </p>
                             </div>
                         </div>
@@ -419,7 +421,7 @@ function AdminBrandPage() {
                             <div className="ml-4">
                                 <p className="text-sm font-medium text-gray-500">Inactive Brands</p>
                                 <p className="text-2xl font-semibold text-gray-900">
-                                    {loading ? '...' : brands.filter(brand => !brand.isActive).length}
+                                    {loading ? '...' : (stats?.inactive ?? brands.filter(brand => !brand.isActive).length)}
                                 </p>
                             </div>
                         </div>

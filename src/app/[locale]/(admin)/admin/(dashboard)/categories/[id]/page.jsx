@@ -153,7 +153,7 @@ function EditCategory() {
       // Clear success message and redirect after 2 seconds
       setTimeout(() => {
         setSubmitSuccess('');
-        router.push('/admin/category');
+        router.push('/admin/categories');
       }, 2000);
 
     } catch (error) {

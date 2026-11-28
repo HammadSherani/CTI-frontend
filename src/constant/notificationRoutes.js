@@ -3,6 +3,14 @@ export const USER_ROLES = {
   REPAIRMAN: 'repairman',
   CUSTOMER: 'customer',
   SELLER: 'seller',
+  ADMIN: 'admin',
+};
+
+// Fallbacks for dispute notifications saved before they carried a link
+const repairmanDisputeUrl = (d) => (d?.bookingId ? `/repair-man/my-jobs/${d.bookingId}/dispute` : '/repair-man/my-jobs');
+const customerDisputeUrl = (d) => {
+  const id = d?.jobId || d?.bookingId;
+  return id ? `/my-account/${id}/job-details?tab=disputes` : '/my-account';
 };
 
 const customerJobUrl = (d) =>
@@ -19,6 +27,7 @@ const ROUTES = {
     parts_order_update: (d) => (d.partsOrderId ? `/repair-man/parts-order/${d.partsOrderId}` : '/repair-man/parts-order'),
     earning_released: () => '/repair-man/earning',
     new_review: () => '/repair-man/reviews',
+    dispute_raised: repairmanDisputeUrl,
   },
   [USER_ROLES.CUSTOMER]: {
     // Offers are listed on the customer's job details page
@@ -32,13 +41,17 @@ const ROUTES = {
     // Opens the job page with the rating box in focus
     review_request: (d) => (d?.jobId ? `/my-account/${d.jobId}/job-details?review=1` : '/my-account?tab=review'),
     review_response: () => '/my-account?tab=review',
+    dispute_raised: customerDisputeUrl,
     seller_new_product: (d) => d?.link || (d?.slug ? (d.type === 'refurbished' ? `/refurbish/${d.slug}` : `/product/${d.slug}`) : '/'),
   },
   [USER_ROLES.SELLER]: {
     ecom_new_order: (d) => `/seller/order/${d.orderId}`,
     ecom_product_query: (d) => `/seller/enquiries/${d.queryId}`,
     ecom_order_query: (d) => `/seller/enquiries/${d.queryId}`,
-  }
+  },
+  [USER_ROLES.ADMIN]: {
+    admin_dispute_alert: (d) => (d?.disputeId ? `/admin/disputes/${d.disputeId}` : '/admin/disputes'),
+  },
 };
 
 export const getRedirectUrl = (role, type, data) => {

@@ -69,8 +69,9 @@ function AdminStatePage() {
                 fetchStates();
             } catch (error) {
                 console.error('Delete error:', error);
-                setSubmitError('Failed to delete state. Please try again.');
-                toast.error('Failed to delete state');
+                const why = error?.response?.data?.message || 'Failed to delete state. Please try again.';
+                setSubmitError(why);
+                toast.error(why);
             }
         }
     };
@@ -295,6 +296,11 @@ function AdminStatePage() {
                                                         />
                                                         {state.isActive ? 'Active' : 'Inactive'}
                                                     </button>
+                                                    {state.isActive && state.hiddenReason && (
+                                                        <span className="block mt-1 text-[11px] text-amber-700" title="Not shown on the website because a parent is inactive">
+                                                            {state.hiddenReason === 'country_inactive' && 'Hidden: country inactive'}
+                                                        </span>
+                                                    )}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <div className="text-sm text-gray-500">

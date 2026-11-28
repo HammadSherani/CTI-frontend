@@ -10,6 +10,42 @@ import { Icon } from '@iconify/react';
 import { produce } from 'immer';
 import { toast } from 'react-toastify';
 
+// Stored working hours look like "14:30 PM" (KYC form format) or "2:30 PM".
+// <input type="time"> needs "HH:mm", so normalize for display...
+const toTimeInput = (v) => {
+  const m = String(v || '').trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (!m) return '';
+  let h = parseInt(m[1], 10);
+  const period = m[3]?.toUpperCase();
+  if (h <= 12 && period === 'PM' && h !== 12) h += 12;
+  if (h === 12 && period === 'AM') h = 0;
+  return `${String(h).padStart(2, '0')}:${m[2]}`;
+};
+// ...and save back in the same format the KYC form uses.
+const fromTimeInput = (v) => {
+  if (!v) return '';
+  return `${v} ${parseInt(v.split(':')[0], 10) >= 12 ? 'PM' : 'AM'}`;
+};
+
+const toId = (v) => (v && typeof v === 'object' ? v._id || v.id || '' : v || '');
+
+const LocationSelect = ({ label, value, options, placeholder, onChange, disabled = false }) => (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+    <select
+      value={value || ''}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+    >
+      <option value="">{placeholder}</option>
+      {options.map(o => (
+        <option key={o._id || o.id} value={o._id || o.id}>{o.name}</option>
+      ))}
+    </select>
+  </div>
+);
+
 // Input component for reusability
 const InputField = ({ label, name, value, onChange, type = 'text', required = false, error, ...props }) => (
   <div>
@@ -130,8 +166,9 @@ function RepairmanEditPage() {
       emergencyContactNumber: '',
       shopName: '',
       fullAddress: '',
+      country: '',
+      state: '',
       city: '',
-      district: '',
       zipCode: '',
       profilePhoto: '',
       nationalIdOrPassportScan: '',
@@ -148,6 +185,49 @@ function RepairmanEditPage() {
   }), []);
 
   const [formData, setFormData] = useState(initialFormData);
+  const [brandOptions, setBrandOptions] = useState([]);
+
+  useEffect(() => {
+    axiosInstance.get('/public/brands')
+      .then(({ data }) => setBrandOptions(data?.data?.brands || []))
+      .catch(handleError);
+  }, []);
+
+  // Location dropdowns (country → state → city), same endpoints as the KYC form
+  const [countryOptions, setCountryOptions] = useState([]);
+  const [stateOptions, setStateOptions] = useState([]);
+  const [cityOptions, setCityOptions] = useState([]);
+  const selectedCountry = formData.repairmanProfile.country;
+  const selectedState = formData.repairmanProfile.state;
+
+  useEffect(() => {
+    axiosInstance.get('/public/countries')
+      .then(({ data }) => setCountryOptions(data?.data || []))
+      .catch(handleError);
+  }, []);
+
+  useEffect(() => {
+    if (!selectedCountry) { setStateOptions([]); return; }
+    axiosInstance.get(`/public/states/country/${selectedCountry}`)
+      .then(({ data }) => setStateOptions(data?.data || []))
+      .catch(handleError);
+  }, [selectedCountry]);
+
+  useEffect(() => {
+    if (!selectedState) { setCityOptions([]); return; }
+    axiosInstance.get(`/public/cities/state/${selectedState}`)
+      .then(({ data }) => setCityOptions(data?.data || []))
+      .catch(handleError);
+  }, [selectedState]);
+
+  const handleLocationChange = useCallback((field, value) => {
+    setFormData(produce(draft => {
+      draft.repairmanProfile[field] = value;
+      // Changing a parent clears the children that depended on it
+      if (field === 'country') { draft.repairmanProfile.state = ''; draft.repairmanProfile.city = ''; }
+      if (field === 'state') { draft.repairmanProfile.city = ''; }
+    }));
+  }, []);
 
   const weekDays = useMemo(() => ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], []);
   const genderOptions = useMemo(() => [
@@ -192,9 +272,14 @@ function RepairmanEditPage() {
             ...draft.repairmanProfile,
             ...repairman.repairmanProfile,
             workingHours: {
-              start: repairman.repairmanProfile?.workingHours?.start || '',
-              end: repairman.repairmanProfile?.workingHours?.end || ''
+              start: toTimeInput(repairman.repairmanProfile?.workingHours?.start),
+              end: toTimeInput(repairman.repairmanProfile?.workingHours?.end)
             },
+            // Location fields may come back as IDs or populated objects; keep IDs.
+            // Fall back to the top-level user fields, as the KYC form does.
+            country: toId(repairman.repairmanProfile?.country || repairman.country),
+            state: toId(repairman.repairmanProfile?.state || repairman.state),
+            city: toId(repairman.repairmanProfile?.city || repairman.city),
             dob: repairman.repairmanProfile?.dob ? repairman.repairmanProfile.dob.split('T')[0] : '',
             profilePhoto: repairman.repairmanProfile?.profilePhoto || '',
             nationalIdOrPassportScan: repairman.repairmanProfile?.nationalIdOrPassportScan || '',
@@ -202,7 +287,10 @@ function RepairmanEditPage() {
             utilityBillOrShopProof: repairman.repairmanProfile?.utilityBillOrShopProof || '',
             certifications: repairman.repairmanProfile?.certifications || [],
             specializations: repairman.repairmanProfile?.specializations || [],
-            brandsWorkedWith: repairman.repairmanProfile?.brandsWorkedWith || [],
+            // API returns populated brand objects; keep only IDs (what the backend stores)
+            brandsWorkedWith: (repairman.repairmanProfile?.brandsWorkedWith || [])
+              .map(b => (b && typeof b === 'object' ? b._id : b))
+              .filter(Boolean),
             workingDays: repairman.repairmanProfile?.workingDays || []
           }
         });
@@ -262,10 +350,14 @@ function RepairmanEditPage() {
     handleArrayChange('repairmanProfile.specializations', specializations);
   }, [handleArrayChange]);
 
-  const handleBrandsChange = useCallback((value) => {
-    const brands = value.split(',').map(s => s.trim()).filter(s => s);
-    handleArrayChange('repairmanProfile.brandsWorkedWith', brands);
-  }, [handleArrayChange]);
+  const handleBrandToggle = useCallback((brandId) => {
+    setFormData(produce(draft => {
+      const current = draft.repairmanProfile.brandsWorkedWith;
+      draft.repairmanProfile.brandsWorkedWith = current.includes(brandId)
+        ? current.filter(id => id !== brandId)
+        : [...current, brandId];
+    }));
+  }, []);
 
   const handleWorkingDaysChange = useCallback((day) => {
     setFormData(produce(draft => {
@@ -312,6 +404,10 @@ function RepairmanEditPage() {
 
       const profileData = {
         ...formData.repairmanProfile,
+        workingHours: {
+          start: fromTimeInput(formData.repairmanProfile.workingHours.start),
+          end: fromTimeInput(formData.repairmanProfile.workingHours.end)
+        },
         dob: formData.repairmanProfile.dob ? new Date(formData.repairmanProfile.dob).toISOString() : null
       };
       formDataToSend.append('repairmanProfile', JSON.stringify(profileData));
@@ -331,7 +427,7 @@ function RepairmanEditPage() {
         }
       });
       alert('Repairman updated successfully!');
-      router.push(`/admin/repairman/${id}`);
+      router.push(`/admin/repair-man/${id}/view`);
     } catch (error) {
       handleError(error);
       alert('Failed to update repairman');
@@ -462,8 +558,29 @@ function RepairmanEditPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-primary-500"
                 />
               </div>
-              <InputField label="City" name="repairmanProfile.city" value={formData.repairmanProfile.city} onChange={handleInputChange} />
-              <InputField label="District" name="repairmanProfile.district" value={formData.repairmanProfile.district} onChange={handleInputChange} />
+              <LocationSelect
+                label="Country"
+                value={formData.repairmanProfile.country}
+                options={countryOptions}
+                placeholder="Select Country"
+                onChange={(v) => handleLocationChange('country', v)}
+              />
+              <LocationSelect
+                label="State / Province"
+                value={formData.repairmanProfile.state}
+                options={stateOptions}
+                placeholder={selectedCountry ? 'Select State' : 'Select a country first'}
+                disabled={!selectedCountry}
+                onChange={(v) => handleLocationChange('state', v)}
+              />
+              <LocationSelect
+                label="City / District"
+                value={formData.repairmanProfile.city}
+                options={cityOptions}
+                placeholder={selectedState ? 'Select City' : 'Select a state first'}
+                disabled={!selectedState}
+                onChange={(v) => handleLocationChange('city', v)}
+              />
               <InputField label="Zip Code" name="repairmanProfile.zipCode" value={formData.repairmanProfile.zipCode} onChange={handleInputChange} />
             </div>
           </div>
@@ -522,12 +639,31 @@ function RepairmanEditPage() {
                   placeholder="iPhone, Samsung, Android"
                 />
               </div>
-              <InputField
-                label="Brands (comma separated)"
-                value={formData.repairmanProfile.brandsWorkedWith.join(', ')}
-                onChange={(e) => handleBrandsChange(e.target.value)}
-                placeholder="Apple, Samsung, Huawei"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Brands Worked With</label>
+                {brandOptions.length === 0 ? (
+                  <p className="text-sm text-gray-500">Loading brands...</p>
+                ) : (
+                  <div className="flex flex-wrap gap-2">
+                    {brandOptions.map(brand => {
+                      const selected = formData.repairmanProfile.brandsWorkedWith.includes(brand._id);
+                      return (
+                        <button
+                          key={brand._id}
+                          type="button"
+                          onClick={() => handleBrandToggle(brand._id)}
+                          className={`px-3 py-1 rounded-full text-sm border transition-colors ${selected
+                            ? 'bg-primary-500 text-white border-primary-500'
+                            : 'bg-white text-gray-700 border-gray-300 hover:border-primary-400'
+                            }`}
+                        >
+                          {brand.name}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea
@@ -575,9 +711,9 @@ function RepairmanEditPage() {
               />
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Certifications</label>
-                {formData.repairmanProfile.certifications.length > 0 && (
+                {(formData.repairmanProfile.certifications || []).filter(Boolean).length > 0 && (
                   <div className="mb-2 flex flex-wrap gap-2">
-                    {formData.repairmanProfile.certifications.map((url, index) => (
+                    {formData.repairmanProfile.certifications.filter(Boolean).map((url, index) => (
                       <img
                         key={index}
                         src={url}

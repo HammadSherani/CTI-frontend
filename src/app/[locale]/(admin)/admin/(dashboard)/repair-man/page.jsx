@@ -229,13 +229,6 @@ function AdminRepairmanPage() {
                             <h1 className="text-3xl font-bold text-gray-900">Repairman Management</h1>
                             <p className="text-gray-600 mt-1">Manage repair technicians</p>
                         </div>
-                        <Link
-                            href="/admin/repairman/create"
-                            className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg flex items-center gap-2 transition-colors"
-                        >
-                            <Icon icon="mdi:plus" className="w-5 h-5" />
-                            Add Repairman
-                        </Link>
                     </div>
                 </div>
 
@@ -433,18 +426,9 @@ function AdminRepairmanPage() {
                                         <p className="text-gray-500">
                                             {searchTerm || filterStatus !== 'all'
                                                 ? 'Try adjusting your search or filters.'
-                                                : 'Get started by adding your first repairman.'
+                                                : 'Repairmen appear here after they register on the website.'
                                             }
                                         </p>
-                                        {(!searchTerm && filterStatus === 'all') && (
-                                            <Link
-                                                href="/admin/repairman/create"
-                                                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 mt-4"
-                                            >
-                                                <Icon icon="mdi:plus" className="w-4 h-4 mr-2" />
-                                                Add your first repairman
-                                            </Link>
-                                        )}
                                     </div>
                                 )}
                             </div>

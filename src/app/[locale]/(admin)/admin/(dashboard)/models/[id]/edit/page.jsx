@@ -40,7 +40,8 @@ const modelSchema = yup.object().shape({
       const file = value[0];
       return file && file.size <= 2 * 1024 * 1024; // 2MB
     }),
-  isActive: yup.boolean()
+  // radio buttons give strings
+  isActive: yup.string().oneOf(['true', 'false'])
 });
 
 function EditModel() {
@@ -72,7 +73,7 @@ function EditModel() {
       brandId: '',
       colors: '',
       icon: null,
-      isActive: true
+      isActive: 'true'
     }
   });
 
@@ -82,10 +83,10 @@ function EditModel() {
   const watchedIsActive = watch('isActive');
 
   // Fetch model data and brands on component mount
+  // Brands first: the brand <select> needs its options before the model's brand is put in it
   useEffect(() => {
     if (modelId) {
-      fetchModel();
-      fetchBrands();
+      fetchBrands().then(fetchModel);
     }
   }, [modelId]);
 
@@ -99,12 +100,15 @@ function EditModel() {
       });
 
       const model = response.data.data.model;
-      
+
       // Set form values
-      setValue('name', model.name);
-      setValue('brandId', model.brandId._id);
-      setValue('colors', Array.isArray(model.colors) ? model.colors.join(', ') : model.colors);
-      setValue('isActive', model.isActive);
+      reset({
+        name: model.name || '',
+        brandId: model.brandId?._id || model.brandId || '',
+        colors: Array.isArray(model.colors) ? model.colors.join(', ') : (model.colors || ''),
+        icon: null,
+        isActive: model.isActive === false ? 'false' : 'true',
+      });
       
       // Set current icon
       if (model.icon) {
@@ -124,7 +128,8 @@ function EditModel() {
   const fetchBrands = async () => {
     try {
       setLoadingBrands(true);
-      const response = await axiosInstance.get('/admin/brands?limit=100&status=true', {
+      // all brands: the model's own brand may be inactive and must still be selectable
+      const response = await axiosInstance.get('/admin/brands?limit=200&status=all', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -177,7 +182,7 @@ function EditModel() {
       formData.append('name', data.name);
       formData.append('brandId', data.brandId);
       formData.append('colors', data.colors);
-      formData.append('isActive', data.isActive.toString());
+      formData.append('isActive', String(data.isActive));
       
     
       if (data.icon && data.icon.length > 0) {
@@ -229,7 +234,7 @@ function EditModel() {
   };
 
   const handleCancel = () => {
-    router.push('/admin/model');
+    router.push('/admin/models');
   };
 
   const removeImage = () => {
@@ -349,12 +354,17 @@ function EditModel() {
                   </option>
                   {brands.map((brand) => (
                     <option key={brand._id} value={brand._id}>
-                      {brand.name}
+                      {brand.name}{brand.isActive === false ? ' (inactive)' : ''}
                     </option>
                   ))}
                 </select>
                 {errors.brandId && (
                   <p className="mt-1 text-sm text-red-600">{errors.brandId.message}</p>
+                )}
+                {selectedBrand?.isActive === false && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    This brand is inactive, so this model is hidden on the website until the brand is activated.
+                  </p>
                 )}
               </div>
             </div>
@@ -369,7 +379,7 @@ function EditModel() {
                   <input
                     type="radio"
                     {...register('isActive')}
-                    value={true}
+                    value="true"
                     className="mr-2"
                   />
                   <span className="text-sm text-gray-700">Active</span>
@@ -378,7 +388,7 @@ function EditModel() {
                   <input
                     type="radio"
                     {...register('isActive')}
-                    value={false}
+                    value="false"
                     className="mr-2"
                   />
                   <span className="text-sm text-gray-700">Inactive</span>

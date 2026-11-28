@@ -352,22 +352,11 @@ export default function RepairmanMultiStepForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Initialize step from URL or storage
+  // Initialize step from the URL only, so the server and client render the same
+  // step during hydration. A step saved in sessionStorage is restored after mount.
   const [step, setStep] = useState(() => {
-    const urlStep = searchParams.get('step');
-    if (urlStep && !isNaN(parseInt(urlStep))) {
-      const parsedStep = parseInt(urlStep, 10);
-      if (parsedStep >= 1 && parsedStep <= 5) {
-        return parsedStep;
-      }
-    }
-
-    const savedStep = getFromStorage('step');
-    if (savedStep && savedStep >= 1 && savedStep <= 5) {
-      return savedStep;
-    }
-
-    return 1;
+    const parsedStep = parseInt(searchParams.get('step'), 10);
+    return parsedStep >= 1 && parsedStep <= 5 ? parsedStep : 1;
   });
 
   // Initialize form data from storage
@@ -488,14 +477,19 @@ export default function RepairmanMultiStepForm() {
     }
   }, [documentData]);
 
-  // Update URL on initial load if step is from storage
+  // After mount: restore the saved step when the URL has none, and keep URL in sync
   useEffect(() => {
-    const urlStep = searchParams.get('step');
-    if (!urlStep || parseInt(urlStep) !== step) {
-      const newUrl = new URL(window.location);
-      newUrl.searchParams.set('step', step.toString());
-      const pathname = newUrl.pathname.replace(/^\/(en|tr)(?=\/|$)/, "");
-      router.replace(pathname + newUrl.search, { scroll: false, locale });
+    const urlStep = parseInt(searchParams.get('step'), 10);
+    const hasValidUrlStep = urlStep >= 1 && urlStep <= 5;
+    const savedStep = Number(getFromStorage('step'));
+    const initialStep = hasValidUrlStep
+      ? urlStep
+      : savedStep >= 1 && savedStep <= 5
+        ? savedStep
+        : 1;
+
+    if (initialStep !== step || !hasValidUrlStep) {
+      updateStep(initialStep);
     }
   }, []);
 

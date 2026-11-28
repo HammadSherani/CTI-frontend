@@ -71,6 +71,13 @@ export const getFieldLabel = {
   shopPhoto: { label: "Shop Photo", type: "file" },
   utilityBillOrShopProof: { label: "Utility Bill / Shop Proof", type: "file" },
   certifications: { label: "Certifications", type: "file" },
+
+  // Bank details (stored at repairmanProfile.bankDetails.*)
+  "bankDetails.accountTitle": { label: "Account Title", type: "text" },
+  "bankDetails.accountNumber": { label: "Account Number", type: "text" },
+  "bankDetails.bankName": { label: "Bank Name", type: "text" },
+  "bankDetails.branchName": { label: "Branch Name", type: "text" },
+  "bankDetails.iban": { label: "IBAN", type: "text" },
 };
 
 

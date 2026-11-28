@@ -34,64 +34,72 @@ const calculateOfferPricing = (offer, job) => {
 // ── Guard: ek waqt mein sirf ek PDF generate ho ──
 let isGenerating = false;
  
-// Helper: image ko base64 mein convert karta hai
+// Helper: loads an image as a PNG data URL, with its size (to keep the aspect ratio in the PDF)
 const getBase64FromUrl = (url) => {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = 'anonymous';
     img.onload = () => {
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = img.naturalWidth || img.width;
+      canvas.height = img.naturalHeight || img.height;
       const ctx = canvas.getContext('2d');
       ctx.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL('image/png'));
+      resolve({ dataUrl: canvas.toDataURL('image/png'), width: canvas.width, height: canvas.height });
     };
     img.onerror = () => reject(new Error('Logo load failed'));
     img.src = url;
   });
 };
 // PDF Generator Function
-const generateInvoicePDF = (orderDetails, userData) => {
-   if (isGenerating) {
+const generateInvoicePDF = async (orderDetails, userData) => {
+  if (isGenerating) {
     console.warn('PDF already generating, please wait...');
-    return;
+    return null;
   }
   isGenerating = true;
-  
+  try {
+
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  
+
   // Colors
   const primaryColor = [234, 88, 12]; // Orange-600
   const grayColor = [107, 114, 128];
-  
-  // Header with Logo
+
+  // Writes text wrapped to `width` (long ids/emails never run off the page); returns the next y
+  const LINE = 5;
+  const writeWrapped = (text, x, y, width) => {
+    const lines = doc.splitTextToSize(String(text ?? ''), width);
+    doc.text(lines, x, y);
+    return y + lines.length * LINE;
+  };
+
+  // Header with Logo (white card fully inside the 40mm orange band)
   doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.rect(0, 0, pageWidth, 40, 'F');
-   const logoX = 8;
-    const logoY = 5;
-    const logoW = 35;
-    const logoH = 35;
+  const card = { x: 14, y: 7, w: 56, h: 26 };
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(card.x, card.y, card.w, card.h, 3, 3, 'F');
 
-    try {
-      const logoBase64 =  getBase64FromUrl('/assets/logo.png');
- 
-      // White rounded background behind logo for clean look
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(logoX - 2, logoY - 2, logoW + 4, logoH + 4, 4, 4, 'F');
- 
-      doc.addImage(logoBase64, 'PNG', logoX, logoY, logoW, logoH);
-    } catch (err) {
-      console.error('Logo failed:', err);
-      doc.setFillColor(255, 255, 255);
-      doc.roundedRect(logoX - 2, logoY - 2, logoW + 4, logoH + 4, 4, 4, 'F');
-      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      doc.text('LOGO', logoX + logoW / 2, logoY + logoH / 2 + 1, { align: 'center' });
-    }
+  try {
+    const logo = await getBase64FromUrl('/assets/logo.png');
+    // Fit inside the card with padding, keeping the logo's proportions
+    const pad = 3;
+    const maxW = card.w - pad * 2;
+    const maxH = card.h - pad * 2;
+    const scale = Math.min(maxW / logo.width, maxH / logo.height);
+    const w = logo.width * scale;
+    const h = logo.height * scale;
+    doc.addImage(logo.dataUrl, 'PNG', card.x + (card.w - w) / 2, card.y + (card.h - h) / 2, w, h);
+  } catch (err) {
+    console.error('Logo failed:', err);
+    doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.text('Click To Integrate', card.x + card.w / 2, card.y + card.h / 2 + 1.5, { align: 'center' });
+  }
 
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(24);
@@ -109,54 +117,72 @@ const generateInvoicePDF = (orderDetails, userData) => {
   doc.text('123 Service Street, Tech City', 20, 55);
   doc.text('support@quickrepair.com | +1 234 567 890', 20, 60);
   
-  // Invoice Details
+  // Invoice Details: labels at x=112, values wrapped into the space left before the margin
+  const labelX = 112;
+  const valueX = 144;
+  const valueW = pageWidth - 20 - valueX;
+  const details = [
+    ['Invoice Number:', `INV-${Date.now().toString().slice(-8)}`],
+    ['Invoice Date:', format(new Date(), 'dd MMM yyyy')],
+    ['Payment ID:', orderDetails.paymentId || 'N/A'],
+  ];
+  let detailsY = 50;
   doc.setFontSize(10);
-  doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
-  doc.text('Invoice Number:', 120, 50);
-  doc.text('Invoice Date:', 120, 55);
-  doc.text('Payment ID:', 120, 60);
-  
-  doc.setTextColor(0, 0, 0);
-  doc.setFont('helvetica', 'bold');
-  doc.text(`INV-${Date.now().toString().slice(-8)}`, 160, 50);
-  doc.text(format(new Date(), 'dd MMM yyyy'), 160, 55);
-  doc.text(orderDetails.paymentId || 'N/A', 160, 60);
-  
+  for (const [label, value] of details) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(grayColor[0], grayColor[1], grayColor[2]);
+    doc.text(label, labelX, detailsY);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    detailsY = writeWrapped(value, valueX, detailsY, valueW);
+  }
+  doc.setFont('helvetica', 'normal');
+
+  // Everything below moves down if a long value needed extra lines
+  const sepY = Math.max(70, detailsY + 5);
+  const shift = sepY - 70;
+
   // Line separator
   doc.setDrawColor(200, 200, 200);
-  doc.line(20, 70, pageWidth - 20, 70);
-  
+  doc.line(20, sepY, pageWidth - 20, sepY);
+
+  const colW = 85; // each party column, so long names/emails wrap instead of overlapping
+
   // Customer Details
   doc.setFontSize(12);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text('Bill To:', 20, 80);
-  
+  doc.text('Bill To:', 20, 80 + shift);
+
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
-  doc.text(userData?.name || 'Customer', 20, 87);
-  doc.text(userData?.email || 'N/A', 20, 92);
-  doc.text(userData?.phone || 'N/A', 20, 97);
-  
+  let billY = 87 + shift;
+  billY = writeWrapped(userData?.name || 'Customer', 20, billY, colW);
+  billY = writeWrapped(userData?.email || 'N/A', 20, billY, colW);
+  billY = writeWrapped(userData?.phone || 'N/A', 20, billY, colW);
+
   // Repairman Details
   doc.setFontSize(12);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text('Service Provider:', 120, 80);
-  
+  doc.text('Service Provider:', labelX, 80 + shift);
+
   doc.setFontSize(10);
   doc.setTextColor(0, 0, 0);
   doc.setFont('helvetica', 'normal');
-  doc.text(orderDetails.repairmanProfile?.name || 'Repairman', 120, 87);
-  doc.text(orderDetails.repairmanProfile?.shopName || 'N/A', 120, 92);
-  doc.text(orderDetails.repairmanProfile?.mobileNumber || 'N/A', 120, 97);
-  
-  // Service Details Table
+  const providerW = pageWidth - 20 - labelX;
+  let provY = 87 + shift;
+  provY = writeWrapped(orderDetails.repairmanProfile?.name || 'Repairman', labelX, provY, providerW);
+  provY = writeWrapped(orderDetails.repairmanProfile?.shopName || 'N/A', labelX, provY, providerW);
+  provY = writeWrapped(orderDetails.repairmanProfile?.mobileNumber || 'N/A', labelX, provY, providerW);
+
+  // Service Details Table (below whichever party column is longer)
+  const serviceTitleY = Math.max(115 + shift, Math.max(billY, provY) + 10);
   doc.setFontSize(12);
   doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
   doc.setFont('helvetica', 'bold');
-  doc.text('Service Details', 20, 115);
+  doc.text('Service Details', 20, serviceTitleY);
   
   // Service table data
   const serviceData = [
@@ -169,7 +195,7 @@ const generateInvoicePDF = (orderDetails, userData) => {
   ];
   
   autoTable(doc, {
-    startY: 120,
+    startY: serviceTitleY + 5,
     head: [['Description', 'Details']],
     body: serviceData,
     theme: 'striped',
@@ -243,6 +269,10 @@ const generateInvoicePDF = (orderDetails, userData) => {
   
   // Return the PDF as blob URL
   return doc.output('bloburl');
+  } finally {
+    // Always release the guard, otherwise every later download silently does nothing
+    isGenerating = false;
+  }
 };
 
 // Separate loading component
@@ -546,13 +576,14 @@ console.log("User Details in Order Confirmation", userDetails);
   }, [token, quotationId, jobId, fetchQuotationOrder, fetchOfferOrder]);
 
   // Handle PDF Download
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     if (!orderDetails) return;
-    
+
     setDownloading(true);
     try {
-      const pdfBlobUrl = generateInvoicePDF(orderDetails, userDetails);
-      
+      const pdfBlobUrl = await generateInvoicePDF(orderDetails, userDetails);
+      if (!pdfBlobUrl) return; // another download is still being generated
+
       // Create a link to download
       const link = document.createElement('a');
       link.href = pdfBlobUrl;
