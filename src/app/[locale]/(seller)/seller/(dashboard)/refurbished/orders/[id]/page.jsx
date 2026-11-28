@@ -3,6 +3,7 @@
 import { PackageSizePicker, CourierOffers } from "@/components/shipment/ShipmentPackage";
 import ShippingPaid, { shippingPaidBy, confirmSellerCancel } from "@/components/shipment/ShippingPaid";
 import ShippingPaymentModal from "@/components/shipment/ShippingPaymentModal";
+import ShippingPaymentReturn from "@/components/shipment/ShippingPaymentReturn";
 import { formatCurrency } from "@/helper/currencyFormatter";
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
@@ -210,7 +211,7 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
     }
   };
 
-  const handleCreate = async (offer, card) => {
+  const handleCreate = async (offer) => {
     if (!rateResult) { setError("Please fetch offers first"); return; }
     setCreating(true);
     setError("");
@@ -221,7 +222,6 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
           offerId: offer.offerId,
           shipmentId: rateResult.shipmentId,
           packageDetails: rateResult.packageDetails,
-          card: card || undefined,
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -237,6 +237,29 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
       if (err?.response?.status === 402) setPayOffer({ ...offer, payment: plan || offer.payment });
       setCreating(false);
     }
+  };
+
+  // Card part of the fee: iyzico's form (opened by the payment modal by itself).
+  // After paying, iyzico brings the seller back here and the courier is booked on the server.
+  const { locale: pageLocale } = useParams();
+  const startCardPayment = async (offer) => {
+    const { data } = await axiosInstance.post(
+      `/seller/refurbished-orders/${order._id}/shipping/pay`,
+      { offerId: offer.offerId, shipmentId: rateResult?.shipmentId, packageDetails: rateResult?.packageDetails, locale: pageLocale },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    const result = data?.data;
+    if (result?.noCardNeeded) {
+      // the wallet / earnings now cover it: no card needed
+      setPayOffer(null);
+      handleCreate(offer);
+      return null;
+    }
+    if (result?.alreadyPaid) {
+      window.location.assign(`${window.location.pathname}?shippingPayment=${result.checkoutId}`);
+      return null;
+    }
+    return result;
   };
 
   const inputCls = "w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 transition-colors bg-white";
@@ -332,7 +355,8 @@ function CreateShipmentSection({ order, token, onCancel, onSuccess }) {
           offer={payOffer}
           error={error}
           onClose={() => setPayOffer(null)}
-          onConfirm={(card) => { const offer = payOffer; setPayOffer(null); handleCreate(offer, card); }}
+          onConfirm={() => { const offer = payOffer; setPayOffer(null); handleCreate(offer); }}
+          startCardPayment={() => startCardPayment(payOffer)}
         />
       )}
 
@@ -494,6 +518,11 @@ export default function AdminRefurbishedOrderDetailPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen bg-[#F8FAFB]">
+      <ShippingPaymentReturn
+        token={token}
+        statusPath={(checkoutId) => `/seller/refurbished-orders/${id}/shipping/pay/${checkoutId}`}
+        onFinished={fetchOrder}
+      />
 
       {/* ── Header ── */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-start justify-between gap-4">

@@ -1,39 +1,47 @@
 'use client';
 
 // Confirms a seller's shipping fee: how much comes from this order's earnings, from the wallet
-// balance, and what is left to pay by card. The card is only sent with this request, never stored.
-import { useState } from 'react';
+// balance, and what is left to pay by card. The card part is paid in iyzico's secure form
+// (3D Secure), which opens here by itself; card details never reach our servers. After the
+// payment iyzico sends the seller back to the order page and the courier is booked.
+import { useEffect, useRef, useState } from 'react';
 import { Icon } from '@iconify/react';
+import IyzicoCheckoutForm from '@/components/payment/IyzicoCheckoutForm';
 
 const amount = (value) => `${Number(value || 0).toFixed(2)} TRY`;
-const inputCls = 'w-full px-3 py-2.5 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-primary-400 bg-white';
 
-export default function ShippingPaymentModal({ offer, error, onClose, onConfirm }) {
-  const [card, setCard] = useState({ cardHolder: '', cardNumber: '', expiry: '', cvc: '' });
-  const [problem, setProblem] = useState('');
+/**
+ * startCardPayment(): opens the iyzico form for the card part and resolves to
+ * { checkoutFormContent } (or null when the page took over, e.g. no card needed any more).
+ */
+export default function ShippingPaymentModal({ offer, error, onClose, onConfirm, startCardPayment }) {
   const payment = offer.payment || { fee: offer.cost, fromOrder: 0, fromBalance: 0, byCard: 0 };
   const needsCard = payment.byCard > 0;
+  const [formContent, setFormContent] = useState(null);
+  const [loadingForm, setLoadingForm] = useState(false);
+  const [problem, setProblem] = useState('');
+  const started = useRef(false);
 
-  const change = (e) => {
-    let { name, value } = e.target;
-    if (name === 'cardNumber') value = value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim();
-    if (name === 'expiry') value = value.replace(/\D/g, '').slice(0, 4).replace(/^(\d{2})(?=\d)/, '$1/');
-    if (name === 'cvc') value = value.replace(/\D/g, '').slice(0, 4);
-    setCard((current) => ({ ...current, [name]: value }));
+  const loadForm = async () => {
+    setLoadingForm(true);
     setProblem('');
+    try {
+      const result = await startCardPayment();
+      if (result?.checkoutFormContent) setFormContent(result.checkoutFormContent);
+    } catch (err) {
+      setProblem(err?.response?.data?.message || 'The secure payment form could not be loaded.');
+    } finally {
+      setLoadingForm(false);
+    }
   };
 
-  const submit = (e) => {
-    e.preventDefault();
-    if (!needsCard) return onConfirm(null);
-    const number = card.cardNumber.replace(/\s/g, '');
-    const [month, year] = card.expiry.split('/');
-    if (!card.cardHolder.trim()) return setProblem('Enter the name on the card');
-    if (number.length < 15) return setProblem('Enter the full card number');
-    if (!(Number(month) >= 1 && Number(month) <= 12) || year?.length !== 2) return setProblem('Enter the expiry date as MM/YY');
-    if (card.cvc.length < 3) return setProblem('Enter the CVC');
-    return onConfirm({ cardHolder: card.cardHolder.trim(), cardNumber: number, expireMonth: month, expireYear: `20${year}`, cvc: card.cvc });
-  };
+  // the form opens by itself (once, also in React's dev double-run)
+  useEffect(() => {
+    if (!needsCard || started.current) return;
+    started.current = true;
+    loadForm();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [needsCard]);
 
   const rows = [
     ['From this order’s earnings', payment.fromOrder],
@@ -43,7 +51,7 @@ export default function ShippingPaymentModal({ offer, error, onClose, onConfirm 
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <form onSubmit={submit} className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-gray-900 flex items-center gap-2">
             <Icon icon="mdi:truck-fast-outline" className="w-5 h-5 text-primary-600" /> Shipping Payment
@@ -71,23 +79,34 @@ export default function ShippingPaymentModal({ offer, error, onClose, onConfirm 
           </p>
         )}
 
-        {needsCard && (
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <input name="cardHolder" value={card.cardHolder} onChange={change} placeholder="Name on card" autoComplete="cc-name" className={`${inputCls} col-span-2`} />
-            <input name="cardNumber" value={card.cardNumber} onChange={change} placeholder="Card number" inputMode="numeric" autoComplete="cc-number" className={`${inputCls} col-span-2`} />
-            <input name="expiry" value={card.expiry} onChange={change} placeholder="MM/YY" inputMode="numeric" autoComplete="cc-exp" className={inputCls} />
-            <input name="cvc" value={card.cvc} onChange={change} placeholder="CVC" inputMode="numeric" autoComplete="cc-csc" className={inputCls} />
-          </div>
-        )}
-
         {(problem || error) && (
           <p className="bg-red-50 border border-red-100 rounded-xl px-3 py-2.5 mb-4 text-xs font-semibold text-red-700">{problem || error}</p>
         )}
 
-        <button type="submit" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl text-sm">
-          {needsCard ? `Pay ${amount(payment.byCard)} & Create Shipment` : 'Confirm & Create Shipment'}
-        </button>
-      </form>
+        {needsCard ? (
+          formContent ? (
+            <>
+              <p className="text-xs text-gray-500 mb-2">
+                Pay {amount(payment.byCard)} by card. The shipment is created right after the payment.
+              </p>
+              <IyzicoCheckoutForm content={formContent} />
+            </>
+          ) : loadingForm ? (
+            <div className="flex items-center justify-center gap-3 rounded-xl border border-gray-200 bg-gray-50 p-8 text-sm text-gray-600">
+              <Icon icon="mdi:loading" className="animate-spin text-xl text-primary-500" />
+              Loading the secure payment form…
+            </div>
+          ) : (
+            <button type="button" onClick={loadForm} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl text-sm">
+              Load the payment form again
+            </button>
+          )
+        ) : (
+          <button type="button" onClick={() => onConfirm(null)} className="w-full bg-primary-600 hover:bg-primary-700 text-white font-bold py-3 rounded-xl text-sm">
+            Confirm & Create Shipment
+          </button>
+        )}
+      </div>
     </div>
   );
 }
